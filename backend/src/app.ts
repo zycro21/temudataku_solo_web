@@ -1,10 +1,18 @@
-// src/app.ts
 import express, { Application } from "express";
+import cookieParser from "cookie-parser";
 import { PrismaClient } from "@prisma/client";
 import { errorHandler } from "./middlewares/errorHandler";
 import { notFound } from "./middlewares/notFound";
+import path from "path";
 import cors from "cors";
 import { corsOptions } from "./configs/corsConfig";
+import authRoutes from "./routes/auth.route";
+import userRoutes from "./routes/user.route";
+import './schedulers/cron';
+
+// Mendapatkan direktori saat ini
+const __filename = new URL(import.meta.url).pathname;
+const __dirname = path.dirname(__filename);
 
 const app: Application = express();
 
@@ -13,6 +21,8 @@ const prisma = new PrismaClient();
 
 // Middleware
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // Parsing data URL-encode
+app.use(cookieParser());
 app.use(cors(corsOptions));
 
 // Testing
@@ -20,9 +30,13 @@ app.get("/", (req, res) => {
   res.send("Hello, This is API");
 });
 
-// Tambahkan route lainnya sesuai kebutuhan
-// Contoh route
+// Another Route
+app.use("/api/auth", authRoutes);
+app.use("/api/user", userRoutes);
 
+// Path Static untuk Images
+// Perbaikan di sini, mengganti __dirname dengan yang benar menggunakan import.meta.url
+app.use("/images", express.static(path.join(__dirname, "../images")));
 
 // Handler setelah semua route
 app.use(errorHandler);

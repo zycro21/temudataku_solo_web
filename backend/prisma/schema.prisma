@@ -8,308 +8,400 @@ datasource db {
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model bookings {
-  id                 Int                @id
-  mentee_id          Int
-  session_id         Int
-  booking_date       DateTime?          @default(now()) @db.Timestamp(6)
-  status             String?            @db.VarChar
-  special_requests   String?
-  created_at         DateTime?          @default(now()) @db.Timestamp(6)
-  updated_at         DateTime?          @db.Timestamp(6)
-  users              users              @relation(fields: [mentee_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  mentoring_sessions mentoring_sessions @relation(fields: [session_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  payments           payments[]
+model Booking {
+  id               String           @id @default(cuid())
+  menteeId         String
+  sessionId        String
+  referralUsageId  String?          @unique
+  bookingDate      DateTime?        @default(now())
+  status           String?          @db.VarChar
+  specialRequests  String?
+  createdAt        DateTime?        @default(now())
+  updatedAt        DateTime?
+
+  mentee           User             @relation(fields: [menteeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  session          MentoringSession @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  referralUsage    ReferralUsage?   @relation("ReferralUsageBooking", fields: [referralUsageId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  payment          Payment?         
+
+  @@map("bookings")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model certificates {
-  id                 Int                @id
-  mentee_id          Int
-  service_id         Int
-  certificate_number String             @unique @db.VarChar
-  issue_date         DateTime?          @default(now()) @db.Timestamp(6)
-  certificate_path   String?            @db.VarChar
-  projects_data      Json?              @db.Json
-  status             String?            @db.VarChar
-  created_at         DateTime?          @default(now()) @db.Timestamp(6)
-  updated_at         DateTime?          @db.Timestamp(6)
-  users              users              @relation(fields: [mentee_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  mentoring_services mentoring_services @relation(fields: [service_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+model Certificate {
+  id                String            @id @default(cuid())
+  menteeId          String            @map("mentee_id")
+  serviceId         String            @map("service_id")
+  certificateNumber String            @unique @db.VarChar @map("certificate_number")
+  issueDate         DateTime?         @default(now()) @db.Timestamp(6) @map("issue_date")
+  certificatePath   String?           @db.VarChar @map("certificate_path")
+  projectsData      Json?             @db.Json @map("projects_data")
+  status            String?           @db.VarChar
+  createdAt         DateTime?         @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt         DateTime?         @db.Timestamp(6) @map("updated_at")
+
+  user              User              @relation(fields: [menteeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  mentoringService  MentoringService  @relation(fields: [serviceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("certificates")
 }
 
-model feedback {
-  id                 Int                @id
-  session_id         Int
-  user_id            Int
-  rating             Int
-  comment            String?
-  submitted_date     DateTime?          @default(now()) @db.Timestamp(6)
-  created_at         DateTime?          @default(now()) @db.Timestamp(6)
-  mentoring_sessions mentoring_sessions @relation(fields: [session_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users              users              @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+model ExportLog {
+  id         String    @id @default(cuid())
+  entity     String    @db.VarChar     // contoh: "users", "projects", "certificates"
+  type       String    @db.VarChar     // "all" atau "filter"
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@map("export_logs")
 }
 
-model mentor_profiles {
-  id                    Int                  @id
-  user_id               Int                  @unique
-  expertise             String?
-  bio                   String?
-  experience            String?
-  availability_schedule Json?                @db.Json
-  hourly_rate           Decimal?             @db.Decimal
-  is_verified           Boolean?             @default(false)
-  created_at            DateTime?            @default(now()) @db.Timestamp(6)
-  updated_at            DateTime?            @db.Timestamp(6)
-  users                 users                @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  mentoring_services    mentoring_services[]
-  practices             practices[]
+model Feedback {
+  id               String            @id @default(cuid())
+  sessionId        String            @map("session_id")
+  userId           String            @map("user_id")
+  rating           Int
+  comment          String?
+  submittedDate    DateTime?         @default(now()) @db.Timestamp(6) @map("submitted_date")
+  createdAt        DateTime?         @default(now()) @db.Timestamp(6) @map("created_at")
+
+  session          MentoringSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("feedback")
+}
+
+model MentorProfile {
+  id                   String             @id @default(cuid())
+  userId               String             @unique @map("user_id")
+  expertise            String?
+  bio                  String?
+  experience           String?
+  availabilitySchedule Json?              @db.Json @map("availability_schedule")
+  hourlyRate           Decimal?           @db.Decimal @map("hourly_rate")
+  isVerified           Boolean?           @default(false) @map("is_verified")
+  createdAt            DateTime?          @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt            DateTime?          @db.Timestamp(6) @map("updated_at")
+
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  mentoringServices    MentoringService[]
+  practices            Practice[]
+
+  @@map("mentor_profiles")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model mentoring_services {
-  id                 Int                  @id
-  mentor_id          Int
-  service_name       String               @db.VarChar
+model MentoringService {
+  id                 String              @id @default(cuid())
+  mentorId           String              @map("mentor_id")
+  serviceName        String              @db.VarChar @map("service_name")
   description        String?
-  price              Decimal              @db.Decimal
-  service_type       String?              @db.VarChar
-  max_participants   Int?
-  duration_days      Int
-  is_active          Boolean?             @default(true)
-  created_at         DateTime?            @default(now()) @db.Timestamp(6)
-  updated_at         DateTime?            @db.Timestamp(6)
-  certificates       certificates[]
-  mentor_profiles    mentor_profiles      @relation(fields: [mentor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  mentoring_sessions mentoring_sessions[]
+  price              Decimal             @db.Decimal
+  serviceType        String?             @db.VarChar @map("service_type")
+  maxParticipants    Int?                @map("max_participants")
+  durationDays       Int                 @map("duration_days")
+  isActive           Boolean?            @default(true) @map("is_active")
+  createdAt          DateTime?           @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt          DateTime?           @db.Timestamp(6) @map("updated_at")
+
+  certificates       Certificate[]
+  mentorProfile      MentorProfile       @relation(fields: [mentorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  mentoringSessions  MentoringSession[]
+
+  @@map("mentoring_services")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model mentoring_sessions {
-  id                 Int                @id
-  service_id         Int
-  start_time         DateTime           @db.Timestamp(6)
-  end_time           DateTime           @db.Timestamp(6)
-  duration_minutes   Int
-  meeting_link       String?            @db.VarChar
-  status             String?            @db.VarChar
+model MentoringSession {
+  id                 String              @id @default(cuid())
+  serviceId          String              @map("service_id")
+  startTime          DateTime            @db.Timestamp(6) @map("start_time")
+  endTime            DateTime            @db.Timestamp(6) @map("end_time")
+  durationMinutes    Int                 @map("duration_minutes")
+  meetingLink        String?             @db.VarChar @map("meeting_link")
+  status             String?             @db.VarChar
   notes              String?
-  created_at         DateTime?          @default(now()) @db.Timestamp(6)
-  updated_at         DateTime?          @db.Timestamp(6)
-  bookings           bookings[]
-  feedback           feedback[]
-  mentoring_services mentoring_services @relation(fields: [service_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  projects           projects[]
+  createdAt          DateTime?           @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt          DateTime?           @db.Timestamp(6) @map("updated_at")
+
+  bookings           Booking[]
+  feedbacks          Feedback[]
+  mentoringService   MentoringService    @relation(fields: [serviceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  projects           Project[]
+
+  @@map("mentoring_sessions")
 }
 
-model notifications {
-  id           Int       @id
-  user_id      Int
+model Notification {
+  id           String    @id @default(cuid())
+  userId       String    @map("user_id")
   type         String    @db.VarChar
   title        String    @db.VarChar
   message      String?
-  is_read      Boolean?  @default(false)
-  created_date DateTime? @default(now()) @db.Timestamp(6)
-  created_at   DateTime? @default(now()) @db.Timestamp(6)
-  users        users     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  isRead       Boolean?  @default(false) @map("is_read")
+  createdDate  DateTime? @default(now()) @db.Timestamp(6) @map("created_date")
+  createdAt    DateTime? @default(now()) @db.Timestamp(6) @map("created_at")
+
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("notifications")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model payments {
-  id                 Int                  @id
-  booking_id         Int
-  amount             Decimal              @db.Decimal
-  payment_date       DateTime?            @db.Timestamp(6)
-  payment_method     String?              @db.VarChar
-  transaction_id     String?              @db.VarChar
-  status             String?              @db.VarChar
-  created_at         DateTime?            @default(now()) @db.Timestamp(6)
-  updated_at         DateTime?            @db.Timestamp(6)
-  bookings           bookings             @relation(fields: [booking_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  practice_purchases practice_purchases[]
+model Payment {
+  id                String              @id @default(cuid())
+  bookingId         String              @unique @map("booking_id")
+  amount            Decimal             @db.Decimal
+  paymentDate       DateTime?           @db.Timestamp(6) @map("payment_date")
+  paymentMethod     String?             @db.VarChar @map("payment_method")
+  transactionId     String?             @db.VarChar @map("transaction_id")
+  status            String?             @db.VarChar
+  createdAt         DateTime?           @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt         DateTime?           @db.Timestamp(6) @map("updated_at")
+
+  booking           Booking             @relation(fields: [bookingId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  practicePurchases PracticePurchase[]
+
+  @@map("payments")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model practice_files {
-  id                 Int                @id
-  material_id        Int
-  file_name          String             @db.VarChar
-  file_path          String             @db.VarChar
-  file_type          String             @db.VarChar
-  file_size          Int?
-  order_number       Int
-  created_at         DateTime?          @default(now()) @db.Timestamp(6)
-  updated_at         DateTime?          @db.Timestamp(6)
-  practice_materials practice_materials @relation(fields: [material_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+model PracticeFile {
+  id              String             @id @default(cuid())
+  materialId      String             @map("material_id")
+  fileName        String             @db.VarChar @map("file_name")
+  filePath        String             @db.VarChar @map("file_path")
+  fileType        String             @db.VarChar @map("file_type")
+  fileSize        Int?               @map("file_size")
+  orderNumber     Int               @map("order_number")
+  createdAt       DateTime?          @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt       DateTime?          @db.Timestamp(6) @map("updated_at")
+
+  practiceMaterial PracticeMaterial  @relation(fields: [materialId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("practice_files")
 }
 
-model practice_materials {
-  id                Int                 @id
-  practice_id       Int
+model PracticeMaterial {
+  id                String              @id @default(cuid())
+  practiceId        String              @map("practice_id")
   title             String              @db.VarChar
   description       String?
-  order_number      Int
-  created_at        DateTime?           @default(now()) @db.Timestamp(6)
-  updated_at        DateTime?           @db.Timestamp(6)
-  practice_files    practice_files[]
-  practices         practices           @relation(fields: [practice_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  practice_progress practice_progress[]
+  orderNumber       Int                 @map("order_number")
+  createdAt         DateTime?           @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt         DateTime?           @db.Timestamp(6) @map("updated_at")
+
+  practiceFiles     PracticeFile[]
+  practice          Practice            @relation(fields: [practiceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  practiceProgress  PracticeProgress[]
+
+  @@map("practice_materials")
 }
 
-model practice_progress {
-  id                 Int                @id
-  user_id            Int
-  practice_id        Int
-  material_id        Int
-  is_completed       Boolean?           @default(false)
-  last_accessed      DateTime?          @db.Timestamp(6)
-  time_spent_seconds Int?               @default(0)
-  created_at         DateTime?          @default(now()) @db.Timestamp(6)
-  updated_at         DateTime?          @db.Timestamp(6)
-  practice_materials practice_materials @relation(fields: [material_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  practices          practices          @relation(fields: [practice_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users              users              @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
+model PracticeProgress {
+  id                String             @id @default(cuid())
+  userId            String             @map("user_id")
+  practiceId        String             @map("practice_id")
+  materialId        String             @map("material_id")
+  isCompleted       Boolean?           @default(false) @map("is_completed")
+  lastAccessed      DateTime?          @db.Timestamp(6) @map("last_accessed")
+  timeSpentSeconds  Int?               @default(0) @map("time_spent_seconds")
+  createdAt         DateTime?          @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt         DateTime?          @db.Timestamp(6) @map("updated_at")
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model practice_purchases {
-  id               Int             @id
-  user_id          Int
-  practice_id      Int
-  purchase_date    DateTime?       @default(now()) @db.Timestamp(6)
-  status           String?         @db.VarChar
-  payment_id       Int?
-  referral_code_id Int?
-  created_at       DateTime?       @default(now()) @db.Timestamp(6)
-  updated_at       DateTime?       @db.Timestamp(6)
-  payments         payments?       @relation(fields: [payment_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  practices        practices       @relation(fields: [practice_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  referral_codes   referral_codes? @relation(fields: [referral_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users            users           @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
+  practiceMaterial  PracticeMaterial   @relation(fields: [materialId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  practice          Practice           @relation(fields: [practiceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-model practice_reviews {
-  id             Int       @id
-  user_id        Int
-  practice_id    Int
-  rating         Int
-  comment        String?
-  submitted_date DateTime? @default(now()) @db.Timestamp(6)
-  created_at     DateTime? @default(now()) @db.Timestamp(6)
-  updated_at     DateTime? @db.Timestamp(6)
-  practices      practices @relation(fields: [practice_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users          users     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  @@map("practice_progress")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model practices {
-  id                 Int                  @id
-  mentor_id          Int
-  title              String               @db.VarChar
-  description        String?
-  thumbnail_image    String?              @db.VarChar
-  price              Decimal              @db.Decimal
-  practice_type      String?              @db.VarChar
-  category           String?              @db.VarChar
-  tags               Json?                @db.Json
-  is_active          Boolean?             @default(true)
-  created_at         DateTime?            @default(now()) @db.Timestamp(6)
-  updated_at         DateTime?            @db.Timestamp(6)
-  practice_materials practice_materials[]
-  practice_progress  practice_progress[]
-  practice_purchases practice_purchases[]
-  practice_reviews   practice_reviews[]
-  mentor_profiles    mentor_profiles      @relation(fields: [mentor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+model PracticePurchase {
+  id               String           @id @default(cuid())
+  userId           String
+  practiceId       String
+  paymentId        String?
+  referralUsageId  String?          @unique
+  purchaseDate     DateTime?        @default(now())
+  status           String?          @db.VarChar
+  createdAt        DateTime?        @default(now())
+  updatedAt        DateTime?
+
+  user             User             @relation(fields: [userId], references: [id])
+  practice         Practice         @relation(fields: [practiceId], references: [id])
+  payment          Payment?         @relation(fields: [paymentId], references: [id])
+  referralUsage    ReferralUsage?   @relation("ReferralUsagePracticePurchase", fields: [referralUsageId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("practice_purchases")
 }
 
-model projects {
-  id                 Int                @id
-  mentee_id          Int
-  session_id         Int
-  title              String             @db.VarChar
-  description        String?
-  file_path          String?            @db.VarChar
-  submission_date    DateTime?          @default(now()) @db.Timestamp(6)
-  plagiarism_score   Decimal?           @db.Decimal
-  nilai              Decimal?           @db.Decimal
-  created_at         DateTime?          @default(now()) @db.Timestamp(6)
-  updated_at         DateTime?          @db.Timestamp(6)
-  users              users              @relation(fields: [mentee_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  mentoring_sessions mentoring_sessions @relation(fields: [session_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+model PracticeReview {
+  id              String    @id @default(cuid())
+  userId          String    @map("user_id")
+  practiceId      String    @map("practice_id")
+  rating          Int
+  comment         String?
+  submittedDate   DateTime? @default(now()) @db.Timestamp(6) @map("submitted_date")
+  createdAt       DateTime? @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt       DateTime? @db.Timestamp(6) @map("updated_at")
+
+  practice        Practice  @relation(fields: [practiceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("practice_reviews")
 }
 
-model referral_codes {
-  id                    Int                  @id
-  owner_id              Int
-  code                  String               @unique @db.VarChar
-  discount_percentage   Decimal              @db.Decimal
-  commission_percentage Decimal              @db.Decimal
-  created_date          DateTime?            @default(now()) @db.Timestamp(6)
-  expiry_date           DateTime?            @db.Timestamp(6)
-  is_active             Boolean?             @default(true)
-  created_at            DateTime?            @default(now()) @db.Timestamp(6)
-  updated_at            DateTime?            @db.Timestamp(6)
-  practice_purchases    practice_purchases[]
-  users                 users                @relation(fields: [owner_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model Practice {
+  id                String              @id @default(cuid())
+  mentorId          String              @map("mentor_id")
+  title             String              @db.VarChar
+  description       String?
+  thumbnailImage    String?             @db.VarChar @map("thumbnail_image")
+  price             Decimal             @db.Decimal
+  practiceType      String?             @db.VarChar @map("practice_type")
+  category          String?             @db.VarChar
+  tags              Json?               @db.Json
+  isActive          Boolean?            @default(true) @map("is_active")
+  createdAt         DateTime?           @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt         DateTime?           @db.Timestamp(6) @map("updated_at")
+
+  practiceMaterials PracticeMaterial[]
+  practiceProgress  PracticeProgress[]
+  practicePurchases PracticePurchase[]
+  practiceReviews   PracticeReview[]
+  mentorProfile     MentorProfile       @relation(fields: [mentorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("practices")
 }
 
-model roles {
-  id          Int          @id
-  role_name   String       @unique @db.VarChar
+model Project {
+  id               String             @id @default(cuid())
+  menteeId         String             @map("mentee_id")
+  sessionId        String             @map("session_id")
+  title            String             @db.VarChar
+  description      String?
+  filePath         String?            @db.VarChar @map("file_path")
+  submissionDate   DateTime?          @default(now()) @db.Timestamp(6) @map("submission_date")
+  plagiarismScore  Decimal?           @db.Decimal @map("plagiarism_score")
+  nilai            Decimal?           @db.Decimal
+  createdAt        DateTime?          @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt        DateTime?          @db.Timestamp(6) @map("updated_at")
+
+  user             User               @relation(fields: [menteeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  session          MentoringSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("projects")
+}
+
+model ReferralCode {
+  id                    String           @id @default(cuid())
+  ownerId               String
+  code                  String           @unique
+  discountPercentage    Decimal
+  commissionPercentage  Decimal
+  createdDate           DateTime?        @default(now())
+  expiryDate            DateTime?
+  isActive              Boolean?         @default(true)
+  createdAt             DateTime?        @default(now())
+  updatedAt             DateTime?
+
+  owner                 User             @relation(fields: [ownerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  usages                ReferralUsage[]
+
+  @@map("referral_codes")
+}
+
+model ReferralUsage {
+  id               String            @id @default(cuid())
+  userId           String
+  referralCodeId   String
+  usedAt           DateTime          @default(now())
+  context          String            @db.VarChar
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime?
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  referralCode     ReferralCode      @relation(fields: [referralCodeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  
+  booking          Booking?          @relation("ReferralUsageBooking")
+  practicePurchase PracticePurchase? @relation("ReferralUsagePracticePurchase")
+
+  @@map("referral_usages")
+}
+
+model Role {
+  id          String       @id @default(cuid())
+  roleName    String       @unique @db.VarChar @map("role_name")
   description String?
-  created_at  DateTime?    @default(now()) @db.Timestamp(6)
-  user_roles  user_roles[]
+  createdAt   DateTime?    @default(now()) @db.Timestamp(6) @map("created_at")
+
+  userRoles   UserRole[]
+
+  @@map("roles")
 }
 
-model user_behavior {
-  id           Int       @id
-  user_id      Int?
-  page_visited String    @db.VarChar
-  action       String?   @db.VarChar
-  timestamp    DateTime? @default(now()) @db.Timestamp(6)
-  ip_address   String?   @db.VarChar
-  user_agent   String?   @db.VarChar
-  created_at   DateTime? @default(now()) @db.Timestamp(6)
-  users        users?    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+model UserBehavior {
+  id          String     @id @default(cuid())
+  userId      String?    @map("user_id")
+  pageVisited String     @db.VarChar @map("page_visited")
+  action      String?    @db.VarChar
+  timestamp   DateTime?  @default(now()) @db.Timestamp(6)
+  ipAddress   String?    @db.VarChar @map("ip_address")
+  userAgent   String?    @db.VarChar @map("user_agent")
+  createdAt   DateTime?  @default(now()) @db.Timestamp(6) @map("created_at")
+
+  user        User?      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("user_behavior")
 }
 
-model user_roles {
-  id            Int       @id
-  user_id       Int
-  role_id       Int
-  assigned_date DateTime? @default(now()) @db.Timestamp(6)
-  created_at    DateTime? @default(now()) @db.Timestamp(6)
-  roles         roles     @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users         users     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+model UserRole {
+  id            String     @id @default(cuid())
+  userId        String     @map("user_id")
+  roleId        String     @map("role_id")
+  assignedDate  DateTime?  @default(now()) @db.Timestamp(6) @map("assigned_date")
+  createdAt     DateTime?  @default(now()) @db.Timestamp(6) @map("created_at")
+
+  role          Role       @relation(fields: [roleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("user_roles")
 }
 
-model users {
-  id                         Int                  @id
-  email                      String               @unique @db.VarChar
-  password_hash              String               @db.VarChar
-  full_name                  String               @db.VarChar
-  phone_number               String?              @db.VarChar
-  profile_picture            String?              @db.VarChar
-  city                       String?              @db.VarChar
-  province                   String?              @db.VarChar
-  is_email_verified          Boolean?             @default(false)
-  verification_token         String?              @db.VarChar
-  verification_token_expires DateTime?            @db.Timestamp(6)
-  registration_date          DateTime?            @default(now()) @db.Timestamp(6)
-  last_login                 DateTime?            @db.Timestamp(6)
-  is_active                  Boolean?             @default(true)
-  created_at                 DateTime?            @default(now()) @db.Timestamp(6)
-  updated_at                 DateTime?            @db.Timestamp(6)
-  bookings                   bookings[]
-  certificates               certificates[]
-  feedback                   feedback[]
-  mentor_profiles            mentor_profiles?
-  notifications              notifications[]
-  practice_progress          practice_progress[]
-  practice_purchases         practice_purchases[]
-  practice_reviews           practice_reviews[]
-  projects                   projects[]
-  referral_codes             referral_codes[]
-  user_behavior              user_behavior[]
-  user_roles                 user_roles[]
+model User {
+  id                         String              @id @default(cuid())
+  email                      String              @unique @db.VarChar
+  passwordHash               String              @db.VarChar @map("password_hash")
+  fullName                   String              @db.VarChar @map("full_name")
+  phoneNumber                String?             @db.VarChar @map("phone_number")
+  profilePicture             String?             @db.VarChar @map("profile_picture")
+  city                       String?             @db.VarChar
+  province                   String?             @db.VarChar
+  isEmailVerified            Boolean?            @default(false) @map("is_email_verified")
+  verificationToken          String?             @db.VarChar @map("verification_token")
+  verificationTokenExpires   DateTime?           @db.Timestamp(6) @map("verification_token_expires")
+  registrationDate           DateTime?           @default(now()) @db.Timestamp(6) @map("registration_date")
+  lastLogin                  DateTime?           @db.Timestamp(6) @map("last_login")
+  isActive                   Boolean?            @default(true) @map("is_active")
+  createdAt                  DateTime?           @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt                  DateTime?           @db.Timestamp(6) @map("updated_at")
+
+  bookings                   Booking[]
+  certificates               Certificate[]
+  feedback                   Feedback[]
+  mentorProfile              MentorProfile?      
+  notifications              Notification[]
+  practiceProgress           PracticeProgress[]
+  practicePurchases          PracticePurchase[]
+  practiceReviews            PracticeReview[]
+  projects                   Project[]
+  referralCodes              ReferralCode[]
+  referralUsages             ReferralUsage[]
+  userBehavior               UserBehavior[]
+  userRoles                  UserRole[]
+
+  @@map("users")
 }

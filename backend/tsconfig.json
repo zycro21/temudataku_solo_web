@@ -1,15 +1,18 @@
 {
   "compilerOptions": {
-    "target": "es2020", // Target JavaScript modern
-    "module": "commonjs", // Modul Node.js
-    "rootDir": "./src", // Folder source code TypeScript
-    "outDir": "./dist", // Output hasil kompilasi
-    "strict": true, // Nyalakan pengecekan ketat
-    "esModuleInterop": true, // Agar bisa import default module CommonJS
-    "forceConsistentCasingInFileNames": true, // Konsistensi nama file
-    "skipLibCheck": true, // Skip cek *.d.ts dari lib (lebih cepat)
-    "resolveJsonModule": true // Bisa import .json
+    "target": "es2020", // Target modern JS
+    "module": "ESNext", // Support native import/export
+    "moduleResolution": "node", // Resolusi module seperti di Node.js
+    "rootDir": "./src", // Folder source code
+    "outDir": "./dist", // Folder output hasil kompilasi
+    "strict": true, // Aktifkan strict type checking
+    "esModuleInterop": true, // Interop CJS ke ESM
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true, // Biar bisa import default dari CJS
+    "types": ["node"]
   },
-  "include": ["src"], // Folder yang dikompilasi
-  "exclude": ["node_modules", "dist"] // Folder yang diabaikan
+  "include": ["src", "prisma"],
+  "exclude": ["node_modules", "dist"]
 }
