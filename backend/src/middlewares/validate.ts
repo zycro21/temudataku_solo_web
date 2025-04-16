@@ -95,16 +95,18 @@ export const validate =
     }
 
     // Overwrite hanya jika ada di schema
-    if (hasBody) req.body = result.data.body;
+    if (hasBody) {
+      req.body = result.data.body;
+      (req as any).validatedBody = result.data.body;
+    }
     if (hasParams) {
       (req as any).validatedParams = result.data.params;
     }
     if (hasQuery) {
-      // karena req.query adalah getter-only (read-only), tidak bisa di-assign langsung
-      // jadi kita salin ke req object lain, misal: req.validatedQuery
       (req as any).validatedQuery = result.data.query;
-    } else {
-      req.body = result.data; // fallback untuk schema biasa
+    }
+    if (!hasBody && !hasParams && !hasQuery) {
+      req.body = result.data; // fallback hanya kalau memang bukan objek berisi { body, query, params }
     }
 
     next();

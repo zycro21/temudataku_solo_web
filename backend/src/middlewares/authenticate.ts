@@ -9,16 +9,23 @@ export interface AuthenticatedRequest extends Request {
   validatedQuery?: {
     page: string;
     limit: string;
+    search?: string;
     email?: string;
     fullName?: string;
     city?: string;
     province?: string;
     isActive?: string;
+    expertise?: string;
+    availabilityDay?: string;
     sort_by?: string;
     order?: string;
   };
   validatedParams?: {
     id: string;
+    userId: string;
+  };
+  validatedBody?: {
+    isVerified: boolean;
   };
 }
 
