@@ -88,19 +88,19 @@ model Feedback {
 }
 
 model MentorProfile {
-  id                   String             @id @default(cuid())
-  userId               String             @unique @map("user_id")
+  id                   String                  @id @default(cuid())
+  userId               String                  @unique @map("user_id")
   expertise            String?
   bio                  String?
   experience           String?
-  availabilitySchedule Json?              @db.JsonB @map("availability_schedule")
-  hourlyRate           Decimal?           @db.Decimal @map("hourly_rate")
-  isVerified           Boolean?           @default(false) @map("is_verified")
-  createdAt            DateTime?          @default(now()) @db.Timestamp(6) @map("created_at")
-  updatedAt            DateTime?          @db.Timestamp(6) @map("updated_at")
+  availabilitySchedule Json?                   @db.JsonB @map("availability_schedule")
+  hourlyRate           Decimal?                @db.Decimal @map("hourly_rate")
+  isVerified           Boolean?                @default(false) @map("is_verified")
+  createdAt            DateTime?               @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt            DateTime?               @db.Timestamp(6) @map("updated_at")
 
-  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  mentoringServices    MentoringService[]
+  user                 User                    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  mentoringServices    MentoringServiceMentor[]
   practices            Practice[]
 
   @@map("mentor_profiles")
@@ -109,7 +109,6 @@ model MentorProfile {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model MentoringService {
   id                 String              @id @default(cuid())
-  mentorId           String              @map("mentor_id")
   serviceName        String              @db.VarChar @map("service_name")
   description        String?
   price              Decimal             @db.Decimal
@@ -121,10 +120,22 @@ model MentoringService {
   updatedAt          DateTime?           @db.Timestamp(6) @map("updated_at")
 
   certificates       Certificate[]
-  mentorProfile      MentorProfile       @relation(fields: [mentorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  mentors            MentoringServiceMentor[]
   mentoringSessions  MentoringSession[]
 
   @@map("mentoring_services")
+}
+
+model MentoringServiceMentor {
+  id                 String         @id @default(cuid())
+  mentoringServiceId String         @map("mentoring_service_id")
+  mentorProfileId    String         @map("mentor_profile_id")
+
+  mentoringService   MentoringService @relation(fields: [mentoringServiceId], references: [id], onDelete: Cascade)
+  mentorProfile      MentorProfile    @relation(fields: [mentorProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([mentoringServiceId, mentorProfileId])
+  @@map("mentoring_service_mentors")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments

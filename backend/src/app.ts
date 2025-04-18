@@ -9,6 +9,7 @@ import { corsOptions } from "./configs/corsConfig";
 import authRoutes from "./routes/auth.route";
 import userRoutes from "./routes/user.route";
 import mentorRoutes from "./routes/mentor.route";
+import mentorServiceRoutes from "./routes/mentor_service.route";
 import './schedulers/cron';
 
 // Mendapatkan direktori saat ini
@@ -35,6 +36,7 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/mentor", mentorRoutes);
+app.use("/api/mentorService", mentorServiceRoutes);
 
 // Path Static untuk Images
 // Perbaikan di sini, mengganti __dirname dengan yang benar menggunakan import.meta.url

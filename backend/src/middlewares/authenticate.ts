@@ -19,6 +19,7 @@ export interface AuthenticatedRequest extends Request {
     availabilityDay?: string;
     sort_by?: string;
     order?: string;
+    format?: "csv" | "excel";
   };
   validatedParams?: {
     id: string;
@@ -26,6 +27,19 @@ export interface AuthenticatedRequest extends Request {
   };
   validatedBody?: {
     isVerified: boolean;
+    serviceName: string;
+    description?: string;
+    price: number;
+    serviceType:
+      | "one-on-one"
+      | "group"
+      | "bootcamp"
+      | "shortclass"
+      | "live class";
+    maxParticipants?: number;
+    durationDays: number;
+    mentorProfileIds: string[];
+    isActive: boolean;
   };
 }
 
