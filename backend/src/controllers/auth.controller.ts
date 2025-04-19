@@ -93,11 +93,14 @@ export const login = async (
       role_name: ur.role.roleName,
     }));
 
+    const mentorProfileId = user.mentorProfile?.id ?? undefined;
+
     // Generate access token
     const accessToken = jwt.sign(
       {
         userId: user.id,
         roles: roles.map((r) => r.role_name),
+        mentorProfileId,
       },
       process.env.JWT_SECRET!,
       { expiresIn: "1d" }
@@ -108,6 +111,7 @@ export const login = async (
       {
         userId: user.id,
         roles: roles.map((r) => r.role_name),
+        mentorProfileId,
       },
       process.env.JWT_REFRESH_SECRET!, // Tambahkan ini ke file .env kamu
       { expiresIn: "7d" }
@@ -136,6 +140,7 @@ export const login = async (
         full_name: user.fullName,
         profile_picture: user.profilePicture,
         roles,
+        mentorProfileId,
       },
       token: accessToken,
     });

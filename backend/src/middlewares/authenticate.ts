@@ -5,6 +5,7 @@ export interface AuthenticatedRequest extends Request {
   user?: {
     userId: string;
     roles: string[];
+    mentorProfileId?: string; 
   };
   validatedQuery?: {
     page: string;
@@ -43,6 +44,41 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
+export interface AuthenticatedRequestForMentoringSession extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+  };
+  validatedQuery?: {
+    serviceId?: string;
+    mentorProfileId?: string;
+    status?: "scheduled" | "ongoing" | "completed" | "cancelled";
+    dateFrom?: string;
+    dateTo?: string;
+    search?: string;
+    sortBy?: "date" | "startTime" | "endTime" | "durationMinutes" | "createdAt";
+    sortOrder?: "asc" | "desc";
+    page: number;
+    limit: number;
+  };
+  validatedParams?: {
+    id: string;
+    serviceId?: string;
+  };
+  validatedBody?: {
+    serviceId: string;
+    date: string;
+    startTime: { hour: number; minute: number };
+    endTime: { hour: number; minute: number };
+    durationMinutes: number;
+    meetingLink: string;
+    status: string;
+    notes?: string;
+    mentorProfileIds: string[];
+  };
+}
+
 export const authenticate = (
   req: AuthenticatedRequest,
   res: Response,
@@ -59,9 +95,15 @@ export const authenticate = (
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
       userId: string;
       roles: string[];
+      mentorProfileId?: string; 
     };
 
-    req.user = decoded;
+    req.user = {
+      userId: decoded.userId,
+      roles: decoded.roles,
+      mentorProfileId: decoded.mentorProfileId,
+    };
+
     next();
   } catch (err) {
     res.status(401).json({ message: "Invalid or expired token" });

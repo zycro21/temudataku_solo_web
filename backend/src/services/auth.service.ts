@@ -132,6 +132,9 @@ export const loginUser = async (email: string, password: string) => {
           role: true,
         },
       },
+      mentorProfile: {
+        select: { id: true },
+      },
     },
   });
 

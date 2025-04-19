@@ -78,12 +78,18 @@ model Feedback {
   userId           String            @map("user_id")
   rating           Int
   comment          String?
+
   submittedDate    DateTime?         @default(now()) @db.Timestamp(6) @map("submitted_date")
   createdAt        DateTime?         @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt        DateTime?         @db.Timestamp(6) @map("updated_at")
+
+  isAnonymous      Boolean           @default(false)  // Jika true, nama user tidak ditampilkan
+  isVisible        Boolean           @default(true)   // Bisa di-hide admin dari publik
 
   session          MentoringSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   user             User              @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
+  @@unique([sessionId, userId]) // ✅ Satu user hanya bisa beri satu feedback untuk satu session
   @@map("feedback")
 }
 
@@ -101,6 +107,7 @@ model MentorProfile {
 
   user                 User                    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   mentoringServices    MentoringServiceMentor[]
+  mentoringSessions    MentoringSessionMentor[]
   practices            Practice[]
 
   @@map("mentor_profiles")
@@ -142,8 +149,9 @@ model MentoringServiceMentor {
 model MentoringSession {
   id                 String              @id @default(cuid())
   serviceId          String              @map("service_id")
-  startTime          DateTime            @db.Timestamp(6) @map("start_time")
-  endTime            DateTime            @db.Timestamp(6) @map("end_time")
+  date               String              @map("date")
+  startTime          String              @map("start_time")
+  endTime            String              @map("end_time")
   durationMinutes    Int                 @map("duration_minutes")
   meetingLink        String?             @db.VarChar @map("meeting_link")
   status             String?             @db.VarChar
@@ -153,10 +161,23 @@ model MentoringSession {
 
   bookings           Booking[]
   feedbacks          Feedback[]
+  mentors            MentoringSessionMentor[]
   mentoringService   MentoringService    @relation(fields: [serviceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   projects           Project[]
 
   @@map("mentoring_sessions")
+}
+
+model MentoringSessionMentor {
+  id                  String            @id @default(cuid())
+  mentoringSessionId  String            @map("mentoring_session_id")
+  mentorProfileId     String            @map("mentor_profile_id")
+
+  mentoringSession    MentoringSession  @relation(fields: [mentoringSessionId], references: [id], onDelete: Cascade)
+  mentorProfile       MentorProfile     @relation(fields: [mentorProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([mentoringSessionId, mentorProfileId])
+  @@map("mentoring_session_mentors")
 }
 
 model Notification {

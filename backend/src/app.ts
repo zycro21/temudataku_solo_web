@@ -10,6 +10,7 @@ import authRoutes from "./routes/auth.route";
 import userRoutes from "./routes/user.route";
 import mentorRoutes from "./routes/mentor.route";
 import mentorServiceRoutes from "./routes/mentor_service.route";
+import mentoringSessionRoutes from "./routes/mentoring_session.route";
 import './schedulers/cron';
 
 // Mendapatkan direktori saat ini
@@ -37,6 +38,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/mentor", mentorRoutes);
 app.use("/api/mentorService", mentorServiceRoutes);
+app.use("/api/mentoringSession", mentoringSessionRoutes);
 
 // Path Static untuk Images
 // Perbaikan di sini, mengganti __dirname dengan yang benar menggunakan import.meta.url

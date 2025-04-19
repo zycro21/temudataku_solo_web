@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "mentoring_sessions" ALTER COLUMN "start_time" SET DATA TYPE TEXT,
+ALTER COLUMN "end_time" SET DATA TYPE TEXT,
+ALTER COLUMN "date" SET DATA TYPE TEXT;
