@@ -353,22 +353,6 @@ export const getMentoringSessionById = async (id: string) => {
           },
         },
       },
-      bookings: {
-        select: {
-          id: true,
-          menteeId: true,
-          status: true,
-          bookingDate: true,
-          specialRequests: true,
-          mentee: {
-            select: {
-              id: true,
-              fullName: true,
-              email: true,
-            },
-          },
-        },
-      },
       feedbacks: {
         select: {
           id: true,
@@ -412,10 +396,6 @@ export const getMentoringSessionById = async (id: string) => {
   return {
     ...session,
     additionalInfo: {
-      bookingsInfo:
-        session.bookings.length === 0
-          ? "Belum ada booking di sesi mentoring ini"
-          : undefined,
       feedbacksInfo:
         session.feedbacks.length === 0
           ? "Belum ada feedback di sesi mentoring ini"
@@ -662,7 +642,6 @@ export const deleteMentoringSession = async (sessionId: string) => {
   const existingSession = await prisma.mentoringSession.findUnique({
     where: { id: sessionId },
     include: {
-      bookings: true,
       mentors: true,
       feedbacks: true,
       projects: true,
@@ -671,11 +650,6 @@ export const deleteMentoringSession = async (sessionId: string) => {
 
   if (!existingSession) {
     throw new Error("Sesi mentoring tidak ditemukan");
-  }
-
-  // Validasi jika sesi punya relasi penting yang harus dihapus terlebih dahulu
-  if (existingSession.bookings.length > 0) {
-    throw new Error("Tidak bisa menghapus sesi yang memiliki booking");
   }
 
   if (existingSession.feedbacks.length > 0) {
@@ -707,7 +681,6 @@ export const exportMentoringSessions = async (format: "xlsx" | "csv") => {
         },
       },
       feedbacks: true,
-      bookings: true,
       projects: true,
     },
   });
@@ -720,7 +693,6 @@ export const exportMentoringSessions = async (format: "xlsx" | "csv") => {
         session.feedbacks.length
       : null;
 
-    const latestBooking = session.bookings[session.bookings.length - 1];
     const latestProject = session.projects[session.projects.length - 1];
     const averageScore = session.projects.length
       ? session.projects.reduce(
@@ -740,8 +712,6 @@ export const exportMentoringSessions = async (format: "xlsx" | "csv") => {
       mentorNames: session.mentors
         .map((m) => m.mentorProfile.user.fullName)
         .join(", "),
-      bookingCount: session.bookings.length,
-      lastBookingStatus: latestBooking?.status ?? null,
       feedbackCount: session.feedbacks.length,
       averageRating,
       lastFeedbackComment: latestFeedback?.comment ?? null,
@@ -809,12 +779,6 @@ export const getOwnMentorSessions = async (mentorProfileId: string) => {
           nilai: true,
         },
       },
-      bookings: {
-        select: {
-          id: true,
-          status: true,
-        },
-      },
     },
     orderBy: {
       date: "desc",
@@ -844,7 +808,6 @@ export const getOwnMentorSessions = async (mentorProfileId: string) => {
       durationMinutes: session.durationMinutes,
       meetingLink: session.meetingLink,
       status: session.status,
-      bookingCount: session.bookings.length,
       averageRating,
       averageProjectScore: averageScore,
       createdAt: session.createdAt,
@@ -890,12 +853,6 @@ export const getMentorSessionDetail = async (
           },
         },
       },
-      bookings: {
-        select: {
-          id: true,
-          status: true,
-        },
-      },
       feedbacks: {
         select: {
           rating: true,
@@ -936,7 +893,6 @@ export const getMentorSessionDetail = async (
       fullName: m.mentorProfile.user.fullName,
       profilePicture: m.mentorProfile.user.profilePicture,
     })),
-    bookingCount: session.bookings.length,
     averageRating,
     averageProjectScore,
     createdAt: session.createdAt,

@@ -5,7 +5,7 @@ export interface AuthenticatedRequest extends Request {
   user?: {
     userId: string;
     roles: string[];
-    mentorProfileId?: string; 
+    mentorProfileId?: string;
   };
   validatedQuery?: {
     page: string;
@@ -79,6 +79,18 @@ export interface AuthenticatedRequestForMentoringSession extends Request {
   };
 }
 
+export interface AuthenticatedRequestFeedback extends Request {
+  user?: {
+    // Ubah user jadi opsional agar sesuai dengan AuthenticatedRequest
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string; // Tambahkan mentorProfileId
+  };
+  validatedBody?: any;
+  validatedParams?: any;
+  validatedQuery?: any;
+}
+
 export const authenticate = (
   req: AuthenticatedRequest,
   res: Response,
@@ -95,7 +107,7 @@ export const authenticate = (
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
       userId: string;
       roles: string[];
-      mentorProfileId?: string; 
+      mentorProfileId?: string;
     };
 
     req.user = {

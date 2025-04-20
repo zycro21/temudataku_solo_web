@@ -207,6 +207,7 @@ export const getMentoringServiceDetailById = async (id: string) => {
         mentoringSessions: {
           select: {
             id: true,
+            date: true,
             startTime: true,
             endTime: true,
             durationMinutes: true,
@@ -215,6 +216,23 @@ export const getMentoringServiceDetailById = async (id: string) => {
           },
           take: 10, // Pagination: Ambil 10 sesi pertama
         },
+        bookings: {
+          select: {
+            id: true,
+            menteeId: true,
+            status: true,
+            bookingDate: true,
+            specialRequests: true,
+            mentee: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+              },
+            },
+          },
+          take: 50, // Batasi 50 booking untuk efisiensi
+        },
       },
     });
 
@@ -222,6 +240,16 @@ export const getMentoringServiceDetailById = async (id: string) => {
       console.error(`Mentoring service with id ${id} not found.`);
       return null;
     }
+
+    // Hitung total booking yang confirmed
+    const totalBookings = service.bookings.filter(
+      (booking) => booking.status === "confirmed"
+    ).length;
+
+    // Hitung sisa slot (jika maxParticipants ada)
+    const remainingSlots = service.maxParticipants
+      ? Math.max(0, service.maxParticipants - totalBookings)
+      : null;
 
     return {
       id: service.id,
@@ -234,6 +262,8 @@ export const getMentoringServiceDetailById = async (id: string) => {
       isActive: service.isActive,
       createdAt: service.createdAt,
       updatedAt: service.updatedAt,
+      totalBookings, // Jumlah booking yang confirmed
+      remainingSlots, // Sisa slot tersedia
       mentors: service.mentors.map((m) => ({
         mentorProfileId: m.mentorProfile.id,
         expertise: m.mentorProfile.expertise,
@@ -243,15 +273,42 @@ export const getMentoringServiceDetailById = async (id: string) => {
         user: m.mentorProfile.user,
       })),
       sessions: service.mentoringSessions.length
-        ? service.mentoringSessions.map((session) => ({
-            sessionDate: session.startTime.toISOString(), // Format tanggal
-            endTime: session.endTime.toISOString(),
-            durationMinutes: session.durationMinutes,
-            status: session.status,
-            notes: session.notes,
-          }))
+        ? service.mentoringSessions.map((session) => {
+            // Konversi date dan time ke ISO string
+            const sessionDate = session.date; // Misalnya: "15-06-2025"
+            const startTime = session.startTime; // Misalnya: "10:00:00"
+            const endTime = session.endTime; // Misalnya: "12:00:00"
+
+            // Asumsikan format date adalah DD-MM-YYYY, ubah ke YYYY-MM-DD
+            const [day, month, year] = sessionDate.split("-");
+            const formattedDate = `${year}-${month}-${day}`;
+
+            // Buat objek Date untuk startTime dan endTime
+            const startDateTime = new Date(`${formattedDate}T${startTime}`);
+            const endDateTime = new Date(`${formattedDate}T${endTime}`);
+
+            return {
+              sessionDate: startDateTime.toISOString(), // Format ISO
+              endTime: endDateTime.toISOString(),
+              durationMinutes: session.durationMinutes,
+              status: session.status,
+              notes: session.notes,
+            };
+          })
         : [],
       certificates: service.certificates || [], // Jika tidak ada, return array kosong
+      bookings: service.bookings.map((booking) => ({
+        id: booking.id,
+        menteeId: booking.menteeId,
+        status: booking.status,
+        bookingDate: booking.bookingDate,
+        specialRequests: booking.specialRequests,
+        mentee: {
+          id: booking.mentee.id,
+          fullName: booking.mentee.fullName,
+          email: booking.mentee.email,
+        },
+      })), // Kembalikan booking lengkap untuk admin
     };
   } catch (error) {
     console.error("Error fetching mentoring service detail:", error);
@@ -632,6 +689,7 @@ export const getMentoringServiceDetailForMentor = async (
         mentoringSessions: {
           select: {
             id: true,
+            date: true, // Tambahkan date untuk konversi
             startTime: true,
             endTime: true,
             durationMinutes: true,
@@ -674,14 +732,29 @@ export const getMentoringServiceDetailForMentor = async (
         expertise: m.mentorProfile.expertise,
         user: m.mentorProfile.user,
       })),
-      sessions: detailedService.mentoringSessions.map((session) => ({
-        id: session.id,
-        sessionDate: session.startTime.toISOString(),
-        endTime: session.endTime.toISOString(),
-        durationMinutes: session.durationMinutes,
-        status: session.status,
-        notes: session.notes,
-      })),
+      sessions: detailedService.mentoringSessions.map((session) => {
+        // Konversi date dan time ke ISO string
+        const sessionDate = session.date; // Misalnya: "15-06-2025"
+        const startTime = session.startTime; // Misalnya: "10:00:00"
+        const endTime = session.endTime; // Misalnya: "12:00:00"
+
+        // Asumsikan format date adalah DD-MM-YYYY, ubah ke YYYY-MM-DD
+        const [day, month, year] = sessionDate.split("-");
+        const formattedDate = `${year}-${month}-${day}`;
+
+        // Buat objek Date untuk startTime dan endTime
+        const startDateTime = new Date(`${formattedDate}T${startTime}`);
+        const endDateTime = new Date(`${formattedDate}T${endTime}`);
+
+        return {
+          id: session.id,
+          sessionDate: startDateTime.toISOString(),
+          endTime: endDateTime.toISOString(),
+          durationMinutes: session.durationMinutes,
+          status: session.status,
+          notes: session.notes,
+        };
+      }),
     };
   } catch (error) {
     console.error("Error fetching mentoring service detail for mentor:", error);

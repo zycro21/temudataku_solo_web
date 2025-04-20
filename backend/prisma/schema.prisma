@@ -11,16 +11,16 @@ datasource db {
 model Booking {
   id               String           @id @default(cuid())
   menteeId         String
-  sessionId        String
+  mentoringServiceId String         @map("mentoring_service_id")
   referralUsageId  String?          @unique
   bookingDate      DateTime?        @default(now())
   status           String?          @db.VarChar
   specialRequests  String?
-  createdAt        DateTime?        @default(now())
+  createdAt         DateTime?        @default(now())
   updatedAt        DateTime?
 
   mentee           User             @relation(fields: [menteeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  session          MentoringSession @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  mentoringService MentoringService @relation(fields: [mentoringServiceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   referralUsage    ReferralUsage?   @relation("ReferralUsageBooking", fields: [referralUsageId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   payment          Payment?         
@@ -89,7 +89,7 @@ model Feedback {
   session          MentoringSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   user             User              @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  @@unique([sessionId, userId]) // ✅ Satu user hanya bisa beri satu feedback untuk satu session
+  @@unique([sessionId, userId]) // Satu user hanya bisa beri satu feedback untuk satu session
   @@map("feedback")
 }
 
@@ -126,6 +126,7 @@ model MentoringService {
   createdAt          DateTime?           @default(now()) @db.Timestamp(6) @map("created_at")
   updatedAt          DateTime?           @db.Timestamp(6) @map("updated_at")
 
+  bookings           Booking[]
   certificates       Certificate[]
   mentors            MentoringServiceMentor[]
   mentoringSessions  MentoringSession[]
@@ -159,7 +160,6 @@ model MentoringSession {
   createdAt          DateTime?           @default(now()) @db.Timestamp(6) @map("created_at")
   updatedAt          DateTime?           @db.Timestamp(6) @map("updated_at")
 
-  bookings           Booking[]
   feedbacks          Feedback[]
   mentors            MentoringSessionMentor[]
   mentoringService   MentoringService    @relation(fields: [serviceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
@@ -181,18 +181,34 @@ model MentoringSessionMentor {
 }
 
 model Notification {
-  id           String    @id @default(cuid())
-  userId       String    @map("user_id")
-  type         String    @db.VarChar
-  title        String    @db.VarChar
-  message      String?
-  isRead       Boolean?  @default(false) @map("is_read")
-  createdDate  DateTime? @default(now()) @db.Timestamp(6) @map("created_date")
-  createdAt    DateTime? @default(now()) @db.Timestamp(6) @map("created_at")
+  id             String   @id @default(cuid())
+  type           String   @db.VarChar
+  title          String   @db.VarChar
+  message        String?
+  deliveryMethod String?  @db.VarChar // email, push, both
+  actionUrl      String?  @db.VarChar
+  sentAt         DateTime? @db.Timestamp(6)
+  meta           Json?    @db.JsonB
+  targetRole     String?  @db.VarChar
+  createdAt      DateTime? @default(now()) @db.Timestamp(6) @map("created_at")
 
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
+  recipients     NotificationRecipient[]
+  
   @@map("notifications")
+}
+
+model NotificationRecipient {
+  id             String    @id @default(cuid())
+  notificationId String    @map("notification_id")
+  userId         String    @map("user_id")
+  isRead         Boolean?  @default(false) @map("is_read")
+  readAt         DateTime? @db.Timestamp(6)
+
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([notificationId, userId])
+  @@map("notification_recipients")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -457,7 +473,7 @@ model User {
   commissionPayments         CommissionPayments[]
   feedback                   Feedback[]
   mentorProfile              MentorProfile?      
-  notifications              Notification[]
+  notificationRecipients     NotificationRecipient[]
   practiceProgress           PracticeProgress[]
   practicePurchases          PracticePurchase[]
   practiceReviews            PracticeReview[]
