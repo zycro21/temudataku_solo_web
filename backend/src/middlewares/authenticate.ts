@@ -91,6 +91,34 @@ export interface AuthenticatedRequestFeedback extends Request {
   validatedQuery?: any;
 }
 
+export interface AuthenticatedRequestNotification extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+  };
+  validatedBody?: any;
+  validatedParams?: any;
+  validatedQuery?: any;
+}
+
+
+export interface AuthenticatedRequestBooking extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+  };
+  validatedBody?: {
+    mentoringServiceId: string;
+    participantIds?: string[];
+    referralUsageId?: string;
+    specialRequests?: string;
+  };
+  validatedParams?: any;
+  validatedQuery?: any;
+}
+
 export const authenticate = (
   req: AuthenticatedRequest,
   res: Response,

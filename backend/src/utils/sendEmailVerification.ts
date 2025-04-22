@@ -54,3 +54,41 @@ export const sendResetPasswordEmail = async (email: string, token: string) => {
 
   await transporter.sendMail(mailOptions);
 };
+
+export const sendNotificationEmail = async ({
+  to,
+  subject,
+  message,
+  actionUrl,
+}: {
+  to: string;
+  subject: string;
+  message: string;
+  actionUrl?: string;
+}) => {
+  const transporter = nodemailer.createTransport({
+    service: "gmail", // atau SMTP lainnya
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  const mailOptions = {
+    from: `"Mentoring App" <${process.env.EMAIL_USER}>`,
+    to,
+    subject,
+    html: `
+      <h2>${subject}</h2>
+      <p>${message}</p>
+      ${
+        actionUrl
+          ? `<p><a href="${actionUrl}" style="background: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Lihat Selengkapnya</a></p>`
+          : ""
+      }
+      <p>Terima kasih telah menggunakan platform kami.</p>
+    `,
+  };
+
+  await transporter.sendMail(mailOptions);
+};

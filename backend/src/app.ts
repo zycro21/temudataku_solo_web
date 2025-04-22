@@ -12,6 +12,8 @@ import mentorRoutes from "./routes/mentor.route";
 import mentorServiceRoutes from "./routes/mentor_service.route";
 import mentoringSessionRoutes from "./routes/mentoring_session.route";
 import feedbackRoutes from "./routes/feedback.route";
+import notificationRoute from "./routes/notification.route";
+import bookingRoute from "./routes/booking.route";
 import './schedulers/cron';
 
 import dotenv from "dotenv";
@@ -44,6 +46,8 @@ app.use("/api/mentor", mentorRoutes);
 app.use("/api/mentorService", mentorServiceRoutes);
 app.use("/api/mentoringSession", mentoringSessionRoutes);
 app.use("/api/feedback", feedbackRoutes);
+app.use("/api/notification", notificationRoute);
+app.use("/api/booking", bookingRoute);
 
 // Path Static untuk Images
 // Perbaikan di sini, mengganti __dirname dengan yang benar menggunakan import.meta.url

@@ -9,23 +9,40 @@ datasource db {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model Booking {
-  id               String           @id @default(cuid())
-  menteeId         String
-  mentoringServiceId String         @map("mentoring_service_id")
-  referralUsageId  String?          @unique
-  bookingDate      DateTime?        @default(now())
-  status           String?          @db.VarChar
-  specialRequests  String?
-  createdAt         DateTime?        @default(now())
-  updatedAt        DateTime?
+  id                  String              @id @default(cuid())
+  menteeId            String
+  mentoringServiceId  String              @map("mentoring_service_id")
+  referralUsageId     String?             @unique
+  bookingDate         DateTime?           @default(now())
+  status              String?             @db.VarChar
+  specialRequests     String?
+  createdAt           DateTime?           @default(now())
+  updatedAt           DateTime?
 
-  mentee           User             @relation(fields: [menteeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  mentoringService MentoringService @relation(fields: [mentoringServiceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  referralUsage    ReferralUsage?   @relation("ReferralUsageBooking", fields: [referralUsageId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  // Relations
+  mentee              User                @relation(fields: [menteeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  mentoringService    MentoringService    @relation(fields: [mentoringServiceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  referralUsage       ReferralUsage?      @relation("ReferralUsageBooking", fields: [referralUsageId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  payment          Payment?         
+  payment             Payment?            @relation("BookingPayment") // satu payment untuk booking
+  participants        BookingParticipant[]
 
   @@map("bookings")
+}
+
+model BookingParticipant {
+  id             String   @id @default(cuid())
+  bookingId      String
+  userId         String
+  paymentStatus  String   // 'pending', 'confirmed', etc.
+  paymentId      String?  @map("payment_id")
+  isLeader       Boolean  @default(false)
+
+  booking        Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payment        Payment? @relation("ParticipantPayment", fields: [paymentId], references: [id])
+
+  @@map("booking_participants")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -185,15 +202,15 @@ model Notification {
   type           String   @db.VarChar
   title          String   @db.VarChar
   message        String?
-  deliveryMethod String?  @db.VarChar // email, push, both
+  deliveryMethod String?  @db.VarChar
   actionUrl      String?  @db.VarChar
   sentAt         DateTime? @db.Timestamp(6)
   meta           Json?    @db.JsonB
-  targetRole     String?  @db.VarChar
+  targetRole     String[] @db.VarChar   // fix this line
   createdAt      DateTime? @default(now()) @db.Timestamp(6) @map("created_at")
 
   recipients     NotificationRecipient[]
-  
+
   @@map("notifications")
 }
 
@@ -212,19 +229,21 @@ model NotificationRecipient {
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model Payment {
-  id                String              @id @default(cuid())
-  bookingId         String              @unique @map("booking_id")
-  amount            Decimal             @db.Decimal
-  paymentDate       DateTime?           @db.Timestamp(6) @map("payment_date")
-  paymentMethod     String?             @db.VarChar @map("payment_method")
-  transactionId     String?             @db.VarChar @map("transaction_id")
-  status            String?             @db.VarChar
-  createdAt         DateTime?           @default(now()) @db.Timestamp(6) @map("created_at")
-  updatedAt         DateTime?           @db.Timestamp(6) @map("updated_at")
 
-  booking           Booking             @relation(fields: [bookingId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  practicePurchases PracticePurchase[]
+model Payment {
+  id                    String              @id @default(cuid())
+  bookingId             String?             @unique @map("booking_id")
+  amount                Decimal             @db.Decimal
+  paymentDate           DateTime?           @db.Timestamp(6) @map("payment_date")
+  paymentMethod         String?             @db.VarChar @map("payment_method")
+  transactionId         String?             @db.VarChar @map("transaction_id")
+  status                String?             @db.VarChar
+  createdAt             DateTime?           @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt             DateTime?           @db.Timestamp(6) @map("updated_at")
+
+  booking               Booking?            @relation("BookingPayment", fields: [bookingId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  practicePurchases     PracticePurchase[]
+  bookingParticipants   BookingParticipant[] @relation("ParticipantPayment")
 
   @@map("payments")
 }
@@ -465,10 +484,12 @@ model User {
   registrationDate           DateTime?           @default(now()) @db.Timestamp(6) @map("registration_date")
   lastLogin                  DateTime?           @db.Timestamp(6) @map("last_login")
   isActive                   Boolean?            @default(true) @map("is_active")
+  fcmToken                   String?             @db.VarChar
   createdAt                  DateTime?           @default(now()) @db.Timestamp(6) @map("created_at")
   updatedAt                  DateTime?           @db.Timestamp(6) @map("updated_at")
 
   bookings                   Booking[]
+  bookingParticipants        BookingParticipant[]
   certificates               Certificate[]
   commissionPayments         CommissionPayments[]
   feedback                   Feedback[]
