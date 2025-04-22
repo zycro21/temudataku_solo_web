@@ -1,6 +1,4 @@
 node_modules
 dist
 .env
-
-# Ignore all JSON files in the configs folder
-backend/src/configs/temudataku-web-solo-firebase-adminsdk-fbsvc-4fe0d51db7.json
+src/configs/temudataku-web-solo-firebase-adminsdk-fbsvc-4fe0d51db7.json

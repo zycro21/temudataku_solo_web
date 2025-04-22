@@ -147,6 +147,7 @@ model MentoringService {
   certificates       Certificate[]
   mentors            MentoringServiceMentor[]
   mentoringSessions  MentoringSession[]
+  projects           Project[]          
 
   @@map("mentoring_services")
 }
@@ -180,7 +181,7 @@ model MentoringSession {
   feedbacks          Feedback[]
   mentors            MentoringSessionMentor[]
   mentoringService   MentoringService    @relation(fields: [serviceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  projects           Project[]
+  projectSubmissions ProjectSubmission[] 
 
   @@map("mentoring_sessions")
 }
@@ -361,21 +362,39 @@ model Practice {
 
 model Project {
   id               String             @id @default(cuid())
-  menteeId         String             @map("mentee_id")
-  sessionId        String             @map("session_id")
+  serviceId        String             @map("service_id")
   title            String             @db.VarChar
   description      String?
-  filePath         String?            @db.VarChar @map("file_path")
-  submissionDate   DateTime?          @default(now()) @db.Timestamp(6) @map("submission_date")
-  plagiarismScore  Decimal?           @db.Decimal @map("plagiarism_score")
-  nilai            Decimal?           @db.Decimal
   createdAt        DateTime?          @default(now()) @db.Timestamp(6) @map("created_at")
   updatedAt        DateTime?          @db.Timestamp(6) @map("updated_at")
 
-  user             User               @relation(fields: [menteeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  session          MentoringSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  mentoringService MentoringService   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  submissions      ProjectSubmission[]
 
   @@map("projects")
+}
+
+model ProjectSubmission {
+  id              String            @id @default(cuid())
+  projectId       String            @map("project_id")
+  menteeId        String            @map("mentee_id")
+  sessionId       String?           @map("session_id") // optional
+  filePath        String?           @db.VarChar @map("file_path")
+  submissionDate  DateTime?         @default(now()) @db.Timestamp(6) @map("submission_date")
+  plagiarismScore Decimal?          @db.Decimal @map("plagiarism_score")
+  Score           Decimal?          @db.Decimal
+  mentorFeedback  String?           @db.VarChar @map("mentor_feedback")
+  isReviewed      Boolean?          @default(false) @map("is_reviewed")
+  gradedBy        String?           @map("graded_by")
+  createdAt       DateTime?         @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt       DateTime?         @db.Timestamp(6) @map("updated_at")
+
+  project         Project           @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user            User              @relation("SubmissionByMentee", fields: [menteeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  session         MentoringSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  gradedByUser    User?             @relation("SubmissionGradedByMentor", fields: [gradedBy], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("project_submissions")
 }
 
 model ReferralCommisions {
@@ -427,7 +446,6 @@ model ReferralUsage {
 
   @@map("referral_usages")
 }
-
 
 model Role {
   id          String       @id @default(cuid())
@@ -498,7 +516,8 @@ model User {
   practiceProgress           PracticeProgress[]
   practicePurchases          PracticePurchase[]
   practiceReviews            PracticeReview[]
-  projects                   Project[]
+  projectSubmissions         ProjectSubmission[]      @relation("SubmissionByMentee")
+  gradedSubmissions          ProjectSubmission[]      @relation("SubmissionGradedByMentor")
   referralCodes              ReferralCode[]
   referralUsages             ReferralUsage[]
   userBehavior               UserBehavior[]

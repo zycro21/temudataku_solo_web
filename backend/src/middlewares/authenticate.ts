@@ -102,7 +102,6 @@ export interface AuthenticatedRequestNotification extends Request {
   validatedQuery?: any;
 }
 
-
 export interface AuthenticatedRequestBooking extends Request {
   user?: {
     userId: string;
@@ -114,9 +113,26 @@ export interface AuthenticatedRequestBooking extends Request {
     participantIds?: string[];
     referralUsageId?: string;
     specialRequests?: string;
+    bookingDate?: string;
   };
-  validatedParams?: any;
-  validatedQuery?: any;
+  validatedParams?: { id: string };
+  validatedQuery?: {
+    page: number;
+    limit: number;
+    status?: "pending" | "confirmed" | "completed" | "cancelled";
+    sortBy?: "createdAt" | "bookingDate";
+    sortOrder?: "asc" | "desc";
+    menteeName?: string;
+    serviceName?: string;
+    usedReferral?: boolean;
+    startDate?: string;
+    endDate?: string;
+    format?: "csv" | "excel"; 
+  };
+}
+
+export interface PatchBookingStatusBody {
+  status: "pending" | "confirmed" | "completed" | "cancelled";
 }
 
 export const authenticate = (
