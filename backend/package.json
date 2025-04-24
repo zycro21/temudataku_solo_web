@@ -32,6 +32,8 @@
     "nanoid": "^5.1.5",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.10.0",
+    "officeparser": "^5.1.1",
+    "string-similarity": "^4.0.4",
     "zod": "^3.24.2"
   },
   "devDependencies": {
@@ -48,6 +50,7 @@
     "@types/node": "^22.14.1",
     "@types/node-cron": "^3.0.11",
     "@types/nodemailer": "^6.4.17",
+    "@types/string-similarity": "^4.0.2",
     "nodemon": "^3.1.9",
     "prisma": "^6.6.0",
     "ts-node": "^10.9.2",

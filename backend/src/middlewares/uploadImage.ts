@@ -7,14 +7,13 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// Dapatkan path folder images
+// === Untuk Upload Profile Picture ===
 const __filename = new URL(import.meta.url).pathname;
 const __dirname = path.dirname(__filename);
-const uploadPath = path.join(__dirname, "../../images");
-const normalizedPath = path.normalize(uploadPath);
-const correctPath = normalizedPath.replace(/^\\/, "");
+const imageUploadPath = path.join(__dirname, "../../images");
+const normalizedImagePath = path.normalize(imageUploadPath);
+const correctPath = normalizedImagePath.replace(/^\\/, "");
 
-// Buat folder jika belum ada
 if (!fs.existsSync(correctPath)) {
   fs.mkdirSync(correctPath, { recursive: true });
 }
@@ -83,3 +82,51 @@ export const handleUpload = (
 };
 
 export { correctPath as uploadPath };
+
+// === Untuk Upload Project Submission Files ===
+const submissionUploadPath = path.join(__dirname, "../../uploads/submissions");
+const normalizedSubmissionPath = path.normalize(submissionUploadPath);
+const finalSubmissionPath = normalizedSubmissionPath.replace(/^\\/, "");
+
+if (!fs.existsSync(finalSubmissionPath)) {
+  fs.mkdirSync(finalSubmissionPath, { recursive: true });
+}
+
+const submissionStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, finalSubmissionPath),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const name = path
+      .basename(file.originalname, ext)
+      .replace(/\s+/g, "-") // ganti spasi dengan -
+      .replace(/[^a-zA-Z0-9-_]/g, ""); // hapus karakter aneh
+
+    const now = new Date();
+    const formattedTime = `${now.getFullYear()}${(now.getMonth() + 1)
+      .toString()
+      .padStart(2, "0")}${now.getDate().toString().padStart(2, "0")}-${now
+      .getHours()
+      .toString()
+      .padStart(2, "0")}${now.getMinutes().toString().padStart(2, "0")}${now
+      .getSeconds()
+      .toString()
+      .padStart(2, "0")}`;
+
+    const filename = `Submission-${name}-${formattedTime}${ext}`;
+    cb(null, filename);
+  },
+});
+
+const submissionUploader = multer({ storage: submissionStorage });
+
+export const handleSubmissionUpload = (
+  field: string,
+  isMultiple: boolean = false,
+  max: number = 5
+) => {
+  return isMultiple
+    ? submissionUploader.array(field, max)
+    : submissionUploader.single(field);
+};
+
+export { finalSubmissionPath as submissionUploadPath };

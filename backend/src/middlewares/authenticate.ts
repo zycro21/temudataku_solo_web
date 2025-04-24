@@ -127,12 +127,23 @@ export interface AuthenticatedRequestBooking extends Request {
     usedReferral?: boolean;
     startDate?: string;
     endDate?: string;
-    format?: "csv" | "excel"; 
+    format?: "csv" | "excel";
   };
 }
 
 export interface PatchBookingStatusBody {
   status: "pending" | "confirmed" | "completed" | "cancelled";
+}
+
+export interface AuthenticatedRequestProject extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+  };
+  validatedBody?: any;
+  validatedParams?: any;
+  validatedQuery?: any;
 }
 
 export const authenticate = (

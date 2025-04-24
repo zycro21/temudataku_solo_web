@@ -368,20 +368,27 @@ export const getMentoringSessionById = async (id: string) => {
           },
         },
       },
-      projects: {
+      projectSubmissions: {
+        // Menambahkan relasi ke Project
         select: {
           id: true,
-          title: true,
-          description: true,
           filePath: true,
           submissionDate: true,
           plagiarismScore: true,
-          nilai: true,
+          Score: true,
           user: {
             select: {
               id: true,
               fullName: true,
               email: true,
+            },
+          },
+          project: {
+            // Menambahkan proyek terkait
+            select: {
+              id: true,
+              title: true,
+              description: true,
             },
           },
         },
@@ -401,8 +408,8 @@ export const getMentoringSessionById = async (id: string) => {
           ? "Belum ada feedback di sesi mentoring ini"
           : undefined,
       projectsInfo:
-        session.projects.length === 0
-          ? "Belum ada project di sesi mentoring ini"
+        session.projectSubmissions.length === 0 // Menggunakan projectSubmissions
+          ? "Belum ada project yang dikumpulkan oleh mentee di sesi mentoring ini"
           : undefined,
     },
   };
@@ -644,7 +651,18 @@ export const deleteMentoringSession = async (sessionId: string) => {
     include: {
       mentors: true,
       feedbacks: true,
-      projects: true,
+      projectSubmissions: {
+        // Menggunakan projectSubmissions sebagai pengganti projects
+        select: {
+          id: true,
+          project: {
+            select: {
+              id: true,
+              title: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -652,6 +670,7 @@ export const deleteMentoringSession = async (sessionId: string) => {
     throw new Error("Sesi mentoring tidak ditemukan");
   }
 
+  // Cek apakah sesi memiliki feedback
   if (existingSession.feedbacks.length > 0) {
     throw new Error("Tidak bisa menghapus sesi yang memiliki feedback");
   }
@@ -659,6 +678,13 @@ export const deleteMentoringSession = async (sessionId: string) => {
   // Validasi status sesi (misalnya, jika sudah selesai)
   if (existingSession.status === "completed") {
     throw new Error("Sesi yang sudah selesai tidak bisa dihapus");
+  }
+
+  // Cek apakah sesi memiliki project submissions
+  if (existingSession.projectSubmissions.length > 0) {
+    throw new Error(
+      "Tidak bisa menghapus sesi yang memiliki pengumpulan proyek"
+    );
   }
 
   // Hapus sesi
@@ -681,47 +707,89 @@ export const exportMentoringSessions = async (format: "xlsx" | "csv") => {
         },
       },
       feedbacks: true,
-      projects: true,
+      projectSubmissions: {
+        select: {
+          id: true,
+          filePath: true,
+          submissionDate: true,
+          plagiarismScore: true,
+          Score: true,
+          mentorFeedback: true,
+          isReviewed: true,
+          createdAt: true,
+          updatedAt: true,
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+            },
+          },
+          project: {
+            select: {
+              id: true,
+              title: true,
+              description: true,
+            },
+          },
+          gradedByUser: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+            },
+          },
+        },
+      },
     },
   });
 
-  // Flatten data
-  const flatData = sessions.map((session) => {
-    const latestFeedback = session.feedbacks[session.feedbacks.length - 1];
-    const averageRating = session.feedbacks.length
-      ? session.feedbacks.reduce((sum, f) => sum + f.rating, 0) /
-        session.feedbacks.length
-      : null;
+  const flatData = sessions.flatMap((session) =>
+    session.projectSubmissions.map((submission) => {
+      const averageRating = session.feedbacks.length
+        ? session.feedbacks.reduce((sum, f) => sum + f.rating, 0) /
+          session.feedbacks.length
+        : null;
 
-    const latestProject = session.projects[session.projects.length - 1];
-    const averageScore = session.projects.length
-      ? session.projects.reduce(
-          (sum, p) => sum + (p.nilai ? p.nilai.toNumber() : 0),
-          0
-        ) / session.projects.length
-      : null;
+      return {
+        sessionId: session.id,
+        serviceName: session.mentoringService?.serviceName,
+        sessionDate: session.date,
+        startTime: session.startTime,
+        endTime: session.endTime,
+        durationMinutes: session.durationMinutes,
+        sessionStatus: session.status,
+        mentorNames: session.mentors
+          .map((m) => m.mentorProfile.user.fullName)
+          .join(", "),
+        feedbackCount: session.feedbacks.length,
+        averageRating,
 
-    return {
-      id: session.id,
-      serviceName: session.mentoringService?.serviceName,
-      date: session.date,
-      startTime: session.startTime,
-      endTime: session.endTime,
-      durationMinutes: session.durationMinutes,
-      status: session.status,
-      mentorNames: session.mentors
-        .map((m) => m.mentorProfile.user.fullName)
-        .join(", "),
-      feedbackCount: session.feedbacks.length,
-      averageRating,
-      lastFeedbackComment: latestFeedback?.comment ?? null,
-      projectCount: session.projects.length,
-      lastProjectTitle: latestProject?.title ?? null,
-      averageProjectScore: averageScore,
-      createdAt: session.createdAt,
-      updatedAt: session.updatedAt,
-    };
-  });
+        submissionId: submission.id,
+        submissionDate: submission.submissionDate,
+        filePath: submission.filePath,
+        plagiarismScore: submission.plagiarismScore?.toNumber() ?? null,
+        score: submission.Score?.toNumber() ?? null,
+        mentorFeedback: submission.mentorFeedback,
+        isReviewed: submission.isReviewed,
+
+        menteeId: submission.user.id,
+        menteeName: submission.user.fullName,
+        menteeEmail: submission.user.email,
+
+        projectId: submission.project.id,
+        projectTitle: submission.project.title,
+        projectDescription: submission.project.description,
+
+        reviewerId: submission.gradedByUser?.id ?? null,
+        reviewerName: submission.gradedByUser?.fullName ?? null,
+        reviewerEmail: submission.gradedByUser?.email ?? null,
+
+        createdAt: submission.createdAt,
+        updatedAt: submission.updatedAt,
+      };
+    })
+  );
 
   if (format === "csv") {
     const parser = new Parser();
@@ -774,9 +842,9 @@ export const getOwnMentorSessions = async (mentorProfileId: string) => {
           rating: true,
         },
       },
-      projects: {
+      projectSubmissions: {
         select: {
-          nilai: true,
+          Score: true,
         },
       },
     },
@@ -791,11 +859,11 @@ export const getOwnMentorSessions = async (mentorProfileId: string) => {
         session.feedbacks.length
       : null;
 
-    const averageScore = session.projects.length
-      ? session.projects.reduce(
-          (sum, p) => sum + (p.nilai?.toNumber() || 0),
+    const averageProjectScore = session.projectSubmissions.length
+      ? session.projectSubmissions.reduce(
+          (sum, ps) => sum + (ps.Score?.toNumber() || 0),
           0
-        ) / session.projects.length
+        ) / session.projectSubmissions.length
       : null;
 
     return {
@@ -809,7 +877,7 @@ export const getOwnMentorSessions = async (mentorProfileId: string) => {
       meetingLink: session.meetingLink,
       status: session.status,
       averageRating,
-      averageProjectScore: averageScore,
+      averageProjectScore,
       createdAt: session.createdAt,
       updatedAt: session.updatedAt,
     };
@@ -858,9 +926,9 @@ export const getMentorSessionDetail = async (
           rating: true,
         },
       },
-      projects: {
+      projectSubmissions: {
         select: {
-          nilai: true,
+          Score: true,
         },
       },
     },
@@ -873,9 +941,11 @@ export const getMentorSessionDetail = async (
       session.feedbacks.length
     : null;
 
-  const averageProjectScore = session.projects.length
-    ? session.projects.reduce((sum, p) => sum + (p.nilai?.toNumber() || 0), 0) /
-      session.projects.length
+  const averageProjectScore = session.projectSubmissions.length
+    ? session.projectSubmissions.reduce(
+        (sum, ps) => sum + (ps.Score?.toNumber() || 0),
+        0
+      ) / session.projectSubmissions.length
     : null;
 
   return {

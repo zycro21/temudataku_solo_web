@@ -14,6 +14,7 @@ import mentoringSessionRoutes from "./routes/mentoring_session.route";
 import feedbackRoutes from "./routes/feedback.route";
 import notificationRoute from "./routes/notification.route";
 import bookingRoute from "./routes/booking.route";
+import projectRoute from "./routes/project.route";
 import './schedulers/cron';
 
 import dotenv from "dotenv";
@@ -48,10 +49,12 @@ app.use("/api/mentoringSession", mentoringSessionRoutes);
 app.use("/api/feedback", feedbackRoutes);
 app.use("/api/notification", notificationRoute);
 app.use("/api/booking", bookingRoute);
+app.use("/api/project", projectRoute);
 
 // Path Static untuk Images
 // Perbaikan di sini, mengganti __dirname dengan yang benar menggunakan import.meta.url
 app.use("/images", express.static(path.join(__dirname, "../images")));
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 // Handler setelah semua route
 app.use(errorHandler);

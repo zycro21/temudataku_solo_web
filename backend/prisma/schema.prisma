@@ -54,13 +54,16 @@ model Certificate {
   issueDate         DateTime?         @default(now()) @db.Timestamp(6) @map("issue_date")
   certificatePath   String?           @db.VarChar @map("certificate_path")
   projectsData      Json?             @db.Json @map("projects_data")
-  status            String?           @db.VarChar
+  status            String?           @db.VarChar @map("status") // generated, sent, viewed
+  verifiedBy        String?           @db.VarChar @map("verified_by") // ID dari admin/mentor yang verifikasi (optional)
+  note              String?           @db.VarChar @map("note") // Catatan internal admin (optional)
   createdAt         DateTime?         @default(now()) @db.Timestamp(6) @map("created_at")
   updatedAt         DateTime?         @db.Timestamp(6) @map("updated_at")
 
   user              User              @relation(fields: [menteeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   mentoringService  MentoringService  @relation(fields: [serviceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
+  @@unique([menteeId, serviceId])
   @@map("certificates")
 }
 
@@ -379,7 +382,7 @@ model ProjectSubmission {
   projectId       String            @map("project_id")
   menteeId        String            @map("mentee_id")
   sessionId       String?           @map("session_id") // optional
-  filePath        String?           @db.VarChar @map("file_path")
+  filePaths       String[]          @map("file_paths")
   submissionDate  DateTime?         @default(now()) @db.Timestamp(6) @map("submission_date")
   plagiarismScore Decimal?          @db.Decimal @map("plagiarism_score")
   Score           Decimal?          @db.Decimal
