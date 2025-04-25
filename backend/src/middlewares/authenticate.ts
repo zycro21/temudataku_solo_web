@@ -146,6 +146,38 @@ export interface AuthenticatedRequestProject extends Request {
   validatedQuery?: any;
 }
 
+export interface AuthenticatedRequestCertificate extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+  };
+  validatedBody?: any;
+  validatedParams?: any;
+  validatedQuery?: any;
+}
+
+export interface AuthenticatedRequestPractice extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+  };
+  validatedBody?: {
+    mentorId: string;
+    title: string;
+    description?: string;
+    thumbnailImage?: string;
+    price: number;
+    practiceType?: string;
+    category?: string;
+    tags?: string[];
+    isActive?: boolean;
+  };
+  validatedParams?: any;
+  validatedQuery?: any;
+}
+
 export const authenticate = (
   req: AuthenticatedRequest,
   res: Response,

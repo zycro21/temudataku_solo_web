@@ -4,6 +4,7 @@ import { PrismaClient } from "@prisma/client";
 import { errorHandler } from "./middlewares/errorHandler";
 import { notFound } from "./middlewares/notFound";
 import path from "path";
+import fs from "fs";
 import cors from "cors";
 import { corsOptions } from "./configs/corsConfig";
 import authRoutes from "./routes/auth.route";
@@ -15,13 +16,15 @@ import feedbackRoutes from "./routes/feedback.route";
 import notificationRoute from "./routes/notification.route";
 import bookingRoute from "./routes/booking.route";
 import projectRoute from "./routes/project.route";
-import './schedulers/cron';
+import certificateRoute from "./routes/certificate.route";
+import "./schedulers/cron";
+import { fileURLToPath } from "url";
 
 import dotenv from "dotenv";
 dotenv.config();
 
 // Mendapatkan direktori saat ini
-const __filename = new URL(import.meta.url).pathname;
+const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app: Application = express();
@@ -50,11 +53,49 @@ app.use("/api/feedback", feedbackRoutes);
 app.use("/api/notification", notificationRoute);
 app.use("/api/booking", bookingRoute);
 app.use("/api/project", projectRoute);
+app.use("/api/certificate", certificateRoute);
 
 // Path Static untuk Images
 // Perbaikan di sini, mengganti __dirname dengan yang benar menggunakan import.meta.url
-app.use("/images", express.static(path.join(__dirname, "../images")));
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+// Static paths with enhanced logging for debugging
+const imagesPath = path.join(__dirname, "../images");
+console.log("Serving images from:", imagesPath);
+app.use(
+  "/images",
+  (req, res, next) => {
+    console.log("Accessing images path:", req.path);
+    const filePath = path.join(imagesPath, req.path);
+    console.log("Looking for file:", filePath);
+    next();
+  },
+  express.static(imagesPath)
+);
+
+const uploadsPath = path.join(__dirname, "../uploads/submissions");
+console.log("Serving uploads from:", uploadsPath);
+app.use(
+  "/uploads",
+  (req, res, next) => {
+    console.log("Accessing uploads path:", req.path);
+    const filePath = path.join(uploadsPath, req.path);
+    console.log("Looking for file:", filePath);
+    next();
+  },
+  express.static(uploadsPath)
+);
+
+const certificatesPath = path.join(__dirname, "../uploads/certificate");
+console.log("Serving certificates from:", certificatesPath);
+app.use(
+  "/certificates",
+  (req, res, next) => {
+    console.log("Accessing certificates path:", req.path);
+    const filePath = path.join(certificatesPath, req.path);
+    console.log("Looking for file:", filePath);
+    next();
+  },
+  express.static(certificatesPath)
+);
 
 // Handler setelah semua route
 app.use(errorHandler);

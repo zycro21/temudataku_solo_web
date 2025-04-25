@@ -53,7 +53,8 @@ model Certificate {
   certificateNumber String            @unique @db.VarChar @map("certificate_number")
   issueDate         DateTime?         @default(now()) @db.Timestamp(6) @map("issue_date")
   certificatePath   String?           @db.VarChar @map("certificate_path")
-  projectsData      Json?             @db.Json @map("projects_data")
+  googleDriveUrl    String?           @db.VarChar @map("google_drive_url") //
+  projectCertificatePath String?      @db.VarChar @map("project_certificate_path")
   status            String?           @db.VarChar @map("status") // generated, sent, viewed
   verifiedBy        String?           @db.VarChar @map("verified_by") // ID dari admin/mentor yang verifikasi (optional)
   note              String?           @db.VarChar @map("note") // Catatan internal admin (optional)
