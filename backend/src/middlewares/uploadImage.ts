@@ -130,3 +130,115 @@ export const handleSubmissionUpload = (
 };
 
 export { finalSubmissionPath as submissionUploadPath };
+
+// Untuk Upload Thumbnail Practice
+const thumbnailUploadPath = path.join(
+  __dirname,
+  "../../images/thumbnailPractice"
+);
+const normalizedThumbnailPath = path.normalize(thumbnailUploadPath);
+const correctThumbnailPath = normalizedThumbnailPath.replace(/^\\/, "");
+
+if (!fs.existsSync(correctThumbnailPath)) {
+  fs.mkdirSync(correctThumbnailPath, { recursive: true });
+}
+
+export const handleThumbnailUpload = (
+  field: string,
+  isMultiple: boolean = true, // Ubah ke true agar mendukung multiple file
+  max: number = 5 // Sesuaikan maksimal jumlah file yang diizinkan
+) => {
+  const storage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, correctThumbnailPath),
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname);
+
+      // Ambil title dari req.practiceTitle, fallback ke "untitled"
+      const rawTitle =
+        (req as any).practiceTitle || (req as any).body?.title || "untitled";
+
+      // Sanitasi title: ganti spasi dengan -, lowercase, hapus karakter aneh
+      const title = rawTitle
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9\-]/g, "")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
+
+      // Ambil tanggal saat ini
+      const now = new Date();
+      const dateString = `${now.getFullYear()}${(now.getMonth() + 1)
+        .toString()
+        .padStart(2, "0")}${now.getDate().toString().padStart(2, "0")}`;
+
+      // Generate string acak
+      const randomString = Math.random().toString(36).substring(2, 7); // 5 karakter acak
+
+      // Gabungkan semuanya dalam format yang diinginkan
+      const fileName = `thumbnail-${title}-${dateString}-${randomString}${ext}`;
+
+      cb(null, fileName);
+    },
+  });
+
+  const upload = multer({ storage });
+  return isMultiple ? upload.array(field, max) : upload.single(field);
+};
+
+export { correctThumbnailPath as thumbnailUploadPath };
+
+// Tentukan folder uploads/practiceFile
+const practiceFileUploadPath = path.join(
+  __dirname,
+  "../../uploads/practiceFile"
+);
+const normalizedPracticeFilePath = path.normalize(practiceFileUploadPath);
+const finalPracticeFilePath = normalizedPracticeFilePath.replace(/^\\/, "");
+
+// Buat folder kalau belum ada
+if (!fs.existsSync(finalPracticeFilePath)) {
+  fs.mkdirSync(finalPracticeFilePath, { recursive: true });
+}
+
+// Storage multer untuk PracticeFile
+const practiceFileStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, finalPracticeFilePath),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const name = path
+      .basename(file.originalname, ext)
+      .replace(/\s+/g, "-")
+      .replace(/[^a-zA-Z0-9-_]/g, "");
+
+    const now = new Date();
+    const formattedTime = `${now.getFullYear()}${(now.getMonth() + 1)
+      .toString()
+      .padStart(2, "0")}${now.getDate().toString().padStart(2, "0")}-${now
+      .getHours()
+      .toString()
+      .padStart(2, "0")}${now.getMinutes().toString().padStart(2, "0")}${now
+      .getSeconds()
+      .toString()
+      .padStart(2, "0")}`;
+
+    const filename = `PracticeFile-${name}-${formattedTime}${ext}`;
+    cb(null, filename);
+  },
+});
+
+// Multer uploader
+const practiceFileUploader = multer({ storage: practiceFileStorage });
+
+// Fungsi untuk handle upload
+export const handlePracticeFileUpload = (
+  field: string,
+  isMultiple: boolean = false,
+  max: number = 5
+) => {
+  return isMultiple
+    ? practiceFileUploader.array(field, max)
+    : practiceFileUploader.single(field);
+};
+
+export { finalPracticeFilePath as practiceFileUploadPath };

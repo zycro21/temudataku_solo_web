@@ -164,18 +164,38 @@ export interface AuthenticatedRequestPractice extends Request {
     mentorProfileId?: string;
   };
   validatedBody?: {
-    mentorId: string;
-    title: string;
+    // Field untuk Create Practice
+    mentorId?: string;
+    title?: string;
     description?: string;
-    thumbnailImage?: string;
-    price: number;
+    thumbnailImages?: string[];
+    price?: number;
     practiceType?: string;
     category?: string;
     tags?: string[];
     isActive?: boolean;
+
+    // Field untuk Create Material
+    status?: string;
+    startDate?: string;
+    endDate?: string;
+
+    // Field untuk Upload Practice File
+    materialId?: string;
+    fileName?: string;
+
+    // Field untuk Create Practice Purchase
+    practiceId?: string;
+
+    // Field untuk Create/Update Practice Progress
+    userId?: string; // optional, bisa kosong
+    isCompleted?: boolean;
+    timeSpentSeconds?: number;
+    lastAccessed?: Date;// Mendukung input yyyy-mm-dd
   };
   validatedParams?: any;
   validatedQuery?: any;
+  file?: Express.Multer.File;
 }
 
 export const authenticate = (

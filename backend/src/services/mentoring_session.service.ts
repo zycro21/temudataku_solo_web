@@ -372,7 +372,7 @@ export const getMentoringSessionById = async (id: string) => {
         // Menambahkan relasi ke Project
         select: {
           id: true,
-          filePath: true,
+          filePaths: true,
           submissionDate: true,
           plagiarismScore: true,
           Score: true,
@@ -710,7 +710,7 @@ export const exportMentoringSessions = async (format: "xlsx" | "csv") => {
       projectSubmissions: {
         select: {
           id: true,
-          filePath: true,
+          filePaths: true,
           submissionDate: true,
           plagiarismScore: true,
           Score: true,
@@ -767,7 +767,7 @@ export const exportMentoringSessions = async (format: "xlsx" | "csv") => {
 
         submissionId: submission.id,
         submissionDate: submission.submissionDate,
-        filePath: submission.filePath,
+        filePath: submission.filePaths,
         plagiarismScore: submission.plagiarismScore?.toNumber() ?? null,
         score: submission.Score?.toNumber() ?? null,
         mentorFeedback: submission.mentorFeedback,

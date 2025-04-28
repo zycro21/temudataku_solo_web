@@ -17,6 +17,7 @@ import notificationRoute from "./routes/notification.route";
 import bookingRoute from "./routes/booking.route";
 import projectRoute from "./routes/project.route";
 import certificateRoute from "./routes/certificate.route";
+import practiceRoute from "./routes/practice.route";
 import "./schedulers/cron";
 import { fileURLToPath } from "url";
 
@@ -54,10 +55,10 @@ app.use("/api/notification", notificationRoute);
 app.use("/api/booking", bookingRoute);
 app.use("/api/project", projectRoute);
 app.use("/api/certificate", certificateRoute);
+app.use("/api/practice", practiceRoute);
 
 // Path Static untuk Images
 // Perbaikan di sini, mengganti __dirname dengan yang benar menggunakan import.meta.url
-// Static paths with enhanced logging for debugging
 const imagesPath = path.join(__dirname, "../images");
 console.log("Serving images from:", imagesPath);
 app.use(
@@ -95,6 +96,19 @@ app.use(
     next();
   },
   express.static(certificatesPath)
+);
+
+const practiceFilesPath = path.join(__dirname, "../uploads/practiceFile");
+console.log("Serving practice files from:", practiceFilesPath);
+app.use(
+  "/practiceFiles",
+  (req, res, next) => {
+    console.log("Accessing practiceFiles path:", req.path);
+    const filePath = path.join(practiceFilesPath, req.path);
+    console.log("Looking for file:", filePath);
+    next();
+  },
+  express.static(practiceFilesPath)
 );
 
 // Handler setelah semua route

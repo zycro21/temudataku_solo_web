@@ -247,7 +247,7 @@ model Payment {
   updatedAt             DateTime?           @db.Timestamp(6) @map("updated_at")
 
   booking               Booking?            @relation("BookingPayment", fields: [bookingId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  practicePurchases     PracticePurchase[]
+  practicePurchase      PracticePurchase?
   bookingParticipants   BookingParticipant[] @relation("ParticipantPayment")
 
   @@map("payments")
@@ -276,12 +276,15 @@ model PracticeMaterial {
   title             String              @db.VarChar
   description       String?
   orderNumber       Int                 @map("order_number")
+  status            String?             // Status materi (draft, active, inactive)
+  startDate         DateTime?           // Tanggal mulai materi ini aktif
+  endDate           DateTime?           // Tanggal selesai materi ini aktif
   createdAt         DateTime?           @default(now()) @db.Timestamp(6) @map("created_at")
   updatedAt         DateTime?           @db.Timestamp(6) @map("updated_at")
 
-  practiceFiles     PracticeFile[]
+  practiceFiles     PracticeFile[]      // Relasi dengan PracticeFile
   practice          Practice            @relation(fields: [practiceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  practiceProgress  PracticeProgress[]
+  practiceProgress  PracticeProgress[]  // Relasi dengan Progress
 
   @@map("practice_materials")
 }
@@ -289,7 +292,6 @@ model PracticeMaterial {
 model PracticeProgress {
   id                String             @id @default(cuid())
   userId            String             @map("user_id")
-  practiceId        String             @map("practice_id")
   materialId        String             @map("material_id")
   isCompleted       Boolean?           @default(false) @map("is_completed")
   lastAccessed      DateTime?          @db.Timestamp(6) @map("last_accessed")
@@ -298,9 +300,9 @@ model PracticeProgress {
   updatedAt         DateTime?          @db.Timestamp(6) @map("updated_at")
 
   practiceMaterial  PracticeMaterial   @relation(fields: [materialId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  practice          Practice           @relation(fields: [practiceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   user              User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
+  @@unique([userId, materialId])
   @@map("practice_progress")
 }
 
@@ -308,11 +310,11 @@ model PracticeProgress {
 model PracticePurchase {
   id               String           @id @default(cuid())
   userId           String
-  practiceId       String
-  paymentId        String?
-  referralUsageId  String?          @unique
+  practiceId       String           
+  paymentId        String?          @unique
+  referralUsageId  String?          
   purchaseDate     DateTime?        @default(now())
-  status           String?          @db.VarChar
+  status           String?          @db.VarChar // pending', 'confirmed', 'cancelled
   createdAt        DateTime?        @default(now())
   updatedAt        DateTime?
 
@@ -337,6 +339,7 @@ model PracticeReview {
   practice        Practice  @relation(fields: [practiceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
+  @@unique([userId, practiceId])
   @@map("practice_reviews")
 }
 
@@ -346,17 +349,16 @@ model Practice {
   mentorId          String              @map("mentor_id")
   title             String              @db.VarChar
   description       String?
-  thumbnailImage    String?             @db.VarChar @map("thumbnail_image")
+  thumbnailImages   String[]            @db.VarChar @map("thumbnail_image")
   price             Decimal             @db.Decimal
   practiceType      String?             @db.VarChar @map("practice_type")
   category          String?             @db.VarChar
-  tags              Json?               @db.Json
+  tags              String[]            @db.VarChar
   isActive          Boolean?            @default(true) @map("is_active")
   createdAt         DateTime?           @default(now()) @db.Timestamp(6) @map("created_at")
   updatedAt         DateTime?           @db.Timestamp(6) @map("updated_at")
 
   practiceMaterials PracticeMaterial[]
-  practiceProgress  PracticeProgress[]
   practicePurchases PracticePurchase[]
   practiceReviews   PracticeReview[]
   mentorProfile     MentorProfile       @relation(fields: [mentorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
@@ -448,6 +450,7 @@ model ReferralUsage {
   booking          Booking[]          @relation("ReferralUsageBooking") // relasi balik booking
   practicePurchase PracticePurchase[] @relation("ReferralUsagePracticePurchase") // relasi balik practice purchase
 
+  @@unique([userId, referralCodeId])
   @@map("referral_usages")
 }
 
