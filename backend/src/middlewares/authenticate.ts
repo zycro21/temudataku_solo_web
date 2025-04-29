@@ -191,11 +191,22 @@ export interface AuthenticatedRequestPractice extends Request {
     userId?: string; // optional, bisa kosong
     isCompleted?: boolean;
     timeSpentSeconds?: number;
-    lastAccessed?: Date;// Mendukung input yyyy-mm-dd
+    lastAccessed?: Date; // Mendukung input yyyy-mm-dd
   };
   validatedParams?: any;
   validatedQuery?: any;
   file?: Express.Multer.File;
+}
+
+export interface AuthenticatedRequestBehavior extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+  };
+  validatedBody?: any;
+  validatedParams?: any;
+  validatedQuery?: any;
 }
 
 export const authenticate = (

@@ -18,6 +18,7 @@ import bookingRoute from "./routes/booking.route";
 import projectRoute from "./routes/project.route";
 import certificateRoute from "./routes/certificate.route";
 import practiceRoute from "./routes/practice.route";
+import behaviorRoute from "./routes/behavior.route";
 import "./schedulers/cron";
 import { fileURLToPath } from "url";
 
@@ -56,6 +57,7 @@ app.use("/api/booking", bookingRoute);
 app.use("/api/project", projectRoute);
 app.use("/api/certificate", certificateRoute);
 app.use("/api/practice", practiceRoute);
+app.use("/api/behavior", behaviorRoute);
 
 // Path Static untuk Images
 // Perbaikan di sini, mengganti __dirname dengan yang benar menggunakan import.meta.url
