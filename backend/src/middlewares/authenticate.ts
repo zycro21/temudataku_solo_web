@@ -6,6 +6,8 @@ export interface AuthenticatedRequest extends Request {
     userId: string;
     roles: string[];
     mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
   };
   validatedQuery?: {
     page: string;
@@ -27,20 +29,26 @@ export interface AuthenticatedRequest extends Request {
     userId: string;
   };
   validatedBody?: {
-    isVerified: boolean;
-    serviceName: string;
-    description?: string;
-    price: number;
-    serviceType:
+    serviceName?: string;
+    description?: string | null;
+    price?: number;
+    serviceType?:
       | "one-on-one"
       | "group"
       | "bootcamp"
       | "shortclass"
       | "live class";
     maxParticipants?: number;
-    durationDays: number;
-    mentorProfileIds: string[];
-    isActive: boolean;
+    durationDays?: number;
+    mentorProfileIds?: string[];
+    isActive?: boolean;
+    benefits?: string | null;
+    mechanism?: string | null;
+    syllabusPath?: string | null;
+    toolsUsed?: string | null;
+    targetAudience?: string | null;
+    schedule?: string | null;
+    alumniPortfolio?: string | null;
   };
 }
 
@@ -49,6 +57,8 @@ export interface AuthenticatedRequestForMentoringSession extends Request {
     userId: string;
     roles: string[];
     mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
   };
   validatedQuery?: {
     serviceId?: string;
@@ -85,6 +95,8 @@ export interface AuthenticatedRequestFeedback extends Request {
     userId: string;
     roles: string[];
     mentorProfileId?: string; // Tambahkan mentorProfileId
+    email?: string;
+    phoneNumber?: string;
   };
   validatedBody?: any;
   validatedParams?: any;
@@ -96,6 +108,8 @@ export interface AuthenticatedRequestNotification extends Request {
     userId: string;
     roles: string[];
     mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
   };
   validatedBody?: any;
   validatedParams?: any;
@@ -107,6 +121,8 @@ export interface AuthenticatedRequestBooking extends Request {
     userId: string;
     roles: string[];
     mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
   };
   validatedBody?: {
     mentoringServiceId: string;
@@ -140,6 +156,8 @@ export interface AuthenticatedRequestProject extends Request {
     userId: string;
     roles: string[];
     mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
   };
   validatedBody?: any;
   validatedParams?: any;
@@ -151,6 +169,8 @@ export interface AuthenticatedRequestCertificate extends Request {
     userId: string;
     roles: string[];
     mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
   };
   validatedBody?: any;
   validatedParams?: any;
@@ -162,6 +182,8 @@ export interface AuthenticatedRequestPractice extends Request {
     userId: string;
     roles: string[];
     mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
   };
   validatedBody?: {
     // Field untuk Create Practice
@@ -175,6 +197,14 @@ export interface AuthenticatedRequestPractice extends Request {
     tags?: string[];
     isActive?: boolean;
 
+    // Kolom tambahan baru
+    benefits?: string;
+    toolsUsed?: string;
+    challenges?: string;
+    expectedOutcomes?: string;
+    estimatedDuration?: string;
+    targetAudience?: string;
+
     // Field untuk Create Material
     status?: string;
     startDate?: string;
@@ -186,6 +216,7 @@ export interface AuthenticatedRequestPractice extends Request {
 
     // Field untuk Create Practice Purchase
     practiceId?: string;
+    referralUsageId?: string;
 
     // Field untuk Create/Update Practice Progress
     userId?: string; // optional, bisa kosong
@@ -203,6 +234,67 @@ export interface AuthenticatedRequestBehavior extends Request {
     userId: string;
     roles: string[];
     mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+  };
+  validatedBody?: any;
+  validatedParams?: any;
+  validatedQuery?: any;
+}
+
+export interface AuthenticatedRequestReferralCode extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+  };
+  validatedBody?:
+    | {
+        ownerId: string;
+        code: string;
+        discountPercentage: number;
+        commissionPercentage: number;
+        expiryDate?: Date;
+        isActive?: boolean;
+      }
+    | {
+        expiryDate?: Date;
+        isActive?: boolean;
+        discountPercentage?: number;
+        commissionPercentage?: number;
+      }
+    | {
+        code: string;
+        context: "booking" | "practice_purchase";
+      }
+    | {
+        referralCodeId: string;
+        amount: number;
+      };
+  validatedParams?: {
+    id?: string;
+  };
+  validatedQuery?: {
+    page?: number;
+    limit?: number;
+    isActive?: boolean;
+    ownerId?: string;
+    referralCodeId?: string;
+    startDate?: string;
+    endDate?: string;
+    context?: "booking" | "practice_purchase";
+  };
+}
+
+export interface AuthenticatedRequestPayment extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
   };
   validatedBody?: any;
   validatedParams?: any;
@@ -226,12 +318,16 @@ export const authenticate = (
       userId: string;
       roles: string[];
       mentorProfileId?: string;
+      email?: string;
+      phoneNumber?: string;
     };
 
     req.user = {
       userId: decoded.userId,
       roles: decoded.roles,
       mentorProfileId: decoded.mentorProfileId,
+      email: decoded.email,
+      phoneNumber: decoded.phoneNumber,
     };
 
     next();

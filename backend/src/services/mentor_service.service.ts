@@ -18,6 +18,13 @@ export const createMentoringService = async (input: {
   maxParticipants?: number;
   durationDays: number;
   mentorProfileIds: string[];
+  benefits?: string;
+  mechanism?: string;
+  syllabusPath?: string;
+  toolsUsed?: string;
+  targetAudience?: string;
+  schedule?: string;
+  alumniPortfolio?: string;
 }) => {
   const {
     serviceName,
@@ -27,6 +34,13 @@ export const createMentoringService = async (input: {
     maxParticipants,
     durationDays,
     mentorProfileIds,
+    benefits,
+    mechanism,
+    syllabusPath,
+    toolsUsed,
+    targetAudience,
+    schedule,
+    alumniPortfolio,
   } = input;
 
   const slugify = (text: string) =>
@@ -85,6 +99,13 @@ export const createMentoringService = async (input: {
         serviceType,
         maxParticipants,
         durationDays,
+        benefits,
+        mechanism,
+        syllabusPath,
+        toolsUsed,
+        targetAudience,
+        schedule,
+        alumniPortfolio,
         mentors: {
           create: mentorProfileIds.map((mentorProfileId) => ({
             mentorProfile: { connect: { id: mentorProfileId } },
@@ -214,7 +235,7 @@ export const getMentoringServiceDetailById = async (id: string) => {
             status: true,
             notes: true,
           },
-          take: 10, // Pagination: Ambil 10 sesi pertama
+          take: 10,
         },
         bookings: {
           select: {
@@ -231,7 +252,7 @@ export const getMentoringServiceDetailById = async (id: string) => {
               },
             },
           },
-          take: 50, // Batasi 50 booking untuk efisiensi
+          take: 50,
         },
       },
     });
@@ -241,12 +262,10 @@ export const getMentoringServiceDetailById = async (id: string) => {
       return null;
     }
 
-    // Hitung total booking yang confirmed
     const totalBookings = service.bookings.filter(
       (booking) => booking.status === "confirmed"
     ).length;
 
-    // Hitung sisa slot (jika maxParticipants ada)
     const remainingSlots = service.maxParticipants
       ? Math.max(0, service.maxParticipants - totalBookings)
       : null;
@@ -262,8 +281,18 @@ export const getMentoringServiceDetailById = async (id: string) => {
       isActive: service.isActive,
       createdAt: service.createdAt,
       updatedAt: service.updatedAt,
-      totalBookings, // Jumlah booking yang confirmed
-      remainingSlots, // Sisa slot tersedia
+
+      // Tambahan kolom dari tabel baru
+      benefits: service.benefits,
+      mechanism: service.mechanism,
+      syllabusPath: service.syllabusPath,
+      toolsUsed: service.toolsUsed,
+      targetAudience: service.targetAudience,
+      schedule: service.schedule,
+      alumniPortfolio: service.alumniPortfolio,
+
+      totalBookings,
+      remainingSlots,
       mentors: service.mentors.map((m) => ({
         mentorProfileId: m.mentorProfile.id,
         expertise: m.mentorProfile.expertise,
@@ -274,21 +303,15 @@ export const getMentoringServiceDetailById = async (id: string) => {
       })),
       sessions: service.mentoringSessions.length
         ? service.mentoringSessions.map((session) => {
-            // Konversi date dan time ke ISO string
-            const sessionDate = session.date; // Misalnya: "15-06-2025"
-            const startTime = session.startTime; // Misalnya: "10:00:00"
-            const endTime = session.endTime; // Misalnya: "12:00:00"
-
-            // Asumsikan format date adalah DD-MM-YYYY, ubah ke YYYY-MM-DD
+            const sessionDate = session.date;
+            const startTime = session.startTime;
+            const endTime = session.endTime;
             const [day, month, year] = sessionDate.split("-");
             const formattedDate = `${year}-${month}-${day}`;
-
-            // Buat objek Date untuk startTime dan endTime
             const startDateTime = new Date(`${formattedDate}T${startTime}`);
             const endDateTime = new Date(`${formattedDate}T${endTime}`);
-
             return {
-              sessionDate: startDateTime.toISOString(), // Format ISO
+              sessionDate: startDateTime.toISOString(),
               endTime: endDateTime.toISOString(),
               durationMinutes: session.durationMinutes,
               status: session.status,
@@ -296,7 +319,7 @@ export const getMentoringServiceDetailById = async (id: string) => {
             };
           })
         : [],
-      certificates: service.certificates || [], // Jika tidak ada, return array kosong
+      certificates: service.certificates || [],
       bookings: service.bookings.map((booking) => ({
         id: booking.id,
         menteeId: booking.menteeId,
@@ -308,7 +331,7 @@ export const getMentoringServiceDetailById = async (id: string) => {
           fullName: booking.mentee.fullName,
           email: booking.mentee.email,
         },
-      })), // Kembalikan booking lengkap untuk admin
+      })),
     };
   } catch (error) {
     console.error("Error fetching mentoring service detail:", error);
@@ -326,6 +349,13 @@ export const updateMentoringServiceById = async (
     durationDays?: number;
     isActive?: boolean;
     mentorProfileIds?: string[];
+    benefits?: string | null;
+    mechanism?: string | null;
+    syllabusPath?: string | null;
+    toolsUsed?: string | null;
+    targetAudience?: string | null;
+    schedule?: string | null;
+    alumniPortfolio?: string | null;
   }
 ) => {
   const {
@@ -336,6 +366,13 @@ export const updateMentoringServiceById = async (
     durationDays,
     isActive,
     mentorProfileIds,
+    benefits,
+    mechanism,
+    syllabusPath,
+    toolsUsed,
+    targetAudience,
+    schedule,
+    alumniPortfolio,
   } = data;
 
   const existingService = await prisma.mentoringService.findUnique({
@@ -358,15 +395,21 @@ export const updateMentoringServiceById = async (
     maxParticipants,
     durationDays,
     isActive,
+    benefits,
+    mechanism,
+    syllabusPath,
+    toolsUsed,
+    targetAudience,
+    schedule,
+    alumniPortfolio,
     updatedAt: new Date(),
   };
 
-  // Hapus field yang undefined
+  // Hapus key undefined agar tidak ditulis ulang
   Object.keys(updatePayload).forEach(
     (key) => updatePayload[key] === undefined && delete updatePayload[key]
   );
 
-  // Simpan field yang berubah
   const updatedFields: string[] = [];
 
   for (const key of Object.keys(updatePayload)) {
@@ -398,7 +441,7 @@ export const updateMentoringServiceById = async (
         throw new Error(`Invalid mentorProfileIds: ${invalidIds.join(", ")}`);
       }
 
-      // Dapatkan mentor sebelumnya
+      // Cek apakah mentor berubah
       const oldMentorIds = existingService.mentors.map(
         (m) => m.mentorProfileId
       );
@@ -408,19 +451,19 @@ export const updateMentoringServiceById = async (
 
       if (isMentorChanged) {
         updatedFields.push("mentorProfileIds");
+
+        await tx.mentoringServiceMentor.deleteMany({
+          where: { mentoringServiceId: id },
+        });
+
+        await tx.mentoringServiceMentor.createMany({
+          data: mentorProfileIds.map((mentorProfileId) => ({
+            mentoringServiceId: id,
+            mentorProfileId,
+          })),
+          skipDuplicates: true,
+        });
       }
-
-      await tx.mentoringServiceMentor.deleteMany({
-        where: { mentoringServiceId: id },
-      });
-
-      await tx.mentoringServiceMentor.createMany({
-        data: mentorProfileIds.map((mentorProfileId) => ({
-          mentoringServiceId: id,
-          mentorProfileId,
-        })),
-        skipDuplicates: true,
-      });
     }
   });
 
@@ -521,7 +564,6 @@ export const exportMentoringServicesToFile = async (
   });
 
   const rows = services.map((service) => {
-    // Mengambil data mentor dan memisahkan kolom berdasarkan koma
     const mentorIds = service.mentors.map((m) => m.mentorProfile.id).join(", ");
     const mentorNames = service.mentors
       .map((m) => m.mentorProfile.user.fullName)
@@ -535,9 +577,16 @@ export const exportMentoringServicesToFile = async (
       "Service Name": service.serviceName,
       Description: service.description || "-",
       Price: service.price.toString(),
+      "Service Type": service.serviceType || "-",
       "Max Participants": service.maxParticipants ?? "-",
       "Duration (Days)": service.durationDays,
-      "Service Type": service.serviceType || "-",
+      Benefits: service.benefits || "-",
+      Mechanism: service.mechanism || "-",
+      "Syllabus Path": service.syllabusPath || "-",
+      "Tools Used": service.toolsUsed || "-",
+      "Target Audience": service.targetAudience || "-",
+      Schedule: service.schedule || "-",
+      "Alumni Portfolio": service.alumniPortfolio || "-",
       "Is Active": service.isActive ? "Yes" : "No",
       "Created At": formatDate(
         service.createdAt ?? new Date(),
@@ -564,6 +613,7 @@ export const exportMentoringServicesToFile = async (
 
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet("Mentoring Services");
+
   worksheet.columns = Object.keys(rows[0]).map((key) => ({
     header: key,
     key,
@@ -596,7 +646,7 @@ export const getMentoringServicesByMentor = async (mentorId: string) => {
                   include: {
                     mentorProfile: {
                       include: {
-                        user: true, // Pastikan relasi 'user' juga disertakan
+                        user: true,
                       },
                     },
                   },
@@ -613,7 +663,6 @@ export const getMentoringServicesByMentor = async (mentorId: string) => {
       return null;
     }
 
-    // Mengambil semua mentoring services yang terhubung dengan mentor
     const services = mentorProfile.mentoringServices.map(
       (serviceLink) => serviceLink.mentoringService
     );
@@ -626,6 +675,13 @@ export const getMentoringServicesByMentor = async (mentorId: string) => {
       serviceType: service.serviceType,
       maxParticipants: service.maxParticipants,
       durationDays: service.durationDays,
+      benefits: service.benefits,
+      mechanism: service.mechanism,
+      syllabusPath: service.syllabusPath,
+      toolsUsed: service.toolsUsed,
+      targetAudience: service.targetAudience,
+      schedule: service.schedule,
+      alumniPortfolio: service.alumniPortfolio,
       isActive: service.isActive,
       createdAt: service.createdAt,
       updatedAt: service.updatedAt,
@@ -689,7 +745,7 @@ export const getMentoringServiceDetailForMentor = async (
         mentoringSessions: {
           select: {
             id: true,
-            date: true, // Tambahkan date untuk konversi
+            date: true,
             startTime: true,
             endTime: true,
             durationMinutes: true,
@@ -703,7 +759,6 @@ export const getMentoringServiceDetailForMentor = async (
 
     if (!service) return null;
 
-    // 4. Tipe eksplisit agar TS tidak error
     const detailedService = service as Prisma.MentoringServiceGetPayload<{
       include: {
         mentors: {
@@ -727,24 +782,26 @@ export const getMentoringServiceDetailForMentor = async (
       serviceType: detailedService.serviceType,
       maxParticipants: detailedService.maxParticipants,
       durationDays: detailedService.durationDays,
+      benefits: detailedService.benefits,
+      mechanism: detailedService.mechanism,
+      syllabusPath: detailedService.syllabusPath,
+      toolsUsed: detailedService.toolsUsed,
+      targetAudience: detailedService.targetAudience,
+      schedule: detailedService.schedule,
+      alumniPortfolio: detailedService.alumniPortfolio,
+      isActive: detailedService.isActive,
+      createdAt: detailedService.createdAt,
+      updatedAt: detailedService.updatedAt,
       mentors: detailedService.mentors.map((m) => ({
         mentorProfileId: m.mentorProfile.id,
         expertise: m.mentorProfile.expertise,
         user: m.mentorProfile.user,
       })),
       sessions: detailedService.mentoringSessions.map((session) => {
-        // Konversi date dan time ke ISO string
-        const sessionDate = session.date; // Misalnya: "15-06-2025"
-        const startTime = session.startTime; // Misalnya: "10:00:00"
-        const endTime = session.endTime; // Misalnya: "12:00:00"
-
-        // Asumsikan format date adalah DD-MM-YYYY, ubah ke YYYY-MM-DD
-        const [day, month, year] = sessionDate.split("-");
+        const [day, month, year] = session.date.split("-");
         const formattedDate = `${year}-${month}-${day}`;
-
-        // Buat objek Date untuk startTime dan endTime
-        const startDateTime = new Date(`${formattedDate}T${startTime}`);
-        const endDateTime = new Date(`${formattedDate}T${endTime}`);
+        const startDateTime = new Date(`${formattedDate}T${session.startTime}`);
+        const endDateTime = new Date(`${formattedDate}T${session.endTime}`);
 
         return {
           id: session.id,
@@ -802,7 +859,6 @@ export const getPublicMentoringServices = async (
       };
     }
 
-    // total data untuk pagination
     const totalData = await prisma.mentoringService.count({ where });
     const totalPage = Math.ceil(totalData / limit);
 
@@ -836,6 +892,14 @@ export const getPublicMentoringServices = async (
       price: service.price,
       serviceType: service.serviceType,
       maxParticipants: service.maxParticipants,
+      durationDays: service.durationDays,
+      benefits: service.benefits,
+      mechanism: service.mechanism,
+      syllabusPath: service.syllabusPath,
+      toolsUsed: service.toolsUsed,
+      targetAudience: service.targetAudience,
+      schedule: service.schedule,
+      alumniPortfolio: service.alumniPortfolio,
       mentors: service.mentors.map((m) => ({
         mentorProfileId: m.mentorProfile.id,
         expertise: m.mentorProfile.expertise,
@@ -905,6 +969,13 @@ export const getPublicMentoringServiceDetail = async (id: string) => {
     serviceType: service.serviceType,
     maxParticipants: service.maxParticipants,
     durationDays: service.durationDays,
+    benefits: service.benefits,
+    mechanism: service.mechanism,
+    syllabusPath: service.syllabusPath,
+    toolsUsed: service.toolsUsed,
+    targetAudience: service.targetAudience,
+    schedule: service.schedule,
+    alumniPortfolio: service.alumniPortfolio,
     mentors: service.mentors
       .filter((m) => m.mentorProfile?.isVerified)
       .map((m) => ({

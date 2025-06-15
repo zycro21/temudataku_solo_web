@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 const resetDatabase = async () => {
   try {
     // Menghapus data dari semua tabel
-    await prisma.users.deleteMany();
+    await prisma.user.deleteMany();
 
     console.log("Database telah direset");
   } catch (error) {

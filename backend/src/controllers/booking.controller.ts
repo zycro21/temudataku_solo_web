@@ -29,13 +29,16 @@ export const createBookingController = async (
     );
 
     res.status(201).json({
+      success: true,
       message: "Booking berhasil dibuat.",
-      data: booking,
+      data: booking.data,
     });
+    return;
   } catch (error: any) {
     const status = error.status || 500;
     const message = error.message || "Terjadi kesalahan pada server.";
-    res.status(status).json({ message });
+    res.status(status).json({ success: false, message });
+    return;
   }
 };
 

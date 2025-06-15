@@ -19,12 +19,18 @@ export const createPractice = async (input: {
   mentorId: string;
   title: string;
   description?: string;
-  thumbnailImages?: string[]; // Ubah menjadi array untuk multiple gambar
+  thumbnailImages?: string[];
   price: number;
   practiceType?: string;
   category?: string;
-  tags?: string[]; // Pastikan menerima array string
+  tags?: string[];
   isActive?: boolean;
+  benefits?: string;
+  toolsUsed?: string;
+  challenges?: string;
+  expectedOutcomes?: string;
+  estimatedDuration?: string;
+  targetAudience?: string;
 }) => {
   const {
     mentorId,
@@ -36,6 +42,12 @@ export const createPractice = async (input: {
     category,
     tags,
     isActive,
+    benefits,
+    toolsUsed,
+    challenges,
+    expectedOutcomes,
+    estimatedDuration,
+    targetAudience,
   } = input;
 
   // Cari mentor berdasarkan mentorId
@@ -47,21 +59,28 @@ export const createPractice = async (input: {
     throw new Error("Mentor tidak ditemukan");
   }
 
-  // Simpan data practice, tags sekarang disimpan sebagai array langsung
-  const practice = await prisma.practice.create({
-    data: {
-      mentorId,
-      title,
-      description,
-      thumbnailImages, // Simpan langsung sebagai array
-      price: new Prisma.Decimal(price),
-      practiceType,
-      category,
-      tags: tags ?? undefined, // Jika tags ada, simpan sebagai array
-      isActive: isActive ?? true,
-    },
-  });
+  // Siapkan data secara dinamis
+  const data: any = {
+    mentorId,
+    title,
+    description,
+    thumbnailImages,
+    price: new Prisma.Decimal(price),
+    practiceType,
+    category,
+    tags,
+    isActive: isActive ?? true,
+  };
 
+  // Masukkan kolom tambahan hanya jika ada nilainya
+  if (benefits) data.benefits = benefits;
+  if (toolsUsed) data.toolsUsed = toolsUsed;
+  if (challenges) data.challenges = challenges;
+  if (expectedOutcomes) data.expectedOutcomes = expectedOutcomes;
+  if (estimatedDuration) data.estimatedDuration = estimatedDuration;
+  if (targetAudience) data.targetAudience = targetAudience;
+
+  const practice = await prisma.practice.create({ data });
   return practice;
 };
 
@@ -74,12 +93,19 @@ export const updatePractice = async (
   id: string,
   updates: {
     mentorId?: string;
+    title?: string;
     description?: string;
     price?: number;
     practiceType?: string;
     category?: string;
     tags?: string[];
     isActive?: boolean;
+    benefits?: string;
+    toolsUsed?: string;
+    challenges?: string;
+    expectedOutcomes?: string;
+    estimatedDuration?: string;
+    targetAudience?: string;
   },
   uploadedImages: string[] = []
 ) => {
@@ -102,14 +128,14 @@ export const updatePractice = async (
     }
   }
 
-  // Handle thumbnail (hapus lama, update baru)
+  // Handle thumbnail image: hapus lama jika ada yang baru
   let finalThumbnails = existingPractice.thumbnailImages || [];
 
   if (uploadedImages.length > 0) {
     await Promise.all(
       finalThumbnails.map(async (oldImagePath) => {
-        const fileNameOnly = path.basename(oldImagePath); // cuma ambil nama file
-        const filePath = path.join(thumbnailUploadPath, fileNameOnly); // pakai path upload yang benar
+        const fileNameOnly = path.basename(oldImagePath);
+        const filePath = path.join(thumbnailUploadPath, fileNameOnly);
 
         try {
           await fs.promises.unlink(filePath);
@@ -126,6 +152,10 @@ export const updatePractice = async (
     where: { id },
     data: {
       ...updates,
+      price:
+        updates.price !== undefined
+          ? new Prisma.Decimal(updates.price)
+          : undefined,
       thumbnailImages: finalThumbnails,
       updatedAt: new Date(),
     },
@@ -485,6 +515,12 @@ export const getPublicPractices = async (query: {
       practiceType: p.practiceType,
       thumbnailImages: p.thumbnailImages,
       createdAt: p.createdAt,
+      benefits: p.benefits,
+      toolsUsed: p.toolsUsed,
+      challenges: p.challenges,
+      expectedOutcomes: p.expectedOutcomes,
+      estimatedDuration: p.estimatedDuration,
+      targetAudience: p.targetAudience,
       mentor: {
         fullName: p.mentorProfile?.user.fullName,
         profilePicture: p.mentorProfile?.user.profilePicture,
@@ -506,6 +542,12 @@ export const getPracticePreview = async (practiceId: string) => {
         practiceType: true,
         category: true,
         tags: true,
+        benefits: true,
+        toolsUsed: true,
+        challenges: true,
+        expectedOutcomes: true,
+        estimatedDuration: true,
+        targetAudience: true,
         practiceMaterials: {
           select: {
             id: true,
@@ -537,6 +579,12 @@ export const getPracticePreview = async (practiceId: string) => {
       practiceType: practice.practiceType,
       category: practice.category,
       tags: practice.tags,
+      benefits: practice.benefits,
+      toolsUsed: practice.toolsUsed,
+      challenges: practice.challenges,
+      expectedOutcomes: practice.expectedOutcomes,
+      estimatedDuration: practice.estimatedDuration,
+      targetAudience: practice.targetAudience,
       practiceMaterials: practice.practiceMaterials,
       mentor: practice.mentorProfile?.user.fullName || "Mentor not found",
     };
@@ -1065,29 +1113,191 @@ export const getPracticeMaterialDetailService = async (
   return material;
 };
 
+// Fungsi untuk menghasilkan ID unik untuk Payment
+const generatePaymentId = async (
+  type: "booking" | "practice"
+): Promise<string> => {
+  const datePart = formatDate(new Date(), "yyyyMMdd");
+  const prefix = type === "booking" ? "PAY-BKG" : "PAY-PRC";
+  const maxAttempts = 10;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const randomDigits = Math.floor(1000000000 + Math.random() * 9000000000);
+    const id = `${prefix}-${datePart}-${randomDigits}`;
+    const existing = await prisma.payment.findUnique({
+      where: { id },
+    });
+    if (!existing) {
+      return id;
+    }
+  }
+
+  throw {
+    status: 500,
+    message: "Gagal menghasilkan ID Payment unik setelah beberapa percobaan",
+  };
+};
+
+const generatePracticePurchaseId = async (): Promise<string> => {
+  const maxAttempts = 10;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const randomDigits = Math.floor(1000000000 + Math.random() * 9000000000);
+    const id = `Purchase-${randomDigits}`;
+    const existing = await prisma.practicePurchase.findUnique({
+      where: { id },
+    });
+    if (!existing) {
+      return id;
+    }
+  }
+
+  throw {
+    status: 500,
+    message:
+      "Gagal menghasilkan ID PracticePurchase unik setelah beberapa percobaan",
+  };
+};
+
 export const createPracticePurchase = async (input: {
   userId: string;
   practiceId: string;
+  referralUsageId?: string;
 }) => {
-  const { userId, practiceId } = input;
+  const { userId, practiceId, referralUsageId } = input;
 
   const practice = await prisma.practice.findUnique({
     where: { id: practiceId },
-  });
-
-  if (!practice) {
-    throw new Error("Practice not found");
-  }
-
-  const purchase = await prisma.practicePurchase.create({
-    data: {
-      userId,
-      practiceId,
-      status: "pending",
+    select: {
+      id: true,
+      price: true,
+      isActive: true,
     },
   });
 
-  return purchase;
+  if (!practice || !practice.isActive) {
+    throw {
+      status: 404,
+      message: "Practice tidak ditemukan atau tidak aktif.",
+    };
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true },
+  });
+
+  if (!user) {
+    throw {
+      status: 404,
+      message: "User tidak ditemukan.",
+    };
+  }
+
+  let discountPercentage = 0;
+  let originalPrice = practice.price.toNumber();
+  let finalPrice = originalPrice;
+  let referralCodeId: string | null = null;
+  let commissionPercentage = 0;
+
+  if (referralUsageId) {
+    const referralUsage = await prisma.referralUsage.findUnique({
+      where: { id: referralUsageId },
+      include: {
+        practicePurchase: true,
+        booking: true,
+        referralCode: {
+          select: {
+            id: true,
+            discountPercentage: true,
+            commissionPercentage: true,
+          },
+        },
+      },
+    });
+
+    if (!referralUsage) {
+      throw {
+        status: 404,
+        message: "Referral usage tidak ditemukan.",
+      };
+    }
+
+    if (referralUsage.practicePurchase || referralUsage.booking) {
+      throw {
+        status: 400,
+        message: "Referral usage sudah digunakan.",
+      };
+    }
+
+    discountPercentage =
+      referralUsage.referralCode.discountPercentage.toNumber();
+    commissionPercentage =
+      referralUsage.referralCode.commissionPercentage.toNumber();
+    referralCodeId = referralUsage.referralCode.id;
+    finalPrice = originalPrice * (1 - discountPercentage / 100);
+  }
+
+  const purchase = await prisma.$transaction(async (tx) => {
+    const purchaseId = await generatePracticePurchaseId();
+
+    const newPurchase = await tx.practicePurchase.create({
+      data: {
+        id: purchaseId,
+        userId,
+        practiceId,
+        referralUsageId,
+        status: "pending",
+      },
+      include: {
+        payment: true,
+      },
+    });
+
+    const paymentId = await generatePaymentId("practice");
+
+    const payment = await tx.payment.create({
+      data: {
+        id: paymentId,
+        practicePurchaseId: newPurchase.id,
+        amount: finalPrice,
+        status: "pending",
+      },
+    });
+
+    if (payment.bookingId) {
+      throw {
+        status: 400,
+        message:
+          "Payment tidak boleh terkait dengan Booking dan PracticePurchase bersamaan.",
+      };
+    }
+
+    if (referralUsageId && referralCodeId) {
+      const commissionAmount = finalPrice * (commissionPercentage / 100);
+      await tx.referralCommisions.create({
+        data: {
+          referralCodeId,
+          transactionId: paymentId,
+          amount: commissionAmount,
+          created_at: new Date(),
+        },
+      });
+    }
+
+    return {
+      ...newPurchase,
+      payment,
+      originalPrice,
+      finalPrice,
+    };
+  });
+
+  return {
+    success: true,
+    message: "Practice purchase berhasil dibuat.",
+    data: purchase,
+  };
 };
 
 export const cancelPracticePurchase = async (input: {

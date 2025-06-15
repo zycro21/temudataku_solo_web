@@ -21,6 +21,13 @@ export const createMentoringServiceSchema = z.object({
         z.string().regex(/^mentor-\d{6}$/i, "Invalid mentorProfileId format")
       )
       .min(1),
+    benefits: z.string().max(1000).optional(),
+    mechanism: z.string().max(1000).optional(),
+    syllabusPath: z.string().url("syllabusPath must be a valid URL").optional(),
+    toolsUsed: z.string().max(500).optional(),
+    targetAudience: z.string().max(500).optional(),
+    schedule: z.string().max(1000).optional(),
+    alumniPortfolio: z.string().max(1000).optional(),
   }),
 });
 
@@ -74,6 +81,15 @@ export const updateMentoringServiceSchema = z.object({
         .array(z.string().min(1))
         .min(1, "At least one mentor must be specified")
         .optional(),
+
+      // Tambahan field baru:
+      benefits: z.string().nullable().optional(),
+      mechanism: z.string().nullable().optional(),
+      syllabusPath: z.string().nullable().optional(),
+      toolsUsed: z.string().nullable().optional(),
+      targetAudience: z.string().nullable().optional(),
+      schedule: z.string().nullable().optional(),
+      alumniPortfolio: z.string().nullable().optional(),
     })
     .refine((data) => Object.keys(data).length > 0, {
       message: "At least one field must be provided for update",

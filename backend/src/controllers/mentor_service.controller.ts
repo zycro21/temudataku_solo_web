@@ -92,15 +92,14 @@ export const updateMentoringServiceController = async (
   next: NextFunction
 ) => {
   try {
-    // Tambahkan log untuk melihat ID yang diterima
-    console.log(req.validatedParams?.id); // Debugging: Cek ID
+    console.log(req.validatedParams?.id); // Debugging
 
     if (!req.validatedParams || !req.validatedBody) {
       res.status(400).json({ message: "Invalid request" });
       return;
     }
 
-    const { id } = req.validatedParams!;
+    const { id } = req.validatedParams;
     const {
       serviceName,
       description,
@@ -109,6 +108,13 @@ export const updateMentoringServiceController = async (
       durationDays,
       isActive,
       mentorProfileIds,
+      benefits,
+      mechanism,
+      syllabusPath,
+      toolsUsed,
+      targetAudience,
+      schedule,
+      alumniPortfolio,
     } = req.validatedBody;
 
     const updatedService =
@@ -120,6 +126,13 @@ export const updateMentoringServiceController = async (
         durationDays,
         isActive,
         mentorProfileIds,
+        benefits,
+        mechanism,
+        syllabusPath,
+        toolsUsed,
+        targetAudience,
+        schedule,
+        alumniPortfolio,
       });
 
     res.status(200).json({

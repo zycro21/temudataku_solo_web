@@ -3,8 +3,61 @@ import { Parser } from "json2csv";
 import ExcelJS from "exceljs";
 import { format, parseISO, subDays } from "date-fns";
 import { Buffer } from "buffer";
+import { format as formatDate } from "date-fns";
 
 const prisma = new PrismaClient();
+
+type ServiceType =
+  | "one-on-one"
+  | "group"
+  | "bootcamp"
+  | "shortclass"
+  | "live class";
+
+const generatePaymentId = async (
+  type: "booking" | "practice"
+): Promise<string> => {
+  const datePart = formatDate(new Date(), "yyyyMMdd");
+  const prefix = type === "booking" ? "PAY-BKG" : "PAY-PRC";
+  const maxAttempts = 10;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const randomDigits = Math.floor(1000000000 + Math.random() * 9000000000);
+    const id = `${prefix}-${datePart}-${randomDigits}`;
+    const existing = await prisma.payment.findUnique({
+      where: { id },
+    });
+    if (!existing) {
+      return id;
+    }
+  }
+
+  throw {
+    status: 500,
+    message: "Gagal menghasilkan ID Payment unik setelah beberapa percobaan",
+  };
+};
+
+const generateBookingId = async (serviceType: ServiceType): Promise<string> => {
+  const cleanType = serviceType.toLowerCase().replace(/\s+/g, "-");
+  const maxAttempts = 10;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const randomDigits = Math.floor(1000000000 + Math.random() * 9000000000);
+    const id = `Booking-${cleanType}-${randomDigits}`;
+    const existing = await prisma.booking.findUnique({
+      where: { id },
+    });
+    if (!existing) {
+      return id;
+    }
+  }
+
+  throw {
+    status: 500,
+    message: "Gagal menghasilkan ID Booking unik setelah beberapa percobaan",
+  };
+};
 
 export const createBooking = async (
   menteeId: string,
@@ -18,13 +71,19 @@ export const createBooking = async (
     mentoringServiceId: string;
     referralUsageId?: string;
     specialRequests?: string;
+    bookingDate?: string;
     participantIds?: string[];
-    bookingDate?: string; // <-- input format: "yyyy-mm-dd"
   }
 ) => {
-  // 1. Cek service ada dan aktif
   const mentoringService = await prisma.mentoringService.findUnique({
     where: { id: mentoringServiceId },
+    select: {
+      id: true,
+      isActive: true,
+      maxParticipants: true,
+      serviceType: true,
+      price: true,
+    },
   });
 
   if (!mentoringService || !mentoringService.isActive) {
@@ -34,8 +93,38 @@ export const createBooking = async (
     };
   }
 
+  const validServiceTypes: ServiceType[] = [
+    "one-on-one",
+    "group",
+    "bootcamp",
+    "shortclass",
+    "live class",
+  ];
+  if (
+    !mentoringService.serviceType ||
+    !validServiceTypes.includes(mentoringService.serviceType as ServiceType)
+  ) {
+    throw {
+      status: 400,
+      message: "Tipe layanan tidak valid atau tidak diisi.",
+    };
+  }
+
+  const isManualBooking =
+    mentoringService.serviceType === "one-on-one" ||
+    mentoringService.serviceType === "group";
+  const isMultiParticipant = mentoringService.serviceType === "group";
+
+  if (!isMultiParticipant && participantIds.length > 0) {
+    throw {
+      status: 400,
+      message: "participantIds hanya diperbolehkan untuk layanan Group.",
+    };
+  }
+
   const totalParticipants = 1 + participantIds.length;
   if (
+    isMultiParticipant &&
     mentoringService.maxParticipants &&
     totalParticipants > mentoringService.maxParticipants
   ) {
@@ -45,22 +134,35 @@ export const createBooking = async (
     };
   }
 
-  // 2. Validasi duplikat participantIds
-  const uniqueParticipantIds = new Set(participantIds);
-  if (uniqueParticipantIds.size !== participantIds.length) {
-    throw {
-      status: 400,
-      message: "Terdapat duplikat pada participantIds.",
-    };
+  if (!isManualBooking && mentoringService.maxParticipants) {
+    const activeBookings = await prisma.booking.count({
+      where: {
+        mentoringServiceId,
+        status: { in: ["pending", "confirmed"] },
+      },
+    });
+    if (activeBookings >= mentoringService.maxParticipants) {
+      throw {
+        status: 400,
+        message: "Kapasitas untuk layanan ini sudah penuh.",
+      };
+    }
   }
 
-  // 3. Validasi user eksis
+  if (isMultiParticipant) {
+    const uniqueParticipantIds = new Set(participantIds);
+    if (uniqueParticipantIds.size !== participantIds.length) {
+      throw {
+        status: 400,
+        message: "Terdapat duplikat pada participantIds.",
+      };
+    }
+  }
+
   const allUserIds = [menteeId, ...participantIds];
   const existingUsers = await prisma.user.findMany({
     where: {
-      id: {
-        in: allUserIds,
-      },
+      id: { in: allUserIds },
     },
     select: { id: true },
   });
@@ -72,36 +174,51 @@ export const createBooking = async (
     };
   }
 
-  // 4. Validasi referralUsageId (jika ada)
+  let discountPercentage = 0;
+  let originalPrice = mentoringService.price.toNumber();
+  let finalPrice = originalPrice;
+  let referralCodeId: string | null = null;
+  let commissionPercentage = 0;
+
   if (referralUsageId) {
-    const referral = await prisma.referralUsage.findUnique({
+    const referralUsage = await prisma.referralUsage.findUnique({
       where: { id: referralUsageId },
       include: {
         booking: true,
+        practicePurchase: true,
+        referralCode: {
+          select: {
+            id: true,
+            discountPercentage: true,
+            commissionPercentage: true,
+          },
+        },
       },
     });
 
-    if (!referral) {
+    if (!referralUsage) {
       throw {
         status: 404,
         message: "Referral usage tidak ditemukan.",
       };
     }
 
-    if (referral.booking.length > 0) {
+    if (referralUsage.booking || referralUsage.practicePurchase) {
       throw {
         status: 400,
         message: "Referral usage sudah digunakan.",
       };
     }
+
+    discountPercentage =
+      referralUsage.referralCode.discountPercentage.toNumber();
+    commissionPercentage =
+      referralUsage.referralCode.commissionPercentage.toNumber();
+    referralCodeId = referralUsage.referralCode.id;
+    finalPrice = originalPrice * (1 - discountPercentage / 100);
   }
 
-  // 5. Tentukan finalBookingDate tergantung jenis layanan
   let finalBookingDate: Date;
-
-  const isManualBooking =
-    mentoringService.serviceType === "one-on-one" ||
-    mentoringService.serviceType === "group";
 
   if (isManualBooking) {
     if (!bookingDate) {
@@ -121,32 +238,13 @@ export const createBooking = async (
 
     finalBookingDate = parsedDate;
   } else {
-    finalBookingDate = new Date(); // otomatis sekarang
+    finalBookingDate = new Date();
   }
-
-  // Generate Booking ID unik
-  function generateBookingId(serviceType: string): string {
-    const cleanType = serviceType.toLowerCase().replace(/\s+/g, "-");
-    const randomDigits = Math.floor(1000000000 + Math.random() * 9000000000); // 10 digit
-    return `Booking-${cleanType}-${randomDigits}`;
-  }
-
-  const leaderFlag =
-    mentoringService.serviceType === "one-on-one" ||
-    mentoringService.serviceType === "group";
 
   const booking = await prisma.$transaction(async (tx) => {
-    // Generate ID booking unik
-    let bookingId = "";
-    let isUnique = false;
-
-    while (!isUnique) {
-      bookingId = generateBookingId(mentoringService.serviceType ?? "unknown");
-      const existing = await tx.booking.findUnique({
-        where: { id: bookingId },
-      });
-      if (!existing) isUnique = true;
-    }
+    const bookingId = await generateBookingId(
+      mentoringService.serviceType as ServiceType
+    );
 
     const newBooking = await tx.booking.create({
       data: {
@@ -156,18 +254,18 @@ export const createBooking = async (
         referralUsageId,
         specialRequests,
         bookingDate: finalBookingDate,
-        status: "pending",
+        status: isManualBooking ? "confirmed" : "pending",
         participants: {
           create: [
             {
               userId: menteeId,
-              isLeader: leaderFlag,
-              paymentStatus: "pending",
+              isLeader: isManualBooking,
+              paymentStatus: isManualBooking ? "confirmed" : "pending",
             },
             ...participantIds.map((userId) => ({
               userId,
               isLeader: false,
-              paymentStatus: "pending",
+              paymentStatus: "confirmed",
             })),
           ],
         },
@@ -177,10 +275,50 @@ export const createBooking = async (
       },
     });
 
-    return newBooking;
+    const paymentId = await generatePaymentId("booking");
+    const payment = await tx.payment.create({
+      data: {
+        id: paymentId,
+        bookingId: newBooking.id,
+        amount: finalPrice,
+        status: isManualBooking ? "confirmed" : "pending",
+      },
+    });
+
+    if (payment.practicePurchaseId) {
+      throw {
+        status: 400,
+        message:
+          "Payment tidak boleh terkait dengan Booking dan PracticePurchase bersamaan.",
+      };
+    }
+
+    // Catat komisi referral jika ada referralUsageId
+    if (referralUsageId && referralCodeId) {
+      const commissionAmount = finalPrice * (commissionPercentage / 100);
+      await tx.referralCommisions.create({
+        data: {
+          referralCodeId,
+          transactionId: paymentId,
+          amount: commissionAmount,
+          created_at: new Date(),
+        },
+      });
+    }
+
+    return {
+      ...newBooking,
+      payment,
+      originalPrice,
+      finalPrice,
+    };
   });
 
-  return booking;
+  return {
+    success: true,
+    message: "Booking berhasil dibuat.",
+    data: booking,
+  };
 };
 
 export const getMenteeBookings = async (
@@ -721,9 +859,7 @@ export const getBookingParticipants = async (
   }
 
   if (booking.menteeId !== menteeId) {
-    throw new Error(
-      "You are not allowed to view this booking's participants"
-    );
+    throw new Error("You are not allowed to view this booking's participants");
   }
 
   return booking.participants.map((p) => ({

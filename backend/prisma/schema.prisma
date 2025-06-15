@@ -142,6 +142,13 @@ model MentoringService {
   serviceType        String?             @db.VarChar @map("service_type")
   maxParticipants    Int?                @map("max_participants")
   durationDays       Int                 @map("duration_days")
+  benefits           String?             
+  mechanism          String?
+  syllabusPath       String?             @map("syllabus_path")
+  toolsUsed          String?             @map("tools_used")
+  targetAudience     String?             @map("target_audience")
+  schedule           String?
+  alumniPortfolio    String?             @map("alumni_portfolio")
   isActive           Boolean?            @default(true) @map("is_active")
   createdAt          DateTime?           @default(now()) @db.Timestamp(6) @map("created_at")
   updatedAt          DateTime?           @db.Timestamp(6) @map("updated_at")
@@ -233,10 +240,10 @@ model NotificationRecipient {
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-
 model Payment {
   id                    String              @id @default(cuid())
   bookingId             String?             @unique @map("booking_id")
+  practicePurchaseId    String?             @unique @map("practice_purchase_id")
   amount                Decimal             @db.Decimal
   paymentDate           DateTime?           @db.Timestamp(6) @map("payment_date")
   paymentMethod         String?             @db.VarChar @map("payment_method")
@@ -246,7 +253,7 @@ model Payment {
   updatedAt             DateTime?           @db.Timestamp(6) @map("updated_at")
 
   booking               Booking?            @relation("BookingPayment", fields: [bookingId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  practicePurchase      PracticePurchase?
+  practicePurchase      PracticePurchase?   @relation("PracticePurchasePayment", fields: [practicePurchaseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   bookingParticipants   BookingParticipant[] @relation("ParticipantPayment")
 
   @@map("payments")
@@ -310,16 +317,15 @@ model PracticePurchase {
   id               String           @id @default(cuid())
   userId           String
   practiceId       String           
-  paymentId        String?          @unique
-  referralUsageId  String?          
+  referralUsageId  String?          @unique
   purchaseDate     DateTime?        @default(now())
-  status           String?          @db.VarChar // pending', 'confirmed', 'cancelled
+  status           String?          @db.VarChar
   createdAt        DateTime?        @default(now())
   updatedAt        DateTime?
 
   user             User             @relation(fields: [userId], references: [id])
   practice         Practice         @relation(fields: [practiceId], references: [id])
-  payment          Payment?         @relation(fields: [paymentId], references: [id])
+  payment          Payment?         @relation("PracticePurchasePayment")
   referralUsage    ReferralUsage?   @relation("ReferralUsagePracticePurchase", fields: [referralUsageId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@map("practice_purchases")
@@ -353,6 +359,12 @@ model Practice {
   practiceType      String?             @db.VarChar @map("practice_type")
   category          String?             @db.VarChar
   tags              String[]            @db.VarChar
+  benefits          String?             @db.VarChar
+  toolsUsed         String?             @db.VarChar @map("tools_used")
+  challenges        String?             @db.VarChar 
+  expectedOutcomes  String?             @db.VarChar @map("expected_outcomes")
+  estimatedDuration String?             @db.VarChar @map("estimated_duration")
+  targetAudience    String?             @db.VarChar @map("target_audience")
   isActive          Boolean?            @default(true) @map("is_active")
   createdAt         DateTime?           @default(now()) @db.Timestamp(6) @map("created_at")
   updatedAt         DateTime?           @db.Timestamp(6) @map("updated_at")
@@ -446,8 +458,8 @@ model ReferralUsage {
   user             User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   referralCode     ReferralCode       @relation(fields: [referralCodeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   
-  booking          Booking[]          @relation("ReferralUsageBooking") // relasi balik booking
-  practicePurchase PracticePurchase[] @relation("ReferralUsagePracticePurchase") // relasi balik practice purchase
+  booking          Booking?           @relation("ReferralUsageBooking")
+  practicePurchase PracticePurchase?  @relation("ReferralUsagePracticePurchase")
 
   @@unique([userId, referralCodeId])
   @@map("referral_usages")

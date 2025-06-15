@@ -608,10 +608,12 @@ export const createPracticePurchaseController = async (
   try {
     const userId = req.user?.userId!;
     const practiceId = req.validatedBody?.practiceId!;
+    const referralUsageId = req.validatedBody?.referralUsageId;
 
     const newPurchase = await PracticeService.createPracticePurchase({
       userId,
       practiceId,
+      referralUsageId,
     });
 
     res.status(201).json({

@@ -7,15 +7,20 @@ export const createPracticeSchema = z.object({
     description: z.string().optional(),
     thumbnailImages: z
       .array(z.string().url("URL thumbnail tidak valid"))
-      .optional(), // Sesuaikan dengan array gambar
+      .optional(),
     price: z.number().nonnegative("Harga tidak boleh negatif"),
     practiceType: z.string().optional(),
     category: z.string().optional(),
-    // Validator untuk tags yang sekarang diubah menjadi array string
-    tags: z
-      .array(z.string()) // tags sekarang harus berupa array string
-      .optional(), // Tidak wajib, bisa kosong
+    tags: z.array(z.string()).optional(),
     isActive: z.boolean().optional(),
+
+    // Kolom tambahan yang baru
+    benefits: z.string().optional(),
+    toolsUsed: z.string().optional(),
+    challenges: z.string().optional(),
+    expectedOutcomes: z.string().optional(),
+    estimatedDuration: z.string().optional(),
+    targetAudience: z.string().optional(),
   }),
 });
 
@@ -34,6 +39,14 @@ export const updatePracticeSchema = z.object({
     category: z.string().optional(),
     tags: z.array(z.string()).optional(),
     isActive: z.boolean().optional(),
+
+    // Tambahan kolom baru
+    benefits: z.string().optional(),
+    toolsUsed: z.string().optional(),
+    challenges: z.string().optional(),
+    expectedOutcomes: z.string().optional(),
+    estimatedDuration: z.string().optional(),
+    targetAudience: z.string().optional(),
   }),
 });
 
@@ -228,6 +241,7 @@ export const getPracticeMaterialDetailValidator = z.object({
 export const createPracticePurchaseSchema = z.object({
   body: z.object({
     practiceId: z.string().min(1, { message: "Practice ID is required" }),
+    referralUsageId: z.string().optional(), // Tambahkan ini
   }),
   params: z.object({}),
 });

@@ -101,6 +101,8 @@ export const login = async (
         userId: user.id,
         roles: roles.map((r) => r.role_name),
         mentorProfileId,
+        email: user.email,
+        phoneNumber: user.phoneNumber, // tambahkan ini
       },
       process.env.JWT_SECRET!,
       { expiresIn: "1d" }
@@ -112,6 +114,8 @@ export const login = async (
         userId: user.id,
         roles: roles.map((r) => r.role_name),
         mentorProfileId,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
       },
       process.env.JWT_REFRESH_SECRET!, // Tambahkan ini ke file .env kamu
       { expiresIn: "7d" }
@@ -137,6 +141,7 @@ export const login = async (
       user: {
         id: user.id,
         email: user.email,
+        phoneNumber: user.phoneNumber,
         full_name: user.fullName,
         profile_picture: user.profilePicture,
         roles,
