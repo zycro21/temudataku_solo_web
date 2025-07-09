@@ -101,7 +101,7 @@ export const getMyFeedbacksController = async (
       return;
     }
 
-    const userId = req.user.userId; // Now guaranteed to be string
+    const userId = req.user.userId;
     const query = req.validatedQuery;
 
     const result = await FeedbackService.getMyFeedbacks({ userId, query });

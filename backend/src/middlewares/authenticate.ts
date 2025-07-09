@@ -49,6 +49,8 @@ export interface AuthenticatedRequest extends Request {
     targetAudience?: string | null;
     schedule?: string | null;
     alumniPortfolio?: string | null;
+
+    isVerified?: boolean;
   };
 }
 
@@ -91,10 +93,9 @@ export interface AuthenticatedRequestForMentoringSession extends Request {
 
 export interface AuthenticatedRequestFeedback extends Request {
   user?: {
-    // Ubah user jadi opsional agar sesuai dengan AuthenticatedRequest
     userId: string;
     roles: string[];
-    mentorProfileId?: string; // Tambahkan mentorProfileId
+    mentorProfileId?: string;
     email?: string;
     phoneNumber?: string;
   };

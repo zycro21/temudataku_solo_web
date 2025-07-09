@@ -23,7 +23,7 @@ export const register = async (
     const { email, password, fullName, role, phoneNumber, city, province } =
       req.body;
 
-    // [3] Handle default image jika file tidak diupload
+    // Handle default image jika file tidak diupload
     const uploadedFileName = req.file?.filename ?? "default.jpg";
 
     const { user, token } = await AuthService.registerUser({
@@ -37,7 +37,7 @@ export const register = async (
       profilePicture: uploadedFileName,
     });
 
-    // [2] Rename file dengan fs.promises.rename + try-catch
+    // Rename file dengan fs.promises.rename + try-catch
     if (req.file && user.id) {
       const oldPath = path.join(uploadPath, uploadedFileName);
       const ext = path.extname(uploadedFileName);
@@ -59,7 +59,7 @@ export const register = async (
       }
     }
 
-    // [4] Hide token in production
+    // Hide token in production
     const isDev = process.env.NODE_ENV === "development";
 
     res.status(201).json({
@@ -102,7 +102,7 @@ export const login = async (
         roles: roles.map((r) => r.role_name),
         mentorProfileId,
         email: user.email,
-        phoneNumber: user.phoneNumber, // tambahkan ini
+        phoneNumber: user.phoneNumber,
       },
       process.env.JWT_SECRET!,
       { expiresIn: "1d" }
@@ -117,7 +117,7 @@ export const login = async (
         email: user.email,
         phoneNumber: user.phoneNumber,
       },
-      process.env.JWT_REFRESH_SECRET!, // Tambahkan ini ke file .env kamu
+      process.env.JWT_REFRESH_SECRET!,
       { expiresIn: "7d" }
     );
 

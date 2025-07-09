@@ -23,6 +23,9 @@ import referralRoute from "./routes/referral.route";
 import paymentRoute from "./routes/payment.route";
 import "./schedulers/cron";
 import { fileURLToPath } from "url";
+import swaggerJsdoc from 'swagger-jsdoc';
+import swaggerUi from 'swagger-ui-express';
+import swaggerOptions from './swagger/swaggerOptions'
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -107,6 +110,10 @@ app.use(
 const practiceFilesPath = path.join(__dirname, "../uploads/practiceFile");
 console.log("Serving practice files from:", practiceFilesPath);
 app.use("/practiceFiles", express.static(practiceFilesPath));
+
+// Swagger Docs
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Handler setelah semua route
 app.use(errorHandler);

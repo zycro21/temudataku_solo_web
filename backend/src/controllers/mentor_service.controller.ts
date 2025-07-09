@@ -10,7 +10,7 @@ const prisma = new PrismaClient();
 export const createMentoringServiceController = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction  
 ) => {
   try {
     const input = req.validatedBody ?? req.body;

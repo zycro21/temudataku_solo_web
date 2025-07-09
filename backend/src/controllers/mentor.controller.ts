@@ -167,6 +167,14 @@ export const verifyMentorProfile = async (
     const { id } = req.validatedParams!;
     const { isVerified } = req.validatedBody!;
 
+    if (typeof isVerified !== "boolean") {
+      res.status(400).json({
+        success: false,
+        message: "Field 'isVerified' is required and must be a boolean",
+      });
+      return;
+    }
+
     const result = await MentorService.toggleVerificationStatus(id, isVerified);
 
     res.json({

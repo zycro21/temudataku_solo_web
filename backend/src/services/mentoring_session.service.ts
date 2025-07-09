@@ -485,7 +485,7 @@ export const updateMentoringSession = async (
     endDateTime = parseWIBDateTime(`${day}-${month}-${year}`, data.endTime);
   }
 
-  // ✅ Kalau user hanya kirim date, geser waktu ke tanggal baru dengan jam lama
+  // Kalau user hanya kirim date, geser waktu ke tanggal baru dengan jam lama
   if (data.date && !data.startTime && !data.endTime) {
     const oldStart = new Date(session.startTime);
     const oldEnd = new Date(session.endTime);

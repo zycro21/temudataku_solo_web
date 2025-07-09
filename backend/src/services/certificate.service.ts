@@ -298,7 +298,7 @@ export const generateCertificateService = async ({
   menteeId: string;
   serviceId: string;
 }) => {
-  // 1. Cek apakah certificate sudah ada
+  // Cek apakah certificate sudah ada
   const existingCertificate = await prisma.certificate.findUnique({
     where: {
       menteeId_serviceId: { menteeId, serviceId },
@@ -309,7 +309,7 @@ export const generateCertificateService = async ({
     throw new Error("Certificate already exists for this mentee and service");
   }
 
-  // 2. Ambil data mentee dan service
+  // Ambil data mentee dan service
   const mentee = await prisma.user.findUnique({
     where: { id: menteeId },
     select: { fullName: true, email: true },
@@ -324,7 +324,7 @@ export const generateCertificateService = async ({
     throw new Error("Mentee or service not found");
   }
 
-  // 3. Validasi keterlibatan mentee dalam booking yang aktif
+  // Validasi keterlibatan mentee dalam booking yang aktif
   const hasBooked = await prisma.bookingParticipant.findFirst({
     where: {
       userId: menteeId,
@@ -339,7 +339,7 @@ export const generateCertificateService = async ({
     throw new Error("Mentee has not participated in this service");
   }
 
-  // 4. Ambil daftar project + submission milik mentee untuk service ini
+  // Ambil daftar project + submission milik mentee untuk service ini
   const projects = await prisma.project.findMany({
     where: {
       serviceId: serviceId,
@@ -375,13 +375,13 @@ export const generateCertificateService = async ({
     mentorName: project.submissions[0]?.gradedByUser?.fullName,
   }));
 
-  // 5. Generate nomor sertifikat
+  // Generate nomor sertifikat
   const certificateNumber = `CERT-${Date.now()}-${Math.random()
     .toString(36)
     .substr(2, 5)
     .toUpperCase()}`;
 
-  // 6. Generate PDF
+  // Generate PDF
   const pdfDir = path.join(__dirname, "../../Uploads/certificate");
   if (!fs.existsSync(pdfDir)) {
     fs.mkdirSync(pdfDir, { recursive: true });
@@ -398,16 +398,16 @@ export const generateCertificateService = async ({
     projects: projectList,
   });
 
-  // 7. Upload ke Google Drive
+  // Upload ke Google Drive
   const uploadedFile = await uploadToGoogleDrive(
     pdfPath,
     pdfFileName,
-    "16dqTiqyEhFhrfzfoX5upUkgkNoUGNnI9" // Replace with your Google Drive folder ID
+    "16dqTiqyEhFhrfzfoX5upUkgkNoUGNnI9" // Google Drive folder ID
   );
 
   console.log("Uploaded to Google Drive:", uploadedFile.webViewLink);
 
-  // 8. Simpan ke database
+  // Simpan ke database
   const certificate = await prisma.certificate.create({
     data: {
       certificateNumber,
@@ -517,14 +517,14 @@ export const updateCertificateService = async ({
     throw new Error("Certificate not found");
   }
 
-  // ✅ Validasi: Jika ada verifiedBy, pastikan user-nya ada dan role-nya "admin"
+  // Validasi: Jika ada verifiedBy, pastikan user-nya ada dan role-nya "admin"
   if (verifiedBy) {
     const userWithRoles = await prisma.user.findUnique({
       where: { id: verifiedBy },
       include: {
         userRoles: {
           include: {
-            role: true, // ✅ Include relasi ke Role untuk akses roleName
+            role: true, // Include relasi ke Role untuk akses roleName
           },
         },
       },

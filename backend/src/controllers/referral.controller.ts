@@ -6,6 +6,7 @@ import * as ReferralService from "../services/referral.service";
 import { PrismaClient, Prisma } from "@prisma/client";
 import path from "path";
 import fs from "fs";
+import { format as formatDate, subDays } from "date-fns";
 
 const prisma = new PrismaClient();
 
@@ -593,8 +594,6 @@ export const updateCommissionPaymentStatusController = async (
     return;
   }
 };
-
-import { format as formatDate, subDays } from "date-fns";
 
 export const exportCommissionPaymentsController = async (
   req: AuthenticatedRequestReferralCode,
