@@ -1,0 +1,134 @@
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import Image from "next/image";
+import vector from "@/assets/vectorHeroSection.svg";
+import ilustration from "@/assets/mentoringIlust.svg";
+
+export default function Mentoring() {
+    // Sample mentor data - in real app this would come from props or API
+    const mentors = [
+        {
+            id: 1,
+            name: "Mentor 1",
+            image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
+        },
+        {
+            id: 2,
+            name: "Mentor 2",
+            image: "https://images.unsplash.com/photo-1612000529646-f424a2aa1bff?w=100&h=100&fit=crop&crop=face",
+        },
+        {
+            id: 3,
+            name: "Mentor 3",
+            image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
+        },
+        {
+            id: 4,
+            name: "Mentor 4",
+            image: "https://images.unsplash.com/photo-1612000529646-f424a2aa1bff?w=100&h=100&fit=crop&crop=face",
+        },
+        {
+            id: 5,
+            name: "Mentor 5",
+            image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
+        },
+    ];
+
+    return (
+        <section className="bg-gradient-to-br from-white to-gray-50 py-12 px-4 md:px-6 lg:px-8 relative overflow-hidden">
+            <Image
+                src={vector}
+                alt="vector background"
+                fill
+                className="object-cover object-center z-0"
+                priority
+            />
+            <div className="max-w-7xl mx-auto relative z-10">
+                <div className="grid lg:grid-cols-2 gap-12 items-center">
+                    {/* Left side - Illustration */}
+                    <div className="relative flex items-center justify-center">
+                        <Image
+                            src={ilustration}
+                            alt="ilustration"
+                            className="w-full h-full"
+                        />
+                    </div>
+
+                    {/* Right side - Content */}
+                    <div className="space-y-6 order-1 lg:order-2">
+                        {/* Main Heading */}
+                        <div className="space-y-2">
+                            <h1 className="text-xl md:text-2xl lg:text-4xl font-semibold text-gray-900 leading-tight">
+                                Bimbingan Langsung dari <br /> Praktisi Data
+                            </h1>
+
+                            <p className="text-xl font-semibold leading-relaxed max-w-2xl">
+                                #MentoringBiarNggakError
+                            </p>
+
+                            {/* Description */}
+                            <p className="max-sm:text-sm text-md text-gray-600 leading-relaxed max-w-2xl">
+                                Belajar data tuh gak harus sendirian. Di
+                                TemuDataku, kamu bisa dapat insight langsung
+                                dari praktisi yang udah terjun di dunia data
+                                analyst, machine learning, dan AI industry.
+                            </p>
+                        </div>
+
+                        {/* CTA Buttons */}
+                        <div className="flex flex-col sm:flex-row gap-4">
+                            <Button
+                                size="lg"
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-6 text-base font-medium shadow-lg hover:cursor-pointer"
+                            >
+                                Pilihan Mentoring
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="lg"
+                                className="border-emerald-600 text-emerald-600 hover:bg-emerald-50 px-4 py-6 text-base font-medium hover:cursor-pointer"
+                            >
+                                Konsultasi Gratis
+                            </Button>
+                        </div>
+
+                        {/* Mentor Avatars and Stats */}
+                        <div className="space-y-4">
+                            <div className="flex items-center space-x-4">
+                                {/* Avatar Stack */}
+                                <div className="flex gap-2">
+                                    {mentors.map((mentor, index) => (
+                                        <Avatar
+                                            key={mentor.id}
+                                            className="w-12 h-12 shadow-md"
+                                        >
+                                            <AvatarImage
+                                                src={mentor.image}
+                                                alt={mentor.name}
+                                            />
+                                            <AvatarFallback className="bg-emerald-200 text-emerald-700 font-medium">
+                                                M{index + 1}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                    ))}
+                                </div>
+
+                                {/* Count */}
+                                <div className="text-gray-600 font-medium">
+                                    + 95 mentee telah mendaftar
+                                </div>
+                            </div>
+
+                            {/* Testimonial Link */}
+                            <div className="pt-2">
+                                <button className="text-secondary-text-color hover:text-emerald-700 font-medium underline underline-offset-4 transition-colors">
+                                    Apa yang mereka katakan?
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    );
+}
