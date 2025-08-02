@@ -15,6 +15,7 @@
   --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-bg-color-primary: var(--bg-color-primary);
   --color-sidebar: var(--sidebar);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
@@ -94,6 +95,7 @@ body {
   --brand-color-secondary: oklch(0.3665 0.1079 266.26);
   --primary-text-color: oklch(0.1762 0.0096 255.65);
   --secondary-text-color: oklch(0.5555 0 0);
+  --bg-color-primary: oklch(0.9842 0.0034 247.86);
 }
 
 .dark {

@@ -1,6 +1,7 @@
 import HeroSection from "./HeroSection";
 import WhySection from "./WhySection";
 import ChooseSessionSection from "./ChooseSessionSection";
+import ProjectExamples from "./ProjectExamples";
 
 export default function Mentoring() {
     
@@ -10,6 +11,7 @@ export default function Mentoring() {
             <HeroSection />
             <WhySection />
             <ChooseSessionSection />
+            <ProjectExamples />
         </>
     );
 }
