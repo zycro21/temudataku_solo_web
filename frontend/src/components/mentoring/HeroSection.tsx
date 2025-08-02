@@ -95,7 +95,7 @@ export default function HeroSection() {
                         <div className="space-y-4">
                             <div className="flex items-center space-x-4">
                                 {/* Avatar Stack */}
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 flex-wrap">
                                     {mentors.map((mentor, index) => (
                                         <Avatar
                                             key={mentor.id}

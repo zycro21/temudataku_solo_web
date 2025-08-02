@@ -13,7 +13,7 @@ export default function WhySection() {
                         <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 mb-4">
                             Kenapa Harus Ikut Mentoring di TemuDataku?
                         </h2>
-                        <p className="text-md text-gray-600 max-w-xl mx-auto text-end">
+                        <p className="text-sm sm:text-md text-gray-600 max-w-xl mx-auto text-end">
                             Karena belajar data sendirian tuh bikin
                             overthinking. Di sini, kamu bisa dapat arahan
                             langsung dari praktisi yang udah pernah ngerasain
