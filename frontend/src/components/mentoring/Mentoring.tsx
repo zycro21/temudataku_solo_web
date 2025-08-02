@@ -3,6 +3,7 @@ import WhySection from "./WhySection";
 import ChooseSessionSection from "./ChooseSessionSection";
 import ProjectExamples from "./ProjectExamples";
 import AlumniSays from "./AlumniSays";
+import Help from "./Help";
 
 export default function Mentoring() {
     
@@ -14,6 +15,7 @@ export default function Mentoring() {
             <ChooseSessionSection />
             <ProjectExamples />
             <AlumniSays />
+            <Help />
         </>
     );
 }
