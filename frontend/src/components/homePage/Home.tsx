@@ -5,7 +5,8 @@ import LearningPathsSection from "./LearningPathSection";
 import MentorSection from "./MentorSection";
 import TestimonialSection from "./TestimoniSection";
 import ToolsSection from "./ToolSection";
-
+import FAQPage from "./faqSectionn";
+import CTAPage from "./ctaSection";
 export default function Home() {
   return (
     <>
@@ -16,6 +17,8 @@ export default function Home() {
       <LearningPathsSection />
       <MentorSection />
       <TestimonialSection />
+      <FAQPage />
+      <CTAPage />
     </>
   );
 }
