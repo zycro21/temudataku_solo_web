@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import personDiscount from "@/assets/homePage/personDiscount.svg";
+
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import type { CarouselApi } from "@/components/ui/carousel";
 
@@ -54,7 +54,7 @@ export default function DiscountSection() {
                     <div className="grid lg:grid-cols-3 items-center h-full p-6 lg:px-6 lg:py-0">
                       {/* Left side - Person Image */}
                       <div className="hidden lg:flex justify-start order-2 lg:order-1 w-fit col-span-1">
-                        <Image src={personDiscount} alt="Professional woman" className="h-auto hidden lg:block lg:max-h-[250px] object-contain" />
+                        <Image src="/assets/homePage/personDiscount.svg" alt="Professional woman" width={250} height={250} className="h-auto hidden lg:block lg:max-h-[250px] object-contain" />
                       </div>
 
                       {/* Right side - Content */}

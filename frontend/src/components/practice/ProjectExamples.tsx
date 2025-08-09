@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import laptop from "@/assets/mentoringPage/laptop.svg"
+
 import {
     Carousel,
     CarouselContent,
@@ -96,7 +96,7 @@ export default function ProjectExamples() {
                                     <div className="bg-bg-color-primary rounded-lg md:rounded-xl overflow-hidden h-full flex flex-col">
                                         {/* Project Image */}
                                         <div className="relative h-48 sm:h-56 md:h-64 lg:h-72 bg-gradient-to-br from-blue-50 to-indigo-100 flex-shrink-0">
-                                            <Image src={laptop} alt="laptop" className="w-full h-full object-cover" />
+                                            <Image src="/assets/mentoringPage/laptop.svg" alt="laptop" width={400} height={300} className="w-full h-full object-cover" />
                                         </div>
 
                                         {/* Project Content */}

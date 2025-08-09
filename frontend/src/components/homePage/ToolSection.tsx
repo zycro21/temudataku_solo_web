@@ -1,38 +1,33 @@
 "use client";
 import Image from "next/image";
 
-// Pastikan asset svg kamu diekspor dengan benar (bisa juga pakai png/jpg)
-import tensorflow from "@/assets/homePage/toolSection/tensorflow.svg";
-import numpy from "@/assets/homePage/toolSection/numphy.svg";
-import pandas from "@/assets/homePage/toolSection/pandas.svg";
-import scikit from "@/assets/homePage/toolSection/sckitlearn.svg";
-import seaborn from "@/assets/homePage/toolSection/seaborn.svg";
+// Tool logos from public assets
 
 const tools = [
   {
     id: 1,
     name: "TensorFlow",
-    logo: tensorflow,
+    logo: "/assets/homePage/toolSection/tensorflow.svg",
   },
   {
     id: 2,
     name: "NumPy",
-    logo: numpy,
+    logo: "/assets/homePage/toolSection/numphy.svg",
   },
   {
     id: 3,
     name: "Pandas",
-    logo: pandas,
+    logo: "/assets/homePage/toolSection/pandas.svg",
   },
   {
     id: 4,
     name: "Scikit-learn",
-    logo: scikit,
+    logo: "/assets/homePage/toolSection/sckitlearn.svg",
   },
   {
     id: 5,
     name: "Seaborn",
-    logo: seaborn,
+    logo: "/assets/homePage/toolSection/seaborn.svg",
   },
 ];
 
@@ -59,7 +54,7 @@ export default function ToolsSection() {
             <div className="flex scroll-track animate-scroll-left hover:pause-scroll">
               {duplicatedTools.map((tool, index) => (
                 <div key={`${tool.id}-${index}`} className="flex-shrink-0 mx-8 flex items-center justify-center" style={{ minWidth: "100px" }}>
-                  <Image src={tool.logo} alt={`${tool.name} logo`} className="h-12 md:h-16 w-auto object-contain opacity-70 hover:opacity-100 transition-opacity duration-300" />
+                  <Image src={tool.logo} alt={`${tool.name} logo`} width={80} height={80} className="h-12 md:h-16 w-auto object-contain opacity-70 hover:opacity-100 transition-opacity duration-300" />
                 </div>
               ))}
             </div>

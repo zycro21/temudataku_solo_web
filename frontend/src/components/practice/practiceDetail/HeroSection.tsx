@@ -1,15 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
-import vector from "@/assets/mentoringPage/vectorHeroSection.svg";
-import ilustration from "@/assets/practicePage/practiceGroup.svg";
+
 import { Clock, Tag } from "lucide-react";
 
 export default function HeroSection() {
     return (
         <section className="bg-gradient-to-br py-12 px-4 md:px-6 lg:px-8 relative overflow-hidden">
             <Image
-                src={vector}
+                src="/assets/mentoringPage/vectorHeroSection.svg"
                 alt="vector background"
                 fill
                 className="object-cover object-center z-0"
@@ -30,8 +29,10 @@ export default function HeroSection() {
                     {/* Left side - Original Illustration */}
                     <div className="relative flex items-center justify-center">
                         <Image
-                            src={ilustration}
+                            src="/assets/practicePage/practiceGroup.svg"
                             alt="Practice Group Illustration"
+                            width={600}
+                            height={400}
                             className="w-full h-full"
                         />
                     </div>

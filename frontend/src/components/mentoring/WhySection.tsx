@@ -1,8 +1,5 @@
 import Image from "next/image";
-import ask from "@/assets/mentoringPage/ask.svg";
-import chat from "@/assets/mentoringPage/chat.svg";
-import book from "@/assets/mentoringPage/book.svg";
-import gps from "@/assets/mentoringPage/gps.svg";
+
 
 export default function WhySection() {
   return (
@@ -29,8 +26,8 @@ export default function WhySection() {
                             <div className="flex-shrink-0">
                                 <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
                                     <Image
-                                        src={ask}
-                                        alt="ask"
+                                        src={"/assets/mentoringPage/ask.svg"}
+                                        alt="/assets/mentoringPage/ask.svg"
                                         className="w-9 h-9"
                                     />
                                 </div>
@@ -52,8 +49,8 @@ export default function WhySection() {
                             <div className="flex-shrink-0">
                                 <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
                                     <Image
-                                        src={book}
-                                        alt="book"
+                                        src={"/assets/mentoringPage/book.svg"}
+                                        alt="/assets/mentoringPage/book.svg"        
                                         className="w-9 h-9"
                                     />
                                 </div>
@@ -75,8 +72,8 @@ export default function WhySection() {
                             <div className="flex-shrink-0">
                                 <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
                                     <Image
-                                        src={chat}
-                                        alt="chat"
+                                        src={"/assets/mentoringPage/chat.svg"}
+                                        alt="/assets/mentoringPage/chat.svg"
                                         className="w-9 h-9"
                                     />
                                 </div>
@@ -98,8 +95,8 @@ export default function WhySection() {
                             <div className="flex-shrink-0">
                                 <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
                                     <Image
-                                        src={gps}
-                                        alt="gps"
+                                        src={"/assets/mentoringPage/gps.svg"}
+                                        alt="/assets/mentoringPage/gps.svg"
                                         className="w-9 h-9"
                                     />
                                 </div>

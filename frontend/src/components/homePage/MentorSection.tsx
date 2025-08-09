@@ -4,9 +4,7 @@ import { Carousel, CarouselApi, CarouselContent, CarouselItem, CarouselNext, Car
 import { Briefcase, Calendar, Code } from "lucide-react";
 import React from "react";
 import Image from "next/image";
-import johnDoe from "@/assets/homePage/mentors/johnDoe.svg";
-import jefri from "@/assets/homePage/mentors/jefri.svg";
-import laura from "@/assets/homePage/mentors/laura.svg";
+
 const MentorSection = () => {
   const [api, setApi] = React.useState<CarouselApi>();
   const [current, setCurrent] = React.useState(0);
@@ -29,7 +27,7 @@ const MentorSection = () => {
       role: "Data Scientist di Lorem Ipsum",
       experience: "2 Tahun Sebagai Data Scientist",
       skills: "Python, Excel, BI, SQL",
-      image: johnDoe,
+      image: "/assets/homePage/mentors/johnDoe.svg",
     },
     {
       id: 2,
@@ -37,7 +35,7 @@ const MentorSection = () => {
       role: "Data Scientist di Lorem Ipsum",
       experience: "2 Tahun Sebagai Data Scientist",
       skills: "Python, Excel, BI, SQL",
-      image: jefri,
+      image: "/assets/homePage/mentors/jefri.svg",
     },
     {
       id: 3,
@@ -45,7 +43,7 @@ const MentorSection = () => {
       role: "Data Scientist di Lorem Ipsum",
       experience: "3 Tahun Sebagai Data Scientist",
       skills: "Python, Excel, BI, SQL",
-      image: laura,
+      image: "/assets/homePage/mentors/laura.svg",
     },
   ];
 
@@ -81,7 +79,7 @@ const MentorSection = () => {
                 <CarouselItem key={mentor.id} className="pl-2 md:pl-4 basis-[85%] sm:basis-[65%] md:basis-1/2 lg:basis-1/3">
                   <div className="bg-white rounded-lg shadow-lg overflow-hidden h-full">
                     <div className=" relative h-64 sm:h-72 md:h-80 bg-gradient-to-br from-gray-100 to-gray-200 flex-shrink-0">
-                      <Image src={mentor.image} alt={mentor.name} className="w-full h-full object-cover" />
+                      <Image src={mentor.image} alt={mentor.name} width={400} height={320} className="w-full h-full object-cover" />
                     </div>
                     <div className="p-6">
                       <h3 className="text-xl font-bold text-gray-900 mb-2">{mentor.name}</h3>

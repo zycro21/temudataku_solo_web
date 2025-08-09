@@ -1,8 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import Image from "next/image";
-import vector from "@/assets/mentoringPage/vectorHeroSection.svg";
-import ilustration from "@/assets/mentoringPage/mentoringIlust.svg";
+
 
 export default function HeroSection() {
     // Sample mentor data - in real app this would come from props or API
@@ -36,7 +35,7 @@ export default function HeroSection() {
     return (
         <section className="bg-gradient-to-br py-12 px-4 md:px-6 lg:px-8 relative overflow-hidden">
             <Image
-                src={vector}
+                src="/assets/mentoringPage/vectorHeroSection.svg"
                 alt="vector background"
                 fill
                 className="object-cover object-center z-0"
@@ -47,8 +46,10 @@ export default function HeroSection() {
                     {/* Left side - Illustration */}
                     <div className="relative flex items-center justify-center">
                         <Image
-                            src={ilustration}
+                            src="/assets/mentoringPage/mentoringIlust.svg"
                             alt="ilustration"
+                            width={600}
+                            height={400}
                             className="w-full h-full"
                         />
                     </div>

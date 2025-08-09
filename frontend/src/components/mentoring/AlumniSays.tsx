@@ -4,7 +4,7 @@ import * as React from "react";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import type { CarouselApi } from "@/components/ui/carousel";
 import Image from "next/image";
-import alumni1 from "@/assets/mentoringPage/testimoni1.svg";
+
 
 // Sample alumni data
 const alumni = [
@@ -92,14 +92,14 @@ export default function AlumniSays() {
                     {/* Alumni Image */}
                     <div className="relative h-64 sm:h-72 md:h-80 bg-gradient-to-br from-gray-100 to-gray-200 flex-shrink-0">
                       {/* Placeholder for alumni photo */}
-                      <Image src={alumni1} alt="alumni" className="w-full h-full object-cover" />
+                      <Image src={"/assets/mentoringPage/testimoni1.svg"} alt="alumni" className="w-full h-full object-cover" />
                     </div>
 
                     {/* Alumni Info */}
                     <div className="p-4 md:p-6 flex flex-col flex-1">
                       <div className="flex items-center gap-3 mb-4">
                         {/* Small avatar */}
-                        <Image src={alumni1} alt="alumni" className="w-14 h-14 object-cover rounded-full" />
+                        <Image src={"/assets/mentoringPage/testimoni1.svg"} alt="alumni" className="w-14 h-14 object-cover rounded-full" />
 
                         <div className="flex-1 min-w-0">
                           <h3 className="text-sm md:text-base font-bold text-gray-900 line-clamp-1">{person.name}</h3>

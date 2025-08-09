@@ -3,7 +3,7 @@ import WhySection from "./WhySection";
 import PracticeSelection from "./PracticeSelection";
 import ProjectExamples from "./ProjectExamples";
 import AlumniSays from "./AlumniSays";
-import HelpSection from "../mentoring/Help";
+import HelpSection from "../mentoring/NeedHelp";
 
 export default function Practice() {
     return (

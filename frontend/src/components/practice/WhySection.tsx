@@ -1,8 +1,5 @@
 import Image from "next/image";
-import case1 from "@/assets/practicePage/case.svg";
-import db from "@/assets/practicePage/db.svg";
-import stair from "@/assets/practicePage/stair.svg";
-import work from "@/assets/practicePage/work.svg";
+
 
 export default function WhySection() {
   return (
@@ -27,8 +24,10 @@ export default function WhySection() {
                             <div className="flex-shrink-0">
                                 <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
                                     <Image
-                                        src={stair}
+                                        src="/assets/practicePage/stair.svg"
                                         alt="stair"
+                                        width={36}
+                                        height={36}
                                         className="w-9 h-9"
                                     />
                                 </div>
@@ -49,8 +48,10 @@ export default function WhySection() {
                             <div className="flex-shrink-0">
                                 <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
                                     <Image
-                                        src={db}
+                                        src="/assets/practicePage/db.svg"
                                         alt="db"
+                                        width={36}
+                                        height={36}
                                         className="w-9 h-9"
                                     />
                                 </div>
@@ -71,8 +72,10 @@ export default function WhySection() {
                             <div className="flex-shrink-0">
                                 <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
                                     <Image
-                                        src={work}
+                                        src="/assets/practicePage/work.svg"
                                         alt="work"
+                                        width={36}
+                                        height={36}
                                         className="w-9 h-9"
                                     />
                                 </div>
@@ -93,8 +96,10 @@ export default function WhySection() {
                             <div className="flex-shrink-0">
                                 <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
                                     <Image
-                                        src={case1}
+                                        src="/assets/practicePage/case.svg"
                                         alt="case1"
+                                        width={36}
+                                        height={36}
                                         className="w-9 h-9"
                                     />
                                 </div>

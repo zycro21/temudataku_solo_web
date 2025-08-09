@@ -1,9 +1,8 @@
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Instagram, Linkedin } from "lucide-react";
-import trouble from "@/assets/mentoringPage/trouble.svg";
 
-export default function Help() {
+export default function NeedHelp() {
     return (
         <section className="py-8 md:py-16 bg-gray-50">
             <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -52,8 +51,10 @@ export default function Help() {
                     <div className="lg:max-w-md xl:max-w-lg flex-shrink-0">
                         <div className="relative">
                             <Image
-                                src={trouble}
+                                src="/assets/mentoringPage/trouble.svg"
                                 alt="Woman looking confused with question marks"
+                                width={400}
+                                height={300}
                                 className="w-full h-auto"
                                 priority
                             />
