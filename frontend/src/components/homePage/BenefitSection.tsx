@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { FileText } from "lucide-react";
 import Image from "next/image";
-import ornamen from "@/assets/homePage/ornamenBenefit.svg";
+
 const benefits = [
   {
     id: 1,
@@ -31,10 +31,10 @@ export default function BenefitsSection() {
     <section className="py-16 bg-[#E5E7EB] relative overflow-hidden">
       {/* Background decorative elements */}
       <div className="absolute top-20 right-0 w-40 h-40 ">
-        <Image src={ornamen} alt="ornamen" className="scale-200" />
+        <Image src="/assets/homePage/ornamenBenefit.svg" alt="ornamen" width={160} height={160} className="scale-200" />
       </div>
       <div className="absolute bottom-10 -left-0  w-40 h-40 ">
-        <Image src={ornamen} alt="ornamen" className="scale-200" />
+        <Image src="/assets/homePage/ornamenBenefit.svg" alt="ornamen" width={160} height={160} className="scale-200" />
       </div>
 
       <div className="container mx-auto px-8 md:px-[100px] relative z-10">

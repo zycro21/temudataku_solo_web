@@ -5,7 +5,7 @@ import Link from "next/link";
 import { MdSchool, MdSupervisorAccount, MdAssignment } from "react-icons/md";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
-import logo from "../../public/images/Navbar_logo.png";
+
 export default function Navbar() {
   const dropdownRef = useRef<HTMLLIElement>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -28,7 +28,7 @@ export default function Navbar() {
     <nav className="h-[88px] w-full flex items-center justify-between px-8 md:px-[100px] bg-white shadow-sm relative font-['Inter']">
       {/* Logo */}
       <div className="flex items-center space-x-2">
-        <Image src={logo} alt="TemuDataku Logo" className="w-[134px] h-[82px]" />
+        <Image src="/images/Navbar_logo.png" alt="TemuDataku Logo" width={134} height={82} className="w-[134px] h-[82px]" />
       </div>
 
       {/* Desktop Menu */}

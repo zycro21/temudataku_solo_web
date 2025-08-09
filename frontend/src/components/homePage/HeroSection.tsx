@@ -1,17 +1,15 @@
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import vector from "@/assets/homePage/vectorHeroSection.svg";
-import ilustration from "@/assets/homePage/illustrationHero.svg";
 
 export default function HeroSection() {
   return (
     <section className="bg-gradient-to-br py-12 px-4 md:px-6 lg:px-8 relative overflow-hidden">
-      <Image src={vector} alt="vector background" fill className="object-cover object-center z-0" priority />
+      <Image src="/assets/homePage/vectorHeroSection.svg" alt="vector background" fill className="object-cover object-center z-0" priority />
       <div className="max-w-7xl mx-auto relative z-10">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left side - Illustration */}
           <div className="relative flex items-center justify-center order-first lg:order-last">
-            <Image src={ilustration} alt="ilustration" className="w-full h-full" />
+            <Image src="/assets/homePage/illustrationHero.svg" alt="ilustration" width={600} height={400} className="w-full h-full" />
           </div>
           {/* Right side - Content */}
           <div className="space-y-6 ">
