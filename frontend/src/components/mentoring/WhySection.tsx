@@ -27,7 +27,9 @@ export default function WhySection() {
                                 <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
                                     <Image
                                         src={"/assets/mentoringPage/ask.svg"}
-                                        alt="/assets/mentoringPage/ask.svg"
+                                        alt="Ask questions icon"
+                                        width={36}
+                                        height={36}
                                         className="w-9 h-9"
                                     />
                                 </div>
@@ -50,7 +52,9 @@ export default function WhySection() {
                                 <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
                                     <Image
                                         src={"/assets/mentoringPage/book.svg"}
-                                        alt="/assets/mentoringPage/book.svg"        
+                                        alt="Book icon"
+                                        width={36}
+                                        height={36}
                                         className="w-9 h-9"
                                     />
                                 </div>
@@ -73,7 +77,9 @@ export default function WhySection() {
                                 <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
                                     <Image
                                         src={"/assets/mentoringPage/chat.svg"}
-                                        alt="/assets/mentoringPage/chat.svg"
+                                        alt="Chat icon"
+                                        width={36}
+                                        height={36}
                                         className="w-9 h-9"
                                     />
                                 </div>
@@ -96,7 +102,9 @@ export default function WhySection() {
                                 <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
                                     <Image
                                         src={"/assets/mentoringPage/gps.svg"}
-                                        alt="/assets/mentoringPage/gps.svg"
+                                        alt="GPS icon"
+                                        width={36}
+                                        height={36}
                                         className="w-9 h-9"
                                     />
                                 </div>
