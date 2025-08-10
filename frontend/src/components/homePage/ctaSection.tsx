@@ -1,14 +1,14 @@
 "use client";
 
 import Image from "next/image";
-import ctaVector from "@/assets/homePage/ctavector.svg";
+
 
 export default function CTASection() {
   return (
     <section className="relative py-16 mx-5 my-5 md:mx-12 md:my-12 lg:mx-20 lg:my-20 rounded-2xl overflow-hidden">
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
-        <Image src={ctaVector} alt="CTA Background" fill className="object-cover object-center " priority />
+        <Image src="/assets/homePage/ctavector.svg" alt="CTA Background" fill className="object-cover object-center " priority />
       </div>
 
       {/* Content */}

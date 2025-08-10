@@ -4,8 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Check } from "lucide-react";
 import Image from "next/image";
-import mentoring1on1 from "@/assets/mentoringPage/mentoring1on1.svg";
-import mentoringGroup from "@/assets/mentoringPage/mentoringgroup.svg";
+
 const mentoringOptions = [
   {
     id: 1,
@@ -14,14 +13,14 @@ const mentoringOptions = [
     price: "Rp 40.000",
     badge: "BEST SESSION",
     features: ["Mentoring 45 menit", "Tanya apapun permasalahan dalam bidang data science", "Rekaman sesi mentoring", "Garansi kepuasan*", "Dapatkan akses ke praktik data science**"],
-    image: mentoring1on1,
+    image: "/assets/mentoringPage/mentoring1on1.svg",
   },
   {
     id: 2,
     title: "Mentoring Group",
     price: "Rp 70.000",
     features: ["Mentoring 90 menit", "Tanya apapun permasalahan dalam bidang data science", "Rekaman sesi mentoring", "Garansi kepuasan*", "Dapatkan akses ke praktik data science**"],
-    image: mentoringGroup,
+    image: "/assets/mentoringPage/mentoringgroup.svg",
   },
 ];
 
@@ -68,7 +67,7 @@ export default function LearningPathsSection() {
             {mentoringOptions.map((option) => (
               <Card key={option.id} className="relative overflow-hidden shadow-lg border-0">
                 <div className="relative ">
-                  <Image src={option.image || "/placeholder.svg"} alt={option.title} className="w-full h-auto object-cover" />
+                  <Image src={option.image || "/placeholder.svg"} alt={option.title} width={400} height={250} className="w-full h-auto object-cover" />
                   {option.badge && <div className="absolute bottom-0 left-0 right-0 bg-[#243A77] text-white text-center py-3 text-sm font-semibold z-10">{option.badge}</div>}
                 </div>
 

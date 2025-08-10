@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { MessageCircle, Instagram, Linkedin } from "lucide-react";
 import Image from "next/image";
-import logo from "../../public/images/footerLogo.svg";
+
 export default function Footer() {
   return (
     <footer className="bg-[#243A77] text-white py-12 px-8 md:px-[100px]">
@@ -10,7 +10,7 @@ export default function Footer() {
           {/* Logo and Description */}
           <div className="lg:col-span-1 space-y-6">
             <div className="flex items-center space-x-2">
-              <Image src={logo} alt="TemuDataku Logo" className="w-[134px] h-1/4" />
+              <Image src="/images/footerLogo.svg" alt="TemuDataku Logo" width={134} height={50} className="w-[134px] h-1/4" />
             </div>
 
             <p className="text-blue-100 text-sm leading-relaxed max-w-sm">TemuDataku adalah platform mentoring data science terpersonalisasi yang menghubungkan Anda dengan mentor berpengalaman untuk mempercepat perjalanan belajar Anda.</p>

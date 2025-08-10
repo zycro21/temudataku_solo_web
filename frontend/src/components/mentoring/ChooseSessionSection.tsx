@@ -3,8 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check } from "lucide-react";
 import Image from "next/image";
-import mentoring1on1 from "@/assets/mentoringPage/mentoring1on1.svg";
-import mentoringGroup from "@/assets/mentoringPage/mentoringgroup.svg";
+
 
 export default function ChooseSessionSection() {
     const oneOnOneFeatures = [
@@ -47,7 +46,7 @@ export default function ChooseSessionSection() {
                             {/* Card Image */}
                             <div className="relative h-64 rounded-t-xl overflow-hidden">
                                 <Image
-                                    src={mentoring1on1}
+                                    src={"/assets/mentoringPage/mentoring1on1.svg"}
                                     alt="1-on-1 Mentoring"
                                     fill
                                     className="object-cover"
@@ -109,7 +108,7 @@ export default function ChooseSessionSection() {
                             {/* Card Image */}
                             <div className="relative h-64 rounded-t-xl overflow-hidden">
                                 <Image
-                                    src={mentoringGroup}
+                                    src={"/assets/mentoringPage/mentoringgroup.svg"}
                                     alt="Group Mentoring"
                                     fill
                                     className="object-cover"
