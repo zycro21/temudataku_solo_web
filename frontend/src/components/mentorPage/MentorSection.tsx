@@ -6,10 +6,8 @@ import { Carousel, CarouselApi, CarouselContent, CarouselItem, CarouselNext, Car
 import { Briefcase, Calendar, Code } from "lucide-react";
 import React from "react";
 import Image from "next/image";
-import johnDoe from "@/assets/homePage/mentors/johnDoe.svg";
-import jefri from "@/assets/homePage/mentors/jefri.svg";
-import laura from "@/assets/homePage/mentors/laura.svg";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { describe } from "node:test";
 
 // Bagi mentor ke dalam grup isi 6
 function chunkArray<T>(arr: T[], size: number): T[][] {
@@ -29,14 +27,86 @@ const MentorSection = () => {
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
 
   const mentors = [
-    { id: 1, name: "John Doe", role: "Data Scientist di Lorem Ipsum", experience: "2 Tahun", skills: "Python, Excel, BI, SQL", image: johnDoe },
-    { id: 2, name: "Jefri Nichol", role: "Data Scientist di Lorem Ipsum", experience: "2 Tahun", skills: "Python, Excel, BI, SQL", image: jefri },
-    { id: 3, name: "Laura", role: "Data Scientist di Lorem Ipsum", experience: "3 Tahun", skills: "Python, Excel, BI, SQL", image: laura },
-    { id: 4, name: "Mentor 4", role: "Data Engineer", experience: "4 Tahun", skills: "Python, Spark", image: johnDoe },
-    { id: 5, name: "Mentor 5", role: "ML Engineer", experience: "2 Tahun", skills: "TensorFlow, Python", image: jefri },
-    { id: 6, name: "Mentor 6", role: "Data Analyst", experience: "3 Tahun", skills: "SQL, Power BI", image: laura },
-    { id: 7, name: "Mentor 7", role: "AI Specialist", experience: "5 Tahun", skills: "NLP, LLM", image: johnDoe },
-    { id: 8, name: "Mentor 8", role: "Statistician", experience: "6 Tahun", skills: "R, Python", image: jefri },
+    {
+      id: 1,
+      name: "John Doe",
+      role: "Data Scientist di Lorem Ipsum",
+      experience: "2 Tahun",
+      skills: "Python, Excel, BI, SQL",
+      biography:
+        "Lorem ipsum dolor sit amet consectetur. Congue iaculis eget at risus sagittis etiam lorem. Posuere sed eget metus gravida vitae venenatis quis. Lobortis erat est quisque etiam et. Morbi adipiscing arcu malesuada tempor id volutpat.",
+      image: "/assets/homePage/mentors/johnDoe.svg",
+    },
+    {
+      id: 2,
+      name: "Jefri Nichol",
+      role: "Data Scientist di Lorem Ipsum",
+      experience: "2 Tahun",
+      skills: "Python, Excel, BI, SQL",
+      biography:
+        "Lorem ipsum dolor sit amet consectetur. Congue iaculis eget at risus sagittis etiam lorem. Posuere sed eget metus gravida vitae venenatis quis. Lobortis erat est quisque etiam et. Morbi adipiscing arcu malesuada tempor id volutpat.",
+      image: "/assets/homePage/mentors/jefri.svg",
+    },
+    {
+      id: 3,
+      name: "Laura",
+      role: "Data Scientist di Lorem Ipsum",
+      experience: "3 Tahun",
+      skills: "Python, Excel, BI, SQL",
+      biography:
+        "Lorem ipsum dolor sit amet consectetur. Congue iaculis eget at risus sagittis etiam lorem. Posuere sed eget metus gravida vitae venenatis quis. Lobortis erat est quisque etiam et. Morbi adipiscing arcu malesuada tempor id volutpat.",
+      image: "/assets/homePage/mentors/laura.svg",
+    },
+    {
+      id: 4,
+      name: "Mentor 4",
+      role: "Data Engineer",
+      experience: "4 Tahun",
+      skills: "Python, Spark",
+      biography:
+        "Lorem ipsum dolor sit amet consectetur. Congue iaculis eget at risus sagittis etiam lorem. Posuere sed eget metus gravida vitae venenatis quis. Lobortis erat est quisque etiam et. Morbi adipiscing arcu malesuada tempor id volutpat.",
+      image: "/assets/homePage/mentors/johnDoe.svg",
+    },
+    {
+      id: 5,
+      name: "Mentor 5",
+      role: "ML Engineer",
+      experience: "2 Tahun",
+      skills: "TensorFlow, Python",
+      biography:
+        "Lorem ipsum dolor sit amet consectetur. Congue iaculis eget at risus sagittis etiam lorem. Posuere sed eget metus gravida vitae venenatis quis. Lobortis erat est quisque etiam et. Morbi adipiscing arcu malesuada tempor id volutpat.",
+      image: "/assets/homePage/mentors/johnDoe.svg",
+    },
+    {
+      id: 6,
+      name: "Mentor 6",
+      role: "Data Analyst",
+      experience: "3 Tahun",
+      skills: "SQL, Power BI",
+      biography:
+        "Lorem ipsum dolor sit amet consectetur. Congue iaculis eget at risus sagittis etiam lorem. Posuere sed eget metus gravida vitae venenatis quis. Lobortis erat est quisque etiam et. Morbi adipiscing arcu malesuada tempor id volutpat.",
+      image: "/assets/homePage/mentors/johnDoe.svg",
+    },
+    {
+      id: 7,
+      name: "Mentor 7",
+      role: "AI Specialist",
+      experience: "5 Tahun",
+      skills: "NLP, LLM",
+      biography:
+        "Lorem ipsum dolor sit amet consectetur. Congue iaculis eget at risus sagittis etiam lorem. Posuere sed eget metus gravida vitae venenatis quis. Lobortis erat est quisque etiam et. Morbi adipiscing arcu malesuada tempor id volutpat.",
+      image: "/assets/homePage/mentors/johnDoe.svg",
+    },
+    {
+      id: 8,
+      name: "Mentor 8",
+      role: "Statistician",
+      experience: "6 Tahun",
+      skills: "R, Python",
+      biography:
+        "Lorem ipsum dolor sit amet consectetur. Congue iaculis eget at risus sagittis etiam lorem. Posuere sed eget metus gravida vitae venenatis quis. Lobortis erat est quisque etiam et. Morbi adipiscing arcu malesuada tempor id volutpat.",
+      image: "/assets/homePage/mentors/johnDoe.svg",
+    },
   ];
 
   const mentorGroups = chunkArray(mentors, 6);
@@ -80,7 +150,7 @@ const MentorSection = () => {
                   {group.map((mentor) => (
                     <div key={mentor.id} className="bg-white rounded-lg shadow-lg overflow-hidden h-full">
                       <div className="relative h-64 bg-gradient-to-br from-gray-100 to-gray-200">
-                        <Image src={mentor.image} alt={mentor.name} className="w-full h-full object-cover" />
+                        <Image src={mentor.image} alt={mentor.name} width={500} height={500} className="w-full h-full object-cover" />
                       </div>
                       <div className="p-6">
                         <h3 className="text-xl font-bold text-gray-900 mb-2">{mentor.name}</h3>
@@ -114,7 +184,7 @@ const MentorSection = () => {
                             <DialogHeader>
                               <DialogDescription>
                                 <div className="mt-4">
-                                  <Image src={selectedMentor?.image} alt={selectedMentor?.name} className="w-full h-60 object-cover rounded-t-md mb-4" />
+                                  <Image width={500} height={500} src={selectedMentor?.image} alt={selectedMentor?.name} className="w-full h-60 object-cover rounded-t-md mb-4" />
                                   <div className="mb-4">
                                     <span className="text-xl font-bold text-gray-900 mb-2">{selectedMentor?.name}</span>
                                   </div>
@@ -130,6 +200,8 @@ const MentorSection = () => {
                                     <Code className="w-4 h-4" />
                                     <span>{selectedMentor?.skills}</span>
                                   </div>
+                                  <p className="text-sm font-semibold mt-4">Biografi :</p>
+                                  <p className="text-sm">{selectedMentor?.biography}</p>
                                 </div>
                               </DialogDescription>
                             </DialogHeader>
@@ -143,7 +215,7 @@ const MentorSection = () => {
             ))}
           </CarouselContent>
 
-          <div className="hidden md:flex gap-2 mt-6 justify-center">
+          <div className="hidden md:flex gap-2 absolute -top-10 right-20 z-10">
             <CarouselPrevious className="border border-gray-300 bg-white hover:bg-gray-100 text-gray-800 shadow-md w-10 h-10" />
             <CarouselNext className="bg-[#0CA678] hover:bg-[#08916C] text-white shadow-md w-10 h-10" />
           </div>

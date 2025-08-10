@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import ilustration from "@/assets/homePage/illustrationHero.svg";
 import { ArrowDown } from "lucide-react";
 export default function HeroSection() {
   return (
@@ -9,7 +8,7 @@ export default function HeroSection() {
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left side - Illustration */}
           <div className="relative flex items-center justify-center order-first lg:order-last">
-            <Image src={ilustration} alt="ilustration" className="w-full h-full" />
+            <Image src={"/assets/mentorPage/heroSection.svg"} width={600} height={400} alt="ilustration" className="w-full h-full" />
           </div>
           {/* Right side - Content */}
           <div className="space-y-6 ">

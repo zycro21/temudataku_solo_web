@@ -1,4 +1,4 @@
-import CTASection from "./ctaSection";
+import CTAPage from "./ctaSection";
 import HeroSection from "./HeroSection";
 import MentorSection from "./MentorSection";
 import TestimonialSection from "./TestimoniSection";
@@ -9,7 +9,7 @@ export default function MentorPage() {
       <HeroSection />
       <MentorSection />
       <TestimonialSection />
-      <CTASection />
+      <CTAPage />
     </>
   );
 }

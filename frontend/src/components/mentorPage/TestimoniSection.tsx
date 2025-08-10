@@ -1,8 +1,6 @@
 "use client";
 import { Carousel, CarouselApi, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import Image from "next/image";
-import johan from "@/assets/homePage/testimoni/johan.svg";
-import mei from "@/assets/homePage/testimoni/mei.svg";
 import React from "react";
 
 const TestimonialSection = () => {
@@ -25,28 +23,28 @@ const TestimonialSection = () => {
       id: 1,
       name: "Johan",
       status: "Mahasiswa",
-      image: johan,
+      image: "/assets/homePage/testimoni/johan.svg",
       testimonial: "Lorem ipsum dolor sit amet consectetur. Elementum augue eget leo ut commodo morbi. Eget scelerisque aliquam turpis elementum in eu mattis posuere. Aliquam elit egestas est odio aenean mattis bibendum lorem.",
     },
     {
       id: 2,
       name: "Mei",
       status: "Mahasiswa",
-      image: mei,
+      image: "/assets/homePage/testimoni/mei.svg",
       testimonial: "Lorem ipsum dolor sit amet consectetur. Elementum augue eget leo ut commodo morbi. Eget scelerisque aliquam turpis elementum in eu mattis posuere. Aliquam elit egestas est odio aenean mattis bibendum lorem.",
     },
     {
       id: 3,
       name: "Mei",
       status: "Mahasiswa",
-      image: mei,
+      image: "/assets/homePage/testimoni/mei.svg",
       testimonial: "Lorem ipsum dolor sit amet consectetur. Elementum augue eget leo ut commodo morbi. Eget scelerisque aliquam turpis elementum in eu mattis posuere. Aliquam elit egestas est odio aenean mattis bibendum lorem.",
     },
     {
       id: 4,
       name: "johan 2",
       status: "Mahasiswa",
-      image: johan,
+      image: "/assets/homePage/testimoni/johan.svg",
       testimonial: "Lorem ipsum dolor sit amet consectetur. Elementum augue eget leo ut commodo morbi. Eget scelerisque aliquam turpis elementum in eu mattis posuere. Aliquam elit egestas est odio aenean mattis bibendum lorem.",
     },
   ];
@@ -78,7 +76,7 @@ const TestimonialSection = () => {
                   <div className="bg-white rounded-lg shadow-lg overflow-hidden h-full flex flex-col justify-between p-6">
                     <p className="text-gray-700 text-lg leading-relaxed mb-6 line-clamp-6">{person.testimonial}</p>
                     <div className="flex items-center gap-3">
-                      <Image src={person.image} alt={person.name} className="w-10 h-10 object-cover rounded-full" />
+                      <Image src={person.image} alt={person.name} width={40} height={40} className="w-10 h-10 object-cover rounded-full" />
                       <div>
                         <h3 className="text-base font-semibold text-gray-900">{person.name}</h3>
                         <p className="text-sm text-gray-600">{person.status}</p>
