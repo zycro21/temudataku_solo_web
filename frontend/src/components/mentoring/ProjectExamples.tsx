@@ -22,7 +22,7 @@ const projects = [
         description:
             "Project ini menganalisis hubungan angka stunting dengan faktor ekonomi di Papua Barat, dan menemukan korelasi positif di antara keduanya.",
         authors: ["John Drake Lane", "Mario Bros", "Lusiana Gomes"],
-        image: "/images/project-"/assets/mentoringPage/laptop.svg"-1.jpg", // Placeholder image
+        image: "/assets/mentoringPage/laptop.svg", // Placeholder image
     },
     {
         id: 2,
@@ -30,7 +30,7 @@ const projects = [
         description:
             "Project ini menganalisis hubungan angka stunting dengan faktor ekonomi di Papua Barat, dan menemukan korelasi positif di antara keduanya.",
         authors: ["John Drake Lane", "Mario Bros", "Lusiana Gomes"],
-        image: "/images/project-"/assets/mentoringPage/laptop.svg"-2.jpg", // Placeholder image
+        image: "/assets/mentoringPage/laptop.svg", // Placeholder image
     },
     {
         id: 3,
@@ -38,7 +38,7 @@ const projects = [
         description:
             "Penelitian mendalam tentang pertumbuhan sektor ekonomi digital di Indonesia dan dampaknya terhadap UMKM.",
         authors: ["Sarah Connor", "Bruce Wayne", "Diana Prince"],
-        image: "/images/project-"/assets/mentoringPage/laptop.svg"-3.jpg", // Placeholder image
+        image: "/assets/mentoringPage/laptop.svg", // Placeholder image
     },
 ];
 
@@ -96,7 +96,7 @@ export default function ProjectExamples() {
                                     <div className="bg-bg-color-primary rounded-lg md:rounded-xl overflow-hidden h-full flex flex-col">
                                         {/* Project Image */}
                                         <div className="relative h-48 sm:h-56 md:h-64 lg:h-72 bg-gradient-to-br from-blue-50 to-indigo-100 flex-shrink-0">
-                                            <Image src={"/assets/mentoringPage/laptop.svg"} alt=""/assets/mentoringPage/laptop.svg"" className="w-full h-full object-cover" />
+                                            <Image src={"/assets/mentoringPage/laptop.svg"} alt="/assets/mentoringPage/laptop.svg" className="w-full h-full object-cover" />
                                         </div>
 
                                         {/* Project Content */}
