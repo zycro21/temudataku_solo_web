@@ -1,11 +1,17 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check } from "lucide-react";
 import Image from "next/image";
+import { useState } from "react";
+import MentorSelectionModal from "./MentorSelectionModal";
 
 
 export default function ChooseSessionSection() {
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
     const oneOnOneFeatures = [
         "Mentoring 45 menit",
         "Tanya apapun permasalahan dalam bidang data science",
@@ -21,6 +27,8 @@ export default function ChooseSessionSection() {
         "Garansi kepuasan*",
         "Dapatkan akses ke praktik data science**",
     ];
+
+
 
     return (
         <section className="py-16 px-4 md:px-6 lg:px-8">
@@ -96,7 +104,10 @@ export default function ChooseSessionSection() {
                             </div>
 
                             {/* CTA Button */}
-                            <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 text-base font-medium">
+                            <Button 
+                                onClick={() => setIsModalOpen(true)}
+                                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 text-base font-medium"
+                            >
                                 Ikuti Sesi
                             </Button>
                         </CardContent>
@@ -148,7 +159,10 @@ export default function ChooseSessionSection() {
                             </div>
 
                             {/* CTA Button */}
-                            <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 text-base font-medium mt-auto">
+                            <Button 
+                                onClick={() => setIsModalOpen(true)}
+                                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 text-base font-medium mt-auto"
+                            >
                                 Ikuti Sesi
                             </Button>
                         </CardContent>
@@ -167,6 +181,12 @@ export default function ChooseSessionSection() {
                         akan mendapatkan akses ke praktik data science.
                     </p>
                 </div>
+
+                {/* Mentor Selection Modal */}
+                <MentorSelectionModal 
+                    isOpen={isModalOpen} 
+                    onClose={() => setIsModalOpen(false)} 
+                />
             </div>
         </section>
     );
