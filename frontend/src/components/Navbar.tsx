@@ -32,7 +32,7 @@ export default function Navbar() {
   }, []);
 
   return (
-    <nav className="h-[88px] w-full flex items-center justify-between px-6 md:px-16 bg-white shadow-sm fixed top-0 z-50">
+    <nav className="h-[88px] w-full flex items-center justify-between px-6 md:px-16 bg-white shadow-sm sticky top-0 z-50">
       {/* Logo */}
       <Link href="/" className="flex items-center">
         <Image src="/images/Navbar_logo.png" alt="TemuDataku Logo" width={134} height={82} className="w-[120px] h-auto" />
