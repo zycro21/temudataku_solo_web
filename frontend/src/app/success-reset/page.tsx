@@ -1,0 +1,13 @@
+import Footer from "@/components/Footer";
+import Navbar from "@/components/Navbar";
+import SuccessResetPage from "@/components/successReset";
+
+export default function SuccesReset() {
+  return (
+    <div className="flex flex-col min-h-screen w-full">
+      <Navbar />
+      <SuccessResetPage />
+      <Footer />
+    </div>
+  );
+}
