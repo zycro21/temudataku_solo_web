@@ -26,7 +26,7 @@ export default function SuccessResetPage() {
           </div>
 
           {/* Login Button */}
-          <Link href="/login">
+          <Link href="/">
             <Button className="bg-[#0CA678] hover:bg-[#08916C] text-white px-8 py-3 rounded-md font-medium">Masuk Sekarang</Button>
           </Link>
         </div>
