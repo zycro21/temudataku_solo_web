@@ -76,7 +76,7 @@ export default function Navbar() {
           <Link href="/mentor">Mentor</Link>
         </li>
         <li className="px-3 py-2 rounded-md hover:bg-gray-50 transition">
-          <Link href="/faq">FAQ</Link>
+          <Link href="/#faq">FAQ</Link>
         </li>
         <li className="px-3 py-2 rounded-md hover:bg-gray-50 transition">
           <Link href="/tentang-kami">Tentang Kami</Link>
@@ -116,7 +116,7 @@ export default function Navbar() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Kata Sandi</label>
                     <div className="relative">
-                      <Input type={showPassword ? "text" : "password"} placeholder="Masukkan kata sandi" className="w-full pr-10" />
+                      <Input type={showPassword ? "text" : "password"} placeholder="Masukkan kata sandi" className="w-full pr-10 border border-gray-300 focus:border-[#0CA678] focus:ring-2 focus:ring-[#0CA678] focus:outline-none" />
                       <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2">
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
@@ -254,7 +254,7 @@ export default function Navbar() {
                 { href: "/mentoring", label: "Mentoring" },
                 { href: "/practice", label: "Praktik" },
                 { href: "/mentor", label: "Mentor" },
-                { href: "/faq", label: "FAQ" },
+                { href: "/#faq", label: "FAQ" },
                 { href: "/tentang-kami", label: "Tentang Kami" },
               ].map((item) => (
                 <li key={item.href}>

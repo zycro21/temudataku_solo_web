@@ -29,83 +29,53 @@ const MentorSection = () => {
   const mentors = [
     {
       id: 1,
-      name: "John Doe",
+      name: "Vania Frederica",
       role: "Data Scientist di Lorem Ipsum",
       experience: "2 Tahun",
       skills: "Python, Excel, BI, SQL",
       biography:
         "Lorem ipsum dolor sit amet consectetur. Congue iaculis eget at risus sagittis etiam lorem. Posuere sed eget metus gravida vitae venenatis quis. Lobortis erat est quisque etiam et. Morbi adipiscing arcu malesuada tempor id volutpat.",
-      image: "/assets/homePage/mentors/johnDoe.svg",
+      image: "/assets/mentorPage/mentors/vania.svg",
     },
     {
       id: 2,
-      name: "Jefri Nichol",
+      name: "Mochamad Dimas Putra Hermawan",
       role: "Data Scientist di Lorem Ipsum",
       experience: "2 Tahun",
       skills: "Python, Excel, BI, SQL",
       biography:
         "Lorem ipsum dolor sit amet consectetur. Congue iaculis eget at risus sagittis etiam lorem. Posuere sed eget metus gravida vitae venenatis quis. Lobortis erat est quisque etiam et. Morbi adipiscing arcu malesuada tempor id volutpat.",
-      image: "/assets/homePage/mentors/jefri.svg",
+      image: "/assets/mentorPage/mentors/dimas.svg",
     },
     {
       id: 3,
-      name: "Laura",
+      name: "Muhammad Iqbal Purba",
       role: "Data Scientist di Lorem Ipsum",
       experience: "3 Tahun",
       skills: "Python, Excel, BI, SQL",
       biography:
         "Lorem ipsum dolor sit amet consectetur. Congue iaculis eget at risus sagittis etiam lorem. Posuere sed eget metus gravida vitae venenatis quis. Lobortis erat est quisque etiam et. Morbi adipiscing arcu malesuada tempor id volutpat.",
-      image: "/assets/homePage/mentors/laura.svg",
+      image: "/assets/mentorPage/mentors/iqbal.svg",
     },
     {
       id: 4,
-      name: "Mentor 4",
+      name: "Jesselyn Mu.heic",
       role: "Data Engineer",
       experience: "4 Tahun",
       skills: "Python, Spark",
       biography:
         "Lorem ipsum dolor sit amet consectetur. Congue iaculis eget at risus sagittis etiam lorem. Posuere sed eget metus gravida vitae venenatis quis. Lobortis erat est quisque etiam et. Morbi adipiscing arcu malesuada tempor id volutpat.",
-      image: "/assets/homePage/mentors/johnDoe.svg",
+      image: "/assets/mentorPage/mentors/jesselyn.svg",
     },
     {
       id: 5,
-      name: "Mentor 5",
+      name: "Muhammad ALi",
       role: "ML Engineer",
       experience: "2 Tahun",
       skills: "TensorFlow, Python",
       biography:
         "Lorem ipsum dolor sit amet consectetur. Congue iaculis eget at risus sagittis etiam lorem. Posuere sed eget metus gravida vitae venenatis quis. Lobortis erat est quisque etiam et. Morbi adipiscing arcu malesuada tempor id volutpat.",
-      image: "/assets/homePage/mentors/johnDoe.svg",
-    },
-    {
-      id: 6,
-      name: "Mentor 6",
-      role: "Data Analyst",
-      experience: "3 Tahun",
-      skills: "SQL, Power BI",
-      biography:
-        "Lorem ipsum dolor sit amet consectetur. Congue iaculis eget at risus sagittis etiam lorem. Posuere sed eget metus gravida vitae venenatis quis. Lobortis erat est quisque etiam et. Morbi adipiscing arcu malesuada tempor id volutpat.",
-      image: "/assets/homePage/mentors/johnDoe.svg",
-    },
-    {
-      id: 7,
-      name: "Mentor 7",
-      role: "AI Specialist",
-      experience: "5 Tahun",
-      skills: "NLP, LLM",
-      biography:
-        "Lorem ipsum dolor sit amet consectetur. Congue iaculis eget at risus sagittis etiam lorem. Posuere sed eget metus gravida vitae venenatis quis. Lobortis erat est quisque etiam et. Morbi adipiscing arcu malesuada tempor id volutpat.",
-      image: "/assets/homePage/mentors/johnDoe.svg",
-    },
-    {
-      id: 8,
-      name: "Mentor 8",
-      role: "Statistician",
-      experience: "6 Tahun",
-      skills: "R, Python",
-      biography:
-        "Lorem ipsum dolor sit amet consectetur. Congue iaculis eget at risus sagittis etiam lorem. Posuere sed eget metus gravida vitae venenatis quis. Lobortis erat est quisque etiam et. Morbi adipiscing arcu malesuada tempor id volutpat.",
-      image: "/assets/homePage/mentors/johnDoe.svg",
+      image: "/assets/mentorPage/mentors/ali.svg",
     },
   ];
 
