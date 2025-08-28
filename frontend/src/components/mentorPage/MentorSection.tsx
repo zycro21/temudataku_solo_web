@@ -59,7 +59,7 @@ const MentorSection = () => {
     },
     {
       id: 4,
-      name: "Jesselyn Mu.heic",
+      name: "Jesselyn Mu",
       role: "Data Engineer",
       experience: "4 Tahun",
       skills: "Python, Spark",
