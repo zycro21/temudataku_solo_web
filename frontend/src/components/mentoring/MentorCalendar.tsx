@@ -29,6 +29,8 @@ interface MentorSchedule {
 
 interface CalendarProps {
   mentor: MentorSchedule;
+  selectedDate: Date | null; // dikontrol parent
+  onSelectDate: (date: Date | null) => void; // event handler ke parent
 }
 
 /** Custom caption untuk v9: judul di tengah, chevron di kiri/kanan */
@@ -65,8 +67,11 @@ function CenteredMonthCaption({ calendarMonth }: MonthCaptionProps) {
   );
 }
 
-export default function MentorCalendar({ mentor }: CalendarProps) {
-  const [selectedDate, setSelectedDate] = useState<Date>();
+export default function MentorCalendar({
+  mentor,
+  selectedDate,
+  onSelectDate,
+}: CalendarProps) {
   const [hoveredDate, setHoveredDate] = useState<Date | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(
     null
@@ -89,8 +94,8 @@ export default function MentorCalendar({ mentor }: CalendarProps) {
     <div className="mt-2 relative">
       <DayPicker
         mode="single"
-        selected={selectedDate}
-        onSelect={setSelectedDate}
+        selected={selectedDate || undefined} // controlled dari parent
+        onSelect={(date) => onSelectDate(date ?? null)} // kirim balik ke parent
         disabled={disableDays}
         onDayMouseEnter={(date, modifiers, e) => {
           setHoveredDate(date || null);
@@ -114,7 +119,13 @@ export default function MentorCalendar({ mentor }: CalendarProps) {
         }}
         modifiersClassNames={{
           selected: "bg-emerald-600 text-white rounded-md", // kotak hijau, teks putih
-          today: "!text-black", 
+          today: "!text-black",
+        }}
+        formatters={{
+          formatWeekdayName: (day) => {
+            const hari = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+            return hari[day.getDay()];
+          },
         }}
         className="w-full"
       />
@@ -136,7 +147,7 @@ export default function MentorCalendar({ mentor }: CalendarProps) {
               </div>
             ))
           ) : (
-            <div>Full booked</div>
+            <div>Tidak ada jadwal</div>
           )}
         </div>
       )}
