@@ -572,6 +572,9 @@ export default function MentorScheduleSelectionModal({
       <DetailMentoringModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        mentor={activeMentor}
+        date={selectedDate}
+        time={selectedTime}
       />
     </>
   );
