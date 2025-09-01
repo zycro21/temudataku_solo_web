@@ -140,3 +140,21 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* --- Custom Scrollbar --- */
+.scroll-thin::-webkit-scrollbar {
+  width: 4px; /* atur ketebalan scroll */
+}
+
+.scroll-thin::-webkit-scrollbar-track {
+  background: transparent; /* biar gak ada background */
+}
+
+.scroll-thin::-webkit-scrollbar-thumb {
+  background-color: #a0aec0; /* abu-abu soft */
+  border-radius: 9999px; /* biar bulat */
+}
+
+.scroll-thin::-webkit-scrollbar-button {
+  display: none; /* hilangin panah atas bawah */
+}
