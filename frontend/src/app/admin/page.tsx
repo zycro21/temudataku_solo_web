@@ -94,6 +94,7 @@ export default function AdminPage() {
                         {stat.change}
                       </Badge>
                     )}
+                    
                   </div>
                 </div>
               </div>
