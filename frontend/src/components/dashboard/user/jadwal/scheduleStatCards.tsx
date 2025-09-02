@@ -1,17 +1,36 @@
 // src/components/dashboard/user/scheduleStatCards.tsx
+"use client";
+
 import Image from "next/image";
 import { ChevronRight } from "lucide-react";
+import { useCalendar } from "@/components/dashboard/user/jadwal/calendarContext";
 
 export default function ScheduleStatCards() {
+  const { events } = useCalendar();
+  const today = new Date();
+
+  // Hitung total program terdaftar
+  const allEvents = Object.values(events).flat();
+  const totalPrograms = allEvents.length;
+
+  // Hitung total program yang sudah lewat
+  const pastPrograms = Object.entries(events).reduce((count, [date, evts]) => {
+    const eventDate = new Date(date);
+    if (eventDate < today) {
+      return count + evts.length;
+    }
+    return count;
+  }, 0);
+
   const stats = [
     {
       title: "Program Terdaftar",
-      value: 5,
+      value: totalPrograms,
       icon: "/assets/dashboard/user/programterdaftar.svg",
     },
     {
       title: "Program Telah Dilakukan",
-      value: 3,
+      value: pastPrograms,
       icon: "/assets/dashboard/user/programterdaftar.svg",
     },
   ];

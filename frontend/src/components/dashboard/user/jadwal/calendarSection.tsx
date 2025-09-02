@@ -2,28 +2,21 @@
 "use client";
 
 import { useState } from "react";
+import { useCalendar } from "@/components/dashboard/user/jadwal/calendarContext";
 import { ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
 
 type EventType = "class" | "mentoring" | "bootcamp" | "other";
 
-interface CalendarEvent {
+export interface CalendarEvent {
   title: string;
   type: EventType;
+  time?: string; // optional
 }
 
 export default function CalendarSection() {
-  const [currentDate, setCurrentDate] = useState(new Date()); // ikut hari ini
+  const { selectedDate, setSelectedDate, events } = useCalendar();
+  const [currentDate, setCurrentDate] = useState(new Date()); // bulan yg ditampilkan
   const today = new Date();
-
-  const events: Record<string, CalendarEvent[]> = {
-    "2025-09-02": [{ title: "Bootcamp React", type: "bootcamp" }],
-    "2025-09-05": [
-      { title: "AI Class", type: "class" },
-      { title: "Mentoring", type: "mentoring" },
-      { title: "Mentoring-2", type: "mentoring" },
-      { title: "AI Advanced", type: "class" },
-    ],
-  };
 
   const daysInWeek = ["MIN", "SEN", "SEL", "RAB", "KAM", "JUM", "SAB"];
   const monthNames = [
@@ -155,13 +148,15 @@ export default function CalendarSection() {
           const dayEvents = events[formattedDate] || [];
           const isToday = isSameDate(date, today);
           const isCurrentMonth = date.getMonth() === currentDate.getMonth();
+          const isSelected = isSameDate(date, selectedDate);
 
           return (
             <div
               key={index}
-              className={`group relative border-b border-r border-gray-300 p-1.5 min-h-[100px] flex flex-col ${
+              onClick={() => setSelectedDate(date)}
+              className={`group relative border-b border-r border-gray-300 p-1.5 min-h-[100px] flex flex-col cursor-pointer ${
                 !isCurrentMonth ? "bg-gray-100 text-gray-400" : ""
-              }`}
+              } ${isSelected ? "ring-2 ring-emerald-500" : ""}`}
             >
               {/* Tooltip Today */}
               {isToday && (
