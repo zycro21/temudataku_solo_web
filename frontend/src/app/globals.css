@@ -158,3 +158,9 @@ body {
 .scroll-thin::-webkit-scrollbar-button {
   display: none; /* hilangin panah atas bawah */
 }
+
+/* Firefox */
+/* .scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #a0aec0 transparent;
+} */
