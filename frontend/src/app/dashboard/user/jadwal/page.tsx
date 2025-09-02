@@ -1,10 +1,9 @@
+// src/app/main/dashboard/user/jadwal/page.tsx
 import Sidebar from "@/components/dashboard/user/sidebarDashboardUser";
 import DashboardHeader from "@/components/dashboard/user/dashboardHeader";
-import StatCards from "@/components/dashboard/user/statCards";
-import ChartSection from "@/components/dashboard/user/chartSection";
-import ScheduleSection from "@/components/dashboard/user/scheduleSection";
-import ActivitySection from "@/components/dashboard/user/activitySection";
-import RecommendationSection from "@/components/dashboard/user/recommendationSection";
+import ScheduleStatCards from "@/components/dashboard/user/jadwal/scheduleStatCards";
+import CalendarSection from "@/components/dashboard/user/jadwal/calendarSection";
+import DayEventsSection from "@/components/dashboard/user/dayEventsSection";
 
 export default function JadwalDashboardUserPage() {
   return (
@@ -15,10 +14,33 @@ export default function JadwalDashboardUserPage() {
         <DashboardHeader />
         {/* Main content */}
         <main className="flex-1 p-6 pl-7 bg-gray-50">
-          <h1 className="text-2xl font-semibold text-gray-800 mb-6">
-            Jadwal
-          </h1>
+          <h1 className="text-3xl font-semibold text-gray-800 mb-6">Jadwal</h1>
 
+          {/* Section: Stat Cards */}
+          <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Kiri: Stat Cards */}
+            <div>
+              <ScheduleStatCards />
+            </div>
+
+            {/* Kanan: Kosong */}
+            <div></div>
+          </div>
+
+          {/* Section: Calendar & Day Events */}
+          <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Kiri: Kalender (2/3) */}
+              <div className="lg:col-span-2">
+                <CalendarSection />
+              </div>
+
+              {/* Kanan: Jadwal Hari Ini (1/3) */}
+              <div className="lg:col-span-1">
+                <DayEventsSection />
+              </div>
+            </div>
+          </div>
         </main>
       </div>
     </div>
