@@ -131,7 +131,7 @@ export default function ChartSection() {
           </button>
         </div>
       </div>
-      <div className="h-[257px]">
+      <div className="h-[208px]">
         <Bar data={data} options={options} />
       </div>
     </div>
