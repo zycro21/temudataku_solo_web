@@ -1,9 +1,14 @@
-// components/dashboard/user/pengumpulan/pengumpulanSection.tsx
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "lucide-react";
+import PengumpulanBelumModal from "./pengumpulanBelumModal";
+import PengumpulanSelesaiModal from "./pengumpulanSelesaiModal";
+import PengumpulanSudahModal from "./pengumpulanSudahModal";
 
 interface Project {
   id: string;
@@ -25,32 +30,10 @@ export default function PengumpulanSection({
   title,
   projects,
 }: PengumpulanSectionProps) {
-  // Helper untuk menentukan isi button
-  const renderButtonContent = (status: string) => {
-    switch (status) {
-      case "Belum Dikumpulkan":
-        return <span>Kumpulkan Project</span>;
-      case "Selesai":
-        return (
-          <span>
-            Lihat Project -{" "}
-            <span className="text-red-500 font-semibold">Selesai</span>
-          </span>
-        );
-      case "Sudah Direview":
-        return (
-          <span>
-            Lihat Project -{" "}
-            <span className="text-blue-600 font-semibold">Sudah Direview</span>
-          </span>
-        );
-      default:
-        return <span>Lihat Detail</span>;
-    }
-  };
+  const [openBelum, setOpenBelum] = useState<string | null>(null);
 
   return (
-    <div className="mb-8">
+    <div className="mb-4">
       <h2 className="text-lg font-semibold text-gray-800 mb-4">{title}</h2>
 
       {projects.length === 0 ? (
@@ -102,11 +85,35 @@ export default function PengumpulanSection({
                   <span className="text-black">{project.periode}</span>
                 </div>
 
-                <Link href="#" className="w-full">
-                  <Button className="bg-emerald-500 hover:bg-emerald-600 text-white w-full">
-                    {renderButtonContent(project.status)}
-                  </Button>
-                </Link>
+                {project.status === "Belum Dikumpulkan" && (
+                  <PengumpulanBelumModal
+                    open={openBelum === project.id}
+                    setOpen={(val) => setOpenBelum(val ? project.id : null)}
+                    withTrigger={true} // default, bisa dihapus juga
+                  />
+                )}
+
+                {project.status === "Selesai" && (
+                  <PengumpulanSelesaiModal
+                    bootcampTitle={project.program}
+                    schedule={project.periode}
+                    projectTitle={project.title}
+                    fileName="Prediction.pdf"
+                    fileSize="200 KB"
+                    fileUrl="/uploads/prediction.pdf"
+                    url={project.detailLink}
+                  />
+                )}
+
+                {project.status === "Sudah Direview" && (
+                  <PengumpulanSudahModal
+                    open={openBelum === project.id}
+                    setOpen={(val) => setOpenBelum(val ? project.id : null)}
+                    bootcampTitle={project.program}
+                    schedule={project.periode}
+                    projectTitle={project.title}
+                  />
+                )}
               </CardFooter>
             </Card>
           ))}

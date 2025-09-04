@@ -24,8 +24,8 @@ const menuItems = [
     activeIcon: "/assets/dashboard/user/whitepengumpulan.svg",
   },
   {
-    name: "Umpan balik",
-    href: "/dashboard/user/umpan-balik",
+    name: "Feedback",
+    href: "/dashboard/user/feedback",
     icon: "/assets/dashboard/user/umpanbalik.svg",
     activeIcon: "/assets/dashboard/user/whiteumpanbalik.svg",
   },

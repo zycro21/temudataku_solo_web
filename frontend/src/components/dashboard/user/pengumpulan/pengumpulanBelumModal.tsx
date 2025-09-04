@@ -1,6 +1,6 @@
-// components/dashboard/user/pengumpulan/pengumpulanBelumModal.tsx
 "use client";
 
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,74 +11,305 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Upload } from "lucide-react";
+import Image from "next/image";
+import { X } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useRouter } from "next/navigation";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
-export default function PengumpulanBelumModal() {
+type PengumpulanBelumModalProps = {
+  open: boolean;
+  setOpen: (val: boolean) => void;
+  withTrigger?: boolean;
+};
+
+export default function PengumpulanBelumModal({
+  open,
+  setOpen,
+  withTrigger = true,
+}: PengumpulanBelumModalProps) {
+  const [files, setFiles] = useState<File[]>([]);
+  const [title, setTitle] = useState("");
+  const [url, setUrl] = useState("");
+  const [successOpen, setSuccessOpen] = useState(false);
+  const [error, setError] = useState("");
+  const router = useRouter();
+
+  // simpan timeout id biar bisa dibersihkan
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (!open) {
+      setTitle("");
+      setUrl("");
+      setFiles([]);
+      setError("");
+    }
+  }, [open]);
+
+  useEffect(() => {
+    // kalau modal sukses terbuka, set auto-close 5 detik
+    if (successOpen) {
+      timeoutRef.current = setTimeout(() => {
+        setSuccessOpen(false);
+        router.push("/dashboard/user/pengumpulan");
+      }, 5000);
+    }
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [successOpen, router]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setFiles([...files, ...Array.from(e.target.files)]);
+    }
+  };
+
+  const handleRemoveFile = (idx: number) => {
+    setFiles(files.filter((_, i) => i !== idx));
+  };
+
+  const handleSubmit = () => {
+    if (!title.trim()) {
+      setError("Judul project wajib diisi.");
+      return;
+    }
+    if (files.length === 0 && !url.trim()) {
+      setError("Minimal pilih file atau isi URL.");
+      return;
+    }
+
+    setError("");
+    console.log("Project status: Selesai");
+
+    setOpen(false); // Tutup modal form
+    setSuccessOpen(true); // Buka modal sukses
+  };
+
+  const handleRedirectNow = () => {
+    // hentikan timer auto close
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    // tutup modal dulu
+    setSuccessOpen(false);
+    setTimeout(() => {
+      router.push("/dashboard/user/pengumpulan");
+    }, 50);
+  };
+
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button className="bg-emerald-500 hover:bg-emerald-600 text-white w-full">
-          Kumpulkan Project
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Kumpulkan Project</DialogTitle>
-        </DialogHeader>
+    <>
+      {/* Modal Form */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        {withTrigger && (
+          <DialogTrigger asChild>
+            <Button className="bg-emerald-500 hover:bg-emerald-600 text-white w-full">
+              Kumpulkan Project
+            </Button>
+          </DialogTrigger>
+        )}
+        <DialogContent
+          className="sm:max-w-lg"
+          onInteractOutside={(e) => e.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle>Kumpulkan Project</DialogTitle>
+          </DialogHeader>
 
-        {/* Form */}
-        <div className="flex flex-col gap-4">
-          {/* Judul */}
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium">Judul Project</label>
-            <input
-              type="text"
-              placeholder="Judul"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            />
+          <div className="border-b border-gray-200 my-1" />
+
+          {/* Form */}
+          <div className="flex flex-col gap-6 mt-2">
+            {/* Judul */}
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium">Judul Project</label>
+              <input
+                type="text"
+                placeholder="Judul"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            {/* Media Upload */}
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium">Media Upload</label>
+              <div className="border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center py-6 gap-3">
+                <Image
+                  src="/assets/dashboard/user/cloud.svg"
+                  alt="Upload"
+                  width={40}
+                  height={40}
+                  className="text-emerald-500"
+                />
+                <p className="text-sm text-gray-500 text-center">
+                  select your file or drag and drop
+                  <br />
+                  <span className="text-xs">
+                    png, pdf, psd, xls, csv, docx accepted
+                  </span>
+                </p>
+
+                <input
+                  id="file-upload"
+                  type="file"
+                  multiple
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                <label htmlFor="file-upload">
+                  <Button
+                    type="button"
+                    asChild
+                    className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 cursor-pointer"
+                  >
+                    <span>Upload</span>
+                  </Button>
+                </label>
+              </div>
+
+              {files.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {files.map((file, idx) => (
+                    <div
+                      key={idx}
+                      className="border rounded-md p-2 flex items-center justify-between text-sm"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-500">📄</span>
+                        <div className="flex flex-col">
+                          <span className="font-medium truncate max-w-[150px]">
+                            {file.name}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {(file.size / 1024).toFixed(1)} KB
+                          </span>
+                          <a
+                            href={URL.createObjectURL(file)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-purple-600 text-xs mt-1 underline"
+                          >
+                            Click to view
+                          </a>
+                        </div>
+                      </div>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveFile(idx)}
+                              className="ml-3 text-red-500 hover:text-red-700"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Hapus file</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Divider */}
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-px bg-gray-300"></div>
+              <span className="text-sm text-gray-500 font-medium">OR</span>
+              <div className="flex-1 h-px bg-gray-300"></div>
+            </div>
+
+            {/* Upload via URL */}
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium">Upload from URL</label>
+              <input
+                type="url"
+                placeholder="Add file URL"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            {error && (
+              <p className="text-sm text-red-500 font-medium">{error}</p>
+            )}
           </div>
 
-          {/* Media Upload */}
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium">Media Upload</label>
-            <div className="border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center py-6 gap-3">
-              <Upload className="w-8 h-8 text-emerald-500" />
-              <p className="text-sm text-gray-500 text-center">
-                select your file or drag and drop
-                <br />
-                <span className="text-xs">
-                  png, pdf, psd, xls, csv, docx accepted
-                </span>
-              </p>
-              <Button className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2">
-                Upload
+          {/* Footer */}
+          <DialogFooter className="mt-6 flex gap-3">
+            <DialogClose asChild>
+              <Button variant="outline" className="w-1/2">
+                Kembali
               </Button>
+            </DialogClose>
+            <Button
+              onClick={handleSubmit}
+              className="bg-emerald-500 hover:bg-emerald-600 text-white w-1/2"
+            >
+              Kumpulkan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Success */}
+      <Dialog open={successOpen} onOpenChange={setSuccessOpen}>
+        <DialogContent
+          className="sm:max-w-md flex flex-col items-center justify-center text-center py-10"
+          onInteractOutside={(e) => e.preventDefault()}
+        >
+          <DialogHeader>
+            <VisuallyHidden>
+              <DialogTitle>Success</DialogTitle>
+            </VisuallyHidden>
+          </DialogHeader>
+          <div className="w-24 h-24 rounded-full bg-green-100 flex items-center justify-center">
+            <div className="w-16 h-16 rounded-full bg-emerald-500 flex items-center justify-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-8 w-8 text-white"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={3}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
             </div>
           </div>
-
-          {/* Upload via URL */}
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium">Upload from URL</label>
-            <input
-              type="url"
-              placeholder="Add file URL"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            />
-          </div>
-        </div>
-
-        {/* Footer */}
-        <DialogFooter className="mt-4 flex justify-between gap-3">
-          <DialogClose asChild>
-            <Button variant="outline" className="w-full">
-              Kembali
-            </Button>
-          </DialogClose>
-          <Button className="bg-emerald-500 hover:bg-emerald-600 text-white w-full">
-            Kumpulkan
+          <h2 className="text-lg font-semibold mt-6">Horray!</h2>
+          <p className="text-sm text-gray-600">
+            Projectmu berhasil dikumpulkan!
+          </p>
+          <Button
+            className="bg-emerald-500 hover:bg-emerald-600 text-white mt-6"
+            onClick={handleRedirectNow}
+          >
+            Kembali ke Dashboard
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

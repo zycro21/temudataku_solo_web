@@ -20,7 +20,7 @@ export default function RecommendationSection() {
     },
     {
       tag: "Dapatkan Sertifikat!",
-      title: "Forecasting Harga Saham jdskafalal falflafl alflaflal",
+      title: "Forecasting Harga Saham Dengan Mengunakan Metode",
       type: "Live Class",
       level: "Beginner",
     },
