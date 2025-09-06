@@ -4,8 +4,7 @@ import Image from "next/image";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Calendar, User } from "lucide-react";
 import TambahFeedbackModal from "./tambahFeedbackModal";
-import LihatFeedbackModal from "./lihatFeedbackModal"; // ✅ sudah dipisah ke file baru
-
+import LihatFeedbackModal from "./lihatFeedbackModal";
 interface Feedback {
   id: string;
   title: string;
