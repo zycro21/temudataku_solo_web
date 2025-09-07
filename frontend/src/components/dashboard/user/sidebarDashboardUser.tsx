@@ -49,13 +49,13 @@ const menuItems = [
   },
   {
     name: "Histori Transaksi",
-    href: "/dashboard/user/transaksi",
+    href: "/dashboard/user/transaction",
     icon: "/assets/dashboard/user/historitransaksi.svg",
     activeIcon: "/assets/dashboard/user/whitehistoritransaksi.svg",
   },
   {
     name: "Acara",
-    href: "/dashboard/user/acara",
+    href: "/dashboard/user/event",
     icon: "/assets/dashboard/user/acara.svg",
     activeIcon: "/assets/dashboard/user/whiteacara.svg",
   },
