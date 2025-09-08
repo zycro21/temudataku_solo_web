@@ -13,6 +13,7 @@ export type Mentee = {
   username: string;
   email: string;
   role: string;
+  status: string;
 };
 
 export const columns: ColumnDef<Mentee>[] = [

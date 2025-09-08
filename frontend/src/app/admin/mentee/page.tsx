@@ -11,19 +11,19 @@ import { columns, Mentee } from "./columns";
 
 export default function AdminMenteePage() {
   const [mentees] = useState<Mentee[]>([
-    { id: "ABCD01", photo: "/placeholder.svg?height=40&width=40&text=GD", name: "Gilang Dirga", username: "gildir", email: "gilangdirga11@gmail.com", role: "Mentee" },
-    { id: "ABCD02", photo: "/placeholder.svg?height=40&width=40&text=RS", name: "Rina Suryani", username: "rinsury", email: "sarah.connor@gmail.com", role: "Mentee" },
-    { id: "ABCD03", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentee" },
-    { id: "ABCD04", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentee" },
-    { id: "ABCD05", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentee" },
-    { id: "ABCD06", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentee" },
-    { id: "ABCD07", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentee" },
-    { id: "ABCD08", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentee" },
-    { id: "ABCD09", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentee" },
-    { id: "ABCD10", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentee" },
-    { id: "ABCD11", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentee" },
-    { id: "ABCD12", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentee" },
-    { id: "ABCD13", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentee" },
+    { id: "ABCD01", photo: "/placeholder.svg?height=40&width=40&text=GD", name: "Gilang Dirga", username: "gildir", email: "gilangdirga11@gmail.com", role: "Mentee", status: "aktif" },
+    { id: "ABCD02", photo: "/placeholder.svg?height=40&width=40&text=RS", name: "Rina Suryani", username: "rinsury", email: "sarah.connor@gmail.com", role: "Mentee", status: "aktif" },
+    { id: "ABCD03", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentee", status: "inaktif" },
+    { id: "ABCD04", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentee", status: "inaktif" },
+    { id: "ABCD05", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentee", status: "aktif" },
+    { id: "ABCD06", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentee", status: "aktif" },
+    { id: "ABCD07", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentee", status: "aktif" },
+    { id: "ABCD08", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentee", status: "aktif" },
+    { id: "ABCD09", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentee", status: "aktif" },
+    { id: "ABCD10", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentee", status: "aktif" },
+    { id: "ABCD11", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentee", status: "aktif" },
+    { id: "ABCD12", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentee", status: "aktif" },
+    { id: "ABCD13", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentee", status: "aktif" },
   ]);
 
   const stats = [
