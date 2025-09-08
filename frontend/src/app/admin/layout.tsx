@@ -3,6 +3,7 @@ import { useState } from "react";
 import { ChevronDown, Bell, Search, Users, UserCheck, MessageSquare, Calendar, FileText, Award, User, BookOpen, CreditCard, Package, Shield, BarChart3 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [activeMenu, setActiveMenu] = useState("Overview");
@@ -13,31 +14,31 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   const menuItems = [
-    { name: "Overview", icon: BarChart3, active: true },
-    { name: "Mentee", icon: Users },
-    { name: "Mentor", icon: UserCheck },
+    { name: "Overview", icon: BarChart3, href: "/admin" },
+    { name: "Mentee", icon: Users, href: "/admin/mentee" },
+    { name: "Mentor", icon: UserCheck, href: "/admin/mentor" },
     {
       name: "Kelola Mentoring",
       icon: MessageSquare,
       hasSubmenu: true,
       children: [
-        { name: "Jadwal Sesi", icon: Calendar },
-        { name: "Project", icon: FileText },
-        { name: "Sertifikat", icon: Award },
-        { name: "Feedback Mentor", icon: User },
-        { name: "Feedback Mentee", icon: User },
+        { name: "Jadwal Sesi", icon: Calendar, href: "/admin/mentoring/sesi" },
+        { name: "Project", icon: FileText, href: "/admin/mentoring/project" },
+        { name: "Sertifikat", icon: Award, href: "/admin/mentoring/sertifikat" },
+        { name: "Feedback Mentor", icon: User, href: "/admin/mentoring/feedback-mentor" },
+        { name: "Feedback Mentee", icon: User, href: "/admin/mentoring/feedback-mentee" },
       ],
     },
-    { name: "Kelola Practice", icon: BookOpen },
-    { name: "Transaksi", icon: CreditCard },
-    { name: "Produk & Event", icon: Package },
+    { name: "Kelola Practice", icon: BookOpen, href: "/admin/practice" },
+    { name: "Transaksi", icon: CreditCard, href: "/admin/transaksi" },
+    { name: "Produk & Event", icon: Package, href: "/admin/produk-event" },
     {
       name: "History & Security",
       icon: Shield,
       hasSubmenu: true,
       children: [
-        { name: "History", icon: FileText },
-        { name: "Security", icon: Shield },
+        { name: "History", icon: FileText, href: "/admin/history" },
+        { name: "Security", icon: Shield, href: "/admin/security" },
       ],
     },
   ];
@@ -61,36 +62,32 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <ul className="space-y-1">
             {menuItems.map((item) => (
               <li key={item.name}>
-                <button
+                <Link
+                  href={item.href || "#"}
                   onClick={() => {
                     setActiveMenu(item.name);
-                    if (item.hasSubmenu) {
-                      toggleMenuExpansion(item.name);
-                    }
+                    if (item.hasSubmenu) toggleMenuExpansion(item.name);
                   }}
-                  className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    item.name === "Overview" || activeMenu === item.name ? "bg-[#0CA678] text-white" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                  }`}
+                  className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activeMenu === item.name ? "bg-[#0CA678] text-white" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"}`}
                 >
                   <item.icon className="w-5 h-5" />
                   <span className="flex-1 text-left">{item.name}</span>
                   {item.hasSubmenu && <ChevronDown className={`w-4 h-4 transition-transform ${expandedMenus.includes(item.name) ? "rotate-180" : ""}`} />}
-                </button>
+                </Link>
 
                 {/* Submenu */}
                 {item.children && expandedMenus.includes(item.name) && (
                   <ul className="ml-8 mt-1 space-y-1">
                     {item.children.map((child) => (
                       <li key={child.name}>
-                        <button
+                        <Link
+                          href={child.href || "#"}
                           onClick={() => setActiveMenu(child.name)}
-                          className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                            activeMenu === child.name ? "bg-[#0CA678] text-white" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                          }`}
+                          className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activeMenu === child.name ? "bg-[#0CA678] text-white" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"}`}
                         >
                           <child.icon className="w-4 h-4" />
                           <span className="flex-1 text-left">{child.name}</span>
-                        </button>
+                        </Link>
                       </li>
                     ))}
                   </ul>
