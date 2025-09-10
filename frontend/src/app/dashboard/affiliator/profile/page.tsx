@@ -1,9 +1,9 @@
 import AffSidebar from "@/components/dashboard/affiliator/sidebarDashboardAff";
 import DashboardAffHeader from "@/components/dashboard/affiliator/headerDashboardAff";
 import AffProfileInfo from "@/components/dashboard/affiliator/profile/affProfileInfo";
-// import AffAccountInfo from "@/components/dashboard/affiliator/profile/affAccountInfo";
-// import AffSecuritySettings from "@/components/dashboard/affiliator/profile/affSecuritySettings";
-// import AffDangerZone from "@/components/dashboard/affiliator/profile/affDangerZone";
+import AffAccountInfo from "@/components/dashboard/affiliator/profile/affAccountInfo";
+import AffSecuritySettings from "@/components/dashboard/affiliator/profile/affSecuritySettings";
+import AffDangerZone from "@/components/dashboard/affiliator/profile/affDangerZone";
 
 export default function MainDashboardAffProfilePage() {
   return (
@@ -21,28 +21,18 @@ export default function MainDashboardAffProfilePage() {
             Manage your affiliate profile and account information
           </p>
 
-          <div className="grid grid-cols-1 lg:grid-cols-11 gap-6 mt-6">
-            {/* Profile Info */}
-            <div className="lg:col-span-7">
+          <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 mt-6">
+            {/* Kiri: Profile Info (40%) */}
+            <div className="lg:col-span-4">
               <AffProfileInfo />
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-11 gap-6 mt-6">
-            Account Info
-            {/* <div className="lg:col-span-4">
+            {/* Kanan: Account Info, Security, Danger Zone (60%) */}
+            <div className="lg:col-span-6 space-y-6">
               <AffAccountInfo />
-            </div> */}
-
-            {/* Security Settings */}
-            {/* <div className="lg:col-span-7">
               <AffSecuritySettings />
-            </div> */}
-
-            {/* Danger Zone */}
-            {/* <div className="lg:col-span-4">
               <AffDangerZone />
-            </div> */}
+            </div>
           </div>
         </main>
       </div>

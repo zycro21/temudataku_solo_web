@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { ChevronDown, User, LayoutDashboard } from "lucide-react";
 import { useRouter } from "next/navigation";
-// import ProfileModal from "./profileModal";
+import AffiliatorModal from "./affiliatorModal";
 
 export default function DashboardHeaderAffiliator() {
   const [open, setOpen] = useState(false);
@@ -100,22 +100,14 @@ export default function DashboardHeaderAffiliator() {
                   <User size={16} />
                   Lihat Profil
                 </button>
-
-                <button
-                  onClick={() => router.push("/")}
-                  className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-emerald-500 hover:text-white transition cursor-pointer"
-                >
-                  <LayoutDashboard size={16} />
-                  Kembali ke Dashboard
-                </button>
               </div>
             )}
           </div>
         </div>
       </header>
 
-      {/* Profile Modal */}
-      {/* <ProfileModal open={profileOpen} onOpenChange={setProfileOpen} /> */}
+      {/* Affiliator Modal */}
+      <AffiliatorModal open={profileOpen} onOpenChange={setProfileOpen} />
     </>
   );
 }

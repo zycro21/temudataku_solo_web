@@ -15,7 +15,7 @@ const menuItems = [
     name: "Profil",
     href: "/dashboard/affiliator/profile",
     icon: "/assets/dashboard/affiliator/profile.svg",
-    activeIcon: "/assets/dashboard/user/profilewhite.svg",
+    activeIcon: "/assets/dashboard/affiliator/profilewhite.svg",
   },
   {
     name: "Penarikan Dana",
