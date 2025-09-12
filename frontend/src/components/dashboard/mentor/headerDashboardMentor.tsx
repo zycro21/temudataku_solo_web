@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { ChevronDown, User, LayoutDashboard } from "lucide-react";
 import { useRouter } from "next/navigation";
-import AffiliatorModal from "./affiliatorModal";
+// import AffiliatorModal from "./affiliatorModal";
 
 export default function DashboardHeaderAffiliator() {
   const [open, setOpen] = useState(false);
@@ -78,9 +78,9 @@ export default function DashboardHeaderAffiliator() {
               />
               <div className="flex flex-col text-left">
                 <span className="text-sm font-medium text-gray-800">
-                  Lana D
+                  Maudy Ayunda
                 </span>
-                <span className="text-xs text-gray-500">Affiliator</span>
+                <span className="text-xs text-gray-500">Mentor</span>
               </div>
               <ChevronDown
                 size={14}
@@ -107,7 +107,7 @@ export default function DashboardHeaderAffiliator() {
       </header>
 
       {/* Affiliator Modal */}
-      <AffiliatorModal open={profileOpen} onOpenChange={setProfileOpen} />
+      {/* <AffiliatorModal open={profileOpen} onOpenChange={setProfileOpen} /> */}
     </>
   );
 }

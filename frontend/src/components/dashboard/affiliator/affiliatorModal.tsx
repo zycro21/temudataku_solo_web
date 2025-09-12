@@ -9,8 +9,6 @@ import {
   DialogTitle,
   DialogClose,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-// import EditProfileModal from "./editProfileModal";
 
 interface ProfileModalProps {
   open: boolean;
