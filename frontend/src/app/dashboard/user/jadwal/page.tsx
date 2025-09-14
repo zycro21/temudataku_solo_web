@@ -1,4 +1,6 @@
 // src/app/main/dashboard/user/jadwal/page.tsx
+"use client";
+
 import Sidebar from "@/components/dashboard/user/sidebarDashboardUser";
 import DashboardHeader from "@/components/dashboard/user/dashboardHeader";
 import ScheduleStatCards from "@/components/dashboard/user/jadwal/scheduleStatCards";

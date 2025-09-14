@@ -1,8 +1,9 @@
-import Image from "next/image";
+"use client";
 
+import Image from "next/image";
 import MentorSidebar from "@/components/dashboard/mentor/sidebarDashboardMentor";
 import DashboardAffHeader from "@/components/dashboard/mentor/headerDashboardMentor";
-// import MentorStatCards from "@/components/dashboard/mentor/mentorStatCardSchedule";
+// import MentorStatCards from "@/components/dashboard/mentor/schedule/mentorStatCardSchedule";
 
 export default function ScheduleDashboardMentorPage() {
   return (

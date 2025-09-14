@@ -1,3 +1,5 @@
+"use client"
+
 import Image from "next/image";
 
 import MentorSidebar from "@/components/dashboard/mentor/sidebarDashboardMentor";

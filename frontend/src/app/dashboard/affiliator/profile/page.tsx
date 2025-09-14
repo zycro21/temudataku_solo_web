@@ -1,3 +1,5 @@
+"use client";
+
 import AffSidebar from "@/components/dashboard/affiliator/sidebarDashboardAff";
 import DashboardAffHeader from "@/components/dashboard/affiliator/headerDashboardAff";
 import AffProfileInfo from "@/components/dashboard/affiliator/profile/affProfileInfo";
