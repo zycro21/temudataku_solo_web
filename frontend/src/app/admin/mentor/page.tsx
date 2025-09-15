@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 import { DataTable } from "./data-table";
-import { columns, Mentee } from "./columns";
+import { columns, Mentor } from "./columns";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -23,7 +23,7 @@ export default function AdminMentorPage() {
     bio: "",
   });
   const [addStep, setAddStep] = useState(1);
-  const [mentees] = useState<Mentee[]>([
+  const [mentees] = useState<Mentor[]>([
     { id: "ABCD01", photo: "/placeholder.svg?height=40&width=40&text=GD", name: "Gilang Dirga", username: "gildir", email: "gilangdirga11@gmail.com", role: "Mentor", status: "aktif", bio: "gabut aja bang" },
     { id: "ABCD02", photo: "/placeholder.svg?height=40&width=40&text=RS", name: "Rina Suryani", username: "rinsury", email: "sarah.connor@gmail.com", role: "Mentor", status: "aktif", bio: "gabut aja bang" },
     { id: "ABCD03", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentor", status: "inaktif", bio: "gabut aja bang" },
