@@ -19,7 +19,7 @@ const menuItems = [
   },
   {
     name: "Session Services",
-    href: "/dashboard/mentor/service",
+    href: "/dashboard/mentor/services",
     icon: "/assets/dashboard/mentor/service.svg",
     activeIcon: "/assets/dashboard/mentor/servicewhite.svg",
   },
