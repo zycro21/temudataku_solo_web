@@ -1,14 +1,19 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
 import MentorSidebar from "@/components/dashboard/mentor/sidebarDashboardMentor";
 import DashboardAffHeader from "@/components/dashboard/mentor/headerDashboardMentor";
 import MentorStatCards from "@/components/dashboard/mentor/services/mentorStatCardServices";
-// import MentorSessionFilters from "@/components/dashboard/mentor/services/mentorSessionFilters";
-// import MentorSessionList from "@/components/dashboard/mentor/services/mentorSessionList";
-// import MentorPagination from "@/components/dashboard/mentor/services/mentorPagination";
+import MentorSessionFilters from "@/components/dashboard/mentor/services/mentorSessionFilters";
+import MentorSessionList from "@/components/dashboard/mentor/services/mentorSessionList";
 
 export default function ServicesDashboardMentorPage() {
+  // ✅ State untuk filter & search
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("Semua");
+  const [programFilter, setProgramFilter] = useState("Semua");
+
   return (
     <div className="flex mb-8">
       <MentorSidebar />
@@ -26,24 +31,38 @@ export default function ServicesDashboardMentorPage() {
           </p>
 
           {/* Stat Cards */}
-          <div className="max-w-[100%] mb-10">
+          <div className="max-w-[100%] mb-6">
             <MentorStatCards />
           </div>
 
-          {/* Filter & Search */}
-          <section className="mb-8">
-            {/* <MentorSessionFilters /> */}
-          </section>
+          <div>
+            <h2 className="text-xl font-bold text-gray-800 mb-4">
+              Riwayat Sesi
+            </h2>
+            {/* Konten Utama */}
+            <div className="bg-white rounded-lg shadow-sm p-6 pb-2">
+              {/* Filter & Search */}
+              <section className="mb-1">
+                <MentorSessionFilters
+                  searchQuery={searchQuery}
+                  statusFilter={statusFilter}
+                  programFilter={programFilter}
+                  onSearchChange={setSearchQuery}
+                  onStatusChange={setStatusFilter}
+                  onProgramChange={setProgramFilter}
+                />
+              </section>
 
-          {/* Session List */}
-          <section className="mb-8">
-            {/* <MentorSessionList /> */}
-          </section>
-
-          {/* Pagination */}
-          <section className="flex justify-between items-center">
-            {/* <MentorPagination /> */}
-          </section>
+              {/* Session List */}
+              <section className="mb-8">
+                <MentorSessionList
+                  searchQuery={searchQuery}
+                  statusFilter={statusFilter}
+                  programFilter={programFilter}
+                />
+              </section>
+            </div>
+          </div>
         </main>
       </div>
     </div>

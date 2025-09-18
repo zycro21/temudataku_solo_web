@@ -60,7 +60,11 @@ export default function Sidebar() {
         {/* Menu List */}
         <nav className="space-y-1 px-6">
           {menuItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive =
+              item.href === "/dashboard/mentor"
+                ? pathname === item.href
+                : pathname.startsWith(item.href);
+
             return (
               <Link
                 key={item.name}

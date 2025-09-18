@@ -15,32 +15,37 @@ export default function MentorStatCards() {
     {
       title: "Jumlah Proyek",
       value: 32,
-      change: "+3 minggu ini",
+      change: "dari 134 Peserta",
       image: "/assets/dashboard/mentor/report.svg",
       link: "/dashboard/mentor/schedule",
     },
     {
       title: "Sudah Ditinjau",
       value: 34,
-      change: "+22 minggu ini",
       image: "/assets/dashboard/mentor/tandaseru.svg",
       link: "/dashboard/mentor/services",
     },
     {
       title: "Belum Ditinjau",
       value: 32,
-      change: "+3 minggu ini",
       image: "/assets/dashboard/mentor/laporan.svg",
       link: "/dashboard/mentor/report",
     },
     {
       title: "Perlu Revisi",
       value: 234,
-      change: "+10 minggu ini",
       image: "/assets/dashboard/mentor/tandaseru.svg",
       link: "/dashboard/mentor/feedback",
     },
   ];
+
+  // fungsi untuk menentukan warna value
+  const getValueClass = (title: string) => {
+    if (title === "Sudah Ditinjau") return "text-green-500";
+    if (title === "Belum Ditinjau") return "text-yellow-500";
+    if (title === "Perlu Revisi") return "text-red-500";
+    return "text-gray-900"; // default
+  };
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
@@ -73,12 +78,20 @@ export default function MentorStatCards() {
           {/* Value */}
           <CardContent className="px-6 pt-0 pb-3">
             <div className="flex items-center gap-2">
-              <h3 className="text-3xl font-semibold text-gray-900">
+              <h3
+                className={`text-3xl font-semibold ${getValueClass(
+                  item.title
+                )}`}
+              >
                 {item.value}
               </h3>
-              <span className="inline-block text-sm font-medium text-emerald-700 bg-green-200 px-3 py-1 rounded-full">
-                {item.change}
-              </span>
+
+              {/* tampilkan change hanya untuk Jumlah Proyek */}
+              {item.title === "Jumlah Proyek" && item.change && (
+                <span className="inline-block text-sm font-medium text-emerald-700 bg-green-200 px-3 py-1 rounded-full">
+                  {item.change}
+                </span>
+              )}
             </div>
           </CardContent>
         </Card>
