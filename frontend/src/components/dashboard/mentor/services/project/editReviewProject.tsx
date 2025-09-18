@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { X } from "lucide-react";
 import DiscardChangesModal from "./discardChangesModal";
+import ConfirmEditModal from "./confirmEditModal";
 import SuccessCardAddReviewModal from "./successModalEdit";
 
 interface EditReviewModalProps {
@@ -52,6 +53,7 @@ export default function EditReviewModal({
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [answers, setAnswers] = useState<{ [key: string]: string }>({});
   const [showDiscardModal, setShowDiscardModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   useEffect(() => {
@@ -536,12 +538,7 @@ export default function EditReviewModal({
             </div>
           )}
 
-          {/* sama persis stepper, step 1, step 2, step 3 */}
-          {/* isi form sama seperti AddReviewModal, bedanya value sudah di-prefill dari answers */}
-          {/* ... COPY PERSIS dari AddReviewModal */}
-          {/* pada textarea dan input pakai value={answers[field] || ""} */}
-          {/* ... */}
-
+          {/* Footer buttons */}
           <div className="flex gap-2 mt-3">
             {step === 1 ? (
               <DialogClose asChild>
@@ -573,10 +570,7 @@ export default function EditReviewModal({
             ) : (
               <Button
                 className="w-1/2 bg-emerald-600 text-white hover:bg-emerald-700"
-                onClick={() => {
-                  console.log("Update review", { project, answers });
-                  setShowSuccessModal(true); // tampilkan modal sukses
-                }}
+                onClick={() => setShowConfirmModal(true)}
               >
                 Simpan Perubahan
               </Button>
@@ -585,6 +579,7 @@ export default function EditReviewModal({
         </DialogContent>
       </Dialog>
 
+      {/* Modal buang perubahan */}
       <DiscardChangesModal
         open={showDiscardModal}
         onClose={() => setShowDiscardModal(false)}
@@ -594,12 +589,24 @@ export default function EditReviewModal({
         }}
       />
 
+      {/* Modal konfirmasi simpan */}
+      <ConfirmEditModal
+        open={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={() => {
+          setShowConfirmModal(false); // tutup konfirmasi
+          setShowSuccessModal(true); // buka modal sukses
+        }}
+      />
+
+      {/* Modal sukses */}
       <SuccessCardAddReviewModal
         open={showSuccessModal}
         onClose={() => setShowSuccessModal(false)}
         onConfirm={() => {
           setShowSuccessModal(false);
           onClose();
+          window.location.href = "/dashboard/mentor/services/project";
         }}
       />
     </>

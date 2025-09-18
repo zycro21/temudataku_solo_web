@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import AddReviewModal from "./addReviewModal";
 import EditReviewModal from "./editReviewProject";
+import ShowReviewModal from "./showReviewModal";
 
 interface ReviewAnswers {
   brief: string;
@@ -509,6 +510,15 @@ export default function ProjectTable({
           />
         )}
       </div>
+
+      {/* Modal Show Review (Detail) */}
+      {selectedAction === "detail" && selectedProject && (
+        <ShowReviewModal
+          open={true}
+          onClose={() => setSelectedAction(null)}
+          project={selectedProject}
+        />
+      )}
     </>
   );
 }
