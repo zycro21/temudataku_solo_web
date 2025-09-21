@@ -13,26 +13,26 @@ import { ChevronRight } from "lucide-react";
 export default function MentorStatCards() {
   const stats = [
     {
-      title: "Jumlah Proyek",
+      title: "Jumlah Report",
       value: 32,
-      change: "dari 134 Peserta",
-      image: "/assets/dashboard/mentor/report.svg",
+      change: "+3 Minggu",
+      image: "/assets/dashboard/mentor/laporan.svg",
       link: "/dashboard/mentor/schedule",
     },
     {
-      title: "Sudah Ditinjau",
+      title: "Report Selesai",
       value: 34,
       image: "/assets/dashboard/mentor/tandaseru.svg",
       link: "/dashboard/mentor/services",
     },
     {
-      title: "Belum Ditinjau",
+      title: "Report Belum Lengkap",
       value: 32,
       image: "/assets/dashboard/mentor/laporan.svg",
       link: "/dashboard/mentor/report",
     },
     {
-      title: "Perlu Revisi",
+      title: "Report Belum Diisi",
       value: 234,
       image: "/assets/dashboard/mentor/tandaseru.svg",
       link: "/dashboard/mentor/feedback",
@@ -41,9 +41,9 @@ export default function MentorStatCards() {
 
   // fungsi untuk menentukan warna value
   const getValueClass = (title: string) => {
-    if (title === "Sudah Ditinjau") return "text-green-500";
-    if (title === "Belum Ditinjau") return "text-yellow-500";
-    if (title === "Perlu Revisi") return "text-red-500";
+    if (title === "Report Selesai") return "text-green-500";
+    if (title === "Report Belum Lengkap") return "text-yellow-500";
+    if (title === "Report Belum Diisi") return "text-red-500";
     return "text-gray-900"; // default
   };
 
@@ -86,8 +86,8 @@ export default function MentorStatCards() {
                 {item.value}
               </h3>
 
-              {/* tampilkan change hanya untuk Jumlah Proyek */}
-              {item.title === "Jumlah Proyek" && item.change && (
+              {/* tampilkan change hanya untuk Jumlah Report */}
+              {item.title === "Jumlah Report" && item.change && (
                 <span className="inline-block text-sm font-medium text-emerald-700 bg-green-200 px-3 py-1 rounded-full">
                   {item.change}
                 </span>

@@ -1,14 +1,18 @@
 "use client";
 
-import Image from "next/image";
+import { useState } from "react";
 import MentorSidebar from "@/components/dashboard/mentor/sidebarDashboardMentor";
 import DashboardAffHeader from "@/components/dashboard/mentor/headerDashboardMentor";
 import MentorStatCards from "@/components/dashboard/mentor/report/mentorStatCardsReport";
-// import ReportFilters from "@/components/dashboard/mentor/report/reportFilters";
-// import ReportList from "@/components/dashboard/mentor/report/reportList";
-// import ReportPagination from "@/components/dashboard/mentor/report/reportPagination";
+import ReportFilters from "@/components/dashboard/mentor/report/reportFilters";
+import ReportList from "@/components/dashboard/mentor/report/reportList";
 
 export default function ReportDashboardMentorPage() {
+  // state untuk filter
+  const [statusFilter, setStatusFilter] = useState<string>("Semua");
+  const [programFilter, setProgramFilter] = useState<string>("Semua");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+
   return (
     <div className="flex mb-8">
       <MentorSidebar />
@@ -27,16 +31,92 @@ export default function ReportDashboardMentorPage() {
           </p>
 
           {/* 1. Stat cards */}
-          <MentorStatCards />
+          <div className="max-w-[100%] mb-6">
+            <MentorStatCards />
+          </div>
 
-          {/* 2. Filter section */}
-          {/* <ReportFilters /> */}
+          <div>
+            <h2 className="text-xl font-bold text-gray-800 mb-4">
+              Riwayat Laporan
+            </h2>
+            {/* Konten Utama */}
+            <div className="bg-white rounded-lg shadow-sm p-6 pb-2">
+              {/* 2. Filter section */}
+              <section className="mb-1">
+                <ReportFilters
+                  statusFilter={statusFilter}
+                  programFilter={programFilter}
+                  searchQuery={searchQuery}
+                  onStatusChange={(val) => setStatusFilter(val)}
+                  onProgramChange={(val) => setProgramFilter(val)}
+                  onSearchChange={(val) => setSearchQuery(val)}
+                />
+              </section>
 
-          {/* 3. Report list */}
-          {/* <ReportList /> */}
-
-          {/* 4. Pagination */}
-          {/* <ReportPagination /> */}
+              <section className="mb-6">
+                <ReportList
+                  reports={[
+                    {
+                      id: "1",
+                      program: "Mentoring Group - Data Science",
+                      type: "Mentoring Group",
+                      date: "Senin, 1 Mei 2025",
+                      time: "19.00 - 19.45 WIB",
+                      participants: 4,
+                      status: "Belum Diisi",
+                    },
+                    {
+                      id: "2",
+                      program: "ShortClass - Data Science",
+                      type: "ShortClass",
+                      date: "17 Mei 2025",
+                      time: "19.00 - 19.45 WIB",
+                      participants: 30,
+                      status: "Belum Diisi",
+                    },
+                    {
+                      id: "3",
+                      program: "ShortClass - Data Science",
+                      type: "ShortClass",
+                      date: "17 Mei 2025",
+                      time: "19.00 - 19.45 WIB",
+                      participants: 30,
+                      status: "Belum Lengkap",
+                      reportData: {
+                        understanding: "Cukup Paham",
+                        participation: "Cukup Aktif",
+                        challenges: "Masih kesulitan memahami regresi linier",
+                        questions: "Apa bedanya regresi dan klasifikasi?",
+                        recommendations: "Perbanyak latihan soal",
+                        notes: "Perlu follow up tambahan minggu depan",
+                      },
+                    },
+                    {
+                      id: "4",
+                      program: "Mentoring 1 on 1 - Data Science",
+                      type: "Mentoring 1 on 1",
+                      date: "Senin, 1 Mei 2025",
+                      time: "19.00 - 19.45 WIB",
+                      participants: 1,
+                      status: "Selesai",
+                      reportData: {
+                        understanding: "Sangat Paham",
+                        participation: "Sangat Aktif",
+                        challenges:
+                          "Hanya sedikit kendala di bagian implementasi",
+                        questions: "Bagaimana cara optimasi model?",
+                        recommendations: "Pelajari hyperparameter tuning",
+                        notes: "Sesi berjalan sangat lancar",
+                      },
+                    },
+                  ]}
+                  statusFilter={statusFilter}
+                  programFilter={programFilter}
+                  searchQuery={searchQuery}
+                />
+              </section>
+            </div>
+          </div>
         </main>
       </div>
     </div>

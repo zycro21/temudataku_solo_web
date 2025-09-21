@@ -31,7 +31,7 @@ const menuItems = [
   },
   {
     name: "Mentee Feedback",
-    href: "/dashboard/affiliator/feedback",
+    href: "/dashboard/mentor/feedback",
     icon: "/assets/dashboard/mentor/feedback.svg",
     activeIcon: "/assets/dashboard/mentor/feedbackwhite.svg",
   },
