@@ -24,19 +24,19 @@ export default function AdminMentorPage() {
   });
   const [addStep, setAddStep] = useState(1);
   const [mentees] = useState<Mentor[]>([
-    { id: "ABCD01", photo: "/placeholder.svg?height=40&width=40&text=GD", name: "Gilang Dirga", username: "gildir", email: "gilangdirga11@gmail.com", role: "Mentor", status: "aktif", bio: "gabut aja bang" },
-    { id: "ABCD02", photo: "/placeholder.svg?height=40&width=40&text=RS", name: "Rina Suryani", username: "rinsury", email: "sarah.connor@gmail.com", role: "Mentor", status: "aktif", bio: "gabut aja bang" },
-    { id: "ABCD03", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentor", status: "inaktif", bio: "gabut aja bang" },
-    { id: "ABCD04", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentor", status: "inaktif", bio: "gabut aja bang" },
-    { id: "ABCD05", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentor", status: "aktif", bio: "gabut aja bang" },
-    { id: "ABCD06", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentor", status: "aktif", bio: "gabut aja bang" },
-    { id: "ABCD07", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentor", status: "aktif", bio: "gabut aja bang" },
-    { id: "ABCD08", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentor", status: "aktif", bio: "gabut aja bang" },
-    { id: "ABCD09", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentor", status: "aktif", bio: "gabut aja bang" },
-    { id: "ABCD10", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentor", status: "aktif", bio: "gabut aja bang" },
-    { id: "ABCD11", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentor", status: "aktif", bio: "gabut aja bang" },
-    { id: "ABCD12", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentor", status: "aktif", bio: "gabut aja bang" },
-    { id: "ABCD13", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentor", status: "aktif", bio: "gabut aja bang" },
+    { id: "ABCD01", photo: "/placeholder.svg?height=40&width=40&text=GD", name: "Gilang Dirga", username: "gildir", email: "gilangdirga11@gmail.com", role: "Mentor", status: "aktif", bio: "gabut aja bang", expertise: "Data Engineer" },
+    { id: "ABCD02", photo: "/placeholder.svg?height=40&width=40&text=RS", name: "Rina Suryani", username: "rinsury", email: "sarah.connor@gmail.com", role: "Mentor", status: "aktif", bio: "gabut aja bang", expertise: "Data Engineer" },
+    { id: "ABCD03", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentor", status: "inaktif", bio: "gabut aja bang", expertise: "Data Scientist" },
+    { id: "ABCD04", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentor", status: "inaktif", bio: "gabut aja bang", expertise: "Data Scientist" },
+    { id: "ABCD05", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentor", status: "aktif", bio: "gabut aja bang", expertise: "Data Scientist" },
+    { id: "ABCD06", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentor", status: "aktif", bio: "gabut aja bang", expertise: "Data Scientist" },
+    { id: "ABCD07", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentor", status: "aktif", bio: "gabut aja bang", expertise: "Data Scientist" },
+    { id: "ABCD08", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentor", status: "aktif", bio: "gabut aja bang", expertise: "Data Scientist" },
+    { id: "ABCD09", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentor", status: "aktif", bio: "gabut aja bang", expertise: "Data Scientist" },
+    { id: "ABCD10", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentor", status: "aktif", bio: "gabut aja bang", expertise: "Data Scientist" },
+    { id: "ABCD11", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentor", status: "aktif", bio: "gabut aja bang", expertise: "Data Scientist" },
+    { id: "ABCD12", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentor", status: "aktif", bio: "gabut aja bang", expertise: "Data Scientist" },
+    { id: "ABCD13", photo: "/placeholder.svg?height=40&width=40&text=BS", name: "Budi Santoso", username: "budsans", email: "john.doe@gmail.com", role: "Mentor", status: "aktif", bio: "gabut aja bang", expertise: "Data Scientist" },
   ]);
 
   const stats = [
