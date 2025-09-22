@@ -24,11 +24,15 @@ export function DataTable<TData extends Mentor, TValue>({ columns, data }: DataT
   const [showDetailDialog, setShowDetailDialog] = React.useState(false);
   const [showEditDialog, setShowEditDialog] = React.useState(false);
 
+  const [editStep, setEditStep] = React.useState(1);
+
   const [editFormData, setEditFormData] = React.useState({
     name: "",
     email: "",
-    role: "",
-    status: "",
+    role: "Mentor",
+    status: "Aktif",
+    expertise: "",
+    bio: "",
   });
 
   const table = useReactTable({
@@ -207,6 +211,8 @@ export function DataTable<TData extends Mentor, TValue>({ columns, data }: DataT
                     email: selectedMentee.email,
                     role: selectedMentee.role,
                     status: selectedMentee.status || "Aktif",
+                    bio: selectedMentee.bio || "",
+                    expertise: selectedMentee.expertise || "",
                   });
                 }
                 setShowDetailDialog(false);
@@ -229,32 +235,99 @@ export function DataTable<TData extends Mentor, TValue>({ columns, data }: DataT
         </DialogContent>
       </Dialog>
 
-      {/* ✏️ Edit Mentee Dialog */}
+      {/* ✏️ Edit Mentor Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">Edit Mentee</DialogTitle>
+            <DialogTitle className="text-xl font-bold">Edit Mentor</DialogTitle>
           </DialogHeader>
 
+          {/* Step Indicator */}
+          <div className="flex items-center justify-center space-x-8 mb-8">
+            <div className="flex items-center space-x-2">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${editStep === 1 ? "bg-[#0CA678] text-white" : "bg-gray-200 text-gray-600"}`}>1</div>
+              <span className={`text-sm font-medium ${editStep === 1 ? "text-[#0CA678]" : "text-gray-500"}`}>Informasi Dasar</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${editStep === 2 ? "bg-[#0CA678] text-white" : "bg-gray-200 text-gray-600"}`}>2</div>
+              <span className={`text-sm font-medium ${editStep === 2 ? "text-[#0CA678]" : "text-gray-500"}`}>Profil Mentor</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${editStep === 3 ? "bg-[#0CA678] text-white" : "bg-gray-200 text-gray-600"}`}>3</div>
+              <span className={`text-sm font-medium ${editStep === 3 ? "text-[#0CA678]" : "text-gray-500"}`}>Peran & Status</span>
+            </div>
+          </div>
+
           <div className="space-y-6">
-            {/* Form Fields */}
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">Nama Lengkap</label>
-                <Input value={editFormData.name} onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })} className="w-full" />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">Email</label>
-                <Input type="email" value={editFormData.email} onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })} className="w-full border-[#0CA678] focus:border-[#0CA678] focus:ring-[#0CA678]" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+            {/* Step 1 */}
+            {editStep === 1 && (
+              <>
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">Peran</label>
+                  <p className="text-lg font-semibold text-gray-900 mb-4">Foto Mentor</p>
+                  <div className="flex items-center space-x-4">
+                    <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center">
+                      <User className="w-12 h-12 text-gray-400" />
+                    </div>
+                    <div className="flex space-x-3">
+                      <Button variant="outline" className="border-[#0CA678] text-[#0CA678] border-dashed hover:bg-[#0CA678] hover:text-white bg-transparent">
+                        <Upload className="w-4 h-4 mr-2" /> Upload foto profil
+                      </Button>
+                      <Button variant="destructive">Hapus</Button>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-2">File png atau jpg maks 4MB</p>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-lg font-semibold text-gray-900 mb-2">Nama Lengkap</label>
+                    <Input value={editFormData.name} onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })} className="w-full py-3 text-base" />
+                  </div>
+                  <div>
+                    <label className="block text-lg font-semibold text-gray-900 mb-2">Email</label>
+                    <Input type="email" value={editFormData.email} onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })} className="w-full py-3 text-base" />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Step 2 */}
+            {editStep === 2 && (
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-lg font-semibold text-gray-900 mb-2">Keahlian Mentor</label>
+                  <Select value={editFormData.expertise || ""} onValueChange={(value) => setEditFormData({ ...editFormData, expertise: value })}>
+                    <SelectTrigger className="w-full py-3 text-base">
+                      <SelectValue placeholder="Pilih keahlian" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Data Engineer">Data Engineer</SelectItem>
+                      <SelectItem value="Data Scientist">Data Scientist</SelectItem>
+                      <SelectItem value="Data Analyst">Data Analyst</SelectItem>
+                      <SelectItem value="Machine Learning Engineer">Machine Learning Engineer</SelectItem>
+                      <SelectItem value="Business Intelligence">Business Intelligence</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="block text-lg font-semibold text-gray-900 mb-2">Bio</label>
+                  <textarea
+                    value={editFormData.bio || ""}
+                    onChange={(e) => setEditFormData({ ...editFormData, bio: e.target.value })}
+                    className="w-full min-h-[200px] p-3 border border-gray-300 rounded-md resize-none focus:ring-[#0CA678] focus:border-[#0CA678] text-base"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Step 3 */}
+            {editStep === 3 && (
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-lg font-semibold text-gray-900 mb-2">Peran</label>
                   <Select value={editFormData.role} onValueChange={(value) => setEditFormData({ ...editFormData, role: value })}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Pilih peran" />
+                    <SelectTrigger className="w-full py-3 text-base">
+                      <SelectValue placeholder="Mentor" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Mentee">Mentee</SelectItem>
@@ -263,35 +336,50 @@ export function DataTable<TData extends Mentor, TValue>({ columns, data }: DataT
                     </SelectContent>
                   </Select>
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">Status Akun</label>
+                  <label className="block text-lg font-semibold text-gray-900 mb-2">Status Akun</label>
                   <Select value={editFormData.status} onValueChange={(value) => setEditFormData({ ...editFormData, status: value })}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Pilih status" />
+                    <SelectTrigger className="w-full py-3 text-base">
+                      <SelectValue placeholder="Aktif" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Aktif">Aktif</SelectItem>
-                      <SelectItem value="Tidak Aktif">Tidak Aktif</SelectItem>
+                      <SelectItem value="aktif">Aktif</SelectItem>
+                      <SelectItem value="inaktif">Tidak Aktif</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
-          <DialogFooter className="flex space-x-4 sm:justify-center">
-            <Button variant="outline" className="flex-1 bg-transparent" onClick={() => setShowEditDialog(false)}>
-              Batalkan Perubahan
-            </Button>
+          <DialogFooter className="flex space-x-4 sm:justify-center mt-8">
             <Button
-              className="flex-1 bg-[#0CA678] hover:bg-[#08916C]"
+              variant="outline"
+              className="flex-1 bg-transparent py-3"
               onClick={() => {
-                console.log("Save changes:", editFormData);
-                setShowEditDialog(false);
+                if (editStep === 1) {
+                  setShowEditDialog(false);
+                  setEditStep(1);
+                } else {
+                  setEditStep(editStep - 1);
+                }
               }}
             >
-              Simpan Perubahan
+              {editStep === 1 ? "Batal" : "Sebelumnya"}
+            </Button>
+            <Button
+              className="flex-1 bg-[#0CA678] hover:bg-[#08916C] py-3"
+              onClick={() => {
+                if (editStep === 3) {
+                  console.log("Save changes:", editFormData);
+                  setShowEditDialog(false);
+                  setEditStep(1);
+                } else {
+                  setEditStep(editStep + 1);
+                }
+              }}
+            >
+              {editStep === 3 ? "Simpan Perubahan" : "Selanjutnya"}
             </Button>
           </DialogFooter>
         </DialogContent>

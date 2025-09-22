@@ -22,7 +22,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       icon: MessageSquare,
       hasSubmenu: true,
       children: [
-        { name: "Jadwal Sesi", icon: Calendar, href: "/admin/mentoring/sesi" },
+        { name: "Jadwal Sesi", icon: Calendar, href: "/admin/kelola-mentoring/" },
         { name: "Project", icon: FileText, href: "/admin/mentoring/project" },
         { name: "Sertifikat", icon: Award, href: "/admin/mentoring/sertifikat" },
         { name: "Feedback Mentor", icon: User, href: "/admin/mentoring/feedback-mentor" },

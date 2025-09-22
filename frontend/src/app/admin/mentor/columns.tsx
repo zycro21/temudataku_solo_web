@@ -15,6 +15,7 @@ export type Mentor = {
   role: string;
   status: string;
   bio: string;
+  expertise: string;
 };
 
 export const columns: ColumnDef<Mentor>[] = [
