@@ -29,16 +29,26 @@ export const sendEmailVerification = async (email: string, token: string) => {
   await transporter.sendMail(mailOptions);
 };
 
-export const sendResetPasswordEmail = async (email: string, token: string) => {
+export const sendResetPasswordEmail = async (
+  email: string,
+  token: string,
+  roles: string[]
+) => {
   const transporter = nodemailer.createTransport({
-    service: "gmail", // atau SMTP lainnya
+    service: "gmail",
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
   });
 
-  const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${token}`;
+  // tentukan path reset tergantung role
+  let path = "/reset-password";
+  if (roles.includes("affiliator")) {
+    path = "/reset-password/affiliator";
+  }
+
+  const resetUrl = `${process.env.CLIENT_URL}${path}?token=${token}`;
 
   const mailOptions = {
     from: `"Mentoring App" <${process.env.EMAIL_USER}>`,

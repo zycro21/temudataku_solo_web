@@ -8,39 +8,78 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
+import axios from "axios";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export default function AffiliatorRegisterPage() {
   const {
     register,
     handleSubmit,
     watch,
-    formState: { errors, isValid },
-  } = useForm({ mode: "onChange" }); // penting: pakai onChange supaya isValid realtime
+    formState: { errors },
+  } = useForm({ mode: "onChange" });
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [focusField, setFocusField] = useState<string | null>(null);
 
-  const onSubmit = (data: any) => {
+  const router = useRouter();
+
+  const onSubmit = async (data: any) => {
     setSubmitAttempted(true);
+    if (data.password !== data.confirmPassword) return;
 
-    if (data.password !== data.confirmPassword) {
-      return;
+    try {
+      setLoading(true);
+
+      const formData = new FormData();
+      formData.append("email", data.email);
+      formData.append("password", data.password);
+
+      // default sementara
+      formData.append("fullName", "Affiliator Baru");
+      formData.append("phoneNumber", "-");
+      formData.append("address", "-");
+      formData.append("role", "affiliator");
+
+      const res = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/register`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+
+      toast.success("Registrasi berhasil! Silakan verifikasi email anda.");
+      console.log(res.data);
+
+      router.push("/affiliator/login");
+    } catch (err: any) {
+      console.error("Register error:", err);
+      toast.error(
+        err.response?.data?.message || "Registrasi gagal, coba lagi."
+      );
+    } finally {
+      setLoading(false);
     }
-
-    console.log("Register data:", data);
-    // TODO: API register affiliator
   };
 
+  // watch untuk cek isi input
+  const email = watch("email");
   const password = watch("password");
   const confirmPassword = watch("confirmPassword");
   const isPasswordMatch = password === confirmPassword;
 
   const getInputClass = (fieldName: string, hasError: boolean) => {
-    if (focusField === fieldName) return "border-2 border-emerald-500";
-    if (submitAttempted && hasError)
+    if (submitAttempted && hasError) {
       return "border-2 border-red-500 animate-pulse";
+    }
+    if (focusField === fieldName) {
+      return "border-2 border-emerald-500";
+    }
     return "border border-gray-300";
   };
 
@@ -131,9 +170,12 @@ export default function AffiliatorRegisterPage() {
                     )}`}
                     {...register("password", {
                       required: "Password wajib diisi",
-                      minLength: {
-                        value: 6,
-                        message: "Minimal 6 karakter",
+                      minLength: { value: 8, message: "Minimal 8 karakter" },
+                      pattern: {
+                        value:
+                          /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/,
+                        message:
+                          "Harus ada huruf besar, huruf kecil, angka, dan simbol",
                       },
                     })}
                     onFocus={() => setFocusField("password")}
@@ -147,14 +189,19 @@ export default function AffiliatorRegisterPage() {
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
-                <p className="text-xs text-gray-500">
-                  Gunakan kombinasi angka, huruf besar, dan huruf kecil
+
+                {/* Pesan password */}
+                <p
+                  className={`text-xs ${
+                    errors.password
+                      ? "text-red-500 animate-pulse"
+                      : "text-gray-500"
+                  }`}
+                >
+                  {errors.password
+                    ? String(errors.password.message)
+                    : "Harus ada huruf besar, huruf kecil, angka, dan simbol"}
                 </p>
-                {submitAttempted && errors.password?.message && (
-                  <p className="text-xs text-red-500">
-                    {String(errors.password.message)}
-                  </p>
-                )}
               </div>
 
               {/* Confirm Password */}
@@ -203,9 +250,9 @@ export default function AffiliatorRegisterPage() {
               <Button
                 type="submit"
                 className="w-full h-12 bg-emerald-600 text-white hover:bg-emerald-700"
-                disabled={!isValid || !isPasswordMatch}
+                disabled={loading || !email || !password || !confirmPassword}
               >
-                Daftar
+                {loading ? "Mendaftarkan..." : "Daftar"}
               </Button>
             </form>
 

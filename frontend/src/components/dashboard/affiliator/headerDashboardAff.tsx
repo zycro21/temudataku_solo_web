@@ -2,15 +2,42 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
-import { ChevronDown, User, LayoutDashboard } from "lucide-react";
+import { ChevronDown, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AffiliatorModal from "./affiliatorModal";
+import axios from "axios";
+
+interface UserData {
+  id: string;
+  fullName?: string | null;
+  profilePicture?: string | null;
+  userRoles?: { role: { roleName: string } }[];
+}
 
 export default function DashboardHeaderAffiliator() {
   const [open, setOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [user, setUser] = useState<UserData | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  // ambil data user saat mount
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/me`,
+          { withCredentials: true } // penting biar cookie JWT ikut
+        );
+        setUser(res.data.data);
+      } catch (err) {
+        console.error("Gagal ambil data user:", err);
+        setUser(null);
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   // Tutup dropdown kalau klik di luar
   useEffect(() => {
@@ -28,8 +55,15 @@ export default function DashboardHeaderAffiliator() {
 
   const handleOpenProfile = () => {
     setProfileOpen(true);
-    setOpen(false); // auto close dropdown
+    setOpen(false);
   };
+
+  const displayName = user?.fullName || "Guest Affiliator";
+  const displayRole = user?.userRoles?.[0]?.role?.roleName || "Affiliator"; // fallback role
+  const displayAvatar =
+    user?.profilePicture && user.profilePicture !== "default.jpg"
+      ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/uploads/${user.profilePicture}`
+      : "/assets/dashboard/user/avatar.png"; // fallback avatar lokal
 
   return (
     <>
@@ -50,7 +84,7 @@ export default function DashboardHeaderAffiliator() {
           />
         </div>
 
-        {/* Right - Notification & User Info */}
+        {/* Right */}
         <div className="flex items-center gap-6 pr-6">
           {/* Notification */}
           <button className="relative flex items-center justify-center w-12 h-12 rounded-full border border-gray-300 bg-white">
@@ -70,17 +104,17 @@ export default function DashboardHeaderAffiliator() {
               className="flex items-center gap-2 focus:outline-none"
             >
               <Image
-                src="/assets/dashboard/user/avatar.png"
+                src={displayAvatar}
                 alt="User Avatar"
                 width={36}
                 height={36}
-                className="rounded-full"
+                className="rounded-full object-cover"
               />
               <div className="flex flex-col text-left">
                 <span className="text-sm font-medium text-gray-800">
-                  Lana D
+                  {displayName}
                 </span>
-                <span className="text-xs text-gray-500">Affiliator</span>
+                <span className="text-xs text-gray-500">{displayRole}</span>
               </div>
               <ChevronDown
                 size={14}

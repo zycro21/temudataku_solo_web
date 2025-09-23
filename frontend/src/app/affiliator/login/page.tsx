@@ -8,6 +8,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
+import axios from "axios";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export default function AffiliatorLoginPage() {
   const {
@@ -19,11 +22,51 @@ export default function AffiliatorLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [focusField, setFocusField] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const onSubmit = (data: any) => {
+  const router = useRouter();
+
+  const onSubmit = async (data: any) => {
     setSubmitAttempted(true);
-    console.log("Login data:", data);
-    // TODO: API login affiliator
+    setLoading(true);
+
+    try {
+      const res = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/login`,
+        data,
+        { withCredentials: true }
+      );
+
+      const user = res.data.user;
+      const allowedRoles = ["affiliator", "admin"];
+      const userRoles = user.roles.map((r: any) => r.role_name);
+
+      // cek role
+      if (!userRoles.some((role: string) => allowedRoles.includes(role))) {
+        toast.error("Role Anda tidak diizinkan untuk login di halaman ini");
+        setLoading(false);
+        return;
+      }
+
+      toast.success("Login berhasil");
+      router.push("/dashboard/affiliator");
+    } catch (err: any) {
+      let msg =
+        err.response?.data?.message ||
+        "Terjadi kesalahan saat login. Coba lagi.";
+
+      // mapping khusus untuk invalid credentials
+      if (
+        msg.toLowerCase().includes("invalid credentials") ||
+        msg.toLowerCase().includes("unauthorized")
+      ) {
+        msg = "Email atau password salah";
+      }
+
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getInputClass = (fieldName: string, hasError: boolean) => {
@@ -149,7 +192,7 @@ export default function AffiliatorLoginPage() {
                   />
                   Ingat Saya
                 </label>
-                <Link href="/forgot-password" className="text-emerald-600">
+                <Link href="/send-email/affiliator" className="text-emerald-600">
                   Lupa kata sandi?
                 </Link>
               </div>
@@ -158,9 +201,9 @@ export default function AffiliatorLoginPage() {
               <Button
                 type="submit"
                 className="w-full h-12 bg-emerald-600 text-white hover:bg-emerald-700"
-                disabled={!isValid}
+                disabled={!isValid || loading}
               >
-                Masuk
+                {loading ? "Memproses..." : "Masuk"}
               </Button>
             </form>
 
