@@ -523,6 +523,11 @@ model User {
   fcmToken                   String?             @db.VarChar
   createdAt                  DateTime?           @default(now()) @db.Timestamp(6) @map("created_at")
   updatedAt                  DateTime?           @db.Timestamp(6) @map("updated_at")
+  instagram                  String?             @db.VarChar
+  twitter                    String?             @db.VarChar
+  youtube                    String?             @db.VarChar
+  tiktok                     String?             @db.VarChar
+  otherSocialMedia           String?             @db.VarChar
 
   bookings                   Booking[]
   bookingParticipants        BookingParticipant[]

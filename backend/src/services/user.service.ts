@@ -15,6 +15,11 @@ export const updateUserProfile = async (
     city?: string;
     province?: string;
     profilePicture?: string;
+    instagram?: string;
+    twitter?: string;
+    youtube?: string;
+    tiktok?: string;
+    otherSocialMedia?: string;
   }
 ): Promise<{ updatedFields: string[]; skippedFields: string[] }> => {
   const user = await prisma.user.findUnique({

@@ -43,9 +43,30 @@ const router = Router();
  *               phoneNumber:
  *                 type: string
  *                 example: "+628123456789"
+ *               city:
+ *                 type: string
+ *                 example: "Jakarta"
+ *               province:
+ *                 type: string
+ *                 example: "DKI Jakarta"
  *               profilePicture:
  *                 type: string
  *                 format: binary
+ *               instagram:
+ *                 type: string
+ *                 example: "https://instagram.com/johndoe"
+ *               twitter:
+ *                 type: string
+ *                 example: "https://twitter.com/johndoe"
+ *               youtube:
+ *                 type: string
+ *                 example: "https://youtube.com/@johndoe"
+ *               tiktok:
+ *                 type: string
+ *                 example: "https://tiktok.com/@johndoe"
+ *               otherSocialMedia:
+ *                 type: string
+ *                 example: "https://linkedin.com/in/johndoe"
  *     responses:
  *       200:
  *         description: Profil berhasil diperbarui

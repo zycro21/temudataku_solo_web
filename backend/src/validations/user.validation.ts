@@ -6,6 +6,11 @@ export const updateUserSchema = z.object({
   phoneNumber: z.string().min(8).optional(),
   city: z.string().optional(),
   province: z.string().optional(),
+  instagram: z.string().optional(),
+  twitter: z.string().optional(),
+  youtube: z.string().optional(),
+  tiktok: z.string().optional(),
+  otherSocialMedia: z.string().optional(),
 });
 
 export const updateUserRolesSchema = z
