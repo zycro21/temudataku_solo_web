@@ -6,6 +6,7 @@ import { ChevronDown, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AffiliatorModal from "./affiliatorModal";
 import axios from "axios";
+import { toast } from "sonner";
 
 interface UserData {
   id: string;
@@ -27,17 +28,27 @@ export default function DashboardHeaderAffiliator() {
       try {
         const res = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/me`,
-          { withCredentials: true } // penting biar cookie JWT ikut
+          { withCredentials: true }
         );
         setUser(res.data.data);
-      } catch (err) {
+      } catch (err: any) {
         console.error("Gagal ambil data user:", err);
-        setUser(null);
+
+        // kalau error 401 (unauthorized), redirect ke login
+        if (err.response?.status === 401) {
+          toast.error("Harap login dengan akun Affiliator terlebih dahulu", {
+            duration: 10000,
+          });
+
+          router.replace("/affiliator/login");
+        } else {
+          setUser(null);
+        }
       }
     };
 
     fetchUser();
-  }, []);
+  }, [router]);
 
   // Tutup dropdown kalau klik di luar
   useEffect(() => {
@@ -62,7 +73,7 @@ export default function DashboardHeaderAffiliator() {
   const displayRole = user?.userRoles?.[0]?.role?.roleName || "Affiliator"; // fallback role
   const displayAvatar =
     user?.profilePicture && user.profilePicture !== "default.jpg"
-      ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/uploads/${user.profilePicture}`
+      ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${user.profilePicture}`
       : "/assets/dashboard/user/avatar.png"; // fallback avatar lokal
 
   return (

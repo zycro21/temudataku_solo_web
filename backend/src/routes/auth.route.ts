@@ -402,7 +402,6 @@ router.post(
  *               success: false
  *               message: User not found
  */
-
 router.get("/me", authenticate, AuthController.getCurrentUser);
 
 /**
