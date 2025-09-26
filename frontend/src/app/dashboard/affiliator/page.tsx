@@ -24,7 +24,7 @@ export default function MainDashboardAffPage() {
             <AffStatCards />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-11 gap-6 mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-11 gap-6 mt-4">
             {/* Grafik Analitik 55% */}
             <div className="lg:col-span-6">
               <AffReferralAnalytics />
