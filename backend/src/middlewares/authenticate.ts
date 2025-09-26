@@ -302,6 +302,26 @@ export interface AuthenticatedRequestPayment extends Request {
   validatedQuery?: any;
 }
 
+export interface AuthenticatedRequestWithdrawal extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+  };
+  validatedBody?: {
+    userId?: string;       // hanya boleh dipakai admin
+    type: string;          // "bank" | "eWallet"
+    providerName: string;  // "BCA" | "Dana" | "OVO" dll
+    accountNumber: string; // nomor rekening / HP
+    accountName?: string;  // opsional
+  };
+  validatedParams?: {
+    id?: string;
+  };
+}
+
 export const authenticate = (
   req: AuthenticatedRequest,
   res: Response,

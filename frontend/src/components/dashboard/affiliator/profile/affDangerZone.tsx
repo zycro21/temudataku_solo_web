@@ -11,7 +11,7 @@ export default function AffDangerZone() {
 
   return (
     <Card className="p-8 shadow-sm border border-gray-200 bg-gray-50">
-      <h2 className="text-lg font-semibold text-gray-800 mb-1">
+      <h2 className="text-2xl font-bold text-gray-800 mb-1">
         Metode Penarikan Saldo
       </h2>
       <p className="text-sm text-gray-500 mb-0">Metode Penarikan Saldo</p>
