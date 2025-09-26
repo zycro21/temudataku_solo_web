@@ -1,37 +1,41 @@
 import { z } from "zod";
 
 export const createWithdrawalSchema = z.object({
-  userId: z.string().optional(), // hanya admin yang boleh isi
-  type: z.enum(["bank", "eWallet"], {
-    required_error: "Type is required",
-    invalid_type_error: "Type must be either 'bank' or 'eWallet'",
+  body: z.object({
+    userId: z.string().optional(),
+    type: z.enum(["bank", "eWallet"], {
+      required_error: "Type is required",
+      invalid_type_error: "Type must be either 'bank' or 'eWallet'",
+    }),
+    providerName: z
+      .string()
+      .min(2, "Provider name must be at least 2 characters"),
+    accountNumber: z
+      .string()
+      .min(5, "Account number must be at least 5 characters"),
+    accountName: z.string().optional(),
   }),
-  providerName: z
-    .string()
-    .min(2, "Provider name must be at least 2 characters"),
-  accountNumber: z
-    .string()
-    .min(5, "Account number must be at least 5 characters"),
-  accountName: z.string().optional(),
 });
 
 export const getAllWithdrawalSchema = z.object({
-  page: z
-    .string()
-    .transform((val) => parseInt(val, 10))
-    .refine((val) => !isNaN(val) && val > 0, {
-      message: "Page must be a positive number",
-    })
-    .optional()
-    .default("1"),
-  limit: z
-    .string()
-    .transform((val) => parseInt(val, 10))
-    .refine((val) => !isNaN(val) && val > 0 && val <= 15, {
-      message: "Limit must be between 1 and 15",
-    })
-    .optional()
-    .default("15"),
+  query: z.object({
+    page: z
+      .string()
+      .transform((val) => parseInt(val, 10))
+      .refine((val) => !isNaN(val) && val > 0, {
+        message: "Page must be a positive number",
+      })
+      .optional()
+      .default("1"),
+    limit: z
+      .string()
+      .transform((val) => parseInt(val, 10))
+      .refine((val) => !isNaN(val) && val > 0 && val <= 15, {
+        message: "Limit must be between 1 and 15",
+      })
+      .optional()
+      .default("15"),
+  }),
 });
 
 export const getWithdrawalByIdSchema = z.object({
@@ -59,7 +63,7 @@ export const updateWithdrawalSchema = z.object({
 
 export const deleteWithdrawalSchema = z.object({
   params: z.object({
-    id: z.string().cuid({ message: "Invalid withdrawal method ID" }),
+    id: z.string().min(1, { message: "Withdrawal method ID is required" }),
   }),
 });
 
@@ -72,7 +76,9 @@ export const exportWithdrawalSchema = z.object({
 });
 
 export const toggleWithdrawalStatusSchema = z.object({
-  id: z.string().cuid({ message: "Invalid withdrawal method ID" }),
+  params: z.object({
+    id: z.string().min(1, { message: "Withdrawal method ID is required" }),
+  }),
   body: z.object({
     isActive: z.boolean({
       required_error: "isActive status is required",

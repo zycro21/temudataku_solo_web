@@ -13,6 +13,7 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Trash2, RotateCcw } from "lucide-react";
 import SuccessModal from "./successAddAccountModal";
 import { toast } from "sonner";
+import axios from "axios";
 
 export default function AddAccountModal({
   open,
@@ -26,30 +27,53 @@ export default function AddAccountModal({
   const bankOptions = ["BCA", "Mandiri", "BNI", "BRI"];
   const ewalletOptions = ["Dana", "OVO", "GoPay", "ShopeePay"];
 
-  // contoh data metode pembayaran
-  const [methods, setMethods] = useState([
+  // data metode pembayaran dari API
+  const [methods, setMethods] = useState<
     {
-      id: 1,
-      type: "bank",
-      name: "Bank Central Asia (BCA)",
-      number: "176**********",
-      icon: "/assets/dashboard/affiliator/bank.svg",
-      active: true,
-    },
-    {
-      id: 2,
-      type: "ewallet",
-      name: "Dana",
-      number: "085********",
-      icon: "/assets/dashboard/affiliator/dana.svg",
-      active: true,
-    },
-  ]);
+      id: string;
+      type: "bank" | "eWallet";
+      providerName: string;
+      accountNumber: string;
+      accountName?: string;
+      isActive?: boolean;
+    }[]
+  >([]);
 
-  // toggle active/inactive
-  const toggleMethod = (id: number) => {
+  const [loading, setLoading] = useState(false);
+
+  const fetchMethods = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/withdrawals`,
+        {
+          params: { page: 1, limit: 15 },
+          withCredentials: true,
+        }
+      );
+
+      if (res.data.success) {
+        setMethods(res.data.data);
+      }
+    } catch (err) {
+      console.error("Gagal ambil withdrawal methods:", err);
+      toast.error("Gagal memuat data metode penarikan");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // panggil API tiap modal dibuka
+  useEffect(() => {
+    if (open) {
+      fetchMethods();
+    }
+  }, [open]);
+
+  // toggle active/inactive (sementara masih local state)
+  const toggleMethod = (id: string) => {
     setMethods((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, active: !m.active } : m))
+      prev.map((m) => (m.id === id ? { ...m, isActive: !m.isActive } : m))
     );
   };
 
@@ -61,27 +85,49 @@ export default function AddAccountModal({
     name: "",
   });
 
-  const handleSave = () => {
-    if (!form.bankOrWallet || !form.number || !form.name) {
-      toast.error("Mohon isi semua input atau lakukan perubahan terlebih dahulu");
-      return;
-    }
+  const handleSave = async () => {
+    try {
+      setLoading(true);
 
-    // Kalau valid → tutup AddAccountModal + buka SuccessModal
-    onClose();
-    setShowSuccess(true);
+      // Kirim perubahan status aktif/nonaktif
+      const updatePromises = methods.map((m) =>
+        axios.patch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/withdrawals/${m.id}/activate`,
+          { isActive: m.isActive },
+          { withCredentials: true }
+        )
+      );
+      await Promise.all(updatePromises);
 
-    // Reset form biar kosong lagi
-    setForm({ bankOrWallet: "", number: "", name: "" });
-    setWithdrawType("bank");
-  };
+      // Kalau form isi → create baru
+      if (form.bankOrWallet && form.number && form.name) {
+        await axios.post(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/withdrawals`,
+          {
+            type: withdrawType === "bank" ? "bank" : "eWallet",
+            providerName: form.bankOrWallet,
+            accountNumber: form.number,
+            accountName: form.name,
+          },
+          { withCredentials: true }
+        );
+      }
 
-  useEffect(() => {
-    if (!open) {
+      toast.success("Perubahan berhasil disimpan");
+      onClose();
+      setShowSuccess(true);
+      fetchMethods();
+    } catch (err: any) {
+      console.error("Gagal menyimpan perubahan:", err);
+      toast.error(
+        err.response?.data?.message || "Gagal menyimpan perubahan, coba lagi"
+      );
+    } finally {
+      setLoading(false);
       setForm({ bankOrWallet: "", number: "", name: "" });
       setWithdrawType("bank");
     }
-  }, [open]);
+  };
 
   return (
     <>
@@ -101,46 +147,58 @@ export default function AddAccountModal({
             </p>
 
             {/* List metode */}
-            {methods.map((m) => (
-              <div
-                key={m.id}
-                className="flex items-center justify-between p-4 border rounded-lg bg-white"
-              >
-                <div className="flex items-center space-x-3">
-                  <Image
-                    src={m.icon}
-                    alt={`${m.name} Icon`}
-                    width={20}
-                    height={20}
-                  />
-                  <div>
-                    <p className="font-medium text-gray-800">{m.name}</p>
-                    <p className="text-sm text-gray-500">{m.number}</p>
+            {loading ? (
+              <p className="text-sm text-gray-500">Loading...</p>
+            ) : methods.length > 0 ? (
+              methods.map((m) => (
+                <div
+                  key={m.id}
+                  className="flex items-center justify-between p-4 border rounded-lg bg-white"
+                >
+                  <div className="flex items-center space-x-3">
+                    <Image
+                      src={`/assets/dashboard/affiliator/${
+                        m.type === "bank" ? "bank.svg" : "dana.svg"
+                      }`}
+                      alt={`${m.providerName} Icon`}
+                      width={20}
+                      height={20}
+                    />
+                    <div>
+                      <p className="font-medium text-gray-800">
+                        {m.providerName}
+                      </p>
+                      <p className="text-sm text-gray-500">{m.accountNumber}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-3">
+                    <span
+                      className={`text-sm font-medium ${
+                        m.isActive ? "text-emerald-600" : "text-red-500"
+                      }`}
+                    >
+                      {m.isActive ? "active" : "inactive"}
+                    </span>
+
+                    <button
+                      onClick={() => toggleMethod(m.id)}
+                      className="p-2 rounded hover:bg-gray-100"
+                    >
+                      {m.isActive ? (
+                        <Trash2 className="w-5 h-5 text-red-600 hover:text-red-200" />
+                      ) : (
+                        <RotateCcw className="w-5 h-5 text-emerald-600 hover:text-emerald-200" />
+                      )}
+                    </button>
                   </div>
                 </div>
-
-                <div className="flex items-center space-x-3">
-                  <span
-                    className={`text-sm font-medium ${
-                      m.active ? "text-emerald-600" : "text-red-500"
-                    }`}
-                  >
-                    {m.active ? "active" : "inactive"}
-                  </span>
-
-                  <button
-                    onClick={() => toggleMethod(m.id)}
-                    className="p-2 rounded hover:bg-gray-100"
-                  >
-                    {m.active ? (
-                      <Trash2 className="w-5 h-5 text-red-600 hover:text-red-200" />
-                    ) : (
-                      <RotateCcw className="w-5 h-5 text-emerald-600 hover:text-emerald-200" />
-                    )}
-                  </button>
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-sm text-gray-500">
+                Belum ada metode penarikan/pembayaran
+              </p>
+            )}
 
             <h2 className="text-lg font-semibold mt-6">
               Tambah Metode Pembayaran Baru
@@ -241,8 +299,9 @@ export default function AddAccountModal({
             <Button
               className="w-full bg-emerald-500 text-white hover:bg-emerald-600 rounded-lg py-3 font-medium"
               onClick={handleSave}
+              disabled={loading}
             >
-              Simpan
+              {loading ? "Menyimpan..." : "Simpan"}
             </Button>
           </DialogFooter>
         </DialogContent>
