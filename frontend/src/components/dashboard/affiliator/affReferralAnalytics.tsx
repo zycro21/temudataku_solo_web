@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   LineChart,
@@ -11,44 +11,121 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { format, startOfWeek, endOfWeek, eachDayOfInterval } from "date-fns";
+import {
+  format,
+  startOfWeek,
+  endOfWeek,
+  eachDayOfInterval,
+  getMonth,
+  isWithinInterval,
+} from "date-fns";
 import { id } from "date-fns/locale";
 import { Calendar } from "lucide-react";
+import axios from "axios";
+import { toast } from "sonner";
 
 export default function AffReferralAnalytics() {
   const [isWeekly, setIsWeekly] = useState(false);
+  const [weeklyData, setWeeklyData] = useState<any[]>([]);
+  const [yearlyData, setYearlyData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Dummy data tahunan
-  const yearlyData = [
-    { month: "Jan", referrals: 20 },
-    { month: "Feb", referrals: 35 },
-    { month: "Mar", referrals: 70 },
-    { month: "Apr", referrals: 60 },
-    { month: "May", referrals: 40 },
-    { month: "Jun", referrals: 50 },
-    { month: "Jul", referrals: 75 },
-    { month: "Aug", referrals: 90 },
-    { month: "Sep", referrals: 55 },
-    { month: "Oct", referrals: 85 },
-    { month: "Nov", referrals: 65 },
-    { month: "Dec", referrals: 45 },
-  ];
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        // 1. Ambil semua referral codes
+        const refRes = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/referral/affiliator/referral-codes`,
+          { withCredentials: true }
+        );
 
-  // Generate data mingguan (Minggu–Sabtu minggu berjalan)
-  const today = new Date();
-  const start = startOfWeek(today, { weekStartsOn: 0 }); // Minggu
-  const end = endOfWeek(today, { weekStartsOn: 0 }); // Sabtu
+        if (!refRes.data.success) throw new Error("Gagal ambil referral codes");
+        const referralCodes = refRes.data.data.referralCodes || [];
 
-  const weeklyData = eachDayOfInterval({ start, end }).map((date) => ({
-    day: format(date, "EEE", { locale: id }), // contoh: Min, Sen, Sel
-    referrals: Math.floor(Math.random() * 100), // dummy random
-  }));
+        // 2. Ambil semua usages untuk tiap referral code
+        let allUsages: any[] = [];
+        for (const rc of referralCodes) {
+          let page = 1;
+          let hasMore = true;
+
+          while (hasMore) {
+            const usageRes = await axios.get(
+              `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/referral/affiliator/referral-codes-usages/${rc.id}`,
+              { params: { page, limit: 50 }, withCredentials: true }
+            );
+
+            if (usageRes.data.success) {
+              const { usages, pagination } = usageRes.data.data;
+              allUsages = allUsages.concat(usages);
+
+              page++;
+              hasMore = page <= pagination.totalPages;
+            } else {
+              hasMore = false;
+            }
+          }
+        }
+
+        // 3. Agregasi YEARLY (Jan–Dec)
+        const year = new Date().getFullYear();
+        const months = [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ];
+        const yearlyAgg = months.map((m, idx) => ({
+          month: m,
+          referrals: allUsages.filter((u) => {
+            const d = new Date(u.usedAt);
+            return d.getFullYear() === year && getMonth(d) === idx;
+          }).length,
+        }));
+        setYearlyData(yearlyAgg);
+
+        // 4. Agregasi WEEKLY (minggu berjalan)
+        const today = new Date();
+        const start = startOfWeek(today, { weekStartsOn: 0 });
+        const end = endOfWeek(today, { weekStartsOn: 0 });
+
+        const weeklyAgg = eachDayOfInterval({ start, end }).map((date) => ({
+          day: format(date, "EEE", { locale: id }),
+          referrals: allUsages.filter(
+            (u) =>
+              isWithinInterval(new Date(u.usedAt), { start, end }) &&
+              format(new Date(u.usedAt), "yyyy-MM-dd") ===
+                format(date, "yyyy-MM-dd")
+          ).length,
+        }));
+        setWeeklyData(weeklyAgg);
+      } catch (err) {
+        console.error(err);
+        toast.error("Gagal mengambil data analytics referral");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAnalytics();
+  }, []);
 
   const currentData = isWeekly ? weeklyData : yearlyData;
 
+  const today = new Date();
+  const start = startOfWeek(today, { weekStartsOn: 0 });
+  const end = endOfWeek(today, { weekStartsOn: 0 });
+
   const dateLabel = isWeekly
     ? `${format(start, "dd/MM/yyyy")} – ${format(end, "dd/MM/yyyy")}`
-    : "2025 (Yearly)";
+    : `${today.getFullYear()} (Yearly)`;
 
   return (
     <Card className="w-full h-[340px] bg-gray-50">
@@ -67,29 +144,29 @@ export default function AffReferralAnalytics() {
       </CardHeader>
 
       <CardContent className="h-[280px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart
-            data={currentData}
-            margin={{ top: 5, right: 20, bottom: 5, left: -30 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis dataKey={isWeekly ? "day" : "month"} stroke="#6b7280" />
-            <YAxis
-              stroke="#6b7280"
-              domain={[0, 100]}
-              ticks={[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]}
-            />
-            <Tooltip />
-            <Line
-              type="monotone"
-              dataKey="referrals"
-              stroke="#6366f1"
-              strokeWidth={2}
-              dot={{ r: 3 }}
-              activeDot={{ r: 5 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
+        {loading ? (
+          <p className="text-gray-500 text-sm">Loading...</p>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart
+              data={currentData}
+              margin={{ top: 5, right: 20, bottom: 5, left: -40 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis dataKey={isWeekly ? "day" : "month"} stroke="#6b7280" />
+              <YAxis stroke="#6b7280" />
+              <Tooltip />
+              <Line
+                type="monotone"
+                dataKey="referrals"
+                stroke="#6366f1"
+                strokeWidth={2}
+                dot={{ r: 3 }}
+                activeDot={{ r: 5 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
       </CardContent>
     </Card>
   );
