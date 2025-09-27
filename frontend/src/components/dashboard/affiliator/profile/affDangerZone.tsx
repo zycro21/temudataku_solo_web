@@ -75,7 +75,11 @@ export default function AffDangerZone() {
                   <p className="text-sm text-gray-500">{m.accountNumber}</p>
                 </div>
               </div>
-              <span className="text-sm font-medium text-emerald-600">
+              <span
+                className={`text-sm font-medium ${
+                  m.isActive ? "text-emerald-600" : "text-red-600"
+                }`}
+              >
                 {m.isActive ? "active" : "inactive"}
               </span>
             </div>
