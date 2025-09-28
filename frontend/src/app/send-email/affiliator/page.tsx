@@ -1,6 +1,6 @@
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
-import SendEmailPage from "@/components/sendEmail/index";
+import SendEmailPage from "@/components/sendEmail/affiliator/index";
 
 export default function SendEmail() {
   return (

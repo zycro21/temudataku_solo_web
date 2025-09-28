@@ -1,6 +1,6 @@
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
-import SuccessResetPage from "@/components/successReset";
+import SuccessResetPage from "@/components/successReset/index";
 
 export default function SuccesReset() {
   return (

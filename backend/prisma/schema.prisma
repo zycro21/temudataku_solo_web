@@ -523,6 +523,11 @@ model User {
   fcmToken                   String?             @db.VarChar
   createdAt                  DateTime?           @default(now()) @db.Timestamp(6) @map("created_at")
   updatedAt                  DateTime?           @db.Timestamp(6) @map("updated_at")
+  instagram                  String?             @db.VarChar
+  twitter                    String?             @db.VarChar
+  youtube                    String?             @db.VarChar
+  tiktok                     String?             @db.VarChar
+  otherSocialMedia           String?             @db.VarChar
 
   bookings                   Booking[]
   bookingParticipants        BookingParticipant[]
@@ -539,6 +544,23 @@ model User {
   referralUsages             ReferralUsage[]
   userBehavior               UserBehavior[]
   userRoles                  UserRole[]
+  withdrawalMethods          WithdrawalMethod[] 
 
   @@map("users")
+}
+
+model WithdrawalMethod {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id") // affiliator
+  type          String   // "bank", "eWallet"
+  providerName  String   // "BCA", "Mandiri, "Dana", "OVO"
+  accountNumber String   // nomor rekening / nomor HP
+  accountName   String?  // nama pemilik akun
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("withdrawal_methods")
 }

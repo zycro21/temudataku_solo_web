@@ -285,8 +285,11 @@ export const forgotPassword = async (
       { expiresIn: "1h" } // Token berlaku 1 jam
     );
 
+    // Ambil semua role name
+    const roles = user.userRoles.map((ur) => ur.role.roleName);
+
     // Kirim email dengan token reset password
-    await sendResetPasswordEmail(email, resetToken);
+    await sendResetPasswordEmail(email, resetToken, roles);
 
     // Response sukses
     res.status(200).json({

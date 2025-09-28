@@ -1,12 +1,12 @@
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
-import SendEmailPage from "@/components/sendEmail/index";
+import ResetPasswordPage from "@/components/resetPassword/affiliator/index";
 
-export default function SendEmail() {
+export default function ResetPassword() {
   return (
     <div className="flex flex-col min-h-screen w-full">
       <Navbar />
-      <SendEmailPage />
+      <ResetPasswordPage />
       <Footer />
     </div>
   );

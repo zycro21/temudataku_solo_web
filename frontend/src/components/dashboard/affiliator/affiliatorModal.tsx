@@ -8,16 +8,59 @@ import {
   DialogTitle,
   DialogClose,
 } from "@/components/ui/dialog";
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { toast } from "sonner";
 
 interface ProfileModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
+interface UserProfile {
+  id: string;
+  email: string;
+  fullName: string;
+  phoneNumber: string | null;
+  profilePicture: string | null;
+  city: string | null;
+  province: string | null;
+  isEmailVerified: boolean;
+  registrationDate: string;
+  lastLogin: string;
+  isActive: boolean;
+  userRoles: { role: { id: string; roleName: string; description: string } }[];
+}
+
 export default function ProfileModal({
   open,
   onOpenChange,
 }: ProfileModalProps) {
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const fetchProfile = async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/me`,
+          { withCredentials: true }
+        );
+        if (res.data.success) {
+          setProfile(res.data.data);
+        } else {
+          toast.error("Gagal memuat profil affiliator");
+        }
+      } catch (err) {
+        console.error("Gagal fetch profil:", err);
+        toast.error("Terjadi kesalahan saat memuat profil");
+      }
+    };
+
+    fetchProfile();
+  }, [open]);
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -33,15 +76,19 @@ export default function ProfileModal({
 
           <div className="border-b border-gray-200 my-1" />
 
-          {/* Foto Mentee */}
+          {/* Foto Affiliator */}
           <div>
             <p className="text-sm font-medium text-gray-600 mb-2">
               Foto Affiliator
             </p>
             <div className="w-full h-[220px] rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
               <Image
-                src="/assets/dashboard/user/viewprofile.png"
-                alt="Foto Mentee"
+                src={
+                  profile?.profilePicture
+                    ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${profile.profilePicture}`
+                    : "/assets/dashboard/user/viewprofile.png"
+                }
+                alt="Foto Affiliator"
                 width={400}
                 height={250}
                 className="object-cover w-full h-full"
@@ -55,15 +102,19 @@ export default function ProfileModal({
             <div className="space-y-6">
               <div>
                 <p className="font-medium text-gray-600">ID Affiliator</p>
-                <p className="font-semibold">ABCD12</p>
+                <p className="font-semibold">{profile?.id || "-"}</p>
               </div>
               <div>
                 <p className="font-medium text-gray-600">Username</p>
-                <p className="font-semibold">Lana D</p>
+                <p className="font-semibold">
+                  {profile?.fullName?.split(" ")[0] || "-"}
+                </p>
               </div>
               <div>
                 <p className="font-medium text-gray-600">Peran</p>
-                <p className="font-semibold">Affiliator</p>
+                <p className="font-semibold">
+                  {profile?.userRoles?.[0]?.role.roleName || "Affiliator"}
+                </p>
               </div>
             </div>
 
@@ -71,15 +122,21 @@ export default function ProfileModal({
             <div className="space-y-6">
               <div>
                 <p className="font-medium text-gray-600">Nama Lengkap</p>
-                <p className="font-semibold">Lana Del</p>
+                <p className="font-semibold">{profile?.fullName || "-"}</p>
               </div>
               <div>
                 <p className="font-medium text-gray-600">Email</p>
-                <p className="font-semibold">Lanadel@gmail.com</p>
+                <p className="font-semibold">{profile?.email || "-"}</p>
               </div>
               <div>
                 <p className="font-medium text-gray-600">Status Akun</p>
-                <p className="font-semibold">Aktif</p>
+                <p
+                  className={`font-semibold ${
+                    profile?.isActive ? "text-emerald-600" : "text-red-600"
+                  }`}
+                >
+                  {profile?.isActive ? "Aktif" : "Nonaktif"}
+                </p>
               </div>
             </div>
           </div>

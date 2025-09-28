@@ -1,12 +1,12 @@
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
-import SendEmailPage from "@/components/sendEmail/index";
+import SuccessResetPage from "@/components/successReset/affiliator/index";
 
-export default function SendEmail() {
+export default function SuccesReset() {
   return (
     <div className="flex flex-col min-h-screen w-full">
       <Navbar />
-      <SendEmailPage />
+      <SuccessResetPage />
       <Footer />
     </div>
   );
