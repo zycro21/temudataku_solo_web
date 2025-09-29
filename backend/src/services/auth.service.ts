@@ -158,6 +158,13 @@ export const verifyUser = async (token: string) => {
         gte: new Date(),
       },
     },
+    include: {
+      userRoles: {
+        include: {
+          role: true,
+        },
+      },
+    },
   });
 
   if (!user) {
@@ -173,7 +180,10 @@ export const verifyUser = async (token: string) => {
     },
   });
 
-  return true;
+  // ambil semua role user
+  const roles = user.userRoles.map((ur) => ur.role.roleName);
+
+  return roles;
 };
 
 export const resendVerificationEmail = async (email: string) => {

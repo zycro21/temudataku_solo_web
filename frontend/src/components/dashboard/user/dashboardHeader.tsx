@@ -5,12 +5,15 @@ import Image from "next/image";
 import { ChevronDown, User, LayoutDashboard } from "lucide-react";
 import { useRouter } from "next/navigation";
 import ProfileModal from "./profileModal";
+import { useAuth } from "@/context/AuthContext"; // ⬅️ ambil context
 
 export default function DashboardHeader() {
   const [open, setOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  const { currentUser } = useAuth(); // ⬅️ data user login
 
   // Tutup dropdown kalau klik di luar
   useEffect(() => {
@@ -30,6 +33,18 @@ export default function DashboardHeader() {
     setProfileOpen(true);
     setOpen(false); // auto close dropdown
   };
+
+  // fallback kalau data belum ada
+  const avatarUrl =
+    currentUser?.profilePicture && currentUser.profilePicture !== "default.jpg"
+      ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${currentUser.profilePicture}`
+      : "/assets/dashboard/user/avatar.png";
+
+  const fullName = currentUser?.fullName || "Guest";
+  const role =
+    currentUser?.userRoles?.[0]?.role?.roleName?.replace(/^\w/, (c: string) =>
+      c.toUpperCase()
+    ) || "User";
 
   return (
     <>
@@ -70,17 +85,17 @@ export default function DashboardHeader() {
               className="flex items-center gap-2 focus:outline-none"
             >
               <Image
-                src="/assets/dashboard/user/avatar.png"
+                src={avatarUrl}
                 alt="User Avatar"
                 width={36}
                 height={36}
-                className="rounded-full"
+                className="rounded-full object-cover"
               />
               <div className="flex flex-col text-left">
                 <span className="text-sm font-medium text-gray-800">
-                  Lana D
+                  {fullName}
                 </span>
-                <span className="text-xs text-gray-500">Mentee</span>
+                <span className="text-xs text-gray-500">{role}</span>
               </div>
               <ChevronDown
                 size={14}

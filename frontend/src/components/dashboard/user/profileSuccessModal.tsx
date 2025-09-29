@@ -35,7 +35,7 @@ export default function SuccessModal({
 
         {/* Teks */}
         <h2 className="text-lg font-bold">Horray!</h2>
-        <p className="text-sm text-gray-600">Akun berhasil diperbarui</p>
+        <p className="text-sm text-gray-600">Akun berhasil diperbarui, Silahkan Refresh Website Anda</p>
 
         {/* Tombol */}
         <Button

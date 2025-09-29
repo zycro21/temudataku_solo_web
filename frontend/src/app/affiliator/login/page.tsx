@@ -58,7 +58,8 @@ export default function AffiliatorLoginPage() {
       // mapping khusus untuk invalid credentials
       if (
         msg.toLowerCase().includes("invalid credentials") ||
-        msg.toLowerCase().includes("unauthorized")
+        msg.toLowerCase().includes("unauthorized") ||
+        msg.toLowerCase().includes("validation error")
       ) {
         msg = "Email atau password salah";
       }
@@ -192,7 +193,10 @@ export default function AffiliatorLoginPage() {
                   />
                   Ingat Saya
                 </label>
-                <Link href="/send-email/affiliator" className="text-emerald-600">
+                <Link
+                  href="/send-email/affiliator"
+                  className="text-emerald-600"
+                >
                   Lupa kata sandi?
                 </Link>
               </div>

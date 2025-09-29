@@ -165,8 +165,12 @@ export const verifyAccount = async (
       throw new HttpError("Invalid verification token", 400);
     }
 
-    await AuthService.verifyUser(token);
-    res.status(200).json({ message: "Account verified successfully" });
+    const roles = await AuthService.verifyUser(token);
+
+    res.status(200).json({
+      message: "Account verified successfully",
+      roles,
+    });
   } catch (err) {
     next(err);
   }
