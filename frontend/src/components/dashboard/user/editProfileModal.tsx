@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
+import axios from "axios";
 import {
   Dialog,
   DialogContent,
@@ -23,23 +24,87 @@ export default function EditProfileModal({
   onOpenChange,
 }: EditProfileModalProps) {
   const router = useRouter();
+
+  // state untuk data user
+  const [userData, setUserData] = useState<any>(null);
+
+  // inputan yang bisa diubah
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [email, setEmail] = useState("");
+
+  // foto profil
   const [preview, setPreview] = useState(
     "/assets/dashboard/user/viewprofile.png"
   );
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   const [successOpen, setSuccessOpen] = useState(false);
 
-  const handleSave = () => {
-    onOpenChange(false);
-    setSuccessOpen(true);
+  // 🔹 Ambil data user saat modal dibuka
+  useEffect(() => {
+    if (open) {
+      axios
+        .get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/me`, {
+          withCredentials: true,
+        })
+        .then((res) => {
+          const data = res.data?.data;
+          setUserData(data);
+
+          setPhoneNumber(data?.phoneNumber || "-");
+          setEmail(data?.email || "-");
+
+          const avatarUrl =
+            data?.profilePicture && data?.profilePicture !== "default.jpg"
+              ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${data.profilePicture}`
+              : "/assets/dashboard/user/avatar.png";
+
+          setPreview(avatarUrl);
+        })
+        .catch(() => {
+          setUserData(null);
+        });
+    }
+  }, [open]);
+
+  // 🔹 Simpan perubahan
+  const handleSave = async () => {
+    try {
+      const formData = new FormData();
+      formData.append("phoneNumber", phoneNumber);
+      formData.append("email", email);
+      if (selectedFile) {
+        formData.append("profilePicture", selectedFile);
+      }
+
+      await axios.put(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/update`,
+        formData,
+        {
+          withCredentials: true,
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+
+      onOpenChange(false);
+      setSuccessOpen(true);
+      router.refresh(); // refresh halaman biar data terbaru kebawa
+    } catch (err: any) {
+      console.error("Update profile error:", err);
+      alert(
+        err.response?.data?.message ||
+          "Gagal memperbarui profil. Coba lagi nanti."
+      );
+    }
   };
 
+  // batal edit
   const handleCancel = () => {
-    onOpenChange(false); // Tutup modal
-    router.push("/dashboard/user"); // Arahkan ke dashboard/user
+    onOpenChange(false);
   };
 
-  // Handle upload foto
+  // upload foto
   const handleUploadClick = () => {
     fileInputRef.current?.click();
   };
@@ -47,6 +112,7 @@ export default function EditProfileModal({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && ["image/jpeg", "image/png", "image/jpg"].includes(file.type)) {
+      setSelectedFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreview(reader.result as string);
@@ -95,7 +161,7 @@ export default function EditProfileModal({
                   <Button
                     variant="destructive"
                     onClick={() =>
-                      setPreview("/assets/dashboard/user/viewprofile.png")
+                      setPreview("/assets/dashboard/user/avatar.png")
                     }
                   >
                     Hapus
@@ -122,16 +188,17 @@ export default function EditProfileModal({
               <label className="text-sm font-medium">Nama Lengkap</label>
               <input
                 type="text"
-                defaultValue="Lana Del"
+                value={userData?.fullName || "-"}
                 disabled
                 className="w-full mt-1 px-3 py-2 border rounded-md text-sm bg-gray-100 cursor-not-allowed"
               />
             </div>
             <div className="col-span-2">
-              <label className="text-sm font-medium">Username</label>
+              <label className="text-sm font-medium">Nomor Telepon</label>
               <input
                 type="text"
-                defaultValue="Lana D"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
                 className="w-full mt-1 px-3 py-2 border rounded-md text-sm"
               />
             </div>
@@ -139,7 +206,8 @@ export default function EditProfileModal({
               <label className="text-sm font-medium">Email</label>
               <input
                 type="email"
-                defaultValue="Lanadel@gmail.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full mt-1 px-3 py-2 border rounded-md text-sm"
               />
             </div>
@@ -147,7 +215,7 @@ export default function EditProfileModal({
               <label className="text-sm font-medium">Peran</label>
               <input
                 type="text"
-                defaultValue="Mentee"
+                value={userData?.userRoles?.[0]?.role?.roleName || "-"}
                 disabled
                 className="w-full mt-1 px-3 py-2 border rounded-md text-sm bg-gray-100 cursor-not-allowed"
               />
@@ -156,7 +224,7 @@ export default function EditProfileModal({
               <label className="text-sm font-medium">Status Akun</label>
               <input
                 type="text"
-                defaultValue="Aktif"
+                value={userData?.isActive ? "Aktif" : "Nonaktif"}
                 disabled
                 className="w-full mt-1 px-3 py-2 border rounded-md text-sm bg-gray-100 cursor-not-allowed"
               />
@@ -174,7 +242,7 @@ export default function EditProfileModal({
             </Button>
             <Button
               className="flex-1 max-w-[200px] bg-emerald-500 hover:bg-emerald-600 text-white"
-              onClick={handleSave} // ✅ simpan perubahan
+              onClick={handleSave}
             >
               Simpan Perubahan
             </Button>

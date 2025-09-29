@@ -29,9 +29,16 @@ export default function VerifyPage() {
 
         toast.success(res.data.message || "Akun berhasil diverifikasi ✅");
 
-        // Redirect otomatis ke login setelah 2 detik
+        const roles: string[] = res.data.roles || [];
+
+        // logika redirect
+        let redirectPath = "/"; // default mentee/mentor/admin
+        if (roles.includes("affiliator")) {
+          redirectPath = "/affiliator/login";
+        }
+
         setTimeout(() => {
-          router.push("/affiliator/login");
+          router.push(redirectPath);
         }, 2000);
       } catch (err: any) {
         const msg =

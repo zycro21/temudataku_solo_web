@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import axios from "axios";
+import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
 
 const menuItems = [
   {
@@ -63,12 +66,30 @@ const menuItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { setCurrentUser } = useAuth(); // ambil setter dari context
+
+  const handleLogout = async () => {
+    try {
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/logout`,
+        {},
+        { withCredentials: true }
+      );
+
+      setCurrentUser(null);
+      toast.success("Logout berhasil");
+      router.push("/");
+    } catch (err) {
+      console.error("Logout failed:", err);
+      toast.error("Gagal logout, coba lagi!");
+    }
+  };
 
   return (
     <aside className="fixed top-0 left-0 w-72 h-screen bg-white border-r flex flex-col justify-between">
       {/* Top - Logo & Menu */}
       <div className="mt-2">
-        {/* Logo */}
         <div className="pl-8 pb-8">
           <Link href="/dashboard">
             <Image
@@ -81,7 +102,6 @@ export default function Sidebar() {
           </Link>
         </div>
 
-        {/* Menu List */}
         <nav className="space-y-1 px-6">
           {menuItems.map((item) => {
             const isActive = pathname === item.href;
@@ -122,7 +142,10 @@ export default function Sidebar() {
           />
           Butuh bantuan?
         </Link>
-        <button className="flex items-center gap-3 px-4 py-2 w-full rounded-lg text-sm font-medium text-gray-600 hover:bg-red-50 hover:text-red-600">
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-4 py-2 w-full rounded-lg text-sm font-medium text-gray-600 hover:bg-red-50 hover:text-red-600"
+        >
           <Image
             src="/assets/dashboard/user/logout.svg"
             alt="Logout"
