@@ -2,15 +2,33 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
-import { ChevronDown, User, LayoutDashboard } from "lucide-react";
+import { ChevronDown, User } from "lucide-react";
 import { useRouter } from "next/navigation";
-// import AffiliatorModal from "./affiliatorModal";
+import axios from "axios";
+import ProfileMentorModal from "./profileMentorModal";
 
-export default function DashboardHeaderAffiliator() {
+export default function DashboardHeaderMentor() {
   const [open, setOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [user, setUser] = useState<any>(null); // state untuk menyimpan user
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  // Fetch user dari /api/auth/me
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/me`,
+          { withCredentials: true }
+        );
+        setUser(res.data.data);
+      } catch (err) {
+        console.error("Gagal fetch user:", err);
+      }
+    };
+    fetchUser();
+  }, []);
 
   // Tutup dropdown kalau klik di luar
   useEffect(() => {
@@ -28,8 +46,22 @@ export default function DashboardHeaderAffiliator() {
 
   const handleOpenProfile = () => {
     setProfileOpen(true);
-    setOpen(false); // auto close dropdown
+    setOpen(false);
   };
+
+  // Fallbacks
+  const avatarUrl =
+    user?.profilePicture && user.profilePicture !== "default.jpg"
+      ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${user.profilePicture}`
+      : "/assets/dashboard/user/avatar.png";
+
+  const fullName = user?.fullName || "Guest";
+
+  const role = user?.userRoles?.[0]?.role?.roleName
+    ? user.userRoles[0].role.roleName.replace(/^\w/, (c: string) =>
+        c.toUpperCase()
+      )
+    : "Mentor";
 
   return (
     <>
@@ -70,7 +102,7 @@ export default function DashboardHeaderAffiliator() {
               className="flex items-center gap-2 focus:outline-none"
             >
               <Image
-                src="/assets/dashboard/user/avatar.png"
+                src={avatarUrl}
                 alt="User Avatar"
                 width={36}
                 height={36}
@@ -78,9 +110,9 @@ export default function DashboardHeaderAffiliator() {
               />
               <div className="flex flex-col text-left">
                 <span className="text-sm font-medium text-gray-800">
-                  Maudy Ayunda
+                  {fullName}
                 </span>
-                <span className="text-xs text-gray-500">Mentor</span>
+                <span className="text-xs text-gray-500">{role}</span>
               </div>
               <ChevronDown
                 size={14}
@@ -106,8 +138,7 @@ export default function DashboardHeaderAffiliator() {
         </div>
       </header>
 
-      {/* Affiliator Modal */}
-      {/* <AffiliatorModal open={profileOpen} onOpenChange={setProfileOpen} /> */}
+      <ProfileMentorModal open={profileOpen} onOpenChange={setProfileOpen} />
     </>
   );
 }

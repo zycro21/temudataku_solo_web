@@ -59,18 +59,23 @@ export default function LoginModal({
       setCurrentUser(user);
 
       // 4. Redirect sesuai role
-      const roles: string[] = user?.roles?.map((r: any) => r.role_name) || [];
-      if (roles.includes("admin")) {
-        router.push("/admin");
-      } else if (roles.includes("mentor")) {
-        router.push("/dashboard/mentor");
-      } else {
-        router.push("/");
-      }
+      const roles: string[] = (user?.userRoles || []).map((r: any) =>
+        r?.role?.roleName?.toLowerCase()
+      );
 
+      setCurrentUser(user);
       setIsOpen(false);
       toast.success("Login berhasil, selamat datang kembali!");
-      router.refresh();
+
+      setTimeout(() => {
+        if (roles.includes("admin")) {
+          router.push("/admin");
+        } else if (roles.includes("mentor")) {
+          router.push("/dashboard/mentor");
+        } else {
+          router.push("/");
+        }
+      }, 100);
     } catch (err: any) {
       console.error("Login error:", err);
 

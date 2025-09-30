@@ -1,6 +1,7 @@
-"use client"
+"use client";
 
 import Image from "next/image";
+import { useState, useEffect } from "react";
 
 import MentorSidebar from "@/components/dashboard/mentor/sidebarDashboardMentor";
 import DashboardAffHeader from "@/components/dashboard/mentor/headerDashboardMentor";
@@ -9,8 +10,42 @@ import MentorPerformance from "@/components/dashboard/mentor/mentorPerformance";
 import MentorEarnings from "@/components/dashboard/mentor/mentorEarnings";
 import MentorSessionChart from "@/components/dashboard/mentor/mentorSessionChart";
 import MentorTasks from "@/components/dashboard/mentor/mentorTasks";
+import axios from "axios";
 
 export default function MainDashboardMentorPage() {
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/me`,
+          { withCredentials: true }
+        );
+        setUser(res.data.data);
+      } catch (err) {
+        console.error("Gagal fetch user:", err);
+      }
+    };
+    fetchUser();
+  }, []);
+
+  // Ambil avatar fallback
+  const avatarUrl =
+    user?.profilePicture && user.profilePicture !== "default.jpg"
+      ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${user.profilePicture}`
+      : "/assets/dashboard/user/avatar.png";
+
+  // Ambil nama pertama minimal 2 huruf
+  const getFirstName = (fullName: string) => {
+    if (!fullName) return "Mentor";
+    const parts = fullName.trim().split(/\s+/);
+    let first = parts.find((p) => p.length >= 2) || parts[0];
+    return first;
+  };
+
+  const firstName = user ? getFirstName(user.fullName) : "Mentor";
+
   return (
     <div className="flex mb-8">
       <MentorSidebar />
@@ -22,15 +57,15 @@ export default function MainDashboardMentorPage() {
           {/* Welcome Section */}
           <div className="flex flex-row gap-5 items-center mb-10">
             <Image
-              src="/assets/dashboard/user/avatar.png"
+              src={avatarUrl}
               alt="User Avatar"
               width={50}
               height={50}
-              className="rounded-full"
+              className="rounded-full relative top-[-0.5px]"
             />
             <div>
               <h1 className="text-2xl font-semibold text-gray-800">
-                Selamat Datang Kembali, Maudy!
+                Selamat Datang Kembali, {firstName}!
               </h1>
               <p className="text-md text-gray-500 tracking-wide">
                 Senang melihatmu lagi. Siap memulai sesi mentoring hari ini?

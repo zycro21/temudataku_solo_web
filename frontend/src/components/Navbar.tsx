@@ -95,7 +95,7 @@ export default function Navbar() {
                   href="/programs"
                   className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100"
                 >
-                  <MdSchool className="text-gray-500 text-lg" />
+                  <MdSchool className="text-gray-500 text-md" />
                   Program & Bootcamp
                 </Link>
               </li>
@@ -104,7 +104,7 @@ export default function Navbar() {
                   href="/mentoring"
                   className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100"
                 >
-                  <MdSupervisorAccount className="text-gray-500 text-lg" />
+                  <MdSupervisorAccount className="text-gray-500 text-md" />
                   Mentoring
                 </Link>
               </li>
@@ -113,7 +113,7 @@ export default function Navbar() {
                   href="/practice"
                   className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100"
                 >
-                  <MdAssignment className="text-gray-500 text-lg" />
+                  <MdAssignment className="text-gray-500 text-md" />
                   Praktik
                 </Link>
               </li>
