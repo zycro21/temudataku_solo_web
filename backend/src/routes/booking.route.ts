@@ -10,6 +10,7 @@ import {
   updateAdminBookingStatusValidator,
   exportAdminBookingsValidator,
   getBookingParticipantsIdValidator,
+  getMentorEarningsValidator,
 } from "../validations/booking.validation";
 import { validate } from "../middlewares/validate";
 import { authenticate } from "../middlewares/authenticate";
@@ -832,6 +833,56 @@ router.get(
   authenticate,
   validate(getBookingParticipantsIdValidator),
   BookingController.getBookingParticipantsController
+);
+
+/**
+ * @swagger
+ * /api/booking/mentor/earnings:
+ *   get:
+ *     summary: Ambil total earnings mentor (admin bisa lihat semua, mentor hanya miliknya sendiri)
+ *     tags: [Booking]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: mentorId
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: ID mentor (hanya untuk admin)
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: number
+ *         required: false
+ *         description: Nomor halaman (hanya untuk admin)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *         required: false
+ *         description: Jumlah data per halaman (hanya untuk admin)
+ *     responses:
+ *       200:
+ *         description: Total earnings berhasil diambil
+ *         content:
+ *           application/json:
+ *             example:
+ *               message: Berhasil mengambil earnings.
+ *               data:
+ *                 total: 1500000
+ *                 growthPercent: 20
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ */
+router.get(
+  "/mentor/earnings",
+  authenticate,
+  authorizeRoles("admin", "mentor"),
+  validate(getMentorEarningsValidator),
+  BookingController.getMentorEarningsController
 );
 
 export default router;

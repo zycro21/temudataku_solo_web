@@ -126,3 +126,11 @@ export const getBookingParticipantsIdValidator = z.object({
       }),
   }),
 });
+
+export const getMentorEarningsValidator = z.object({
+  query: z.object({
+    mentorId: z.string().optional(), // optional, hanya untuk admin
+    page: z.number().int().min(1).optional().default(1),
+    limit: z.number().int().min(1).max(100).optional().default(10),
+  }),
+});

@@ -869,3 +869,100 @@ export const getBookingParticipants = async (
     user: p.user,
   }));
 };
+
+export const getMentorEarnings = async (params: { mentorId: string }) => {
+  const { mentorId } = params;
+
+  const now = new Date();
+  const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+
+  // Earnings bulan ini
+  const earningsThisMonthRaw = await prisma.booking.findMany({
+    where: {
+      status: { in: ["confirmed", "completed"] },
+      mentoringService: {
+        mentors: {
+          some: { mentorProfileId: mentorId },
+        },
+      },
+      bookingDate: { gte: startOfThisMonth },
+    },
+    include: { payment: true },
+  });
+
+  const totalThisMonth = earningsThisMonthRaw.reduce(
+    (sum, b) => sum + (b.payment?.amount ? Number(b.payment.amount) : 0),
+    0
+  );
+
+  // Earnings bulan lalu
+  const earningsLastMonthRaw = await prisma.booking.findMany({
+    where: {
+      status: { in: ["confirmed", "completed"] },
+      mentoringService: {
+        mentors: {
+          some: { mentorProfileId: mentorId },
+        },
+      },
+      bookingDate: { gte: startOfLastMonth, lte: endOfLastMonth },
+    },
+    include: { payment: true },
+  });
+
+  const totalLastMonth = earningsLastMonthRaw.reduce(
+    (sum, b) => sum + (b.payment?.amount ? Number(b.payment.amount) : 0),
+    0
+  );
+
+  const growthPercent =
+    totalLastMonth === 0
+      ? 100
+      : ((totalThisMonth - totalLastMonth) / totalLastMonth) * 100;
+
+  return {
+    total: totalThisMonth,
+    growthPercent: Math.round(growthPercent),
+  };
+};
+
+// Fungsi untuk admin: semua mentor, pagination
+export const getAllMentorsEarnings = async (params: {
+  page: number;
+  limit: number;
+}) => {
+  const { page, limit } = params;
+  const skip = (page - 1) * limit;
+
+  const mentors = await prisma.mentorProfile.findMany({
+    skip,
+    take: limit,
+    include: {
+      user: true,
+    },
+  });
+
+  const data = await Promise.all(
+    mentors.map(async (mentor) => {
+      const earnings = await getMentorEarnings({ mentorId: mentor.id });
+      return {
+        mentorId: mentor.id,
+        fullName: mentor.user.fullName,
+        ...earnings,
+      };
+    })
+  );
+
+  const totalCount = await prisma.mentorProfile.count();
+
+  return {
+    data,
+    pagination: {
+      total: totalCount,
+      page,
+      limit,
+      totalPages: Math.ceil(totalCount / limit),
+    },
+  };
+};

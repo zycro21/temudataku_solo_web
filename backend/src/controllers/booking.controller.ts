@@ -313,3 +313,44 @@ export const getBookingParticipantsController = async (
     next(error);
   }
 };
+
+export const getMentorEarningsController = async (
+  req: AuthenticatedRequestBooking,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!req.validatedQuery) throw new Error("Query belum divalidasi");
+
+    const { page, limit } = req.validatedQuery;
+
+    const roles = req.user?.roles || [];
+
+    let result;
+
+    if (roles.includes("admin")) {
+      // Admin bisa lihat semua mentor earnings, dengan pagination
+      result = await BookingService.getAllMentorsEarnings({
+        page: page!,
+        limit: limit!,
+      });
+    } else if (roles.includes("mentor")) {
+      if (!req.user?.mentorProfileId)
+        throw new Error("MentorProfileId tidak ditemukan");
+      // Mentor hanya bisa lihat earnings sendiri
+      result = await BookingService.getMentorEarnings({
+        mentorId: req.user.mentorProfileId,
+      });
+    } else {
+      res.status(403).json({ message: "Forbidden" });
+      return;
+    }
+
+    res.status(200).json({
+      message: "Berhasil mengambil earnings.",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
