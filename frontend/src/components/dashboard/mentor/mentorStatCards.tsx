@@ -10,20 +10,95 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { ChevronRight } from "lucide-react";
+import { useEffect, useState } from "react";
+import axios from "axios";
+
+// Helper: cek apakah date masuk minggu berjalan
+function isThisWeek(date: Date) {
+  const now = new Date();
+
+  // awal minggu (Senin)
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - now.getDay() + 1);
+  startOfWeek.setHours(0, 0, 0, 0);
+
+  // akhir minggu (Minggu)
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 6);
+  endOfWeek.setHours(23, 59, 59, 999);
+
+  return date >= startOfWeek && date <= endOfWeek;
+}
+
+// parse "dd-MM-yyyy" ke Date object
+function parseDDMMYYYY(dateStr: string) {
+  const [day, month, year] = dateStr.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
 
 export default function MentorStatCards() {
+  const [sessionCount, setSessionCount] = useState(0);
+  const [sessionChange, setSessionChange] = useState(0);
+
+  const [projectCount, setProjectCount] = useState(0);
+  const [projectChange, setProjectChange] = useState(0);
+
+  useEffect(() => {
+    const fetchSessions = async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentoringSession/mentor/own-mentoring-sessions?page=1&limit=1000`,
+          { withCredentials: true }
+        );
+
+        const sessions = res.data;
+        setSessionCount(sessions.length);
+
+        const newThisWeek = sessions.filter((s: any) =>
+          isThisWeek(parseDDMMYYYY(s.date))
+        );
+        setSessionChange(newThisWeek.length);
+      } catch (error) {
+        console.error("Error fetching sessions:", error);
+      }
+    };
+
+    const fetchProjects = async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/project/mentor/projects?page=1&limit=1000`,
+          { withCredentials: true }
+        );
+
+        const { data, pagination } = res.data;
+        setProjectCount(pagination.total);
+
+        // filter proyek baru berdasarkan createdAt
+        const newThisWeek = data.filter((p: any) =>
+          isThisWeek(new Date(p.createdAt))
+        );
+        setProjectChange(newThisWeek.length);
+      } catch (error) {
+        console.error("Error fetching projects:", error);
+      }
+    };
+
+    fetchSessions();
+    fetchProjects();
+  }, []);
+
   const stats = [
     {
       title: "Jumlah Sesi",
-      value: 32,
-      change: "+3 minggu ini",
+      value: sessionCount,
+      change: `+${sessionChange} minggu ini`,
       image: "/assets/dashboard/mentor/report.svg",
       link: "/dashboard/mentor/schedule",
     },
     {
       title: "Jumlah Proyek",
-      value: 34,
-      change: "+22 minggu ini",
+      value: projectCount,
+      change: `+${projectChange} minggu ini`,
       image: "/assets/dashboard/mentor/tandaseru.svg",
       link: "/dashboard/mentor/services",
     },
@@ -52,7 +127,6 @@ export default function MentorStatCards() {
                        shadow-sm hover:shadow-md hover:-translate-y-1 transform transition-all duration-200
                        cursor-pointer rounded-md"
           >
-            {/* Header: icon + title ; chevron right */}
             <CardHeader className="flex items-center justify-between px-6 pt-2 pb-0">
               <div className="flex items-center gap-2">
                 <Image
@@ -72,7 +146,6 @@ export default function MentorStatCards() {
               </CardAction>
             </CardHeader>
 
-            {/* Value + Change bersebelahan kiri */}
             <CardContent className="px-6 pt-1 pb-3">
               <div className="flex items-center gap-2">
                 <h3 className="text-3xl font-semibold text-gray-900">

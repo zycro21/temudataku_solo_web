@@ -22,6 +22,7 @@ import behaviorRoute from "./routes/behavior.route";
 import referralRoute from "./routes/referral.route";
 import paymentRoute from "./routes/payment.route";
 import withdrawalRoute from "./routes/withdrawal.route";
+import mentorReportRoute from "./routes/mentor_report.route";
 import "./schedulers/cron";
 import { fileURLToPath } from "url";
 import swaggerJsdoc from 'swagger-jsdoc';
@@ -67,6 +68,7 @@ app.use("/api/behavior", behaviorRoute);
 app.use("/api/referral", referralRoute);
 app.use("/api/payment", paymentRoute);
 app.use("/api/withdrawals", withdrawalRoute);
+app.use("/api/mentorReports", mentorReportRoute);
 
 // Path Static untuk Images
 // Perbaikan di sini, mengganti __dirname dengan yang benar menggunakan import.meta.url

@@ -311,16 +311,50 @@ export interface AuthenticatedRequestWithdrawal extends Request {
     phoneNumber?: string;
   };
   validatedBody?: {
-    userId?: string;       // hanya boleh dipakai admin
-    type: string;          // "bank" | "eWallet"
-    providerName: string;  // "BCA" | "Dana" | "OVO" dll
+    userId?: string; // hanya boleh dipakai admin
+    type: string; // "bank" | "eWallet"
+    providerName: string; // "BCA" | "Dana" | "OVO" dll
     accountNumber: string; // nomor rekening / HP
-    accountName?: string;  // opsional
+    accountName?: string; // opsional
   };
   validatedParams?: {
     id?: string;
   };
 }
+
+export interface AuthenticatedRequestMentorReport extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+  };
+  validatedQuery?: {
+    page?: string;
+    limit?: string;
+    sessionId?: string;
+    search?: string;
+    sortField?: string;
+    sortOrder?: "asc" | "desc";
+    format?: "csv" | "excel";
+  };
+  validatedParams?: {
+    id?: string; // mentorReport id
+    sessionId?: string;
+    mentorProfileId?: string;
+  };
+  validatedBody?: {
+    sessionId?: string;
+    understanding?: string;
+    participation?: string;
+    challenges?: string;
+    commonQuestions?: string;
+    nextFocus?: string;
+    additionalNotes?: string;
+  };
+}
+
 
 export const authenticate = (
   req: AuthenticatedRequest,
