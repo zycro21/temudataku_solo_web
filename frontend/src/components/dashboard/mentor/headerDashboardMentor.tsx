@@ -5,12 +5,13 @@ import Image from "next/image";
 import { ChevronDown, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
+import { toast } from "sonner";
 import ProfileMentorModal from "./profileMentorModal";
 
 export default function DashboardHeaderMentor() {
   const [open, setOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [user, setUser] = useState<any>(null); // state untuk menyimpan user
+  const [user, setUser] = useState<any>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
@@ -23,12 +24,23 @@ export default function DashboardHeaderMentor() {
           { withCredentials: true }
         );
         setUser(res.data.data);
-      } catch (err) {
+      } catch (err: any) {
         console.error("Gagal fetch user:", err);
+
+        // kalau token expired → redirect ke login
+        if (err.response?.status === 401) {
+          toast.error("Sesi kamu sudah berakhir, silakan login ulang", {
+            duration: 5000,
+          });
+          router.replace("/");
+        } else {
+          setUser(null);
+        }
       }
     };
+
     fetchUser();
-  }, []);
+  }, [router]);
 
   // Tutup dropdown kalau klik di luar
   useEffect(() => {
@@ -49,7 +61,6 @@ export default function DashboardHeaderMentor() {
     setOpen(false);
   };
 
-  // Fallbacks
   const avatarUrl =
     user?.profilePicture && user.profilePicture !== "default.jpg"
       ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${user.profilePicture}`
@@ -82,7 +93,7 @@ export default function DashboardHeaderMentor() {
           />
         </div>
 
-        {/* Right - Notification & User Info */}
+        {/* Right */}
         <div className="flex items-center gap-6 pr-6">
           {/* Notification */}
           <button className="relative flex items-center justify-center w-12 h-12 rounded-full border border-gray-300 bg-white">
@@ -122,7 +133,6 @@ export default function DashboardHeaderMentor() {
               />
             </button>
 
-            {/* Dropdown Menu */}
             {open && (
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-2 z-50">
                 <button

@@ -30,18 +30,18 @@ function isThisWeek(date: Date) {
   return date >= startOfWeek && date <= endOfWeek;
 }
 
-// parse "dd-MM-yyyy" ke Date object
-function parseDDMMYYYY(dateStr: string) {
-  const [day, month, year] = dateStr.split("-").map(Number);
-  return new Date(year, month - 1, day);
-}
-
 export default function MentorStatCards() {
   const [sessionCount, setSessionCount] = useState(0);
   const [sessionChange, setSessionChange] = useState(0);
 
   const [projectCount, setProjectCount] = useState(0);
   const [projectChange, setProjectChange] = useState(0);
+
+  const [reportCount, setReportCount] = useState(0);
+  const [reportChange, setReportChange] = useState(0);
+
+  const [feedbackCount, setFeedbackCount] = useState(0);
+  const [feedbackChange, setFeedbackChange] = useState(0);
 
   useEffect(() => {
     const fetchSessions = async () => {
@@ -54,8 +54,8 @@ export default function MentorStatCards() {
         const sessions = res.data;
         setSessionCount(sessions.length);
 
-        const newThisWeek = sessions.filter((s: any) =>
-          isThisWeek(parseDDMMYYYY(s.date))
+        const newThisWeek = sessions.filter(
+          (s: any) => isThisWeek(new Date(s.date)) // date di MentoringSession disimpan string, tapi bisa di-parse ke Date
         );
         setSessionChange(newThisWeek.length);
       } catch (error) {
@@ -73,7 +73,6 @@ export default function MentorStatCards() {
         const { data, pagination } = res.data;
         setProjectCount(pagination.total);
 
-        // filter proyek baru berdasarkan createdAt
         const newThisWeek = data.filter((p: any) =>
           isThisWeek(new Date(p.createdAt))
         );
@@ -83,8 +82,48 @@ export default function MentorStatCards() {
       }
     };
 
+    const fetchReports = async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentorReports/mentor/reports?page=1&limit=1000`,
+          { withCredentials: true }
+        );
+
+        const { data, pagination } = res.data;
+        setReportCount(pagination.total);
+
+        const newThisWeek = data.filter((r: any) =>
+          isThisWeek(new Date(r.createdAt))
+        );
+        setReportChange(newThisWeek.length);
+      } catch (error) {
+        console.error("Error fetching reports:", error);
+      }
+    };
+
+    const fetchFeedbacks = async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/feedback/mentor/feedbacks?limit=1000`,
+          { withCredentials: true }
+        );
+
+        const { data } = res.data;
+        setFeedbackCount(data.length);
+
+        const newThisWeek = data.filter((f: any) =>
+          isThisWeek(new Date(f.submittedDate))
+        );
+        setFeedbackChange(newThisWeek.length);
+      } catch (error) {
+        console.error("Error fetching feedbacks:", error);
+      }
+    };
+
     fetchSessions();
     fetchProjects();
+    fetchReports();
+    fetchFeedbacks();
   }, []);
 
   const stats = [
@@ -104,15 +143,15 @@ export default function MentorStatCards() {
     },
     {
       title: "Jumlah Laporan",
-      value: 32,
-      change: "+3 minggu ini",
+      value: reportCount,
+      change: `+${reportChange} minggu ini`,
       image: "/assets/dashboard/mentor/laporan.svg",
       link: "/dashboard/mentor/report",
     },
     {
       title: "Jumlah Umpan Balik",
-      value: 234,
-      change: "+10 minggu ini",
+      value: feedbackCount,
+      change: `+${feedbackChange} minggu ini`,
       image: "/assets/dashboard/mentor/tandaseru.svg",
       link: "/dashboard/mentor/feedback",
     },
