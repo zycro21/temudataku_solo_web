@@ -759,7 +759,7 @@ router.get(
  *                       price:
  *                         type: number
  *                       serviceType:
- *                         type: string
+ *                         type: string 
  *                         nullable: true
  *                       maxParticipants:
  *                         type: integer

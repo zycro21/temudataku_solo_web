@@ -839,7 +839,10 @@ router.get(
  * @swagger
  * /api/booking/mentor/earnings:
  *   get:
- *     summary: Ambil total earnings mentor (admin bisa lihat semua, mentor hanya miliknya sendiri)
+ *     summary: Ambil total earnings mentor
+ *     description: >
+ *       - Admin bisa melihat earnings semua mentor dengan pagination.
+ *       - Mentor hanya bisa melihat earnings miliknya sendiri.
  *     tags: [Booking]
  *     security:
  *       - bearerAuth: []
@@ -849,17 +852,19 @@ router.get(
  *         schema:
  *           type: string
  *         required: false
- *         description: ID mentor (hanya untuk admin)
+ *         description: ID mentor (hanya digunakan oleh admin, opsional)
  *       - in: query
  *         name: page
  *         schema:
  *           type: number
+ *           default: 1
  *         required: false
  *         description: Nomor halaman (hanya untuk admin)
  *       - in: query
  *         name: limit
  *         schema:
  *           type: number
+ *           default: 10
  *         required: false
  *         description: Jumlah data per halaman (hanya untuk admin)
  *     responses:
@@ -867,15 +872,64 @@ router.get(
  *         description: Total earnings berhasil diambil
  *         content:
  *           application/json:
- *             example:
- *               message: Berhasil mengambil earnings.
- *               data:
- *                 total: 1500000
- *                 growthPercent: 20
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Berhasil mengambil earnings.
+ *                 data:
+ *                   oneOf:
+ *                     - type: object
+ *                       description: Earnings mentor tunggal (untuk role mentor)
+ *                       properties:
+ *                         total:
+ *                           type: number
+ *                           example: 1500000
+ *                         growthPercent:
+ *                           type: number
+ *                           example: 20
+ *                     - type: object
+ *                       description: Earnings semua mentor (untuk admin)
+ *                       properties:
+ *                         data:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               mentorId:
+ *                                 type: string
+ *                                 example: "clhvf3k00001abc123xyz"
+ *                               fullName:
+ *                                 type: string
+ *                                 example: "Dimas Putra"
+ *                               total:
+ *                                 type: number
+ *                                 example: 1500000
+ *                               growthPercent:
+ *                                 type: number
+ *                                 example: 20
+ *                         pagination:
+ *                           type: object
+ *                           properties:
+ *                             total:
+ *                               type: number
+ *                               example: 50
+ *                             page:
+ *                               type: number
+ *                               example: 1
+ *                             limit:
+ *                               type: number
+ *                               example: 10
+ *                             totalPages:
+ *                               type: number
+ *                               example: 5
  *       401:
- *         description: Unauthorized
+ *         description: Unauthorized - token tidak valid atau tidak disertakan
  *       403:
- *         description: Forbidden
+ *         description: Forbidden - user tidak memiliki role admin atau mentor
+ *       500:
+ *         description: Internal Server Error
  */
 router.get(
   "/mentor/earnings",

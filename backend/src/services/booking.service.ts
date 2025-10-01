@@ -878,7 +878,25 @@ export const getMentorEarnings = async (params: { mentorId: string }) => {
   const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
 
-  // Earnings bulan ini
+  // === TOTAL SEMUA WAKTU ===
+  const allEarningsRaw = await prisma.booking.findMany({
+    where: {
+      status: { in: ["confirmed", "completed"] },
+      mentoringService: {
+        mentors: {
+          some: { mentorProfileId: mentorId },
+        },
+      },
+    },
+    include: { payment: true },
+  });
+
+  const totalAllTime = allEarningsRaw.reduce(
+    (sum, b) => sum + (b.payment?.amount ? Number(b.payment.amount) : 0),
+    0
+  );
+
+  // === TOTAL BULAN INI ===
   const earningsThisMonthRaw = await prisma.booking.findMany({
     where: {
       status: { in: ["confirmed", "completed"] },
@@ -897,7 +915,7 @@ export const getMentorEarnings = async (params: { mentorId: string }) => {
     0
   );
 
-  // Earnings bulan lalu
+  // === TOTAL BULAN LALU ===
   const earningsLastMonthRaw = await prisma.booking.findMany({
     where: {
       status: { in: ["confirmed", "completed"] },
@@ -916,13 +934,16 @@ export const getMentorEarnings = async (params: { mentorId: string }) => {
     0
   );
 
+  // === HITUNG GROWTH PERCENT ===
   const growthPercent =
     totalLastMonth === 0
-      ? 100
+      ? totalThisMonth > 0
+        ? 100
+        : 0
       : ((totalThisMonth - totalLastMonth) / totalLastMonth) * 100;
 
   return {
-    total: totalThisMonth,
+    total: totalAllTime,
     growthPercent: Math.round(growthPercent),
   };
 };
