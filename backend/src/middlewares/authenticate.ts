@@ -145,6 +145,7 @@ export interface AuthenticatedRequestBooking extends Request {
     startDate?: string;
     endDate?: string;
     format?: "csv" | "excel";
+    mentorId?: string;
   };
 }
 

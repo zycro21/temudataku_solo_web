@@ -987,3 +987,109 @@ export const getAllMentorsEarnings = async (params: {
     },
   };
 };
+
+export const getMentorBookings = async ({
+  mentorId,
+}: {
+  mentorId?: string;
+}) => {
+  // ambil semua booking yang terkait dengan mentoringService
+  const bookings = await prisma.booking.findMany({
+    where: mentorId
+      ? {
+          mentoringService: {
+            mentors: {
+              some: {
+                mentorProfileId: mentorId,
+              },
+            },
+          },
+        }
+      : {}, // admin tanpa filter = semua booking
+    include: {
+      mentoringService: true,
+      participants: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              city: true,
+              province: true,
+              profilePicture: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  // transform hasil agar lebih rapi
+  return bookings.map((b) => ({
+    bookingId: b.id,
+    serviceId: b.mentoringServiceId,
+    serviceName: b.mentoringService.serviceName,
+    serviceType: b.mentoringService.serviceType,
+    status: b.status,
+    participants: b.participants.map((p) => ({
+      participantId: p.id,
+      isLeader: p.isLeader,
+      paymentStatus: p.paymentStatus,
+      user: p.user,
+    })),
+  }));
+};
+
+export const getMentorMenteeStats = async ({
+  mentorId,
+}: {
+  mentorId?: string;
+}) => {
+  const bookings = await prisma.booking.findMany({
+    where: mentorId
+      ? {
+          mentoringService: {
+            mentors: {
+              some: { mentorProfileId: mentorId },
+            },
+          },
+        }
+      : {}, // kalau admin, semua booking
+    include: {
+      mentoringService: {
+        select: {
+          serviceType: true,
+          mentors: { select: { mentorProfileId: true } },
+        },
+      },
+      participants: true,
+    },
+  });
+
+  const stats: Record<
+    string,
+    { mentorId: string; serviceType: string; totalMentees: number }
+  > = {};
+
+  bookings.forEach((b) => {
+    const safeServiceType = b.mentoringService.serviceType ?? "";
+
+    b.mentoringService.mentors.forEach((m) => {
+      // Filter: kalau ada mentorId (bukan admin), hanya hitung mentor itu
+      if (mentorId && m.mentorProfileId !== mentorId) return;
+
+      const key = `${m.mentorProfileId}-${safeServiceType}`;
+      if (!stats[key]) {
+        stats[key] = {
+          mentorId: m.mentorProfileId,
+          serviceType: safeServiceType,
+          totalMentees: 0,
+        };
+      }
+      stats[key].totalMentees += b.participants.length;
+    });
+  });
+
+  return Object.values(stats);
+};

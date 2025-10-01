@@ -354,3 +354,71 @@ export const getMentorEarningsController = async (
     next(error);
   }
 };
+
+export const getMentorBookingsController = async (
+  req: AuthenticatedRequestBooking,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!req.validatedQuery) throw new Error("Query belum divalidasi");
+
+    const roles = req.user?.roles || [];
+    let mentorId: string | undefined;
+
+    if (roles.includes("admin")) {
+      mentorId = req.validatedQuery.mentorId;
+    } else if (roles.includes("mentor")) {
+      if (!req.user?.mentorProfileId) {
+        throw new Error("MentorProfileId tidak ditemukan");
+      }
+      mentorId = req.user.mentorProfileId; // selalu ambil dari JWT untuk mentor
+    } else {
+      res.status(403).json({ message: "Forbidden" });
+      return;
+    }
+
+    const result = await BookingService.getMentorBookings({ mentorId });
+
+    res.status(200).json({
+      message: "Berhasil mengambil booking mentor.",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getMentorStatBookingsController = async (
+  req: AuthenticatedRequestBooking,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!req.validatedQuery) throw new Error("Query belum divalidasi");
+
+    const roles = req.user?.roles || [];
+    let mentorId: string | undefined;
+
+    if (roles.includes("admin")) {
+      mentorId = req.validatedQuery.mentorId; // opsional
+    } else if (roles.includes("mentor")) {
+      if (!req.user?.mentorProfileId) {
+        throw new Error("MentorProfileId tidak ditemukan");
+      }
+      mentorId = req.user.mentorProfileId; // selalu dari JWT
+    } else {
+      res.status(403).json({ message: "Forbidden" });
+      return;
+    }
+
+    const result = await BookingService.getMentorMenteeStats({ mentorId });
+
+    res.status(200).json({
+      message: "Berhasil mengambil rekap mentee per service.",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

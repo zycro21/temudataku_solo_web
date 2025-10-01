@@ -11,6 +11,7 @@ import {
   exportAdminBookingsValidator,
   getBookingParticipantsIdValidator,
   getMentorEarningsValidator,
+  getMentorBookingsValidator,
 } from "../validations/booking.validation";
 import { validate } from "../middlewares/validate";
 import { authenticate } from "../middlewares/authenticate";
@@ -937,6 +938,157 @@ router.get(
   authorizeRoles("admin", "mentor"),
   validate(getMentorEarningsValidator),
   BookingController.getMentorEarningsController
+);
+
+/**
+ * @swagger
+ * /api/booking/mentor/bookings:
+ *   get:
+ *     summary: Ambil daftar booking yang berkaitan dengan mentor (beserta participants)
+ *     description: >
+ *       - Mentor hanya bisa melihat booking miliknya sendiri (service yang dia handle).
+ *       - Admin bisa melihat booking semua mentor (opsional pakai query `mentorId`).
+ *     tags: [Booking]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: mentorId
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: ID mentorProfile (opsional, hanya untuk admin)
+ *     responses:
+ *       200:
+ *         description: Daftar booking berhasil diambil
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Berhasil mengambil booking mentor.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       bookingId:
+ *                         type: string
+ *                         example: "clhvf3k00001abc123xyz"
+ *                       serviceId:
+ *                         type: string
+ *                         example: "clhvf3k0000service123"
+ *                       serviceName:
+ *                         type: string
+ *                         example: "Mentoring 1 on 1"
+ *                       serviceType:
+ *                         type: string
+ *                         example: "1-on-1"
+ *                       status:
+ *                         type: string
+ *                         example: "confirmed"
+ *                       participants:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             participantId:
+ *                               type: string
+ *                               example: "clhvf3k0000part123"
+ *                             isLeader:
+ *                               type: boolean
+ *                               example: true
+ *                             paymentStatus:
+ *                               type: string
+ *                               example: "confirmed"
+ *                             user:
+ *                               type: object
+ *                               properties:
+ *                                 id:
+ *                                   type: string
+ *                                 fullName:
+ *                                   type: string
+ *                                 email:
+ *                                   type: string
+ *                                 city:
+ *                                   type: string
+ *                                 province:
+ *                                   type: string
+ *                                 profilePicture:
+ *                                   type: string
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       500:
+ *         description: Internal Server Error
+ */
+router.get(
+  "/mentor/bookings",
+  authenticate,
+  authorizeRoles("admin", "mentor"),
+  validate(getMentorBookingsValidator),
+  BookingController.getMentorBookingsController
+);
+
+/**
+ * @swagger
+ * /api/booking/mentorStat/bookings:
+ *   get:
+ *     summary: Ambil jumlah mentee per tipe service
+ *     description: >
+ *       - Mentor hanya bisa melihat rekap jumlah mentee dari service yang dia handle.
+ *       - Admin bisa melihat semua mentor (opsional pakai query `mentorId` untuk filter).
+ *     tags: [Booking]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: mentorId
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: ID mentorProfile (opsional, hanya untuk admin)
+ *     responses:
+ *       200:
+ *         description: Rekap jumlah mentee per service type berhasil diambil
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Berhasil mengambil rekap mentee per service.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       mentorId:
+ *                         type: string
+ *                         example: "clhvf3k00001mentor123"
+ *                       serviceType:
+ *                         type: string
+ *                         example: "1-on-1"
+ *                       totalMentees:
+ *                         type: integer
+ *                         example: 15
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       500:
+ *         description: Internal Server Error
+ */
+router.get(
+  "/mentorStat/bookings",
+  authenticate,
+  authorizeRoles("admin", "mentor"),
+  validate(getMentorBookingsValidator),
+  BookingController.getMentorStatBookingsController
 );
 
 export default router;
