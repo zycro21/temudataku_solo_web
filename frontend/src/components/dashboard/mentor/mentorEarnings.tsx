@@ -21,7 +21,15 @@ export default function MentorEarnings() {
     []
   );
 
-  const COLORS = ["#065F46", "#059669", "#22C55E", "#14B8A6"];
+  const SERVICE_TYPES = [
+    "one-on-one",
+    "group",
+    "bootcamp",
+    "shortclass",
+    "live class",
+  ];
+
+  const COLORS = ["#065F46", "#059669", "#22C55E", "#14B8A6", "#0d9488"];
 
   // fetch API earnings
   useEffect(() => {
@@ -62,18 +70,18 @@ export default function MentorEarnings() {
         if (res.data?.data) {
           const services = res.data.data;
 
-          // Group by serviceType (hitung jumlah service per type)
+          // Group by serviceType
           const grouped: Record<string, number> = {};
           services.forEach((svc: any) => {
-            const type = svc.serviceType || "Unknown";
+            const type = svc.serviceType?.toLowerCase() || "unknown";
             if (!grouped[type]) grouped[type] = 0;
-            grouped[type] += 1; // <-- hitung jumlah, bukan price
+            grouped[type] += 1;
           });
 
-          // Mapping ke data chart
-          const chartArr = Object.entries(grouped).map(([type, count]) => ({
+          // Pastikan semua SERVICE_TYPES ada (kalau ga ada → value=0)
+          const chartArr = SERVICE_TYPES.map((type) => ({
             name: type,
-            value: count,
+            value: grouped[type] || 0,
           }));
 
           setChartData(chartArr);
@@ -153,7 +161,7 @@ export default function MentorEarnings() {
                       0
                     );
                     const percent = ((Number(value) / total) * 100).toFixed(1);
-                    return [`${value} Layanan (${percent}%)`, name];
+                    return [`${value} Service/Layanan (${percent}%)`, name];
                   }}
                   contentStyle={{
                     fontSize: "11px",

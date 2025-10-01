@@ -1076,6 +1076,9 @@ router.get(
  *                       totalMentees:
  *                         type: integer
  *                         example: 15
+ *                       totalSessions:
+ *                         type: integer
+ *                         example: 7
  *       401:
  *         description: Unauthorized
  *       403:

@@ -1046,50 +1046,71 @@ export const getMentorMenteeStats = async ({
 }: {
   mentorId?: string;
 }) => {
-  const bookings = await prisma.booking.findMany({
+  const services = await prisma.mentoringService.findMany({
     where: mentorId
       ? {
-          mentoringService: {
-            mentors: {
-              some: { mentorProfileId: mentorId },
-            },
-          },
+          mentors: { some: { mentorProfileId: mentorId } },
         }
-      : {}, // kalau admin, semua booking
+      : {},
     include: {
-      mentoringService: {
-        select: {
-          serviceType: true,
+      mentors: { select: { mentorProfileId: true } },
+      mentoringSessions: {
+        include: {
           mentors: { select: { mentorProfileId: true } },
         },
       },
-      participants: true,
+      bookings: {
+        include: {
+          participants: { select: { userId: true } },
+        },
+      },
     },
   });
 
-  const stats: Record<
+  const statsMap = new Map<
     string,
-    { mentorId: string; serviceType: string; totalMentees: number }
-  > = {};
+    {
+      mentorId: string;
+      serviceType: string;
+      totalMentees: number;
+      totalSessions: number;
+    }
+  >();
 
-  bookings.forEach((b) => {
-    const safeServiceType = b.mentoringService.serviceType ?? "";
-
-    b.mentoringService.mentors.forEach((m) => {
-      // Filter: kalau ada mentorId (bukan admin), hanya hitung mentor itu
+  services.forEach((service) => {
+    service.mentors.forEach((m) => {
+      // filter khusus kalau mentorId diset
       if (mentorId && m.mentorProfileId !== mentorId) return;
 
-      const key = `${m.mentorProfileId}-${safeServiceType}`;
-      if (!stats[key]) {
-        stats[key] = {
+      const key = `${m.mentorProfileId}-${service.serviceType ?? ""}`;
+      if (!statsMap.has(key)) {
+        statsMap.set(key, {
           mentorId: m.mentorProfileId,
-          serviceType: safeServiceType,
+          serviceType: service.serviceType ?? "",
           totalMentees: 0,
-        };
+          totalSessions: 0,
+        });
       }
-      stats[key].totalMentees += b.participants.length;
+
+      const stat = statsMap.get(key)!;
+
+      // hitung session hanya yang mentor ini terlibat
+      const sessionsCount = service.mentoringSessions.filter((s) =>
+        s.mentors.some((sm) => sm.mentorProfileId === m.mentorProfileId)
+      ).length;
+
+      stat.totalSessions += sessionsCount;
+
+      // mentee hanya dihitung jika memang ada session
+      if (sessionsCount > 0) {
+        const menteeSet = new Set<string>();
+        service.bookings.forEach((b) => {
+          b.participants.forEach((p) => menteeSet.add(p.userId));
+        });
+        stat.totalMentees += menteeSet.size;
+      }
     });
   });
 
-  return Object.values(stats);
+  return Array.from(statsMap.values());
 };
