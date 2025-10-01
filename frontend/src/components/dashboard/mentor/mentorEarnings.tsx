@@ -183,7 +183,7 @@ export default function MentorEarnings() {
           </div>
 
           {/* Manual Legend */}
-          <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+          <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
             {chartData.map((item, idx) => (
               <div key={idx} className="flex items-center gap-1">
                 <span
