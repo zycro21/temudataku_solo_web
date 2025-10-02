@@ -13,6 +13,8 @@ export const createBookingSchema = z.object({
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/)
       .optional(),
+    material: z.string().optional(),
+    expectedOutput: z.string().optional(),
   }),
 });
 
@@ -52,6 +54,8 @@ export const updateMenteeBookingSchema = z.object({
   body: z.object({
     specialRequests: z.string().optional(),
     participantIds: z.array(z.string()).optional(),
+    material: z.string().optional(),      
+    expectedOutput: z.string().optional(),  
   }),
 });
 

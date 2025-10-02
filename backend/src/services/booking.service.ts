@@ -67,12 +67,18 @@ export const createBooking = async (
     specialRequests,
     bookingDate,
     participantIds = [],
+    material,
+    expectedOutput,
+    supportDocument,
   }: {
     mentoringServiceId: string;
     referralUsageId?: string;
     specialRequests?: string;
     bookingDate?: string;
     participantIds?: string[];
+    material?: string;
+    expectedOutput?: string;
+    supportDocument?: string[] | null;
   }
 ) => {
   const mentoringService = await prisma.mentoringService.findUnique({
@@ -254,6 +260,11 @@ export const createBooking = async (
         referralUsageId,
         specialRequests,
         bookingDate: finalBookingDate,
+        material,
+        expectedOutput,
+        supportDocument: supportDocument
+          ? JSON.stringify(supportDocument)
+          : null, // simpan JSON string
         status: isManualBooking ? "confirmed" : "pending",
         participants: {
           create: [
@@ -438,9 +449,13 @@ export const updateMenteeBooking = async (
   {
     specialRequests,
     participantIds,
+    material, // <-- tambahkan
+    expectedOutput, // <-- tambahkan
   }: {
     specialRequests?: string;
     participantIds?: string[];
+    material?: string; // <-- tambahkan type
+    expectedOutput?: string; // <-- tambahkan type
   }
 ) => {
   const booking = await prisma.booking.findUnique({
@@ -479,11 +494,13 @@ export const updateMenteeBooking = async (
     };
   }
 
-  // Update booking data
+  // Update booking data (material & expectedOutput opsional)
   await prisma.booking.update({
     where: { id: bookingId },
     data: {
       specialRequests,
+      material,
+      expectedOutput,
       updatedAt: new Date(),
     },
   });
@@ -494,7 +511,6 @@ export const updateMenteeBooking = async (
       where: { bookingId },
     });
 
-    // Tambahkan mentee sebagai peserta sekaligus leader
     const newParticipants = [
       {
         bookingId,
@@ -791,6 +807,9 @@ export const exportAdminBookings = async (formatType: "csv" | "excel") => {
     Status: booking.status ?? "-",
     Participants: booking.participants.map((p) => p.user.fullName).join(", "),
     ReferralCode: booking.referralUsage?.referralCode.code ?? "-",
+    Material: booking.material ?? "-",
+    ExpectedOutput: booking.expectedOutput ?? "-",
+    SupportDocument: booking.supportDocument ?? "-",
     CreatedAt: booking.createdAt?.toISOString() ?? "-",
   }));
 
@@ -1032,6 +1051,9 @@ export const getMentorBookings = async ({
     serviceName: b.mentoringService.serviceName,
     serviceType: b.mentoringService.serviceType,
     status: b.status,
+    material: b.material,
+    expectedOutput: b.expectedOutput,
+    supportDocument: b.supportDocument,
     participants: b.participants.map((p) => ({
       participantId: p.id,
       isLeader: p.isLeader,

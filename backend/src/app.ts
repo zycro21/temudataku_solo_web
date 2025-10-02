@@ -115,6 +115,20 @@ const practiceFilesPath = path.join(__dirname, "../uploads/practiceFile");
 console.log("Serving practice files from:", practiceFilesPath);
 app.use("/practiceFiles", express.static(practiceFilesPath));
 
+const supportDocPath = path.join(__dirname, "../uploads/supportDocument");
+console.log("Serving support documents from:", supportDocPath);
+
+app.use(
+  "/supportDocuments",
+  (req, res, next) => {
+    console.log("Accessing support document path:", req.path);
+    const filePath = path.join(supportDocPath, req.path);
+    console.log("Looking for file:", filePath);
+    next();
+  },
+  express.static(supportDocPath)
+);
+
 // Swagger Docs
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));

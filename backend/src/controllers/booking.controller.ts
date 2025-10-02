@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { HttpError } from "../utils/httpError";
 import * as BookingService from "../services/booking.service";
 import { PrismaClient } from "@prisma/client";
+import path from "path";
 
 const prisma = new PrismaClient();
 
@@ -23,10 +24,18 @@ export const createBookingController = async (
       return;
     }
 
-    const booking = await BookingService.createBooking(
-      req.user.userId,
-      req.validatedBody
-    );
+    // Ambil file support document (multiple)
+    let supportDocument: string[] | null = null;
+    if (req.files && Array.isArray(req.files)) {
+      supportDocument = (req.files as Express.Multer.File[]).map((file) =>
+        path.join("supportDocuments", file.filename).replace(/\\/g, "/")
+      );
+    }
+
+    const booking = await BookingService.createBooking(req.user.userId, {
+      ...req.validatedBody,
+      supportDocument,
+    });
 
     res.status(201).json({
       success: true,
@@ -112,7 +121,8 @@ export const updateMenteeBookingController = async (
     }
 
     const bookingId = req.validatedParams?.id;
-    const { specialRequests, participantIds } = req.validatedBody || {};
+    const { specialRequests, participantIds, material, expectedOutput } =
+      req.validatedBody || {};
 
     if (!bookingId) {
       res.status(400).json({ message: "Booking ID tidak ditemukan." });
@@ -122,7 +132,7 @@ export const updateMenteeBookingController = async (
     const updatedBooking = await BookingService.updateMenteeBooking(
       req.user.userId,
       bookingId,
-      { specialRequests, participantIds }
+      { specialRequests, participantIds, material, expectedOutput }
     );
 
     res.status(200).json({

@@ -131,6 +131,8 @@ export interface AuthenticatedRequestBooking extends Request {
     referralUsageId?: string;
     specialRequests?: string;
     bookingDate?: string;
+    material?: string; // <-- tambahkan
+    expectedOutput?: string; // <-- tambahkan
   };
   validatedParams?: { id: string };
   validatedQuery?: {
@@ -355,7 +357,6 @@ export interface AuthenticatedRequestMentorReport extends Request {
     additionalNotes?: string;
   };
 }
-
 
 export const authenticate = (
   req: AuthenticatedRequest,

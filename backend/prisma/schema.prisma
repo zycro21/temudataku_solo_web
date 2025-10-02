@@ -16,6 +16,9 @@ model Booking {
   bookingDate         DateTime?           @default(now())
   status              String?             @db.VarChar
   specialRequests     String?
+  material            String?             // materi yang diminta mentee
+  expectedOutput      String?             // ekspektasi output dari mentee
+  supportDocument     String?             // dokumen tambahan dari mentee
   createdAt           DateTime?           @default(now())
   updatedAt           DateTime?
 
@@ -203,6 +206,8 @@ model MentoringSession {
   endTime            String              @map("end_time")
   durationMinutes    Int                 @map("duration_minutes")
   meetingLink        String?             @db.VarChar @map("meeting_link")
+  meetingId          String?             @db.VarChar @map("meeting_id")   // NEW
+  passcode           String?             @db.VarChar @map("passcode")     // NEW
   status             String?             @db.VarChar
   notes              String?
   createdAt          DateTime?           @default(now()) @db.Timestamp(6) @map("created_at")

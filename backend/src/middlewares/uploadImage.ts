@@ -242,3 +242,55 @@ export const handlePracticeFileUpload = (
 };
 
 export { finalPracticeFilePath as practiceFileUploadPath };
+
+// === Untuk Upload Support Document Files ===
+const supportDocumentUploadPath = path.join(
+  __dirname,
+  "../../uploads/supportDocument"
+);
+const normalizedSupportDocPath = path.normalize(supportDocumentUploadPath);
+const finalSupportDocPath = normalizedSupportDocPath.replace(/^\\/, "");
+
+// Buat folder kalau belum ada
+if (!fs.existsSync(finalSupportDocPath)) {
+  fs.mkdirSync(finalSupportDocPath, { recursive: true });
+}
+
+const supportDocStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, finalSupportDocPath),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const name = path
+      .basename(file.originalname, ext)
+      .replace(/\s+/g, "-") // ganti spasi dengan -
+      .replace(/[^a-zA-Z0-9-_]/g, ""); // hapus karakter aneh
+
+    const now = new Date();
+    const formattedTime = `${now.getFullYear()}${(now.getMonth() + 1)
+      .toString()
+      .padStart(2, "0")}${now.getDate().toString().padStart(2, "0")}-${now
+      .getHours()
+      .toString()
+      .padStart(2, "0")}${now.getMinutes().toString().padStart(2, "0")}${now
+      .getSeconds()
+      .toString()
+      .padStart(2, "0")}`;
+
+    const filename = `SupportDoc-${name}-${formattedTime}${ext}`;
+    cb(null, filename);
+  },
+});
+
+const supportDocUploader = multer({ storage: supportDocStorage });
+
+export const handleSupportDocumentUpload = (
+  field: string,
+  isMultiple: boolean = false,
+  max: number = 5
+) => {
+  return isMultiple
+    ? supportDocUploader.array(field, max)
+    : supportDocUploader.single(field);
+};
+
+export { finalSupportDocPath as supportDocumentUploadPath };

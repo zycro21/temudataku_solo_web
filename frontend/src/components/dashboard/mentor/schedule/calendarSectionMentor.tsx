@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import axios from "axios";
+import { toast } from "sonner";
 
 type EventType = "mentoring" | "shortclass" | "bootcamp";
 
@@ -10,15 +12,11 @@ interface Event {
   time: string; // format "09.15-11.00"
 }
 
-interface CalendarSectionMentorProps {
-  events: Record<string, Event[]>;
-}
-
-export default function CalendarSectionMentor({
-  events,
-}: CalendarSectionMentorProps) {
+export default function CalendarSectionMentor() {
   const today = new Date();
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [events, setEvents] = useState<Record<string, Event[]>>({});
+  const [loading, setLoading] = useState(true);
 
   const daysOfWeek = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
   const monthNames = [
@@ -42,15 +40,69 @@ export default function CalendarSectionMentor({
     bootcamp: "/assets/dashboard/mentor/sesibootcamp.svg",
   };
 
+  // helper buat mapping serviceType ke event type
+  const mapServiceTypeToEventType = (serviceType: string): EventType => {
+    if (serviceType === "one-on-one" || serviceType === "group")
+      return "mentoring";
+    if (serviceType === "bootcamp") return "bootcamp";
+    if (serviceType === "shortclass" || serviceType === "live class")
+      return "shortclass";
+    return "mentoring"; // default fallback
+  };
+
+  // === FETCH API ===
+  useEffect(() => {
+    const fetchSessions = async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentoringSession/mentor/own-mentoring-sessions`,
+          { withCredentials: true }
+        );
+
+        const data = res.data;
+        const mappedEvents: Record<string, Event[]> = {};
+
+        data.forEach((session: any) => {
+          // session.date contoh: "20-04-2025"
+          const [day, month, year] = session.date.split("-");
+          const dateKey = `${year}-${month}-${day}`; // jadi "2025-04-20"
+
+          const start = session.startTime.slice(0, 5).replace(":", ".");
+          const end = session.endTime.slice(0, 5).replace(":", ".");
+          const timeRange = `${start}-${end}`;
+
+          const event: Event = {
+            type: mapServiceTypeToEventType(session.serviceType),
+            time: timeRange,
+          };
+
+          if (!mappedEvents[dateKey]) {
+            mappedEvents[dateKey] = [];
+          }
+          mappedEvents[dateKey].push(event);
+        });
+
+        setEvents(mappedEvents);
+      } catch (err) {
+        toast.error("Gagal memuat jadwal sesi mentor");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSessions();
+  }, []);
+
   const getCalendarDays = (year: number, month: number) => {
     const firstDayOfMonth = new Date(year, month, 1);
     const lastDayOfMonth = new Date(year, month + 1, 0);
 
     const startDay = new Date(firstDayOfMonth);
-    startDay.setDate(startDay.getDate() - startDay.getDay()); // mulai dari Minggu
+    startDay.setDate(startDay.getDate() - startDay.getDay());
 
     const endDay = new Date(lastDayOfMonth);
-    endDay.setDate(endDay.getDate() + (6 - endDay.getDay())); // akhiri di Sabtu
+    endDay.setDate(endDay.getDate() + (6 - endDay.getDay()));
 
     const days: Date[] = [];
     let d = new Date(startDay);
@@ -91,11 +143,15 @@ export default function CalendarSectionMentor({
     return diffDays >= -5 && diffDays <= 3;
   };
 
-  // Hitung jumlah sesi otomatis dari props
+  // Hitung jumlah sesi otomatis
   const totalSessions = Object.values(events).reduce(
     (sum, dayEvents) => sum + dayEvents.length,
     0
   );
+
+  if (loading) {
+    return <div className="p-6">Loading jadwal...</div>;
+  }
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
@@ -153,20 +209,20 @@ export default function CalendarSectionMentor({
             <div
               key={idx}
               className={`h-16 flex flex-col items-center justify-center text-sm rounded-md py-1 relative
-    ${
-      date.getMonth() === currentDate.getMonth()
-        ? "text-gray-800"
-        : "bg-gray-50 text-gray-400"
-    }
-    ${isSameDate(date, today) ? "font-bold text-emerald-600" : ""}
-    ${
-      isWithinBorderRange(date)
-        ? dayEvents.length > 0
-          ? "border border-emerald-400 bg-gray-100"
-          : "border border-emerald-400 bg-white"
-        : "bg-white"
-    }
-  `}
+                ${
+                  date.getMonth() === currentDate.getMonth()
+                    ? "text-gray-800"
+                    : "bg-gray-50 text-gray-400"
+                }
+                ${isSameDate(date, today) ? "font-bold text-emerald-600" : ""}
+                ${
+                  isWithinBorderRange(date)
+                    ? dayEvents.length > 0
+                      ? "border border-emerald-400 bg-gray-100"
+                      : "border border-emerald-400 bg-white"
+                    : "bg-white"
+                }
+              `}
               title={isSameDate(date, today) ? "Today" : undefined}
             >
               {/* Icons di atas tanggal */}
@@ -184,7 +240,7 @@ export default function CalendarSectionMentor({
               {/* Tanggal */}
               <span>{date.getDate()}</span>
 
-              {/* Titik hijau kecil di bawah angka kalau ada event */}
+              {/* Titik hijau kecil */}
               {dayEvents.length > 0 && (
                 <span className="w-1 h-1 rounded-full bg-emerald-500 mt-0.5"></span>
               )}
@@ -211,7 +267,7 @@ export default function CalendarSectionMentor({
               className="w-5 h-5"
               alt="shortclass"
             />
-            <span className="text-gray-600">Sesi Shortclass</span>
+            <span className="text-gray-600">Sesi Shortclass / Liveclass</span>
           </div>
           <div className="flex items-center gap-2">
             <img

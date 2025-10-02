@@ -54,8 +54,9 @@ export default function MentorStatCards() {
         const sessions = res.data;
         setSessionCount(sessions.length);
 
-        const newThisWeek = sessions.filter(
-          (s: any) => isThisWeek(new Date(s.date)) // date di MentoringSession disimpan string, tapi bisa di-parse ke Date
+        // weekly change pakai createdAt
+        const newThisWeek = sessions.filter((s: any) =>
+          isThisWeek(new Date(s.createdAt))
         );
         setSessionChange(newThisWeek.length);
       } catch (error) {

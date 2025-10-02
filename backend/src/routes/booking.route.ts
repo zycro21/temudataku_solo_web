@@ -16,6 +16,7 @@ import {
 import { validate } from "../middlewares/validate";
 import { authenticate } from "../middlewares/authenticate";
 import { authorizeRoles } from "../middlewares/authorizeRole";
+import { handleSupportDocumentUpload } from "../middlewares/uploadImage";
 
 const router = Router();
 
@@ -37,7 +38,7 @@ const router = Router();
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             required:
@@ -61,12 +62,26 @@ const router = Router();
  *                 type: string
  *                 format: date
  *                 description: (Wajib untuk one-on-one dan group) Tanggal booking dalam format YYYY-MM-DD
+ *               material:
+ *                 type: string
+ *                 description: (Opsional) Materi atau bahan yang ingin dibahas
+ *               expectedOutput:
+ *                 type: string
+ *                 description: (Opsional) Hasil yang diharapkan dari sesi
+ *               supportDocument:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *                 description: (Opsional) Dokumen pendukung dalam bentuk file (PDF, DOCX, PNG, dll.)
  *           example:
  *             mentoringServiceId: "svc-001"
  *             participantIds: ["usr-002", "usr-003"]
  *             referralUsageId: "ref-001"
  *             specialRequests: "Mohon gunakan Zoom"
  *             bookingDate: "2025-07-15"
+ *             material: "Proposal bisnis"
+ *             expectedOutput: "Feedback detail untuk pitch deck"
  *     responses:
  *       201:
  *         description: Booking berhasil dibuat
@@ -77,11 +92,16 @@ const router = Router();
  *               message: Booking berhasil dibuat.
  *               data:
  *                 id: "Booking-group-8638552204"
- *                 menteeId: "000008"
- *                 mentoringServiceId: "group-000002"
- *                 referralUsageId: "cmaa2m8d10001csssui0zoi3h8hfdidinfd"
+ *                 menteeId: "usr-001"
+ *                 mentoringServiceId: "svc-001"
+ *                 referralUsageId: "ref-001"
  *                 specialRequests: "Mohon gunakan Zoom"
  *                 bookingDate: "2025-07-15T00:00:00.000Z"
+ *                 material: "Proposal bisnis"
+ *                 expectedOutput: "Feedback detail untuk pitch deck"
+ *                 supportDocument:
+ *                   - "supportDocument/SupportDoc-Proposal-20251002-153011.pdf"
+ *                   - "supportDocument/SupportDoc-Dataset-20251002-153020.pdf"
  *                 status: "confirmed"
  *                 participants:
  *                   - userId: "usr-001"
@@ -95,7 +115,7 @@ const router = Router();
  *                     paymentStatus: "confirmed"
  *                 payment:
  *                   id: "pay-001"
- *                   bookingId: "book-001"
+ *                   bookingId: "Booking-group-8638552204"
  *                   amount: 50000
  *                   status: "confirmed"
  *                 originalPrice: 50000
@@ -104,27 +124,56 @@ const router = Router();
  *         description: Permintaan tidak valid (body tidak lengkap, layanan tidak tersedia, dsb)
  *         content:
  *           application/json:
- *             example:
- *               success: false
- *               message: bookingDate wajib diisi untuk layanan one-on-one atau group.
+ *             examples:
+ *               invalidDate:
+ *                 summary: Format tanggal salah
+ *                 value:
+ *                   success: false
+ *                   message: "Format bookingDate tidak valid. Gunakan yyyy-mm-dd."
+ *               overCapacity:
+ *                 summary: Peserta melebihi kapasitas
+ *                 value:
+ *                   success: false
+ *                   message: "Maksimal 5 peserta diperbolehkan."
+ *               duplicateParticipants:
+ *                 summary: Duplikat participantIds
+ *                 value:
+ *                   success: false
+ *                   message: "Terdapat duplikat pada participantIds."
  *       401:
  *         description: Unauthorized (pengguna tidak login)
  *         content:
  *           application/json:
  *             example:
  *               success: false
- *               message: Unauthorized. User ID not found.
+ *               message: "Unauthorized. User ID not found."
+ *       404:
+ *         description: Data tidak ditemukan (mentoring service atau referral usage tidak ada)
+ *         content:
+ *           application/json:
+ *             examples:
+ *               serviceNotFound:
+ *                 summary: Layanan tidak ada
+ *                 value:
+ *                   success: false
+ *                   message: "Mentoring service tidak ditemukan atau tidak aktif."
+ *               referralNotFound:
+ *                 summary: Referral tidak ada
+ *                 value:
+ *                   success: false
+ *                   message: "Referral usage tidak ditemukan."
  *       500:
  *         description: Kesalahan internal server
  *         content:
  *           application/json:
  *             example:
  *               success: false
- *               message: Terjadi kesalahan pada server.
+ *               message: "Terjadi kesalahan pada server."
  */
 router.post(
   "/createBooking",
   authenticate,
+  handleSupportDocumentUpload("supportDocument", true), // multiple upload
   validate(createBookingSchema),
   BookingController.createBookingController
 );
@@ -185,6 +234,9 @@ router.post(
  *                     mentoringService:
  *                       id: "svc-001"
  *                       title: "Mentoring Web Development"
+ *                     material: "Dasar-dasar React"
+ *                     expectedOutput: "Bisa bikin mini project React"
+ *                     supportDocument: "http://localhost:5000/supportDocuments/support-001.pdf"
  *                     participants:
  *                       - userId: "usr-001"
  *                         isLeader: true
@@ -194,6 +246,9 @@ router.post(
  *                     mentoringService:
  *                       id: "svc-002"
  *                       title: "UI/UX Design Basics"
+ *                     material: "Figma dan wireframing"
+ *                     expectedOutput: "Membuat desain aplikasi sederhana"
+ *                     supportDocument: null
  *                     participants:
  *                       - userId: "usr-001"
  *                         isLeader: true
@@ -268,6 +323,10 @@ router.get(
  *                   id: "pay-001"
  *                   amount: 200000
  *                   status: "confirmed"
+ *                 material: "Materi tentang user interface"
+ *                 expectedOutput: "Membuat wireframe sederhana"
+ *                 supportDocument:
+ *                   - "supportDocuments/SupportDoc-laporan_1-20251002-232514.pdf"
  *       400:
  *         description: Booking ID tidak ditemukan di parameter
  *         content:
@@ -331,6 +390,12 @@ router.get(
  *                 items:
  *                   type: string
  *                 example: ["usr-002", "usr-003"]
+ *               material:
+ *                 type: string
+ *                 example: "Materi tentang user interface"
+ *               expectedOutput:
+ *                 type: string
+ *                 example: "Membuat wireframe sederhana"
  *     responses:
  *       200:
  *         description: Booking berhasil diperbarui
@@ -341,6 +406,8 @@ router.get(
  *               data:
  *                 id: "book-001"
  *                 specialRequests: "Tolong mulai tepat waktu"
+ *                 material: "Materi tentang user interface"
+ *                 expectedOutput: "Membuat wireframe sederhana"
  *                 participants:
  *                   - userId: "usr-001"
  *                     isLeader: true
@@ -517,12 +584,25 @@ router.delete(
  *                   - id: "book-123"
  *                     status: "confirmed"
  *                     bookingDate: "2025-07-01T10:00:00Z"
+ *                     specialRequests: "Tolong mulai tepat waktu"
+ *                     material: "Materi UI/UX Basics"
+ *                     expectedOutput: "Membuat wireframe sederhana"
+ *                     supportDocument: ["supportDocuments/SupportDoc-laporan_1-20251002-232514.pdf"]
  *                     mentee:
  *                       id: "user-1"
  *                       fullName: "John Doe"
  *                     mentoringService:
  *                       id: "service-1"
  *                       serviceName: "Kelas Public Speaking"
+ *                     referralUsage:
+ *                       id: "ref-001"
+ *                       referralCode:
+ *                         id: "code-001"
+ *                         code: "REF2025"
+ *                     payment:
+ *                       id: "pay-001"
+ *                       amount: 200000
+ *                       status: "confirmed"
  *                 meta:
  *                   page: 1
  *                   limit: 10
@@ -575,6 +655,10 @@ router.get(
  *                 id: "book-123"
  *                 status: "confirmed"
  *                 bookingDate: "2025-07-01T10:00:00Z"
+ *                 specialRequests: "Minta tambahan materi A"
+ *                 material: "Materi A"
+ *                 expectedOutput: "Bisa presentasi lancar"
+ *                 supportDocument: "link-ke-dokumen.pdf"
  *                 mentee:
  *                   id: "user-1"
  *                   fullName: "John Doe"
@@ -705,7 +789,7 @@ router.patch(
  * @swagger
  * /api/booking/adminExportBook:
  *   get:
- *     summary: Export data booking (admin)
+ *     summary: Export data booking (admin) termasuk kolom baru seperti material, expectedOutput, supportDocument
  *     tags: [Booking]
  *     security:
  *       - bearerAuth: []
@@ -713,7 +797,7 @@ router.patch(
  *       - name: format
  *         in: query
  *         required: true
- *         description: Format file hasil export (csv atau excel)
+ *         description: Format file hasil export (csv atau excel). Semua kolom booking akan di-export.
  *         schema:
  *           type: string
  *           enum: [csv, excel]
@@ -989,6 +1073,18 @@ router.get(
  *                       status:
  *                         type: string
  *                         example: "confirmed"
+ *                       material:
+ *                         type: string
+ *                         description: Materi yang diminta mentee
+ *                         example: "Belajar presentasi"
+ *                       expectedOutput:
+ *                         type: string
+ *                         description: Ekspektasi output dari mentee
+ *                         example: "Presentasi lancar dan percaya diri"
+ *                       supportDocument:
+ *                         type: string
+ *                         description: Link dokumen pendukung yang diunggah mentee
+ *                         example: "https://example.com/doc.pdf"
  *                       participants:
  *                         type: array
  *                         items:
