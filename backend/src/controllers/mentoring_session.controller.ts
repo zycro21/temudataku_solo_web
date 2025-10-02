@@ -257,9 +257,11 @@ export const updateMentorSessionController = async (
   try {
     const mentorProfileId = req.user?.mentorProfileId;
     const sessionId = req.validatedParams?.id;
-    const { status, meetingLink } = req.validatedBody as {
+    const { status, meetingLink, meetingId, passcode } = req.validatedBody as {
       status?: "scheduled" | "ongoing" | "completed" | "cancelled";
       meetingLink?: string;
+      meetingId?: string;
+      passcode?: string;
     };
 
     // Cek apakah mentorProfileId dan sessionId ada
@@ -275,7 +277,7 @@ export const updateMentorSessionController = async (
     const updatedSession = await MentoringSessionService.updateByMentor({
       sessionId,
       mentorProfileId,
-      updates: { status, meetingLink },
+      updates: { status, meetingLink, meetingId, passcode },
     });
 
     // Kirim respons sukses
@@ -354,7 +356,9 @@ export const publicGetMentoringSessionByIdController = async (
   try {
     const { id } = req.validatedParams!;
 
-    const session = await MentoringSessionService.getPublicMentoringSessionById(id);
+    const session = await MentoringSessionService.getPublicMentoringSessionById(
+      id
+    );
 
     res.status(200).json({
       message: "Berhasil mengambil detail sesi mentoring",

@@ -85,6 +85,8 @@ export interface AuthenticatedRequestForMentoringSession extends Request {
     endTime: { hour: number; minute: number };
     durationMinutes: number;
     meetingLink: string;
+    meetingId: string;
+    passcode: string;
     status: string;
     notes?: string;
     mentorProfileIds: string[];

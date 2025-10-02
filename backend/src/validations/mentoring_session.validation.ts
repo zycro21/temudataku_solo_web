@@ -44,6 +44,8 @@ export const createMentoringSessionSchema = z
         return { hour: parseInt(hour), minute: parseInt(minute) };
       }),
     meetingLink: z.string().url().optional(),
+    meetingId: z.string().optional(),
+    passcode: z.string().optional(),
     status: z
       .enum(["scheduled", "ongoing", "completed", "cancelled"])
       .optional(),
@@ -229,6 +231,8 @@ export const updateMentoringSessionSchema = z.object({
         })
         .optional(),
       meetingLink: z.string().url().optional(),
+      meetingId: z.string().optional(),
+      passcode: z.string().optional(),
       notes: z.string().optional(),
     })
     .superRefine((data, ctx) => {
@@ -309,6 +313,8 @@ export const updateMentorSessionBodySchema = z.object({
         .enum(["scheduled", "ongoing", "completed", "cancelled"])
         .optional(),
       meetingLink: z.string().url("Meeting link tidak valid").optional(),
+      meetingId: z.string().optional(),
+      passcode: z.string().optional(),
     })
     .refine((data) => data.status || data.meetingLink, {
       message: "Minimal harus ada satu field yang diupdate",
