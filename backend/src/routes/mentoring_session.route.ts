@@ -811,7 +811,7 @@ router.delete(
  *         description: "Format file yang diekspor (default: xlsx)"
  *     responses:
  *       200:
- *         description: File export sesi mentoring tersedia. File akan menyertakan kolom: sessionId, serviceName, sessionDate, startTime, endTime, durationMinutes, sessionStatus, meetingLink, meetingId, passcode, mentorNames, feedbackCount, averageRating, submissionId, submissionDate, filePath, plagiarismScore, score, mentorFeedback, isReviewed, menteeId, menteeName, menteeEmail, projectId, projectTitle, projectDescription, reviewerId, reviewerName, reviewerEmail, createdAt, updatedAt
+ *         description: File export sesi mentoring tersedia. File akan menyertakan kolom, sessionId, serviceName, sessionDate, startTime, endTime, durationMinutes, sessionStatus, meetingLink, meetingId, passcode, mentorNames, feedbackCount, averageRating, submissionId, submissionDate, filePath, plagiarismScore, score, mentorFeedback, isReviewed, menteeId, menteeName, menteeEmail, projectId, projectTitle, projectDescription, reviewerId, reviewerName, reviewerEmail, createdAt, updatedAt
  *         content:
  *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
  *             schema:

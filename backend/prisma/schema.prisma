@@ -418,26 +418,51 @@ model Project {
 }
 
 model ProjectSubmission {
-  id              String            @id @default(cuid())
-  projectId       String            @map("project_id")
-  menteeId        String            @map("mentee_id")
-  sessionId       String?           @map("session_id") // optional
-  filePaths       String[]          @map("file_paths")
-  submissionDate  DateTime?         @default(now()) @db.Timestamp(6) @map("submission_date")
-  plagiarismScore Decimal?          @db.Decimal @map("plagiarism_score")
-  Score           Decimal?          @db.Decimal
-  mentorFeedback  String?           @db.VarChar @map("mentor_feedback")
-  isReviewed      Boolean?          @default(false) @map("is_reviewed")
-  gradedBy        String?           @map("graded_by")
-  createdAt       DateTime?         @default(now()) @db.Timestamp(6) @map("created_at")
-  updatedAt       DateTime?         @db.Timestamp(6) @map("updated_at")
+  id               String            @id @default(cuid())
+  projectId        String            @map("project_id")
+  menteeId         String            @map("mentee_id")
+  sessionId        String?           @map("session_id") // optional
+  title            String?           @db.VarChar // judul submission dari mentee
+  filePaths        String[]          @map("file_paths")
+  projectLink      String?           @db.VarChar // link tambahan (Drive, GitHub, dll.)
+  submissionDate   DateTime?         @default(now()) @db.Timestamp(6) @map("submission_date")
+  
+  // skor otomatis / sistem
+  plagiarismScore  Decimal?          @db.Decimal @map("plagiarism_score")
+  score            Decimal?          @db.Decimal // agregasi dari seluruh skor penilaian
 
-  project         Project           @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  user            User              @relation("SubmissionByMentee", fields: [menteeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  session         MentoringSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  gradedByUser    User?             @relation("SubmissionGradedByMentor", fields: [gradedBy], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  // skor per-metriks
+  briefScore        String?          @map("brief_score") // kesesuaian brief
+  technicalScore    String?          @map("technical_score") // kualitas teknis
+  creativityScore   String?          @map("creativity_score") // kreativitas
+  completenessScore String?          @map("completeness_score") // kelengkapan
+
+  // feedback mentor
+  mentorFeedback   String?           @db.VarChar @map("mentor_feedback") // feedback singkat
+  mentorSuggestion String?           @db.VarChar @map("mentor_suggestion") // saran
+
+  // status review
+  isReviewed       Boolean?          @default(false) @map("is_reviewed")
+  reviewStatus     ReviewStatus      @default(PENDING) @map("review_status") // enum baru
+  isRevisedRequired Boolean?         @default(false) @map("is_revised_required")
+  revisionDeadline DateTime?         @map("revision_deadline")
+
+  gradedBy         String?           @map("graded_by")
+  createdAt        DateTime?         @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt        DateTime?         @db.Timestamp(6) @map("updated_at")
+
+  project          Project           @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user             User              @relation("SubmissionByMentee", fields: [menteeId], references: [id], onDelete: Cascade, onUpdate: Cascade) 
+  session          MentoringSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  gradedByUser     User?             @relation("SubmissionGradedByMentor", fields: [gradedBy], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@map("project_submissions")
+}
+
+enum ReviewStatus {
+  PENDING
+  REVIEWED
+  REVISION_REQUIRED
 }
 
 model ReferralCommisions {

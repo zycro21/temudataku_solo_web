@@ -992,6 +992,44 @@ router.get(
 
 /**
  * @swagger
+ * /api/project/mentor/unique-mentees:
+ *   get:
+ *     summary: Total mentee unik di semua proyek mentor
+ *     tags: [Project]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Total mentee unik berhasil diambil
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Total mentee unik berhasil diambil
+ *                 totalUniqueMentees:
+ *                   type: integer
+ *                   example: 134
+ *       401:
+ *         description: Tidak ada token atau token tidak valid
+ *       403:
+ *         description: Akses ditolak (bukan mentor)
+ *       404:
+ *         description: Mentor belum punya project atau belum ada submissions
+ *       500:
+ *         description: Terjadi kesalahan pada server
+ */
+router.get(
+  "/mentor/unique-mentees",
+  authenticate,
+  authorizeRoles("mentor"),
+  ProjectController.getUniqueMenteesService
+);
+
+/**
+ * @swagger
  * /api/project/mentees/projects:
  *   get:
  *     summary: Daftar proyek mentee (mentee)
@@ -1351,10 +1389,17 @@ router.get(
  *             required:
  *               - submissionFile
  *               - sessionId
+ *               - title
  *             properties:
  *               sessionId:
  *                 type: string
  *                 example: "sess-xyz123"
+ *               title:
+ *                 type: string
+ *                 example: "Final Project Website Portfolio"
+ *               projectLink:
+ *                 type: string
+ *                 example: "https://drive.google.com/..."
  *               submissionFile:
  *                 type: array
  *                 items:
@@ -1381,15 +1426,18 @@ router.get(
  *                         projectId: { type: string }
  *                         menteeId: { type: string }
  *                         sessionId: { type: string }
+ *                         title: { type: string, example: "Final Project Website Portfolio" }
+ *                         projectLink: { type: string, example: "https://github.com/user/repo" }
  *                         filePaths:
  *                           type: array
  *                           items: { type: string }
  *                         plagiarismScore:
  *                           type: number
  *                           nullable: true
- *                     plagiarismScore:
- *                       type: number
- *                       nullable: true
+ *                         reviewStatus:
+ *                           type: string
+ *                           enum: [PENDING, REVIEWED, REVISION_REQUIRED]
+ *                           example: PENDING
  *       400:
  *         description: Validasi gagal atau request tidak sesuai
  *         content:
@@ -1461,18 +1509,37 @@ router.post(
  *           schema:
  *             type: object
  *             required:
- *               - Score
  *               - mentorFeedback
  *             properties:
- *               Score:
- *                 type: number
+ *               score:
+ *                 type: decimal
+ *                 format: float
  *                 example: 85
+ *               briefScore:
+ *                 type: string
+ *                 example: "Sangat Bagus"
+ *               technicalScore:
+ *                 type: string
+ *                 example: "Sangat Bagus"
+ *               creativityScore:
+ *                 type: string
+ *                 example: "Sangat Bagus"
+ *               completenessScore:
+ *                 type: string
+ *                 example: "Sangat Bagus"
  *               mentorFeedback:
  *                 type: string
  *                 example: "Good work, but revise the last section."
- *               sessionId:
+ *               mentorSuggestion:
  *                 type: string
- *                 example: "session-abc123"
+ *                 example: "Tambahkan penjelasan pada diagram arsitektur."
+ *               isRevisedRequired:
+ *                 type: boolean
+ *                 example: true
+ *               revisionDeadline:
+ *                 type: string
+ *                 format: date-time
+ *                 example: "2025-10-10T23:59:59.000Z"
  *     responses:
  *       200:
  *         description: Submission berhasil dinilai
@@ -1487,14 +1554,13 @@ router.post(
  *                 data:
  *                   type: object
  *                   properties:
- *                     id: { type: string, example: "Submission-123" }
- *                     projectId: { type: string }
- *                     sessionId: { type: string }
+ *                     id: { type: string }
+ *                     reviewStatus: { type: string, enum: [PENDING, REVIEWED, REVISION_REQUIRED] }
+ *                     score: { type: number }
  *                     mentorFeedback: { type: string }
- *                     Score: { type: number }
- *                     gradedBy: { type: string }
- *                     isReviewed: { type: boolean }
- *                     updatedAt: { type: string, format: date-time }
+ *                     mentorSuggestion: { type: string }
+ *                     isRevisedRequired: { type: boolean }
+ *                     revisionDeadline: { type: string, format: date-time }
  *       400:
  *         description: Validasi gagal atau body tidak lengkap
  *         content:
@@ -1555,39 +1621,33 @@ router.patch(
  *     parameters:
  *       - in: query
  *         name: page
- *         schema:
- *           type: integer
+ *         schema: { type: integer }
  *         example: 1
  *       - in: query
  *         name: limit
- *         schema:
- *           type: integer
+ *         schema: { type: integer }
  *         example: 10
  *       - in: query
  *         name: search
- *         schema:
- *           type: string
+ *         schema: { type: string }
  *         example: "John Doe"
  *       - in: query
  *         name: projectId
- *         schema:
- *           type: string
+ *         schema: { type: string }
  *         example: "proj-abc123"
  *       - in: query
  *         name: serviceId
- *         schema:
- *           type: string
+ *         schema: { type: string }
  *         example: "svc-xyz456"
  *       - in: query
  *         name: isReviewed
- *         schema:
- *           type: boolean
+ *         schema: { type: boolean }
  *         example: true
  *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string
- *           enum: [score, submissionDate, createdAt]
+ *           enum: [score, submissionDate, createdAt, plagiarismScore]
  *         example: submissionDate
  *       - in: query
  *         name: sortOrder
@@ -1611,58 +1671,52 @@ router.patch(
  *                   items:
  *                     type: object
  *                     properties:
- *                       id:
- *                         type: string
- *                         example: "sub-123"
- *                       submissionDate:
- *                         type: string
- *                         format: date-time
- *                       Score:
- *                         type: number
- *                         nullable: true
- *                       mentorFeedback:
- *                         type: string
- *                         nullable: true
- *                       isReviewed:
- *                         type: boolean
+ *                       id: { type: string, example: "sub-123" }
+ *                       title: { type: string, example: "Submission Final Project" }
+ *                       filePaths:
+ *                         type: array
+ *                         items: { type: string }
+ *                         example: ["uploads/file1.pdf", "uploads/file2.png"]
+ *                       projectLink: { type: string, example: "https://github.com/user/repo" }
+ *                       submissionDate: { type: string, format: date-time }
+ *                       plagiarismScore: { type: number, format: float, nullable: true, example: 12.5 }
+ *                       score: { type: number, format: float, nullable: true, example: 85.5 }
+ *                       briefScore: { type: string, nullable: true, example: "Sangat sesuai" }
+ *                       technicalScore: { type: string, nullable: true, example: "Baik" }
+ *                       creativityScore: { type: string, nullable: true, example: "Inovatif" }
+ *                       completenessScore: { type: string, nullable: true, example: "Lengkap" }
+ *                       mentorFeedback: { type: string, nullable: true }
+ *                       mentorSuggestion: { type: string, nullable: true }
+ *                       isReviewed: { type: boolean, example: true }
+ *                       reviewStatus: { type: string, enum: [PENDING, REVIEWED, REVISION_REQUIRED], example: REVIEWED }
+ *                       isRevisedRequired: { type: boolean, example: false }
+ *                       revisionDeadline: { type: string, format: date-time, nullable: true }
+ *                       gradedBy: { type: string, nullable: true, example: "usr-mentor123" }
+ *                       createdAt: { type: string, format: date-time }
+ *                       updatedAt: { type: string, format: date-time }
  *                       user:
  *                         type: object
  *                         properties:
- *                           id:
- *                             type: string
- *                           fullName:
- *                             type: string
- *                           email:
- *                             type: string
+ *                           id: { type: string }
+ *                           fullName: { type: string }
+ *                           email: { type: string }
  *                       project:
  *                         type: object
  *                         properties:
- *                           id:
- *                             type: string
- *                           title:
- *                             type: string
+ *                           id: { type: string }
+ *                           title: { type: string }
  *                           mentoringService:
  *                             type: object
  *                             properties:
- *                               id:
- *                                 type: string
- *                               serviceName:
- *                                 type: string
+ *                               id: { type: string }
+ *                               serviceName: { type: string }
  *                 pagination:
  *                   type: object
  *                   properties:
- *                     total:
- *                       type: integer
- *                       example: 45
- *                     page:
- *                       type: integer
- *                       example: 1
- *                     limit:
- *                       type: integer
- *                       example: 10
- *                     totalPages:
- *                       type: integer
- *                       example: 5
+ *                     total: { type: integer, example: 45 }
+ *                     page: { type: integer, example: 1 }
+ *                     limit: { type: integer, example: 10 }
+ *                     totalPages: { type: integer, example: 5 }
  *       401:
  *         description: Unauthorized (tidak ada token)
  *         content:
@@ -1952,19 +2006,73 @@ router.get(
  *                       menteeEmail:
  *                         type: string
  *                         example: "dimas@example.com"
+ *                       title:
+ *                         type: string
+ *                         example: "Final Project Submission"
+ *                       filePaths:
+ *                         type: array
+ *                         items:
+ *                           type: string
+ *                         example: ["uploads/task1.pdf", "uploads/code.zip"]
+ *                       projectLink:
+ *                         type: string
+ *                         example: "https://github.com/dimas/project"
  *                       submissionDate:
  *                         type: string
  *                         format: date-time
  *                         example: "2025-07-01T08:00:00.000Z"
- *                       score:
- *                         type: number
- *                         example: 90
- *                       isReviewed:
- *                         type: boolean
- *                         example: true
  *                       plagiarismScore:
  *                         type: number
  *                         example: 5
+ *                       score:
+ *                         type: number
+ *                         example: 90
+ *                       briefScore:
+ *                         type: string
+ *                         example: "85"
+ *                       technicalScore:
+ *                         type: string
+ *                         example: "90"
+ *                       creativityScore:
+ *                         type: string
+ *                         example: "80"
+ *                       completenessScore:
+ *                         type: string
+ *                         example: "95"
+ *                       mentorFeedback:
+ *                         type: string
+ *                         example: "Good work overall"
+ *                       mentorSuggestion:
+ *                         type: string
+ *                         example: "Improve documentation"
+ *                       isReviewed:
+ *                         type: boolean
+ *                         example: true
+ *                       reviewStatus:
+ *                         type: string
+ *                         enum: [PENDING, REVIEWED, REVISION_REQUIRED]
+ *                         example: "REVIEWED"
+ *                       isRevisedRequired:
+ *                         type: boolean
+ *                         example: false
+ *                       revisionDeadline:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-07-15T08:00:00.000Z"
+ *                       gradedBy:
+ *                         type: string
+ *                         example: "mentor-uuid-123"
+ *                       gradedByName:
+ *                         type: string
+ *                         example: "Mentor Ahmad"
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-07-01T08:00:00.000Z"
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-07-02T08:00:00.000Z"
  *       400:
  *         description: Mentor profile ID tidak valid
  *         content:
@@ -2059,27 +2167,73 @@ router.get(
  *                     projectId:
  *                       type: string
  *                       example: "proj-uuid-001"
- *                     submissionDate:
+ *                     title:
  *                       type: string
- *                       format: date-time
- *                       example: "2025-07-01T09:30:00.000Z"
+ *                       example: "Final Project Submission"
  *                     filePaths:
  *                       type: array
  *                       items:
  *                         type: string
  *                       example: ["/uploads/file1.pdf", "/uploads/file2.zip"]
- *                     score:
- *                       type: number
- *                       example: 95
- *                     isReviewed:
- *                       type: boolean
- *                       example: true
+ *                     projectLink:
+ *                       type: string
+ *                       example: "https://github.com/dimas/project"
+ *                     submissionDate:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-07-01T09:30:00.000Z"
  *                     plagiarismScore:
  *                       type: number
  *                       example: 3
+ *                     score:
+ *                       type: number
+ *                       example: 95
+ *                     briefScore:
+ *                       type: string
+ *                       example: "85"
+ *                     technicalScore:
+ *                       type: string
+ *                       example: "90"
+ *                     creativityScore:
+ *                       type: string
+ *                       example: "80"
+ *                     completenessScore:
+ *                       type: string
+ *                       example: "95"
  *                     mentorFeedback:
  *                       type: string
  *                       example: "Good structure and implementation"
+ *                     mentorSuggestion:
+ *                       type: string
+ *                       example: "Improve documentation"
+ *                     isReviewed:
+ *                       type: boolean
+ *                       example: true
+ *                     reviewStatus:
+ *                       type: string
+ *                       enum: [PENDING, REVIEWED, REVISION_REQUIRED]
+ *                       example: "REVIEWED"
+ *                     isRevisedRequired:
+ *                       type: boolean
+ *                       example: false
+ *                     revisionDeadline:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-07-15T09:30:00.000Z"
+ *                     gradedBy:
+ *                       type: string
+ *                       example: "mentor-uuid-123"
+ *                     gradedByName:
+ *                       type: string
+ *                       example: "Mentor Ahmad"
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-07-01T09:30:00.000Z"
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-07-02T10:00:00.000Z"
  *                     mentee:
  *                       type: object
  *                       properties:
@@ -2091,54 +2245,14 @@ router.get(
  *                           example: "dimas@example.com"
  *       400:
  *         description: Mentor profile ID tidak valid
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Mentor profile ID is required
  *       403:
  *         description: Mentor tidak punya akses terhadap submission ini
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: You are not authorized to view this submission
  *       404:
  *         description: Submission tidak ditemukan
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Submission not found
  *       401:
  *         description: Unauthorized – Token tidak valid atau tidak disertakan
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Unauthorized
  *       500:
  *         description: Kesalahan server
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Internal server error
  */
 router.get(
   "/mentorsSubmissions/:id",
@@ -2152,7 +2266,7 @@ router.get(
  * @swagger
  * /api/project/menteesSubmissions:
  *   get:
- *     summary: Submissions milik mentee
+ *     summary: Ambil daftar submissions milik mentee
  *     tags: [Project]
  *     security:
  *       - bearerAuth: []
@@ -2168,7 +2282,7 @@ router.get(
  *         schema:
  *           type: integer
  *           example: 10
- *         description: Jumlah item per halaman (default 10)
+ *         description: Jumlah item per halaman (default 10, maks 100)
  *     responses:
  *       200:
  *         description: Daftar submission mentee berhasil diambil
@@ -2191,19 +2305,80 @@ router.get(
  *                       projectTitle:
  *                         type: string
  *                         example: "Final Web Project"
+ *                       title:
+ *                         type: string
+ *                         example: "Submission Bab 1"
+ *                       filePaths:
+ *                         type: array
+ *                         items:
+ *                           type: string
+ *                         example: ["uploads/file1.pdf", "uploads/file2.png"]
+ *                       projectLink:
+ *                         type: string
+ *                         example: "https://github.com/username/project"
  *                       submissionDate:
  *                         type: string
  *                         format: date-time
  *                         example: "2025-06-28T12:34:56.000Z"
- *                       score:
- *                         type: number
- *                         example: 85
- *                       isReviewed:
- *                         type: boolean
- *                         example: true
  *                       plagiarismScore:
  *                         type: number
  *                         example: 4
+ *                       score:
+ *                         type: number
+ *                         example: 85
+ *                       briefScore:
+ *                         type: string
+ *                         example: "90"
+ *                       technicalScore:
+ *                         type: string
+ *                         example: "88"
+ *                       creativityScore:
+ *                         type: string
+ *                         example: "92"
+ *                       completenessScore:
+ *                         type: string
+ *                         example: "95"
+ *                       mentorFeedback:
+ *                         type: string
+ *                         example: "Bagus, tapi perlu ditambahkan dokumentasi API"
+ *                       mentorSuggestion:
+ *                         type: string
+ *                         example: "Coba gunakan arsitektur microservices"
+ *                       isReviewed:
+ *                         type: boolean
+ *                         example: true
+ *                       reviewStatus:
+ *                         type: string
+ *                         enum: [PENDING, REVIEWED, REVISION_REQUIRED]
+ *                         example: "REVIEWED"
+ *                       isRevisedRequired:
+ *                         type: boolean
+ *                         example: false
+ *                       revisionDeadline:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-07-15T23:59:59.000Z"
+ *                       gradedBy:
+ *                         type: object
+ *                         nullable: true
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             example: "mentor-uuid-001"
+ *                           fullName:
+ *                             type: string
+ *                             example: "John Doe"
+ *                           email:
+ *                             type: string
+ *                             example: "john.doe@example.com"
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-06-01T10:00:00.000Z"
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-06-20T15:00:00.000Z"
  *                 total:
  *                   type: integer
  *                   example: 3
@@ -2215,44 +2390,12 @@ router.get(
  *                   example: 1
  *       400:
  *         description: Query tidak valid atau pagination error
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Invalid query or pagination parameter
  *       401:
- *         description: Tidak terautentikasi (Bearer token tidak disertakan atau tidak valid)
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Unauthorized
+ *         description: Tidak terautentikasi (Bearer token tidak valid)
  *       403:
  *         description: Akses ditolak (bukan mentee)
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Forbidden
  *       500:
  *         description: Terjadi kesalahan server
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Internal server error
  */
 router.get(
   "/menteesSubmissions",
@@ -2298,67 +2441,88 @@ router.get(
  *                     projectTitle:
  *                       type: string
  *                       example: "Final Project Web Dev"
- *                     submissionDate:
+ *                     title:
  *                       type: string
- *                       format: date-time
- *                       example: "2025-06-30T10:20:00.000Z"
+ *                       example: "Submission Bab 1"
  *                     filePaths:
  *                       type: array
  *                       items:
  *                         type: string
- *                         example: "/uploads/submissions/file1.pdf"
+ *                       example: ["/uploads/submissions/file1.pdf", "/uploads/submissions/file2.png"]
+ *                     projectLink:
+ *                       type: string
+ *                       example: "https://github.com/username/project"
+ *                     submissionDate:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-06-30T10:20:00.000Z"
  *                     plagiarismScore:
  *                       type: number
  *                       example: 5
  *                     score:
  *                       type: number
  *                       example: 85
- *                     isReviewed:
- *                       type: boolean
- *                       example: true
+ *                     briefScore:
+ *                       type: string
+ *                       example: "90"
+ *                     technicalScore:
+ *                       type: string
+ *                       example: "88"
+ *                     creativityScore:
+ *                       type: string
+ *                       example: "92"
+ *                     completenessScore:
+ *                       type: string
+ *                       example: "95"
  *                     mentorFeedback:
  *                       type: string
  *                       example: "Good structure and explanation"
+ *                     mentorSuggestion:
+ *                       type: string
+ *                       example: "Coba gunakan arsitektur microservices"
+ *                     isReviewed:
+ *                       type: boolean
+ *                       example: true
+ *                     reviewStatus:
+ *                       type: string
+ *                       enum: [PENDING, REVIEWED, REVISION_REQUIRED]
+ *                       example: "REVIEWED"
+ *                     isRevisedRequired:
+ *                       type: boolean
+ *                       example: false
+ *                     revisionDeadline:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-07-15T23:59:59.000Z"
+ *                     gradedBy:
+ *                       type: object
+ *                       nullable: true
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           example: "mentor-uuid-001"
+ *                         fullName:
+ *                           type: string
+ *                           example: "John Doe"
+ *                         email:
+ *                           type: string
+ *                           example: "john.doe@example.com"
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-06-01T10:00:00.000Z"
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-06-20T15:00:00.000Z"
  *       401:
  *         description: Tidak terautentikasi (token tidak valid atau tidak disertakan)
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Unauthorized
  *       403:
  *         description: Akses ditolak (bukan mentee)
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Forbidden
  *       404:
  *         description: Submission tidak ditemukan atau bukan milik user ini
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Submission not found or not accessible
  *       500:
  *         description: Terjadi kesalahan di server
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Internal server error
  */
 router.get(
   "/menteesSubmissions/:id",

@@ -188,6 +188,25 @@ export const getMentorProjectDetail = async (
   }
 };
 
+export const getUniqueMenteesService = async (
+  req: AuthenticatedRequestProject,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.user?.userId!;
+
+    const totalUniqueMentees = await ProjectService.getUniqueMentees(userId);
+
+    res.status(200).json({
+      message: "Total mentee unik berhasil diambil",
+      totalUniqueMentees,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const getMenteeProjects = async (
   req: AuthenticatedRequestProject,
   res: Response,
@@ -273,7 +292,7 @@ export const submitProject = async (
 ) => {
   try {
     const { id: projectId } = req.validatedParams;
-    const { sessionId } = req.validatedBody;
+    const { sessionId, title, projectLink } = req.validatedBody;
     const menteeId = req.user?.userId!;
 
     // Cek kalau multiple files diupload
@@ -292,6 +311,8 @@ export const submitProject = async (
       menteeId,
       filePaths,
       sessionId,
+      title,
+      projectLink,
     });
 
     res.status(201).json({
@@ -350,7 +371,8 @@ export const getAdminSubmissions = async (
     const limitNum = parseInt(limit);
 
     const sortFieldMap: Record<string, string> = {
-      score: "Score",
+      score: "score",
+      plagiarismScore: "plagiarismScore",
       submissionDate: "submissionDate",
       createdAt: "createdAt",
     };

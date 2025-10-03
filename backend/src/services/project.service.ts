@@ -367,6 +367,53 @@ export const getMentorProjectDetail = async (
   return project;
 };
 
+export const getUniqueMentees = async (userId: string) => {
+  // cari mentor profile berdasarkan userId
+  const mentorProfile = await prisma.mentorProfile.findUnique({
+    where: { userId },
+    select: { id: true },
+  });
+
+  if (!mentorProfile) {
+    throw new Error("Profil mentor tidak ditemukan");
+  }
+
+  const mentorProfileId = mentorProfile.id;
+
+  // ambil semua mentoring service yang dimiliki mentor ini
+  const services = await prisma.mentoringServiceMentor.findMany({
+    where: { mentorProfileId },
+    select: { mentoringServiceId: true },
+  });
+
+  if (services.length === 0) {
+    throw new Error("Mentor belum terhubung ke layanan manapun");
+  }
+
+  const serviceIds = services.map((s) => s.mentoringServiceId);
+
+  // ambil semua project dari mentoring services
+  const projects = await prisma.project.findMany({
+    where: { serviceId: { in: serviceIds } },
+    select: { id: true },
+  });
+
+  if (projects.length === 0) {
+    throw new Error("Belum ada proyek di layanan service mentoring Anda");
+  }
+
+  const projectIds = projects.map((p) => p.id);
+
+  // hitung distinct menteeId dari submissions di semua project
+  const uniqueMentees = await prisma.projectSubmission.findMany({
+    where: { projectId: { in: projectIds } },
+    distinct: ["menteeId"],
+    select: { menteeId: true },
+  });
+
+  return uniqueMentees.length;
+};
+
 export const getMenteeProjects = async ({
   userId,
   search,
@@ -567,18 +614,21 @@ export const submit = async ({
   menteeId,
   filePaths,
   sessionId,
+  title,
+  projectLink,
 }: {
   projectId: string;
   menteeId: string;
   filePaths: string[];
   sessionId?: string;
+  title?: string;
+  projectLink?: string;
 }) => {
   // 1. Validasi project
   const project = await prisma.project.findUnique({
     where: { id: projectId },
     include: { mentoringService: true },
   });
-
   if (!project) throw new Error("Proyek tidak ditemukan");
 
   // 2. Validasi booking
@@ -589,23 +639,17 @@ export const submit = async ({
       OR: [
         { menteeId },
         {
-          participants: {
-            some: {
-              userId: menteeId,
-            },
-          },
+          participants: { some: { userId: menteeId } },
         },
       ],
     },
   });
-
   if (!hasBooked) throw new Error("Kamu belum pernah membooking layanan ini.");
 
   // 3. Cek existing submission
   const existing = await prisma.projectSubmission.findFirst({
     where: { projectId, menteeId },
   });
-
   if (existing) {
     throw new Error(
       "Kamu sudah pernah mengumpulkan submission untuk proyek ini."
@@ -647,8 +691,11 @@ export const submit = async ({
       projectId,
       menteeId,
       sessionId,
+      title,
+      projectLink,
       filePaths,
       plagiarismScore,
+      reviewStatus: "PENDING",
     },
   });
 
@@ -657,19 +704,33 @@ export const submit = async ({
 
 export const reviewSubmission = async ({
   submissionId,
-  mentorId, // ini mentorProfileId, untuk validasi
-  userId, // ini userId dari user yang login, untuk gradedBy
+  mentorId,
+  userId,
   role,
+  score,
+  briefScore,
+  technicalScore,
+  creativityScore,
+  completenessScore,
   mentorFeedback,
-  Score,
+  mentorSuggestion,
+  isRevisedRequired,
+  revisionDeadline,
   sessionId,
 }: {
   submissionId: string;
-  mentorId: string; // mentorProfileId
-  userId: string; // userId dari tabel User
+  mentorId: string;
+  userId: string;
   role: string;
+  score?: number;
+  briefScore?: string;
+  technicalScore?: string;
+  creativityScore?: string;
+  completenessScore?: string;
   mentorFeedback: string;
-  Score: number;
+  mentorSuggestion?: string;
+  isRevisedRequired?: boolean;
+  revisionDeadline?: string;
   sessionId?: string;
 }) => {
   const submission = await prisma.projectSubmission.findUnique({
@@ -678,40 +739,46 @@ export const reviewSubmission = async ({
       project: {
         include: {
           mentoringService: {
-            include: {
-              mentors: {
-                include: {
-                  mentorProfile: true,
-                },
-              },
-            },
+            include: { mentors: { include: { mentorProfile: true } } },
           },
         },
       },
     },
   });
-
-  if (!submission) {
-    throw new Error("Submission tidak ditemukan.");
-  }
+  if (!submission) throw new Error("Submission tidak ditemukan.");
 
   const isMentorOfService = submission.project.mentoringService.mentors.some(
     (m) => m.mentorProfile?.id === mentorId
   );
-
   if (!(isMentorOfService || role === "admin")) {
     throw new Error("Kamu tidak berhak menilai submission ini.");
+  }
+
+  // tentukan reviewStatus
+  let reviewStatus: "REVIEWED" | "REVISION_REQUIRED" | "PENDING" = "PENDING";
+  if (isRevisedRequired) {
+    reviewStatus = "REVISION_REQUIRED";
+  } else {
+    reviewStatus = "REVIEWED";
   }
 
   const updated = await prisma.projectSubmission.update({
     where: { id: submissionId },
     data: {
+      score: score ?? null, // opsional
+      briefScore: briefScore ?? null,
+      technicalScore: technicalScore ?? null,
+      creativityScore: creativityScore ?? null,
+      completenessScore: completenessScore ?? null,
       mentorFeedback,
-      Score,
-      sessionId: sessionId ?? submission.sessionId,
+      mentorSuggestion,
+      isRevisedRequired: isRevisedRequired ?? false,
+      revisionDeadline: isRevisedRequired ? new Date(revisionDeadline!) : null,
+      reviewStatus,
       isReviewed: true,
       gradedBy: userId,
-      updatedAt: new Date(), // ✅ update updatedAt secara manual
+      sessionId: sessionId ?? submission.sessionId,
+      updatedAt: new Date(),
     },
   });
 
@@ -849,35 +916,44 @@ export const exportAdminSubmissions = async ({
   const submissions = await prisma.projectSubmission.findMany({
     include: {
       user: {
-        select: {
-          fullName: true,
-          email: true,
-        },
+        select: { fullName: true, email: true },
       },
       project: {
         select: {
           title: true,
-          mentoringService: {
-            select: {
-              serviceName: true,
-            },
-          },
+          mentoringService: { select: { serviceName: true } },
         },
+      },
+      gradedByUser: {
+        select: { fullName: true, email: true },
       },
     },
   });
 
   const flatData = submissions.map((sub) => ({
     submissionId: sub.id,
-    menteeName: sub.user?.fullName,
-    menteeEmail: sub.user?.email,
-    projectTitle: sub.project?.title,
-    serviceName: sub.project?.mentoringService?.serviceName,
-    submissionDate: sub.submissionDate?.toISOString(),
-    plagiarismScore: sub.plagiarismScore?.toString(),
-    score: sub.Score?.toString(),
+    menteeName: sub.user?.fullName ?? "",
+    menteeEmail: sub.user?.email ?? "",
+    projectTitle: sub.project?.title ?? "",
+    serviceName: sub.project?.mentoringService?.serviceName ?? "",
+    submissionDate: sub.submissionDate?.toISOString() ?? "",
+    plagiarismScore: sub.plagiarismScore ? sub.plagiarismScore.toString() : "",
+    score: sub.score ? sub.score.toString() : "",
+    briefScore: sub.briefScore ?? "",
+    technicalScore: sub.technicalScore ?? "",
+    creativityScore: sub.creativityScore ?? "",
+    completenessScore: sub.completenessScore ?? "",
+    mentorFeedback: sub.mentorFeedback ?? "",
+    mentorSuggestion: sub.mentorSuggestion ?? "",
     isReviewed: sub.isReviewed ? "Yes" : "No",
-    feedback: sub.mentorFeedback,
+    reviewStatus: sub.reviewStatus ?? "",
+    isRevisedRequired: sub.isRevisedRequired ? "Yes" : "No",
+    revisionDeadline: sub.revisionDeadline?.toISOString() ?? "",
+    gradedBy: sub.gradedByUser
+      ? `${sub.gradedByUser.fullName} (${sub.gradedByUser.email})`
+      : "",
+    createdAt: sub.createdAt?.toISOString() ?? "",
+    updatedAt: sub.updatedAt?.toISOString() ?? "",
   }));
 
   const timestamp = formatDate(new Date(), "yyyyMMdd_HHmmss");
@@ -896,7 +972,32 @@ export const exportAdminSubmissions = async ({
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet("Submissions");
 
-  worksheet.columns = Object.keys(flatData[0] || {}).map((key) => ({
+  // Jika tidak ada data, pastikan ada kolom dummy agar worksheet.columns tidak kosong
+  const columnsSource = flatData[0] || {
+    submissionId: "",
+    menteeName: "",
+    menteeEmail: "",
+    projectTitle: "",
+    serviceName: "",
+    submissionDate: "",
+    plagiarismScore: "",
+    score: "",
+    briefScore: "",
+    technicalScore: "",
+    creativityScore: "",
+    completenessScore: "",
+    mentorFeedback: "",
+    mentorSuggestion: "",
+    isReviewed: "",
+    reviewStatus: "",
+    isRevisedRequired: "",
+    revisionDeadline: "",
+    gradedBy: "",
+    createdAt: "",
+    updatedAt: "",
+  };
+
+  worksheet.columns = Object.keys(columnsSource).map((key) => ({
     header: key,
     key,
     width: 20,
@@ -925,7 +1026,6 @@ export const getMentorProjectSubmissionsService = async ({
     throw new Error("Mentor profile ID is required");
   }
 
-  // Ambil semua mentoring service yang dimiliki mentor
   const mentorProfile = await prisma.mentorProfile.findUnique({
     where: { id: mentorProfileId },
     include: {
@@ -947,7 +1047,6 @@ export const getMentorProjectSubmissionsService = async ({
     (ms) => ms.mentoringService.id
   );
 
-  // Cek apakah proyek ini berasal dari mentoring service milik mentor
   const project = await prisma.project.findUnique({
     where: { id: projectId },
     select: { serviceId: true },
@@ -959,7 +1058,6 @@ export const getMentorProjectSubmissionsService = async ({
     );
   }
 
-  // Ambil submissions dari project
   const submissions = await prisma.projectSubmission.findMany({
     where: { projectId },
     include: {
@@ -967,6 +1065,11 @@ export const getMentorProjectSubmissionsService = async ({
         select: {
           fullName: true,
           email: true,
+        },
+      },
+      gradedByUser: {
+        select: {
+          fullName: true,
         },
       },
     },
@@ -977,10 +1080,26 @@ export const getMentorProjectSubmissionsService = async ({
     id: sub.id,
     menteeName: sub.user?.fullName,
     menteeEmail: sub.user?.email,
+    title: sub.title,
+    filePaths: sub.filePaths,
+    projectLink: sub.projectLink,
     submissionDate: sub.submissionDate,
-    score: sub.Score,
-    isReviewed: sub.isReviewed,
     plagiarismScore: sub.plagiarismScore,
+    score: sub.score,
+    briefScore: sub.briefScore,
+    technicalScore: sub.technicalScore,
+    creativityScore: sub.creativityScore,
+    completenessScore: sub.completenessScore,
+    mentorFeedback: sub.mentorFeedback,
+    mentorSuggestion: sub.mentorSuggestion,
+    isReviewed: sub.isReviewed,
+    reviewStatus: sub.reviewStatus,
+    isRevisedRequired: sub.isRevisedRequired,
+    revisionDeadline: sub.revisionDeadline,
+    gradedBy: sub.gradedBy,
+    gradedByName: sub.gradedByUser?.fullName,
+    createdAt: sub.createdAt,
+    updatedAt: sub.updatedAt,
   }));
 };
 
@@ -1011,6 +1130,11 @@ export const getMentorSubmissionDetailService = async ({
           email: true,
         },
       },
+      gradedByUser: {
+        select: {
+          fullName: true,
+        },
+      },
     },
   });
 
@@ -1018,7 +1142,7 @@ export const getMentorSubmissionDetailService = async ({
     throw new Error("Submission not found");
   }
 
-  // Pastikan mentor memiliki akses ke mentoring service dari project ini
+  // cek akses mentor
   const mentorServiceAccess = await prisma.mentoringServiceMentor.findFirst({
     where: {
       mentorProfileId,
@@ -1033,12 +1157,26 @@ export const getMentorSubmissionDetailService = async ({
   return {
     id: submission.id,
     projectId: submission.projectId,
-    submissionDate: submission.submissionDate,
+    title: submission.title,
     filePaths: submission.filePaths,
-    score: submission.Score,
-    isReviewed: submission.isReviewed,
+    projectLink: submission.projectLink,
+    submissionDate: submission.submissionDate,
     plagiarismScore: submission.plagiarismScore,
+    score: submission.score,
+    briefScore: submission.briefScore,
+    technicalScore: submission.technicalScore,
+    creativityScore: submission.creativityScore,
+    completenessScore: submission.completenessScore,
     mentorFeedback: submission.mentorFeedback,
+    mentorSuggestion: submission.mentorSuggestion,
+    isReviewed: submission.isReviewed,
+    reviewStatus: submission.reviewStatus,
+    isRevisedRequired: submission.isRevisedRequired,
+    revisionDeadline: submission.revisionDeadline,
+    gradedBy: submission.gradedBy,
+    gradedByName: submission.gradedByUser?.fullName,
+    createdAt: submission.createdAt,
+    updatedAt: submission.updatedAt,
     mentee: {
       name: submission.user?.fullName,
       email: submission.user?.email,
@@ -1091,6 +1229,7 @@ export const getMenteeSubmissionsService = async ({
     },
     include: {
       project: { select: { title: true } },
+      gradedByUser: { select: { id: true, fullName: true, email: true } },
     },
     orderBy: {
       submissionDate: "desc",
@@ -1105,10 +1244,31 @@ export const getMenteeSubmissionsService = async ({
     data: submissions.map((sub) => ({
       id: sub.id,
       projectTitle: sub.project.title,
+      title: sub.title,
+      filePaths: sub.filePaths,
+      projectLink: sub.projectLink,
       submissionDate: sub.submissionDate,
-      score: sub.Score,
-      isReviewed: sub.isReviewed,
       plagiarismScore: sub.plagiarismScore,
+      score: sub.score,
+      briefScore: sub.briefScore,
+      technicalScore: sub.technicalScore,
+      creativityScore: sub.creativityScore,
+      completenessScore: sub.completenessScore,
+      mentorFeedback: sub.mentorFeedback,
+      mentorSuggestion: sub.mentorSuggestion,
+      isReviewed: sub.isReviewed,
+      reviewStatus: sub.reviewStatus,
+      isRevisedRequired: sub.isRevisedRequired,
+      revisionDeadline: sub.revisionDeadline,
+      gradedBy: sub.gradedByUser
+        ? {
+            id: sub.gradedByUser.id,
+            fullName: sub.gradedByUser.fullName,
+            email: sub.gradedByUser.email,
+          }
+        : null,
+      createdAt: sub.createdAt,
+      updatedAt: sub.updatedAt,
     })),
     total,
     page,
@@ -1131,9 +1291,8 @@ export const getMenteeSubmissionDetailService = async ({
       menteeId, // hanya submission milik mentee tsb
     },
     include: {
-      project: {
-        select: { title: true },
-      },
+      project: { select: { title: true } },
+      gradedByUser: { select: { id: true, fullName: true, email: true } },
     },
   });
 
@@ -1144,11 +1303,30 @@ export const getMenteeSubmissionDetailService = async ({
   return {
     id: submission.id,
     projectTitle: submission.project.title,
-    submissionDate: submission.submissionDate,
+    title: submission.title,
     filePaths: submission.filePaths,
+    projectLink: submission.projectLink,
+    submissionDate: submission.submissionDate,
     plagiarismScore: submission.plagiarismScore,
-    score: submission.Score,
-    isReviewed: submission.isReviewed,
+    score: submission.score,
+    briefScore: submission.briefScore,
+    technicalScore: submission.technicalScore,
+    creativityScore: submission.creativityScore,
+    completenessScore: submission.completenessScore,
     mentorFeedback: submission.mentorFeedback,
+    mentorSuggestion: submission.mentorSuggestion,
+    isReviewed: submission.isReviewed,
+    reviewStatus: submission.reviewStatus,
+    isRevisedRequired: submission.isRevisedRequired,
+    revisionDeadline: submission.revisionDeadline,
+    gradedBy: submission.gradedByUser
+      ? {
+          id: submission.gradedByUser.id,
+          fullName: submission.gradedByUser.fullName,
+          email: submission.gradedByUser.email,
+        }
+      : null,
+    createdAt: submission.createdAt,
+    updatedAt: submission.updatedAt,
   };
 };
