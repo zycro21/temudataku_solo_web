@@ -5,7 +5,12 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import axios from "axios";
 
-type EventType = "mentoring" | "shortclass" | "bootcamp";
+type EventType =
+  | "one-on-one"
+  | "group"
+  | "bootcamp"
+  | "shortclass"
+  | "live class";
 
 interface Mentee {
   name: string;
@@ -29,8 +34,8 @@ interface Event {
 interface FlattenedEvent extends Event {
   id: string;
   date: string;
-  startTime: string;
-  endTime: string;
+  startTime: string; // pakai format "HH.mm"
+  endTime: string; // pakai format "HH.mm"
 }
 
 export default function DayEventsSectionMentor() {
@@ -40,13 +45,13 @@ export default function DayEventsSectionMentor() {
   );
   const [filter, setFilter] = useState<"today" | "week" | "month">("today");
   const [activeSessions, setActiveSessions] = useState<string[]>([]);
-  const [events, setEvents] = useState<Record<string, Event[]>>({});
+  const [events, setEvents] = useState<Record<string, FlattenedEvent[]>>({});
   const [loading, setLoading] = useState(true);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Ambil data dari API
+  // Ambil data list event
   useEffect(() => {
     const fetchEvents = async () => {
       try {
@@ -57,19 +62,27 @@ export default function DayEventsSectionMentor() {
         );
 
         const sessions = res.data;
-
-        const mapped: Record<string, Event[]> = {};
+        const mapped: Record<string, FlattenedEvent[]> = {};
 
         sessions.forEach((s: any) => {
-          // parse date dd-mm-yyyy -> yyyy-mm-dd
           const [day, month, year] = s.date.split("-");
           const dateKey = `${year}-${month}-${day}`;
 
           const start = new Date(s.startTime);
           const end = new Date(s.endTime);
 
-          const ev: Event = {
-            type: "mentoring",
+          const ev: FlattenedEvent = {
+            id: s.id,
+            date: s.date,
+            type: s.serviceType,
+            startTime: `${start.getHours().toString().padStart(2, "0")}.${start
+              .getMinutes()
+              .toString()
+              .padStart(2, "0")}`,
+            endTime: `${end.getHours().toString().padStart(2, "0")}.${end
+              .getMinutes()
+              .toString()
+              .padStart(2, "0")}`,
             time: `${start.getHours().toString().padStart(2, "0")}.${start
               .getMinutes()
               .toString()
@@ -100,27 +113,14 @@ export default function DayEventsSectionMentor() {
     fetchEvents();
   }, []);
 
-  // Flatten events
+  // Flatten semua events
   const allEvents: FlattenedEvent[] = Object.entries(events).flatMap(
     ([date, dayEvents]) =>
-      dayEvents.map((e, idx) => {
-        const [startTime, endTime] = e.time.split("-");
-        const typeLabel =
-          e.type === "mentoring"
-            ? "Mentoring"
-            : e.type === "shortclass"
-            ? "Shortclass"
-            : "Bootcamp";
-
-        return {
-          ...e,
-          id: `${date}-${e.type}-${startTime}-${endTime}-${idx}`,
-          title: e.title?.trim() ? e.title : `(${typeLabel})`,
-          date,
-          startTime,
-          endTime,
-        };
-      })
+      dayEvents.map((e) => ({
+        ...e,
+        title: e.title?.trim() ? e.title : `(${e.type})`,
+        date, // pastikan konsisten pakai key
+      }))
   );
 
   // Filter
@@ -153,7 +153,7 @@ export default function DayEventsSectionMentor() {
     );
     const pastEvents = filteredEvents.filter((e) => new Date(e.date) < today);
 
-    const sortByDateTime = (arr: typeof filteredEvents) =>
+    const sortByDateTime = (arr: FlattenedEvent[]) =>
       arr.sort((a, b) => {
         const da = new Date(`${a.date}T${a.startTime.replace(".", ":")}`);
         const db = new Date(`${b.date}T${b.startTime.replace(".", ":")}`);
@@ -171,7 +171,7 @@ export default function DayEventsSectionMentor() {
     new Map(sortedEvents.map((e) => [e.id, e])).values()
   );
 
-  // Helper waktu relatif
+  // Helper label waktu relatif
   const getRelativeLabel = (date: string) => {
     const eventDate = new Date(date);
     eventDate.setHours(0, 0, 0, 0);
@@ -216,7 +216,7 @@ export default function DayEventsSectionMentor() {
   };
 
   // Status tombol
-  const getButtonState = (event: any) => {
+  const getButtonState = (event: FlattenedEvent) => {
     const [startHour, startMin] = event.startTime.split(".").map(Number);
     const [endHour, endMin] = event.endTime.split(".").map(Number);
 
@@ -257,7 +257,78 @@ export default function DayEventsSectionMentor() {
     setActiveSessions((prev) => [...prev, id]);
   };
 
-  // tampilkan loading screen
+  const normalizeType = (rawType: string): EventType => {
+    switch (rawType.toLowerCase()) {
+      case "one-on-one":
+        return "one-on-one";
+      case "group":
+        return "group";
+      case "bootcamp":
+        return "bootcamp";
+      case "shortclass":
+        return "shortclass";
+      case "live_class":
+        return "live class";
+      default:
+        return "bootcamp";
+    }
+  };
+
+  // Fetch detail
+  const handleOpenDetail = async (sessionId: string) => {
+    try {
+      setDetailOpen(true);
+
+      const res = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentoringSession/mentor/mentoring-sessions/${sessionId}`,
+        { withCredentials: true }
+      );
+
+      const s = res.data;
+
+      const start = new Date(s.startTime);
+      const end = new Date(s.endTime);
+
+      const mappedEvent: FlattenedEvent = {
+        id: s.id,
+        date: s.date,
+        startTime: `${start.getHours().toString().padStart(2, "0")}.${start
+          .getMinutes()
+          .toString()
+          .padStart(2, "0")}`,
+        endTime: `${end.getHours().toString().padStart(2, "0")}.${end
+          .getMinutes()
+          .toString()
+          .padStart(2, "0")}`,
+        type: normalizeType(s.service.serviceType),
+        time: `${start.getHours().toString().padStart(2, "0")}.${start
+          .getMinutes()
+          .toString()
+          .padStart(2, "0")}-${end.getHours().toString().padStart(2, "0")}.${end
+          .getMinutes()
+          .toString()
+          .padStart(2, "0")}`,
+        title: s.service.serviceName || "(Mentoring)",
+        description: s.service.description || "",
+        mentees: s.service.bookings?.map((b: any) => ({
+          name: b.menteeName,
+          email: b.menteeEmail,
+          avatar: "",
+        })),
+        material: s.service.bookings?.[0]?.material || s.material || "",
+        notes: s.service.bookings?.[0]?.specialRequests || "-",
+        zoomLink: s.meetingLink || "",
+        meetingId: s.meetingId || "",
+        passcode: s.passcode || "",
+      };
+
+      setSelectedEvent(mappedEvent);
+    } catch (err) {
+      console.error("Gagal fetch detail sesi:", err);
+    }
+  };
+
+  // tampilkan loading
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow-sm p-4">
@@ -363,10 +434,7 @@ export default function DayEventsSectionMentor() {
 
                     <button
                       className="border border-emerald-500 text-emerald-500 px-4 py-2 rounded-md text-sm font-medium hover:bg-emerald-50"
-                      onClick={() => {
-                        setSelectedEvent(event);
-                        setDetailOpen(true);
-                      }}
+                      onClick={() => handleOpenDetail(event.id)}
                     >
                       Lihat Detail
                     </button>
