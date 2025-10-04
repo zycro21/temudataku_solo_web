@@ -52,11 +52,12 @@ export default function MentorStatCards() {
   useEffect(() => {
     const fetchProjectStats = async () => {
       try {
-        // ambil total proyek
+        // ambil total proyek mentor
         const resProjects = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/project/mentor/projects?page=1&limit=1000`,
           { withCredentials: true }
         );
+        const projects = resProjects.data.data;
         const totalProjects = resProjects.data.pagination.total;
 
         // ambil total mentee unik
@@ -66,7 +67,25 @@ export default function MentorStatCards() {
         );
         const totalMentees = resMentees.data.totalUniqueMentees;
 
-        // update state card Jumlah Proyek
+        // ambil submissions semua project
+        let reviewed = 0,
+          pending = 0,
+          revisionRequired = 0;
+
+        for (const project of projects) {
+          const resSubs = await axios.get(
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/project/mentorsProjects/${project.id}/submissions`,
+            { withCredentials: true }
+          );
+
+          resSubs.data.data.forEach((sub: any) => {
+            if (sub.reviewStatus === "REVIEWED") reviewed++;
+            if (sub.reviewStatus === "PENDING") pending++;
+            if (sub.reviewStatus === "REVISION_REQUIRED") revisionRequired++;
+          });
+        }
+
+        // update state semua card
         setStats((prev) =>
           prev.map((item) =>
             item.title === "Jumlah Proyek"
@@ -76,17 +95,17 @@ export default function MentorStatCards() {
                   change: `dari ${totalMentees} Peserta`,
                 }
               : item.title === "Sudah Ditinjau"
-              ? { ...item, value: 0 } // TODO: nanti integrasi endpoint reviewed
+              ? { ...item, value: reviewed }
               : item.title === "Belum Ditinjau"
-              ? { ...item, value: 0 } // TODO: nanti integrasi endpoint unreviewed
+              ? { ...item, value: pending }
               : item.title === "Perlu Revisi"
-              ? { ...item, value: 0 } // TODO: nanti integrasi endpoint revisions
+              ? { ...item, value: revisionRequired }
               : item
           )
         );
       } catch (err) {
         console.error("Gagal ambil statistik proyek mentor:", err);
-        // fallback: kalau gagal ambil data
+        // fallback jika gagal fetch
         setStats((prev) =>
           prev.map((item) =>
             item.title === "Jumlah Proyek"

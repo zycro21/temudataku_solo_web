@@ -381,7 +381,7 @@ export const getMentoringSessionById = async (id: string) => {
           filePaths: true,
           submissionDate: true,
           plagiarismScore: true,
-          Score: true,
+          score: true,
           user: {
             select: {
               id: true,
@@ -731,7 +731,7 @@ export const exportMentoringSessions = async (format: "xlsx" | "csv") => {
           filePaths: true,
           submissionDate: true,
           plagiarismScore: true,
-          Score: true,
+          score: true,
           mentorFeedback: true,
           isReviewed: true,
           createdAt: true,
@@ -790,7 +790,7 @@ export const exportMentoringSessions = async (format: "xlsx" | "csv") => {
         submissionDate: submission.submissionDate,
         filePath: submission.filePaths,
         plagiarismScore: submission.plagiarismScore?.toNumber() ?? null,
-        score: submission.Score?.toNumber() ?? null,
+        score: submission.score?.toNumber() ?? null,
         mentorFeedback: submission.mentorFeedback,
         isReviewed: submission.isReviewed,
 
@@ -865,7 +865,7 @@ export const getOwnMentorSessions = async (mentorProfileId: string) => {
       },
       projectSubmissions: {
         select: {
-          Score: true,
+          score: true,
         },
       },
     },
@@ -882,7 +882,7 @@ export const getOwnMentorSessions = async (mentorProfileId: string) => {
 
     const averageProjectScore = session.projectSubmissions.length
       ? session.projectSubmissions.reduce(
-          (sum, ps) => sum + (ps.Score?.toNumber() || 0),
+          (sum, ps) => sum + (ps.score?.toNumber() || 0),
           0
         ) / session.projectSubmissions.length
       : null;
@@ -969,7 +969,7 @@ export const getMentorSessionDetail = async (
       },
       projectSubmissions: {
         select: {
-          Score: true,
+          score: true,
         },
       },
     },
@@ -984,7 +984,7 @@ export const getMentorSessionDetail = async (
 
   const averageProjectScore = session.projectSubmissions.length
     ? session.projectSubmissions.reduce(
-        (sum, ps) => sum + (ps.Score?.toNumber() || 0),
+        (sum, ps) => sum + (ps.score?.toNumber() || 0),
         0
       ) / session.projectSubmissions.length
     : null;
