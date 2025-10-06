@@ -60,7 +60,10 @@ export default function ScheduleDashboardMentorPage() {
 
               {/* Table Section */}
               <div className="mb-8">
-                <ProjectTable searchQuery={searchQuery} statusFilter={statusFilter} />
+                <ProjectTable
+                  searchQuery={searchQuery}
+                  statusFilter={statusFilter}
+                />
               </div>
             </div>
           </div>

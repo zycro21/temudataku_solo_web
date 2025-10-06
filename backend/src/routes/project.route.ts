@@ -20,6 +20,7 @@ import {
   getMentorSubmissionDetailSchema,
   getMenteeSubmissionsSchema,
   getMenteeSubmissionDetailSchema,
+  getMentorServiceSubmissionListSchema,
 } from "../validations/project.validation";
 import { validate } from "../middlewares/validate";
 import { authenticate } from "../middlewares/authenticate";
@@ -2130,6 +2131,113 @@ router.get(
   authorizeRoles("mentor"),
   validate(getMentorProjectSubmissionListSchema),
   ProjectController.getMentorProjectSubmissions
+);
+
+/**
+ * @swagger
+ * /api/project/mentor-services/{serviceId}/submissions:
+ *   get:
+ *     summary: Submissions per mentoring service (mentor)
+ *     tags: [Project]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: serviceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID mentoring service yang ingin diambil daftar submissions-nya
+ *     responses:
+ *       200:
+ *         description: Daftar submission mentor untuk service terkait
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id: { type: string, example: "subm-uuid-123" }
+ *                       menteeName: { type: string, example: "Dimas Hermawan" }
+ *                       menteeEmail: { type: string, example: "dimas@example.com" }
+ *                       title: { type: string, example: "Final Project Submission" }
+ *                       filePaths:
+ *                         type: array
+ *                         items:
+ *                           type: string
+ *                         example: ["uploads/task1.pdf", "uploads/code.zip"]
+ *                       projectLink: { type: string, example: "https://github.com/dimas/project" }
+ *                       submissionDate: { type: string, format: date-time, example: "2025-07-01T08:00:00.000Z" }
+ *                       plagiarismScore: { type: number, example: 5 }
+ *                       score: { type: number, example: 90 }
+ *                       briefScore: { type: string, example: "85" }
+ *                       technicalScore: { type: string, example: "90" }
+ *                       creativityScore: { type: string, example: "80" }
+ *                       completenessScore: { type: string, example: "95" }
+ *                       mentorFeedback: { type: string, example: "Good work overall" }
+ *                       mentorSuggestion: { type: string, example: "Improve documentation" }
+ *                       isReviewed: { type: boolean, example: true }
+ *                       reviewStatus: { type: string, enum: [PENDING, REVIEWED, REVISION_REQUIRED], example: "REVIEWED" }
+ *                       isRevisedRequired: { type: boolean, example: false }
+ *                       revisionDeadline: { type: string, format: date-time, example: "2025-07-15T08:00:00.000Z" }
+ *                       gradedBy: { type: string, example: "mentor-uuid-123" }
+ *                       gradedByName: { type: string, example: "Mentor Ahmad" }
+ *                       createdAt: { type: string, format: date-time, example: "2025-07-01T08:00:00.000Z" }
+ *                       updatedAt: { type: string, format: date-time, example: "2025-07-02T08:00:00.000Z" }
+ *       400:
+ *         description: Mentor profile ID tidak valid
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message: { type: string, example: "Mentor profile ID is required" }
+ *       403:
+ *         description: Mentor tidak memiliki akses ke service ini
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message: { type: string, example: "You are not authorized to access this service's submissions" }
+ *       404:
+ *         description: Mentor profile tidak ditemukan
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message: { type: string, example: "Mentor profile not found" }
+ *       401:
+ *         description: Unauthorized – Token tidak dikirimkan
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message: { type: string, example: "Unauthorized" }
+ *       500:
+ *         description: Terjadi kesalahan internal server
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message: { type: string, example: "Internal server error" }
+ */
+router.get(
+  "/mentor-services/:serviceId/submissions",
+  authenticate,
+  authorizeRoles("mentor"),
+  validate(getMentorServiceSubmissionListSchema),
+  ProjectController.getMentorServiceSubmissions
 );
 
 /**

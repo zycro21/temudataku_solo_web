@@ -9,15 +9,59 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { ChevronRight } from "lucide-react";
+import { useEffect, useState } from "react";
+import axios from "axios";
+
+// Helper untuk cek apakah tanggal ada di minggu ini
+function isThisWeek(date: Date) {
+  const localDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
+
+  const now = new Date();
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  startOfWeek.setHours(0, 0, 0, 0);
+
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 6);
+  endOfWeek.setHours(23, 59, 59, 999);
+
+  return localDate >= startOfWeek && localDate <= endOfWeek;
+}
 
 export default function MentorStatCards() {
+  const [reportCount, setReportCount] = useState<number>(0);
+  const [reportChange, setReportChange] = useState<number>(0);
+
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentorReports/mentor/reports?page=1&limit=1000`,
+          { withCredentials: true }
+        );
+
+        const { data, pagination } = res.data;
+        setReportCount(pagination?.total || 0);
+
+        const newThisWeek = data.filter((r: any) =>
+          isThisWeek(new Date(r.createdAt))
+        );
+        setReportChange(newThisWeek.length);
+      } catch (error) {
+        console.error("Error fetching reports:", error);
+      }
+    };
+
+    fetchReports();
+  }, []);
+
   const stats = [
     {
       title: "Jumlah Report",
-      value: 32,
-      change: "+3 Minggu",
+      value: reportCount,
+      change: `+${reportChange} Minggu Ini`,
       image: "/assets/dashboard/mentor/laporan.svg",
-      link: "/dashboard/mentor/schedule",
+      link: "/dashboard/mentor/report",
     },
     {
       title: "Report Selesai",
@@ -39,12 +83,11 @@ export default function MentorStatCards() {
     },
   ];
 
-  // fungsi untuk menentukan warna value
   const getValueClass = (title: string) => {
     if (title === "Report Selesai") return "text-green-500";
     if (title === "Report Belum Lengkap") return "text-yellow-500";
     if (title === "Report Belum Diisi") return "text-red-500";
-    return "text-gray-900"; // default
+    return "text-gray-900";
   };
 
   return (
@@ -86,7 +129,6 @@ export default function MentorStatCards() {
                 {item.value}
               </h3>
 
-              {/* tampilkan change hanya untuk Jumlah Report */}
               {item.title === "Jumlah Report" && item.change && (
                 <span className="inline-block text-sm font-medium text-emerald-700 bg-green-200 px-3 py-1 rounded-full">
                   {item.change}

@@ -15,19 +15,18 @@ import axios from "axios";
 
 // Helper: cek apakah date masuk minggu berjalan
 function isThisWeek(date: Date) {
-  const now = new Date();
+  const localDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
 
-  // awal minggu (Senin)
+  const now = new Date();
   const startOfWeek = new Date(now);
-  startOfWeek.setDate(now.getDate() - now.getDay() + 1);
+  startOfWeek.setDate(now.getDate() - ((now.getDay() + 6) % 7));
   startOfWeek.setHours(0, 0, 0, 0);
 
-  // akhir minggu (Minggu)
   const endOfWeek = new Date(startOfWeek);
   endOfWeek.setDate(startOfWeek.getDate() + 6);
   endOfWeek.setHours(23, 59, 59, 999);
 
-  return date >= startOfWeek && date <= endOfWeek;
+  return localDate >= startOfWeek && localDate <= endOfWeek;
 }
 
 export default function MentorStatCards() {
@@ -47,7 +46,7 @@ export default function MentorStatCards() {
     const fetchSessions = async () => {
       try {
         const res = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentoringSession/mentor/own-mentoring-sessions?page=1&limit=1000`,
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentoringSession/mentor/own-mentoring-sessions`,
           { withCredentials: true }
         );
 

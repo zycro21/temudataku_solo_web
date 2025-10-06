@@ -14,19 +14,18 @@ import axios from "axios";
 
 // Helper: cek apakah date masuk minggu berjalan
 function isThisWeek(date: Date) {
-  const now = new Date();
+  const localDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
 
-  // awal minggu (Senin)
+  const now = new Date();
   const startOfWeek = new Date(now);
-  startOfWeek.setDate(now.getDate() - now.getDay() + 1);
+  startOfWeek.setDate(now.getDate() - ((now.getDay() + 6) % 7)); // Senin
   startOfWeek.setHours(0, 0, 0, 0);
 
-  // akhir minggu (Minggu)
   const endOfWeek = new Date(startOfWeek);
   endOfWeek.setDate(startOfWeek.getDate() + 6);
   endOfWeek.setHours(23, 59, 59, 999);
 
-  return date >= startOfWeek && date <= endOfWeek;
+  return localDate >= startOfWeek && localDate <= endOfWeek;
 }
 
 export default function MentorStatCards() {

@@ -889,6 +889,7 @@ export const getOwnMentorSessions = async (mentorProfileId: string) => {
 
     return {
       id: session.id,
+      serviceId: session.serviceId,
       serviceName: session.mentoringService.serviceName,
       serviceType: session.mentoringService.serviceType,
       date: session.date,

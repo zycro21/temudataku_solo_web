@@ -474,6 +474,29 @@ export const getMentorProjectSubmissions = async (
   }
 };
 
+export const getMentorServiceSubmissions = async (
+  req: AuthenticatedRequestProject,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const serviceId = req.params.serviceId;
+    const mentorProfileId = req.user?.mentorProfileId;
+
+    const submissions = await ProjectService.getMentorServiceSubmissionsService(
+      {
+        serviceId,
+        mentorProfileId,
+      }
+    );
+
+    res.status(200).json({ success: true, data: submissions });
+    return;
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const getMentorSubmissionDetail = async (
   req: AuthenticatedRequestProject,
   res: Response,

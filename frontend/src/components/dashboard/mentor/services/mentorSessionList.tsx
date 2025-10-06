@@ -1,19 +1,21 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import Image from "next/image";
-import { Button } from "@/components/ui/button"; // gunakan Button custom
+import { Button } from "@/components/ui/button";
+import axios from "axios";
 
 interface Session {
-  id: number;
+  id: string;
+  serviceId: string;
   status: "Selesai" | "Belum Lengkap" | "Terjadwal";
   program: string;
   title: string;
   date: string;
   time: string;
-  participants: number;
+  participants: number | string;
 }
 
 interface MentorSessionListProps {
@@ -22,6 +24,42 @@ interface MentorSessionListProps {
   programFilter: string;
 }
 
+// Mapping status API -> UI
+const mapStatus = (
+  status: string
+): "Selesai" | "Belum Lengkap" | "Terjadwal" | null => {
+  switch (status) {
+    case "scheduled":
+      return "Terjadwal";
+    case "ongoing":
+      return "Belum Lengkap";
+    case "completed":
+      return "Selesai";
+    case "cancelled":
+      return null; // skip cancelled
+    default:
+      return null;
+  }
+};
+
+// Mapping program API -> UI
+const mapProgram = (program: string): string => {
+  switch (program) {
+    case "one-on-one":
+      return "Mentoring 1 on 1";
+    case "group":
+      return "Mentoring Group";
+    case "bootcamp":
+      return "Bootcamp";
+    case "shortclass":
+      return "Short Class";
+    case "live class":
+      return "Live Class";
+    default:
+      return "-";
+  }
+};
+
 export default function MentorSessionList({
   searchQuery,
   statusFilter,
@@ -29,119 +67,69 @@ export default function MentorSessionList({
 }: MentorSessionListProps) {
   const router = useRouter();
 
-  const sessions: Session[] = [
-    {
-      id: 1,
-      status: "Terjadwal",
-      program: "Mentoring Group",
-      title: "Data Science",
-      date: "Senin, 1 Mei 2025",
-      time: "19.00 - 19.45 WIB",
-      participants: 4,
-    },
-    {
-      id: 2,
-      status: "Belum Lengkap",
-      program: "Mentoring Group",
-      title: "Data Science",
-      date: "Selasa, 2 Mei 2025",
-      time: "18.00 - 18.45 WIB",
-      participants: 3,
-    },
-    {
-      id: 3,
-      status: "Selesai",
-      program: "Bootcamp",
-      title: "Data Analyst",
-      date: "Rabu, 3 Mei 2025",
-      time: "20.00 - 20.45 WIB",
-      participants: 5,
-    },
-    {
-      id: 4,
-      status: "Selesai",
-      program: "Mentoring Group",
-      title: "Web Development",
-      date: "Kamis, 4 Mei 2025",
-      time: "19.00 - 19.45 WIB",
-      participants: 6,
-    },
-    {
-      id: 5,
-      status: "Terjadwal",
-      program: "Bootcamp",
-      title: "UI/UX Design",
-      date: "Jumat, 5 Mei 2025",
-      time: "17.00 - 17.45 WIB",
-      participants: 8,
-    },
-    {
-      id: 6,
-      status: "Belum Lengkap",
-      program: "Mentoring Group",
-      title: "Machine Learning",
-      date: "Sabtu, 6 Mei 2025",
-      time: "16.00 - 16.45 WIB",
-      participants: 2,
-    },
-    {
-      id: 7,
-      status: "Selesai",
-      program: "Bootcamp",
-      title: "Cloud Computing",
-      date: "Minggu, 7 Mei 2025",
-      time: "15.00 - 15.45 WIB",
-      participants: 10,
-    },
-    {
-      id: 8,
-      status: "Terjadwal",
-      program: "Mentoring Group",
-      title: "Cyber Security",
-      date: "Senin, 8 Mei 2025",
-      time: "19.30 - 20.15 WIB",
-      participants: 7,
-    },
-    {
-      id: 9,
-      status: "Belum Lengkap",
-      program: "Bootcamp",
-      title: "Mobile Development",
-      date: "Selasa, 9 Mei 2025",
-      time: "18.30 - 19.15 WIB",
-      participants: 3,
-    },
-    {
-      id: 10,
-      status: "Selesai",
-      program: "Mentoring Group",
-      title: "Digital Marketing",
-      date: "Rabu, 10 Mei 2025",
-      time: "20.30 - 21.15 WIB",
-      participants: 9,
-    },
-    {
-      id: 11,
-      status: "Terjadwal",
-      program: "Bootcamp",
-      title: "DevOps Fundamentals",
-      date: "Kamis, 11 Mei 2025",
-      time: "19.00 - 19.45 WIB",
-      participants: 4,
-    },
-    {
-      id: 12,
-      status: "Belum Lengkap",
-      program: "Mentoring Group",
-      title: "Product Management",
-      date: "Jumat, 12 Mei 2025",
-      time: "17.30 - 18.15 WIB",
-      participants: 6,
-    },
-  ];
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSessions = async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentoringSession/mentor/own-mentoring-sessions`,
+          {
+            // params: { page: 1, limit: 1000 },
+            withCredentials: true,
+          }
+        );
+
+        const mapped: Session[] = res.data
+          .map((s: any) => {
+            const mappedStatus = mapStatus(s.status);
+            if (!mappedStatus) return null; // skip cancelled
+
+            const [day, month, year] = s.date.split("-");
+            const parsedDate = new Date(+year, +month - 1, +day);
+            const date = parsedDate.toLocaleDateString("id-ID", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            });
+
+            const start = new Date(s.startTime).toLocaleTimeString("id-ID", {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+            const end = new Date(s.endTime).toLocaleTimeString("id-ID", {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+
+            return {
+              id: s.id,
+              serviceId: s.serviceId, // <── tambahkan ini
+              status: mappedStatus,
+              program: mapProgram(s.serviceType),
+              title: s.serviceName || "-",
+              date: date,
+              time: `${start} - ${end} WIB`,
+              participants: "-", // API belum ada jumlah peserta
+            };
+          })
+          .filter(Boolean);
+
+        setSessions(mapped);
+      } catch (err) {
+        console.error("Error fetching sessions:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSessions();
+  }, []);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10); // ⬅ jadikan state
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Filter + sort
   const filteredSessions = useMemo(() => {
@@ -157,7 +145,6 @@ export default function MentorSessionList({
       return matchSearch && matchStatus && matchProgram;
     });
 
-    // Urutkan jika status & program = Semua
     if (statusFilter === "Semua" && programFilter === "Semua") {
       const order = { Terjadwal: 1, "Belum Lengkap": 2, Selesai: 3 };
       result = result.sort((a, b) => order[a.status] - order[b.status]);
@@ -202,7 +189,11 @@ export default function MentorSessionList({
   return (
     <div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {filteredSessions.length === 0 ? (
+        {loading ? (
+          <div className="col-span-full text-center text-gray-600 py-10">
+            <p>Loading...</p>
+          </div>
+        ) : filteredSessions.length === 0 ? (
           <div className="col-span-full text-center text-gray-600 py-10">
             {searchQuery ? (
               <p>
@@ -230,7 +221,6 @@ export default function MentorSessionList({
               className="p-6 pb-3 flex flex-col justify-between border rounded-lg text-base"
             >
               <CardContent className="p-0 mb-4 flex justify-between items-center">
-                {/* Left content */}
                 <div>
                   <div
                     className={`flex items-center mb-3 ${getStatusColor(
@@ -285,9 +275,7 @@ export default function MentorSessionList({
                   </div>
                 </div>
 
-                {/* Right content: action buttons */}
                 <CardFooter className="flex flex-col gap-3 p-0 items-end justify-center">
-                  {/* Detail Sesi */}
                   <Button
                     variant="outline"
                     className="w-36 border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white"
@@ -298,7 +286,9 @@ export default function MentorSessionList({
                   <Button
                     variant="default"
                     onClick={() =>
-                      router.push("/dashboard/mentor/services/project")
+                      router.push(
+                        `/dashboard/mentor/services/project?serviceId=${s.serviceId}`
+                      )
                     }
                     className="w-36 bg-emerald-500 text-white hover:bg-white hover:text-emerald-600 hover:border hover:border-emerald-500"
                   >
@@ -312,7 +302,7 @@ export default function MentorSessionList({
       </div>
 
       {/* Pagination */}
-      {filteredSessions.length > 0 && (
+      {filteredSessions.length > 0 && !loading && (
         <div className="flex justify-between items-center mt-6 text-sm text-gray-600">
           <p>
             Menampilkan {startIdx + 1} -{" "}
@@ -321,7 +311,6 @@ export default function MentorSessionList({
           </p>
 
           <div className="flex items-center gap-2">
-            {/* Tombol prev */}
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
@@ -330,7 +319,6 @@ export default function MentorSessionList({
               {"<"}
             </button>
 
-            {/* Hitung range halaman */}
             {(() => {
               const pageNumbers: (number | string)[] = [];
               const startPage = Math.max(1, currentPage - 2);
@@ -371,7 +359,6 @@ export default function MentorSessionList({
               );
             })()}
 
-            {/* Tombol next */}
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
@@ -381,7 +368,6 @@ export default function MentorSessionList({
             </button>
           </div>
 
-          {/* Dropdown pilih per halaman */}
           <div className="flex items-center gap-2">
             <span>Tampilkan per halaman</span>
             <select

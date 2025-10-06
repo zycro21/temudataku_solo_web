@@ -116,7 +116,7 @@ export const reviewSubmissionSchema = z.object({
       mentorFeedback: z.string().min(1, "Komentar Mentor wajib diisi"),
       mentorSuggestion: z.string().optional(),
       isRevisedRequired: z.boolean().optional(),
-      revisionDeadline: z.string().datetime().optional(),
+      revisionDeadline: z.string().datetime().nullable().optional(),
       sessionId: z.string().optional(),
     })
     .refine(
@@ -139,7 +139,9 @@ export const getAdminSubmissionListSchema = z.object({
     projectId: z.string().optional(),
     serviceId: z.string().optional(),
     isReviewed: z.enum(["true", "false"]).optional(),
-    sortBy: z.enum(["submissionDate", "createdAt", "score", "plagiarismScore"]).optional(),
+    sortBy: z
+      .enum(["submissionDate", "createdAt", "score", "plagiarismScore"])
+      .optional(),
     sortOrder: z.enum(["asc", "desc"]).optional(),
     page: z.string().optional(),
     limit: z.string().optional(),
@@ -161,6 +163,12 @@ export const exportSubmissionSchema = z.object({
 export const getMentorProjectSubmissionListSchema = z.object({
   params: z.object({
     id: z.string().min(1, "Project ID is required"),
+  }),
+});
+
+export const getMentorServiceSubmissionListSchema = z.object({
+  params: z.object({
+    serviceId: z.string().min(1, "Service ID is required"),
   }),
 });
 

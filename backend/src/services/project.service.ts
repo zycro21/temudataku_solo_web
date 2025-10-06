@@ -1103,6 +1103,144 @@ export const getMentorProjectSubmissionsService = async ({
   }));
 };
 
+export const getMentorServiceSubmissionsService = async ({
+  serviceId,
+  mentorProfileId,
+}: {
+  serviceId: string;
+  mentorProfileId?: string;
+}) => {
+  if (!mentorProfileId) {
+    throw new Error("Mentor profile ID is required");
+  }
+
+  const mentorProfile = await prisma.mentorProfile.findUnique({
+    where: { id: mentorProfileId },
+    include: {
+      mentoringServices: {
+        include: {
+          mentoringService: { select: { id: true } },
+        },
+      },
+    },
+  });
+
+  if (!mentorProfile) {
+    throw new Error("Mentor profile not found");
+  }
+
+  const allowedServiceIds = mentorProfile.mentoringServices.map(
+    (ms) => ms.mentoringService.id
+  );
+
+  if (!allowedServiceIds.includes(serviceId)) {
+    throw new Error(
+      "You are not authorized to access this service's submissions"
+    );
+  }
+
+  const submissions = await prisma.projectSubmission.findMany({
+    where: {
+      project: {
+        serviceId,
+      },
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          profilePicture: true,
+        },
+      },
+      gradedByUser: {
+        select: { fullName: true },
+      },
+      project: {
+        include: {
+          mentoringService: {
+            select: {
+              id: true,
+              serviceName: true,
+              description: true,
+              price: true,
+              serviceType: true,
+              maxParticipants: true,
+              durationDays: true,
+              benefits: true,
+              mechanism: true,
+              syllabusPath: true,
+              toolsUsed: true,
+              targetAudience: true,
+              schedule: true,
+              alumniPortfolio: true,
+              isActive: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: { submissionDate: "desc" },
+  });
+
+  return submissions.map((sub) => ({
+    id: sub.id,
+    menteeId: sub.user?.id,
+    menteeName: sub.user?.fullName,
+    menteeEmail: sub.user?.email,
+    menteePhoto: sub.user?.profilePicture,
+    projectId: sub.project?.id,
+    projectTitle: sub.project?.title,
+    projectDescription: sub.project?.description,
+    projectCreatedAt: sub.project?.createdAt,
+    projectUpdatedAt: sub.project?.updatedAt,
+    mentoringService: sub.project?.mentoringService
+      ? {
+          id: sub.project.mentoringService.id,
+          serviceName: sub.project.mentoringService.serviceName,
+          description: sub.project.mentoringService.description,
+          price: sub.project.mentoringService.price,
+          serviceType: sub.project.mentoringService.serviceType,
+          maxParticipants: sub.project.mentoringService.maxParticipants,
+          durationDays: sub.project.mentoringService.durationDays,
+          benefits: sub.project.mentoringService.benefits,
+          mechanism: sub.project.mentoringService.mechanism,
+          syllabusPath: sub.project.mentoringService.syllabusPath,
+          toolsUsed: sub.project.mentoringService.toolsUsed,
+          targetAudience: sub.project.mentoringService.targetAudience,
+          schedule: sub.project.mentoringService.schedule,
+          alumniPortfolio: sub.project.mentoringService.alumniPortfolio,
+          isActive: sub.project.mentoringService.isActive,
+          createdAt: sub.project.mentoringService.createdAt,
+          updatedAt: sub.project.mentoringService.updatedAt,
+        }
+      : null,
+    title: sub.title,
+    filePaths: sub.filePaths,
+    projectLink: sub.projectLink,
+    submissionDate: sub.submissionDate,
+    plagiarismScore: sub.plagiarismScore,
+    score: sub.score,
+    briefScore: sub.briefScore,
+    technicalScore: sub.technicalScore,
+    creativityScore: sub.creativityScore,
+    completenessScore: sub.completenessScore,
+    mentorFeedback: sub.mentorFeedback,
+    mentorSuggestion: sub.mentorSuggestion,
+    isReviewed: sub.isReviewed,
+    reviewStatus: sub.reviewStatus,
+    isRevisedRequired: sub.isRevisedRequired,
+    revisionDeadline: sub.revisionDeadline,
+    gradedBy: sub.gradedBy,
+    gradedByName: sub.gradedByUser?.fullName,
+    createdAt: sub.createdAt,
+    updatedAt: sub.updatedAt,
+  }));
+};
+
 export const getMentorSubmissionDetailService = async ({
   submissionId,
   mentorProfileId,
