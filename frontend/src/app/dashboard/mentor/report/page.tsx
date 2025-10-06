@@ -55,61 +55,6 @@ export default function ReportDashboardMentorPage() {
 
               <section className="mb-6">
                 <ReportList
-                  reports={[
-                    {
-                      id: "1",
-                      program: "Mentoring Group - Data Science",
-                      type: "Mentoring Group",
-                      date: "Senin, 1 Mei 2025",
-                      time: "19.00 - 19.45 WIB",
-                      participants: 4,
-                      status: "Belum Diisi",
-                    },
-                    {
-                      id: "2",
-                      program: "ShortClass - Data Science",
-                      type: "ShortClass",
-                      date: "17 Mei 2025",
-                      time: "19.00 - 19.45 WIB",
-                      participants: 30,
-                      status: "Belum Diisi",
-                    },
-                    {
-                      id: "3",
-                      program: "ShortClass - Data Science",
-                      type: "ShortClass",
-                      date: "17 Mei 2025",
-                      time: "19.00 - 19.45 WIB",
-                      participants: 30,
-                      status: "Belum Lengkap",
-                      reportData: {
-                        understanding: "Cukup Paham",
-                        participation: "Cukup Aktif",
-                        challenges: "Masih kesulitan memahami regresi linier",
-                        questions: "Apa bedanya regresi dan klasifikasi?",
-                        recommendations: "Perbanyak latihan soal",
-                        notes: "Perlu follow up tambahan minggu depan",
-                      },
-                    },
-                    {
-                      id: "4",
-                      program: "Mentoring 1 on 1 - Data Science",
-                      type: "Mentoring 1 on 1",
-                      date: "Senin, 1 Mei 2025",
-                      time: "19.00 - 19.45 WIB",
-                      participants: 1,
-                      status: "Selesai",
-                      reportData: {
-                        understanding: "Sangat Paham",
-                        participation: "Sangat Aktif",
-                        challenges:
-                          "Hanya sedikit kendala di bagian implementasi",
-                        questions: "Bagaimana cara optimasi model?",
-                        recommendations: "Pelajari hyperparameter tuning",
-                        notes: "Sesi berjalan sangat lancar",
-                      },
-                    },
-                  ]}
                   statusFilter={statusFilter}
                   programFilter={programFilter}
                   searchQuery={searchQuery}
