@@ -89,7 +89,7 @@ export default function Navbar() {
           </button>
 
           {learningOpen && (
-            <ul className="absolute left-0 mt-2 w-56 bg-white shadow-lg rounded-lg py-2 z-20">
+            <ul className="absolute left-0 mt-2 w-72 bg-white shadow-lg rounded-lg py-2 z-20">
               <li>
                 <Link
                   href="/programs"

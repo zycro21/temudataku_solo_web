@@ -32,11 +32,10 @@ const tools = [
 ];
 
 export default function ToolsSection() {
-  // Duplicate array to simulate infinite scroll
   const duplicatedTools = [...tools, ...tools];
 
   return (
-    <section className="py-16 bg-white overflow-hidden">
+    <section className="py-16 mb-5 bg-white overflow-hidden">
       <div className="container mx-auto px-8 md:px-[100px]">
         {/* Section Header */}
         <div className="text-center mb-12">
