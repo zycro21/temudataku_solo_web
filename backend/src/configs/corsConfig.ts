@@ -2,7 +2,7 @@ import { CorsOptions } from "cors";
 
 const allowedOrigins = [
   "http://localhost:3000",
-  "https://your-frontend-domain.com",
+  "https://temudataku.com",
   "http://localhost:5001",
   "http://31.97.110.218:3000",
 ];
