@@ -147,7 +147,15 @@ export const getMentorFeedbacks = async (
   next: NextFunction
 ) => {
   try {
-    const { rating, sessionId, sortBy, sortOrder, limit } = req.validatedQuery;
+    const {
+      rating,
+      sessionId,
+      sortBy = "submittedDate",
+      sortOrder = "desc",
+      limit = 10,
+      program,
+    } = req.validatedQuery;
+
     const mentorProfileId = req.user?.mentorProfileId;
 
     if (!mentorProfileId) {
@@ -162,6 +170,7 @@ export const getMentorFeedbacks = async (
       sortBy,
       sortOrder,
       limit,
+      program,
     });
 
     if (result.length === 0) {
@@ -176,6 +185,7 @@ export const getMentorFeedbacks = async (
       message: "Berhasil mengambil feedback untuk mentor",
       data: result,
     });
+    return;
   } catch (error) {
     next(error);
   }

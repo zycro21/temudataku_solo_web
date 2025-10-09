@@ -127,6 +127,7 @@ export default function ReportList({
   const [selectedReport, setSelectedReport] = useState<CombinedReport | null>(
     null
   );
+  const [detailedReport, setDetailedReport] = useState<any | null>(null);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
@@ -323,10 +324,25 @@ export default function ReportList({
     }
     return (
       <button
-        onClick={() => {
-          setSelectedReport(report);
-          setModalType("view");
-          setOpenModal(true);
+        onClick={async () => {
+          try {
+            setSelectedReport(report);
+            setModalType("view");
+            setLoading(true);
+
+            const res = await axios.get(
+              `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentorReports/mentor/reports/${report.reportData?.id}`,
+              { withCredentials: true }
+            );
+
+            setDetailedReport(res.data.data); // simpan hasil detail laporan
+            setOpenModal(true);
+          } catch (err) {
+            console.error(err);
+            toast.error("Gagal memuat detail laporan");
+          } finally {
+            setLoading(false);
+          }
         }}
         className="px-6 py-3 text-base font-medium bg-white text-emerald-600 border border-emerald-600 rounded-lg hover:bg-emerald-50 cursor-pointer"
       >
@@ -496,6 +512,7 @@ export default function ReportList({
           program={selectedReport.program}
           date={selectedReport.date}
           time={selectedReport.time}
+          sessionId={selectedReport.id} // ✅ tambahkan ini
         />
       )}
 
@@ -510,14 +527,21 @@ export default function ReportList({
         />
       )}
 
-      {modalType === "view" && selectedReport && (
+      {modalType === "view" && selectedReport && detailedReport && (
         <ShowMentorReportModal
           open={openModal}
           onClose={() => setOpenModal(false)}
           program={selectedReport.program}
           date={selectedReport.date}
           time={selectedReport.time}
-          reportData={mapReportData(selectedReport.reportData)}
+          reportData={{
+            understanding: detailedReport.understanding,
+            participation: detailedReport.participation,
+            challenges: detailedReport.challenges,
+            questions: detailedReport.commonQuestions,
+            recommendations: detailedReport.nextFocus,
+            notes: detailedReport.additionalNotes,
+          }}
         />
       )}
     </>

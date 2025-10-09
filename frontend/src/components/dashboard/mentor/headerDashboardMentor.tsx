@@ -15,7 +15,7 @@ export default function DashboardHeaderMentor() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  // Fetch user dari /api/auth/me
+  // Fetch user + auto redirect jika token expired
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -27,12 +27,12 @@ export default function DashboardHeaderMentor() {
       } catch (err: any) {
         console.error("Gagal fetch user:", err);
 
-        // kalau token expired → redirect ke login
+        // kalau token expired (401), redirect ke login
         if (err.response?.status === 401) {
           toast.error("Sesi kamu sudah berakhir, silakan login ulang", {
             duration: 5000,
           });
-          router.replace("/");
+          router.replace("/"); // balik ke halaman login
         } else {
           setUser(null);
         }
@@ -61,8 +61,10 @@ export default function DashboardHeaderMentor() {
     setOpen(false);
   };
 
+  // avatar fallback jika tidak ada / default.jpg / default.png
   const avatarUrl =
-    user?.profilePicture && user.profilePicture !== "default.jpg"
+    user?.profilePicture &&
+    !["default.jpg", "default.png"].includes(user.profilePicture)
       ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${user.profilePicture}`
       : "/assets/dashboard/user/avatar.png";
 
@@ -93,7 +95,7 @@ export default function DashboardHeaderMentor() {
           />
         </div>
 
-        {/* Right */}
+        {/* Right Section */}
         <div className="flex items-center gap-6 pr-6">
           {/* Notification */}
           <button className="relative flex items-center justify-center w-12 h-12 rounded-full border border-gray-300 bg-white">
@@ -117,7 +119,7 @@ export default function DashboardHeaderMentor() {
                 alt="User Avatar"
                 width={36}
                 height={36}
-                className="rounded-full"
+                className="rounded-full object-cover"
               />
               <div className="flex flex-col text-left">
                 <span className="text-sm font-medium text-gray-800">

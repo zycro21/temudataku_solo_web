@@ -328,6 +328,7 @@ export const getMentorFeedbacks = async ({
   sortBy = "submittedDate",
   sortOrder = "desc",
   limit = 10,
+  program,
 }: {
   mentorProfileId: string;
   rating?: number;
@@ -335,8 +336,8 @@ export const getMentorFeedbacks = async ({
   sortBy?: "submittedDate" | "rating";
   sortOrder?: "asc" | "desc";
   limit?: number;
+  program?: string;
 }) => {
-  // 1. Cari session-session yang dihandle mentor ini
   const sessionsHandled = await prisma.mentoringSessionMentor.findMany({
     where: { mentorProfileId },
     select: { mentoringSessionId: true },
@@ -344,7 +345,6 @@ export const getMentorFeedbacks = async ({
 
   const handledSessionIds = sessionsHandled.map((s) => s.mentoringSessionId);
 
-  // 2. Ambil feedback dari sesi tersebut
   const feedbacks = await prisma.feedback.findMany({
     where: {
       sessionId: {
@@ -352,10 +352,17 @@ export const getMentorFeedbacks = async ({
         ...(sessionId ? { equals: sessionId } : {}),
       },
       ...(rating ? { rating } : {}),
+      ...(program
+        ? {
+            session: {
+              mentoringService: {
+                serviceName: { contains: program, mode: "insensitive" },
+              },
+            },
+          }
+        : {}),
     },
-    orderBy: {
-      [sortBy]: sortOrder,
-    },
+    orderBy: { [sortBy]: sortOrder },
     take: limit,
     select: {
       id: true,
@@ -370,6 +377,7 @@ export const getMentorFeedbacks = async ({
             select: {
               id: true,
               serviceName: true,
+              serviceType: true,
             },
           },
         },
@@ -378,13 +386,12 @@ export const getMentorFeedbacks = async ({
       user: {
         select: {
           fullName: true,
-          profilePicture: true,
+          profilePicture: true, // ✅ tambahkan foto profil di sini
         },
       },
     },
   });
 
-  // 3. Sembunyikan info user jika feedback-nya anonim
   return feedbacks.map((f) => ({
     id: f.id,
     rating: f.rating,
