@@ -1,5 +1,5 @@
 import { Router } from "express";
-import * as PracticeController from "../controllers/practice.controller";
+import * as PracticeController from "../controllers/practice.controller.js";
 import {
   createPracticeSchema,
   updatePracticeSchema,
@@ -40,15 +40,15 @@ import {
   getAllAdminPracticeReviewsSchema,
   getAdminPracticeReviewByIdSchema,
   exportAdminPracticeReviewsSchema,
-} from "../validations/practice.validation";
-import { validate } from "../middlewares/validate";
-import { authenticate } from "../middlewares/authenticate";
-import { authorizeRoles } from "../middlewares/authorizeRole";
+} from "../validations/practice.validation.js";
+import { validate } from "../middlewares/validate.js";
+import { authenticate } from "../middlewares/authenticate.js";
+import { authorizeRoles } from "../middlewares/authorizeRole.js";
 import {
   handleThumbnailUpload,
   handlePracticeFileUpload,
-} from "../middlewares/uploadImage";
-import { preloadPracticeTitle } from "../middlewares/preloadTitlePractice";
+} from "../middlewares/uploadImage.js";
+import { preloadPracticeTitle } from "../middlewares/preloadTitlePractice.js";
 
 const router = Router();
 

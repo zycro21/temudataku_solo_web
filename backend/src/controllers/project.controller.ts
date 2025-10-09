@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from "express";
-import { AuthenticatedRequestProject } from "../middlewares/authenticate";
+import { AuthenticatedRequestProject } from "../middlewares/authenticate.js";
 import { format } from "date-fns";
 import { HttpError } from "../utils/httpError";
-import * as ProjectService from "../services/project.service";
+import * as ProjectService from "../services/project.service.js";
 import { PrismaClient } from "@prisma/client";
 import path from "path";
 

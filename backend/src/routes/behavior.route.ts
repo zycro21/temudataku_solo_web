@@ -1,15 +1,15 @@
 import { Router } from "express";
-import * as BehaviorController from "../controllers/behavior.controller";
+import * as BehaviorController from "../controllers/behavior.controller.js";
 import {
   createUserBehaviorSchema,
   getAllAdminUserBehaviorsSchema,
   getUserBehaviorByIdSchema,
   deleteUserBehaviorByIdSchema,
   exportUserBehaviorsSchema,
-} from "../validations/behavior.validation";
-import { validate } from "../middlewares/validate";
-import { authenticate } from "../middlewares/authenticate";
-import { authorizeRoles } from "../middlewares/authorizeRole";
+} from "../validations/behavior.validation.js";
+import { validate } from "../middlewares/validate.js";
+import { authenticate } from "../middlewares/authenticate.js";
+import { authorizeRoles } from "../middlewares/authorizeRole.js";
 import {
   handleThumbnailUpload,
   handlePracticeFileUpload,

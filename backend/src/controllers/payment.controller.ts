@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from "express";
-import { AuthenticatedRequestPayment } from "../middlewares/authenticate";
+import { AuthenticatedRequestPayment } from "../middlewares/authenticate.js";
 import { format } from "date-fns";
 import { HttpError } from "../utils/httpError";
-import * as PaymentService from "../services/payment.service";
+import * as PaymentService from "../services/payment.service.js";
 import { PrismaClient, Prisma } from "@prisma/client";
 import path from "path";
 import fs from "fs";

@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from "express";
-import { AuthenticatedRequestFeedback } from "../middlewares/authenticate";
+import { AuthenticatedRequestFeedback } from "../middlewares/authenticate.js";
 import { format } from "date-fns";
 import { HttpError } from "../utils/httpError";
-import * as FeedbackService from "../services/feedback.service";
+import * as FeedbackService from "../services/feedback.service.js";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();

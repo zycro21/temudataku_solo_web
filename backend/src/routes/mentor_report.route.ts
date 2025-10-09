@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { authenticate } from "../middlewares/authenticate";
-import { authorizeRoles } from "../middlewares/authorizeRole";
-import { validate } from "../middlewares/validate";
-import * as MentorReportController from "../controllers/mentor_report.controller";
+import { authenticate } from "../middlewares/authenticate.js";
+import { authorizeRoles } from "../middlewares/authorizeRole.js";
+import { validate } from "../middlewares/validate.js";
+import * as MentorReportController from "../controllers/mentor_report.controller.js";
 import {
   createMentorReportSchema,
   updateMentorReportSchema,
@@ -11,7 +11,7 @@ import {
   exportMentorReportQuerySchema,
   mentorReportSessionIdSchema,
   mentorReportMentorProfileIdSchema,
-} from "../validations/mentor_report.validation";
+} from "../validations/mentor_report.validation.js";
 
 const router = Router();
 

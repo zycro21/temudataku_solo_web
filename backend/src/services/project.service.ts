@@ -4,7 +4,7 @@ import ExcelJS from "exceljs";
 import { format as formatDate, subDays } from "date-fns";
 import { Buffer } from "buffer";
 import path from "path";
-import { comparePlagiarismScore } from "../utils/plagiarism";
+import { comparePlagiarismScore } from "../utils/plagiarism.js";
 
 const prisma = new PrismaClient();
 

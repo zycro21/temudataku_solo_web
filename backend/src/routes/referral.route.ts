@@ -1,5 +1,5 @@
 import { Router } from "express";
-import * as ReferralController from "../controllers/referral.controller";
+import * as ReferralController from "../controllers/referral.controller.js";
 import {
   createReferralCodeSchema,
   getReferralCodesSchema,
@@ -15,10 +15,10 @@ import {
   AllCommissionPaymentsSchema,
   validateUpdateCommissionPaymentStatusSchema,
   exportCommissionPaymentsSchema,
-} from "../validations/referral.validation";
-import { validate } from "../middlewares/validate";
-import { authenticate } from "../middlewares/authenticate";
-import { authorizeRoles } from "../middlewares/authorizeRole";
+} from "../validations/referral.validation.js";
+import { validate } from "../middlewares/validate.js";
+import { authenticate } from "../middlewares/authenticate.js";
+import { authorizeRoles } from "../middlewares/authorizeRole.js";
 
 const router = Router();
 

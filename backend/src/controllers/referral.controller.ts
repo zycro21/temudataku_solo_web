@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from "express";
-import { AuthenticatedRequestReferralCode } from "../middlewares/authenticate";
+import { AuthenticatedRequestReferralCode } from "../middlewares/authenticate.js";
 import { format } from "date-fns";
 import { HttpError } from "../utils/httpError";
-import * as ReferralService from "../services/referral.service";
+import * as ReferralService from "../services/referral.service.js";
 import { PrismaClient, Prisma } from "@prisma/client";
 import path from "path";
 import fs from "fs";

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import * as ProjectController from "../controllers/project.controller";
+import * as ProjectController from "../controllers/project.controller.js";
 import {
   createProjectSchema,
   updateProjectSchema,
@@ -21,11 +21,11 @@ import {
   getMenteeSubmissionsSchema,
   getMenteeSubmissionDetailSchema,
   getMentorServiceSubmissionListSchema,
-} from "../validations/project.validation";
-import { validate } from "../middlewares/validate";
-import { authenticate } from "../middlewares/authenticate";
-import { authorizeRoles } from "../middlewares/authorizeRole";
-import { handleSubmissionUpload } from "../middlewares/uploadImage";
+} from "../validations/project.validation.js";
+import { validate } from "../middlewares/validate.js";
+import { authenticate } from "../middlewares/authenticate.js";
+import { authorizeRoles } from "../middlewares/authorizeRole.js";
+import { handleSubmissionUpload } from "../middlewares/uploadImage.js";
 
 const router = Router();
 

@@ -1,7 +1,7 @@
 import { Router } from "express";
-import * as WithdrawalController from "../controllers/withdrawal.controller";
-import { authenticate } from "../middlewares/authenticate";
-import { authorizeRoles } from "../middlewares/authorizeRole";
+import * as WithdrawalController from "../controllers/withdrawal.controller.js";
+import { authenticate } from "../middlewares/authenticate.js";
+import { authorizeRoles } from "../middlewares/authorizeRole.js";
 import {
   createWithdrawalSchema,
   deleteWithdrawalSchema,
@@ -11,8 +11,8 @@ import {
   updateWithdrawalSchema,
   toggleWithdrawalStatusSchema,
   getAdminWithdrawalsSchema,
-} from "../validations/withdrawal.validation";
-import { validate } from "../middlewares/validate";
+} from "../validations/withdrawal.validation.js";
+import { validate } from "../middlewares/validate.js";
 
 const router = Router();
 

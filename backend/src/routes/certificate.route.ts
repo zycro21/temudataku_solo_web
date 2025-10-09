@@ -1,5 +1,5 @@
 import { Router } from "express";
-import * as CertificateController from "../controllers/certificate.controller";
+import * as CertificateController from "../controllers/certificate.controller.js";
 import {
   generateCertificateSchema,
   getAllCertificatesSchema,
@@ -8,10 +8,10 @@ import {
   getCertificateDetailSchema,
   downloadCertificateSchema,
   exportCertificateSchema,
-} from "../validations/certificate.validation";
-import { validate } from "../middlewares/validate";
-import { authenticate } from "../middlewares/authenticate";
-import { authorizeRoles } from "../middlewares/authorizeRole";
+} from "../validations/certificate.validation.js";
+import { validate } from "../middlewares/validate.js";
+import { authenticate } from "../middlewares/authenticate.js";
+import { authorizeRoles } from "../middlewares/authorizeRole.js";
 
 const router = Router();
 

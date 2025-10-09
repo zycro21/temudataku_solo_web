@@ -1,5 +1,5 @@
 import { Response, NextFunction } from "express";
-import { AuthenticatedRequest } from "./authenticate";
+import { AuthenticatedRequest } from "./authenticate.js";
 
 export const authorizeRoles = (...allowedRoles: string[]) => {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {

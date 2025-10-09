@@ -1,5 +1,5 @@
 import { Router } from "express";
-import * as NotificationController from "../controllers/notification.controller";
+import * as NotificationController from "../controllers/notification.controller.js";
 import {
   createNotificationSchema,
   getAdminNotificationsSchema,
@@ -9,10 +9,10 @@ import {
   exportNotificationSchema,
   readNotificationSchema,
   getAllNotificationsSchema,
-} from "../validations/notification.validation";
-import { validate } from "../middlewares/validate";
-import { authenticate } from "../middlewares/authenticate";
-import { authorizeRoles } from "../middlewares/authorizeRole";
+} from "../validations/notification.validation.js";
+import { validate } from "../middlewares/validate.js";
+import { authenticate } from "../middlewares/authenticate.js";
+import { authorizeRoles } from "../middlewares/authorizeRole.js";
 
 const router = Router();
 

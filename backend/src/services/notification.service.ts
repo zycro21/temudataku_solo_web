@@ -3,8 +3,8 @@ import { Parser } from "json2csv";
 import ExcelJS from "exceljs";
 import { format, parseISO, subDays } from "date-fns";
 import { Buffer } from "buffer";
-import { sendNotificationEmail } from "../utils/sendEmailVerification";
-import { sendPushNotification } from "../utils/pushNotification";
+import { sendNotificationEmail } from "../utils/sendEmailVerification.js";
+import { sendPushNotification } from "../utils/pushNotification.js";
 
 const prisma = new PrismaClient();
 
@@ -17,7 +17,7 @@ interface Notification {
   actionUrl?: string | null;
   sentAt?: Date | null;
   meta?: Record<string, any> | null;
-  targetRole?: string[] | null; // ✅ diubah jadi array
+  targetRole?: string[] | null; // diubah jadi array
   createdAt?: Date | null;
   recipients: NotificationRecipient[];
 }

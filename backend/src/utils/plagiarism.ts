@@ -1,8 +1,8 @@
 import fs from "fs/promises";
 import path from "path";
 import similarity from "string-similarity";
-import { parseNotebookToText } from "./parser-ipynb";
-import { parsePptxToText } from "./parser-pptx";
+import { parseNotebookToText } from "./parser-ipynb.js";
+import { parsePptxToText } from "./parser-pptx.js";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();

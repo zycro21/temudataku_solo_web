@@ -23,7 +23,7 @@ import referralRoute from "./routes/referral.route.js";
 import paymentRoute from "./routes/payment.route.js";
 import withdrawalRoute from "./routes/withdrawal.route.js";
 import mentorReportRoute from "./routes/mentor_report.route.js";
-import "./schedulers/cron";
+import "./schedulers/cron.js";
 import { fileURLToPath } from "url";
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import * as MentoringSessionController from "../controllers/mentoring_session.controller";
+import * as MentoringSessionController from "../controllers/mentoring_session.controller.js";
 import {
   createMentoringSessionSchema,
   getMentoringSessionsSchema,
@@ -12,10 +12,10 @@ import {
   updateMentorSessionBodySchema,
   publicGetSessionsSchema,
   publicGetSessionByIdSchema,
-} from "../validations/mentoring_session.validation";
-import { validate } from "../middlewares/validate";
-import { authenticate } from "../middlewares/authenticate";
-import { authorizeRoles } from "../middlewares/authorizeRole";
+} from "../validations/mentoring_session.validation.js";
+import { validate } from "../middlewares/validate.js";
+import { authenticate } from "../middlewares/authenticate.js";
+import { authorizeRoles } from "../middlewares/authorizeRole.js";
 
 const router = Router();
 

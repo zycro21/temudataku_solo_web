@@ -1,6 +1,6 @@
 import { Response, NextFunction } from "express";
-import { AuthenticatedRequestMentorReport } from "../middlewares/authenticate";
-import * as MentorReportService from "../services/mentor_report.service";
+import { AuthenticatedRequestMentorReport } from "../middlewares/authenticate.js";
+import * as MentorReportService from "../services/mentor_report.service.js";
 
 export const createMentorReport = async (
   req: AuthenticatedRequestMentorReport,

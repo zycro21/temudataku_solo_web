@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from "express";
-import { AuthenticatedRequestForMentoringSession } from "../middlewares/authenticate";
+import { AuthenticatedRequestForMentoringSession } from "../middlewares/authenticate.js";
 import { format } from "date-fns";
 import { HttpError } from "../utils/httpError";
-import * as MentoringSessionService from "../services/mentoring_session.service";
+import * as MentoringSessionService from "../services/mentoring_session.service.js";
 import { uploadPath } from "../middlewares/uploadImage";
 import { PrismaClient } from "@prisma/client";
 

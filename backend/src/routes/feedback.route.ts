@@ -1,5 +1,5 @@
 import { Router } from "express";
-import * as FeedbackController from "../controllers/feedback.controller";
+import * as FeedbackController from "../controllers/feedback.controller.js";
 import {
   createFeedbackSchema,
   updateFeedbackSchema,
@@ -11,10 +11,10 @@ import {
   patchFeedbackVisibilitySchema,
   exportFeedbackQuerySchema,
   feedbackStatsQuerySchema,
-} from "../validations/feedback.validation";
-import { validate } from "../middlewares/validate";
-import { authenticate } from "../middlewares/authenticate";
-import { authorizeRoles } from "../middlewares/authorizeRole";
+} from "../validations/feedback.validation.js";
+import { validate } from "../middlewares/validate.js";
+import { authenticate } from "../middlewares/authenticate.js";
+import { authorizeRoles } from "../middlewares/authorizeRole.js";
 
 const router = Router();
 
