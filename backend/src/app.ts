@@ -25,9 +25,9 @@ import withdrawalRoute from "./routes/withdrawal.route";
 import mentorReportRoute from "./routes/mentor_report.route";
 import "./schedulers/cron";
 import { fileURLToPath } from "url";
-import swaggerJsdoc from 'swagger-jsdoc';
-import swaggerUi from 'swagger-ui-express';
-import swaggerOptions from './swagger/swaggerOptions'
+import swaggerJsdoc from "swagger-jsdoc";
+import swaggerUi from "swagger-ui-express";
+import swaggerOptions from "./swagger/swaggerOptions";
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -131,10 +131,11 @@ app.use(
 
 // Swagger Docs
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Handler setelah semua route
 app.use(errorHandler);
 app.use(notFound);
 
-export { app, prisma };
+export { prisma };
+export default app;
