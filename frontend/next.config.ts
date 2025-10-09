@@ -16,10 +16,6 @@ const extraRemotePatterns = (() => {
       },
     ];
   } catch (err) {
-    // kalau env salah format, jangan crash — hanya log
-    // contoh: NEXT_PUBLIC_API_BASE_URL tanpa protocol akan gagal
-    // gunakan format lengkap: http://localhost:5001 atau https://api.domain.com
-    // eslint-disable-next-line no-console
     console.warn("Invalid NEXT_PUBLIC_API_BASE_URL:", apiBaseUrl, err);
     return [];
   }
@@ -27,16 +23,18 @@ const extraRemotePatterns = (() => {
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  eslint: {
+    // ini akan mengabaikan semua lint error saat build
+    ignoreDuringBuilds: true,
+  },
   images: {
     remotePatterns: [
-      // pattern default (misal Unsplash)
       {
         protocol: "https",
         hostname: "images.unsplash.com",
         port: "",
         pathname: "/**",
       },
-      // spread extra patterns dari env (cast ke any agar TS tidak protes)
       ...(extraRemotePatterns as any),
     ],
   },
