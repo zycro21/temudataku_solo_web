@@ -1,11 +1,11 @@
 {
   "compilerOptions": {
     "target": "es2020", // Target modern JS
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "ESNext", // Support native import/export
+    "moduleResolution": "node", // Resolusi module seperti di Node.js
     "rootDir": "./src", // Folder source code
     "outDir": "./dist", // Folder output hasil kompilasi
-    "strict": true, // Aktifkan strict type c,hecking
+    "strict": true, // Aktifkan strict type checking
     "esModuleInterop": true, // Interop CJS ke ESM
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
