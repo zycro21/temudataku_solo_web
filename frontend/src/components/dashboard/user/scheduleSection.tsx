@@ -1,39 +1,8 @@
-// src/components/dashboard/user/scheduleSection.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
-
-// Data dummy jadwal per tanggal
-const allSchedules: Record<
-  string,
-  { title: string; time: string; linkText: string }[]
-> = {
-  "2025-09-02": [
-    {
-      title: "Data Science Class",
-      time: "Hari Ini, 10.00 - 12.00",
-      linkText: "Zoom Meeting",
-    },
-    {
-      title: "Mentoring 1 on 1",
-      time: "Hari Ini, 15.00 - 16.00",
-      linkText: "Zoom Meeting",
-    },
-    {
-      title: "Extra Session",
-      time: "Hari Ini, 19.00 - 20.00",
-      linkText: "Zoom Meeting",
-    },
-  ],
-  "2025-09-03": [
-    {
-      title: "Team Sync",
-      time: "Besok, 09.00 - 10.00",
-      linkText: "Google Meet",
-    },
-  ],
-};
+import axios from "axios";
 
 // SVG Zoom Icon
 const ZoomIcon = () => (
@@ -46,9 +15,19 @@ const ZoomIcon = () => (
   </svg>
 );
 
+interface ScheduleItem {
+  title: string;
+  time: string;
+  linkText: string;
+}
+
 export default function ScheduleSection() {
   const today = new Date();
   const [currentDate, setCurrentDate] = useState(today);
+  const [selectedDate, setSelectedDate] = useState(today);
+  const [allSchedules, setAllSchedules] = useState<
+    Record<string, ScheduleItem[]>
+  >({});
 
   // Ambil awal minggu (Senin)
   const getStartOfWeek = (date: Date) => {
@@ -75,12 +54,14 @@ export default function ScheduleSection() {
     const prev = new Date(startOfWeek);
     prev.setDate(prev.getDate() - 7);
     setCurrentDate(prev);
+    setSelectedDate(prev);
   };
 
   const goToNextWeek = () => {
     const next = new Date(startOfWeek);
     next.setDate(next.getDate() + 7);
     setCurrentDate(next);
+    setSelectedDate(next);
   };
 
   // Generate bulan -6 sampai +6 dari bulan sekarang
@@ -96,10 +77,74 @@ export default function ScheduleSection() {
 
   const currentValue = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
 
-  // State untuk hari yang dipilih
-  const [selectedDate, setSelectedDate] = useState(today);
+  // Fetch booking API
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/booking/mentee/bookings`,
+          {
+            params: { page: 1, limit: 100 },
+            withCredentials: true,
+          }
+        );
 
-  const formatDateKey = (date: Date) => date.toISOString().split("T")[0];
+        const bookings = res.data.data.data;
+        const schedules: Record<string, ScheduleItem[]> = {};
+
+        bookings.forEach((booking: any) => {
+          const sessions = booking.mentoringService?.mentoringSessions || [];
+          sessions.forEach((session: any) => {
+            if (!session.date) return;
+
+            const key = session.date; // format dari backend: DD-MM-YYYY
+            if (!schedules[key]) schedules[key] = [];
+
+            // --- perbaikan format waktu ---
+            const start = new Date(session.startTime).toLocaleTimeString(
+              "id-ID",
+              {
+                hour: "2-digit",
+                minute: "2-digit",
+              }
+            );
+            const end = new Date(session.endTime).toLocaleTimeString("id-ID", {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+
+            // --- cek apakah tanggal sesi == hari ini ---
+            const [day, month, year] = session.date.split("-").map(Number);
+            const sessionDate = new Date(year, month - 1, day);
+            const isToday =
+              sessionDate.toDateString() === new Date().toDateString();
+
+            const timeStr = `${isToday ? "Hari Ini, " : ""}${start} - ${end}`;
+
+            schedules[key].push({
+              title: booking.mentoringService.serviceName,
+              time: timeStr,
+              linkText: session.meetingLink ? "Zoom Meeting" : "Belum ada link",
+            });
+          });
+        });
+
+        setAllSchedules(schedules);
+      } catch (err) {
+        console.error("Gagal fetch bookings:", err);
+      }
+    };
+
+    fetchBookings();
+  }, []);
+
+  // Format key tanggal agar match dengan backend (DD-MM-YYYY)
+  const formatDateKey = (date: Date) => {
+    const d = date.getDate().toString().padStart(2, "0");
+    const m = (date.getMonth() + 1).toString().padStart(2, "0");
+    const y = date.getFullYear();
+    return `${d}-${m}-${y}`;
+  };
 
   const scheduleItems = allSchedules[formatDateKey(selectedDate)] || [];
 

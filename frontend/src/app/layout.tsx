@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Inter, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
-import { AuthProvider } from "@/context/AuthContext"; 
+import { AuthProvider } from "@/context/AuthContext";
+import ClientTrackerWrapper from "@/components/ClientTrackerWrapper";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -23,9 +24,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Temudataku",
   description: "Platform untuk booking dan konsultasi dengan mudah.",
-  icons: {
-    icon: "/favicon.ico",
-  },
+  icons: { icon: "/favicon.png" },
 };
 
 export default function RootLayout({
@@ -39,6 +38,7 @@ export default function RootLayout({
         className={`${inter.variable} ${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
+          <ClientTrackerWrapper />
           {children}
           <Toaster position="top-right" richColors />
         </AuthProvider>

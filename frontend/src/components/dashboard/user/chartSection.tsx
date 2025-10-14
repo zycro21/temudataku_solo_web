@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -8,30 +8,75 @@ import {
   BarElement,
   Tooltip,
   ScriptableContext,
+  Legend,
 } from "chart.js";
 import { Bar } from "react-chartjs-2";
+import axios from "axios";
+import { toast } from "sonner";
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
+ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
+
+interface ActivityLog {
+  id: string;
+  page: string;
+  durationSec: number;
+  accessedAt: string;
+}
 
 export default function ChartSection() {
-  const [activeTab, setActiveTab] = useState("Month");
+  const [activeTab, setActiveTab] = useState<"Week" | "Month">("Month");
+  const [logs, setLogs] = useState<ActivityLog[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // === Hitung data week ===
+  useEffect(() => {
+    const fetchActivityLogs = async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/logActivity/activity`,
+          {
+            params: {
+              page: 1,
+              limit: 1000,
+              sortBy: "accessedAt",
+              sortOrder: "asc",
+            },
+            withCredentials: true,
+          }
+        );
+        setLogs(res.data?.data || []);
+      } catch (error: any) {
+        console.error(error);
+        toast.error(
+          error?.response?.data?.message ||
+            "Gagal memuat data aktivitas pengguna."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchActivityLogs();
+  }, []);
+
   const now = new Date();
-  const currentMonth = now.getMonth(); // 0 = Jan, 7 = Aug, dst
-  const currentWeek = Math.ceil(now.getDate() / 7); // Minggu ke berapa
+  const currentMonth = now.getMonth();
+  const currentWeek = Math.ceil(now.getDate() / 7);
 
-  // Dummy data bulanan (1 nilai per bulan)
-  const monthlyData = [10, 8, 15, 12, 5, 20, 7, 25, 18, 16, 8, 5];
+  const monthlyTotals = new Array(12).fill(0);
+  logs.forEach((log) => {
+    const month = new Date(log.accessedAt).getMonth();
+    monthlyTotals[month] += log.durationSec;
+  });
 
-  // Dummy data mingguan untuk bulan aktif (misalnya dari API)
-  // Jika minggu belum lewat, nilainya 0
-  const weeklyValues = [5, 7, 10, 8]; // contoh isi, bisa diganti sesuai real data
-  const weeklyData = weeklyValues.map((val, idx) =>
-    idx + 1 <= currentWeek ? val : 0
-  );
+  const weeklyTotals = new Array(4).fill(0);
+  logs
+    .filter((log) => new Date(log.accessedAt).getMonth() === currentMonth)
+    .forEach((log) => {
+      const day = new Date(log.accessedAt).getDate();
+      const week = Math.ceil(day / 7) - 1;
+      if (week >= 0 && week < 4) weeklyTotals[week] += log.durationSec;
+    });
 
-  // Tentukan dataset berdasarkan tab aktif
   const data =
     activeTab === "Month"
       ? {
@@ -51,7 +96,8 @@ export default function ChartSection() {
           ],
           datasets: [
             {
-              data: monthlyData,
+              label: "Durasi Lihat Halaman (detik)",
+              data: monthlyTotals,
               backgroundColor: (context: ScriptableContext<"bar">) => {
                 const index = context.dataIndex;
                 return index === currentMonth ? "#10B981" : "#D1FAE5";
@@ -66,7 +112,8 @@ export default function ChartSection() {
           labels: ["Week 1", "Week 2", "Week 3", "Week 4"],
           datasets: [
             {
-              data: weeklyData,
+              label: "Durasi Lihat Halaman (detik)",
+              data: weeklyTotals,
               backgroundColor: (context: ScriptableContext<"bar">) => {
                 const index = context.dataIndex;
                 return index + 1 === currentWeek ? "#10B981" : "#D1FAE5";
@@ -82,6 +129,9 @@ export default function ChartSection() {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
+      legend: {
+        display: false,
+      },
       tooltip: {
         enabled: true,
         backgroundColor: "#fff",
@@ -89,12 +139,31 @@ export default function ChartSection() {
         bodyColor: "#000",
         borderColor: "#ccc",
         borderWidth: 1,
+        callbacks: {
+          label: (context: any) => {
+            const seconds = context.raw || 0;
+            const minutes = Math.floor(seconds / 60);
+            return `${minutes} menit`;
+          },
+        },
       },
     },
     scales: {
       x: {
         grid: { display: false },
-        ticks: { color: "#6B7280" },
+        ticks: {
+          color: (ctx: any) => {
+            // Warna label emerald untuk bulan/week aktif
+            const index = ctx.index;
+            if (
+              (activeTab === "Month" && index === currentMonth) ||
+              (activeTab === "Week" && index + 1 === currentWeek)
+            ) {
+              return "#10B981"; // emerald
+            }
+            return "#6B7280"; // abu default
+          },
+        },
         border: { display: false },
       },
       y: {
@@ -107,7 +176,9 @@ export default function ChartSection() {
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold text-gray-800">Waktu Lihat</h2>
+        <h2 className="text-lg font-semibold text-gray-800">
+          Waktu Lihat Halaman
+        </h2>
         <div className="flex bg-gray-100 p-1 rounded-full text-sm font-medium">
           <button
             onClick={() => setActiveTab("Week")}
@@ -131,8 +202,24 @@ export default function ChartSection() {
           </button>
         </div>
       </div>
-      <div className="h-[248px]">
-        <Bar data={data} options={options} />
+
+      <div className="h-[248px] relative">
+        {loading ? (
+          <div className="flex justify-center items-center h-full">
+            <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : (
+          <>
+            <Bar data={data} options={options} />
+            {data.datasets[0].data.every((v: number) => v === 0) && (
+              <div className="absolute inset-0 flex items-center justify-center bg-white/60 rounded-xl pointer-events-none">
+                <p className="text-gray-500 text-sm font-medium">
+                  Belum ada data aktivitas
+                </p>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

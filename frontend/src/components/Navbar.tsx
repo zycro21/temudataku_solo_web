@@ -3,8 +3,8 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { MdSchool, MdSupervisorAccount, MdAssignment } from "react-icons/md";
 import Image from "next/image";
-import axios from "axios";
 import { useAuth } from "@/context/AuthContext"; // pakai AuthContext
+import { useLogout } from "@/hooks/useLogout"; // import hook logout
 
 // Import modal yang sudah kamu buat
 import LoginModal from "./LoginModal";
@@ -21,7 +21,8 @@ export default function Navbar() {
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
 
   // Ambil user global dari AuthContext
-  const { currentUser, setCurrentUser } = useAuth();
+  const { currentUser } = useAuth();
+  const logout = useLogout(); // pakai hook logout
 
   // Klik di luar dropdown => tutup semua dropdown
   useEffect(() => {
@@ -160,14 +161,15 @@ export default function Navbar() {
             >
               <Image
                 src={
-                  currentUser.profile_picture
-                    ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${currentUser.profile_picture}`
+                  currentUser.profilePicture &&
+                  currentUser.profilePicture !== "default.jpg"
+                    ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${currentUser.profilePicture}`
                     : "/assets/dashboard/user/avatar.png"
                 }
                 alt="Avatar"
                 width={40}
                 height={40}
-                className="rounded-full"
+                className="rounded-full object-cover"
               />
               <span className="text-base font-semibold text-gray-700">
                 {currentUser.fullName}
@@ -267,15 +269,7 @@ export default function Navbar() {
                 </li>
                 <li>
                   <button
-                    onClick={async () => {
-                      await axios.post(
-                        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/logout`,
-                        {},
-                        { withCredentials: true }
-                      );
-                      setCurrentUser(null);
-                      window.location.href = "/";
-                    }}
+                    onClick={() => logout("/")} // gunakan hook logout
                     className="flex items-center gap-4 w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100"
                   >
                     <Image

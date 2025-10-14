@@ -191,8 +191,8 @@ export const getMenteeSubmissionsSchema = z.object({
       .string()
       .optional()
       .transform((val) => (val ? parseInt(val, 10) : 10))
-      .refine((val) => !isNaN(val) && val > 0 && val <= 100, {
-        message: "Limit must be between 1 and 100",
+      .refine((val) => !isNaN(val) && val > 0 && val <= 1000, {
+        message: "Limit must be between 1 and 1000",
       }),
   }),
 });

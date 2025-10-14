@@ -358,7 +358,21 @@ export const getMenteeBookings = async (
   const bookings = await prisma.booking.findMany({
     where: whereClause,
     include: {
-      mentoringService: true,
+      // Include mentoringService beserta sessions dan mentor profile
+      mentoringService: {
+        include: {
+          projects: true,
+          mentoringSessions: {
+            include: {
+              mentors: {
+                include: {
+                  mentorProfile: true,
+                },
+              },
+            },
+          },
+        },
+      },
       participants: true,
     },
     orderBy: {
@@ -370,7 +384,7 @@ export const getMenteeBookings = async (
 
   const total = await prisma.booking.count({ where: whereClause });
 
-  // Tambahkan pengecekan jika status di-filter tapi hasil kosong
+  // Pengecekan jika status difilter tapi hasil kosong
   if (status && bookings.length === 0) {
     throw {
       status: 404,
@@ -396,7 +410,19 @@ export const getMenteeBookingDetail = async (
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
     include: {
-      mentoringService: true,
+      mentoringService: {
+        include: {
+          mentoringSessions: {
+            include: {
+              mentors: {
+                include: {
+                  mentorProfile: true,
+                },
+              },
+            },
+          },
+        },
+      },
       participants: {
         include: {
           user: {
@@ -449,13 +475,13 @@ export const updateMenteeBooking = async (
   {
     specialRequests,
     participantIds,
-    material, // <-- tambahkan
-    expectedOutput, // <-- tambahkan
+    material,
+    expectedOutput,
   }: {
     specialRequests?: string;
     participantIds?: string[];
-    material?: string; // <-- tambahkan type
-    expectedOutput?: string; // <-- tambahkan type
+    material?: string;
+    expectedOutput?: string;
   }
 ) => {
   const booking = await prisma.booking.findUnique({

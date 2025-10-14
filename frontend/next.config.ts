@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-// parse API base url kalau ada, bungkus di try/catch
+// Parse API base URL kalau ada
 const extraRemotePatterns = (() => {
   if (!apiBaseUrl) return [];
   try {
@@ -10,8 +10,8 @@ const extraRemotePatterns = (() => {
     return [
       {
         protocol: url.protocol.replace(":", ""), // "http" atau "https"
-        hostname: url.hostname, // misal: "localhost" atau "api.example.com"
-        port: url.port || "", // misal: "5001" atau ""
+        hostname: url.hostname, // contoh: "api.temudataku.com" atau "temudataku.com"
+        port: url.port || "",
         pathname: "/**",
       },
     ];
@@ -24,16 +24,30 @@ const extraRemotePatterns = (() => {
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   eslint: {
-    // ini akan mengabaikan semua lint error saat build
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: true, // biar build lancar
   },
   images: {
     remotePatterns: [
+      // Untuk Unsplash (kalau masih dipakai)
       {
         protocol: "https",
         hostname: "images.unsplash.com",
         port: "",
         pathname: "/**",
+      },
+      // Untuk lokal development
+      {
+        protocol: "http",
+        hostname: "localhost",
+        port: "5001",
+        pathname: "/images/**",
+      },
+      // Untuk production (temudataku.com)
+      {
+        protocol: "https",
+        hostname: "temudataku.com",
+        port: "",
+        pathname: "/images/**",
       },
       ...(extraRemotePatterns as any),
     ],

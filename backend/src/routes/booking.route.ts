@@ -222,7 +222,7 @@ router.post(
  *         example: desc
  *     responses:
  *       200:
- *         description: Berhasil mengambil daftar booking
+ *         description: Berhasil mengambil daftar booking beserta service, projects, dan sesi mentoring
  *         content:
  *           application/json:
  *             example:
@@ -233,9 +233,29 @@ router.post(
  *                     menteeId: "usr-001"
  *                     mentoringService:
  *                       id: "svc-001"
- *                       title: "Mentoring Web Development"
+ *                       serviceName: "Mentoring Web Development"
+ *                       projects:
+ *                         - id: "proj-001"
+ *                           title: "Portfolio Website"
+ *                           description: "Bangun website portfolio menggunakan Next.js"
+ *                           deadline: "2025-10-20"
+ *                           status: "in_progress"
+ *                       mentoringSessions:
+ *                         - id: "sess-001"
+ *                           date: "2025-10-15"
+ *                           startTime: "10:00"
+ *                           endTime: "12:00"
+ *                           durationMinutes: 120
+ *                           meetingLink: "https://zoom.us/j/123456"
+ *                           mentors:
+ *                             - id: "mnt-001"
+ *                               fullName: "John Doe"
+ *                               mentorProfile:
+ *                                 id: "prof-001"
+ *                                 fullName: "John Doe"
+ *                                 profilePicture: "https://cdn.example.com/profiles/john.jpg"
  *                     material: "Dasar-dasar React"
- *                     expectedOutput: "Bisa bikin mini project React"
+ *                     expectedOutput: "Mampu membuat mini project React"
  *                     supportDocument: "http://localhost:5000/supportDocuments/support-001.pdf"
  *                     participants:
  *                       - userId: "usr-001"
@@ -245,7 +265,14 @@ router.post(
  *                     menteeId: "usr-001"
  *                     mentoringService:
  *                       id: "svc-002"
- *                       title: "UI/UX Design Basics"
+ *                       serviceName: "UI/UX Design Basics"
+ *                       projects:
+ *                         - id: "proj-002"
+ *                           title: "Redesign App Layout"
+ *                           description: "Latihan membuat wireframe dan prototype di Figma"
+ *                           deadline: "2025-10-25"
+ *                           status: "pending_review"
+ *                       mentoringSessions: []
  *                     material: "Figma dan wireframing"
  *                     expectedOutput: "Membuat desain aplikasi sederhana"
  *                     supportDocument: null
@@ -306,8 +333,20 @@ router.get(
  *                 menteeId: "usr-001"
  *                 mentoringService:
  *                   id: "svc-001"
- *                   title: "UI/UX Design Basics"
+ *                   serviceName: "UI/UX Design Basics"
  *                   serviceType: "group"
+ *                   mentoringSessions:
+ *                     - id: "sess-001"
+ *                       date: "2025-10-15"
+ *                       startTime: "10:00"
+ *                       endTime: "12:00"
+ *                       durationMinutes: 120
+ *                       mentors:
+ *                         - id: "msm-001"
+ *                           mentorProfile:
+ *                             id: "mentor-001"
+ *                             fullName: "John Doe"
+ *                             profilePicture: null
  *                 participants:
  *                   - userId: "usr-001"
  *                     isLeader: true

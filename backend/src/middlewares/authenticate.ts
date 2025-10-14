@@ -360,6 +360,19 @@ export interface AuthenticatedRequestMentorReport extends Request {
   };
 }
 
+export interface AuthenticatedRequestLog extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+  };
+  validatedBody?: any;
+  validatedParams?: any;
+  validatedQuery?: any;
+}
+
 export const authenticate = (
   req: AuthenticatedRequest,
   res: Response,

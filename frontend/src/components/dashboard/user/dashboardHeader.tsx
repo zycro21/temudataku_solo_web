@@ -5,7 +5,7 @@ import Image from "next/image";
 import { ChevronDown, User, LayoutDashboard } from "lucide-react";
 import { useRouter } from "next/navigation";
 import ProfileModal from "./profileModal";
-import { useAuth } from "@/context/AuthContext"; // ⬅️ ambil context
+import { useAuth } from "@/context/AuthContext"; // ambil context
 
 export default function DashboardHeader() {
   const [open, setOpen] = useState(false);
@@ -13,7 +13,7 @@ export default function DashboardHeader() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  const { currentUser } = useAuth(); // ⬅️ data user login
+  const { currentUser } = useAuth(); // data user login
 
   // Tutup dropdown kalau klik di luar
   useEffect(() => {

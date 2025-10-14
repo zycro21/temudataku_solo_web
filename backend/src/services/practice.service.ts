@@ -1362,23 +1362,16 @@ export const getPracticePurchases = async (input: {
       where: whereClause,
       skip: (page - 1) * limit,
       take: limit,
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: { createdAt: "desc" },
       include: {
         practice: {
-          select: {
-            id: true,
-            title: true,
-            thumbnailImages: true,
-            price: true,
+          include: {
+            practiceMaterials: true,
           },
         },
       },
     }),
-    prisma.practicePurchase.count({
-      where: whereClause,
-    }),
+    prisma.practicePurchase.count({ where: whereClause }),
   ]);
 
   return {
