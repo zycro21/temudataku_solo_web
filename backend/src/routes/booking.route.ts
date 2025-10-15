@@ -12,6 +12,7 @@ import {
   getBookingParticipantsIdValidator,
   getMentorEarningsValidator,
   getMentorBookingsValidator,
+  getCompletedProgramsSchema,
 } from "../validations/booking.validation.js";
 import { validate } from "../middlewares/validate.js";
 import { authenticate } from "../middlewares/authenticate.js";
@@ -182,7 +183,8 @@ router.post(
  * @swagger
  * /api/booking/mentee/bookings:
  *   get:
- *     summary: Ambil semua booking milik mentee
+ *     summary: Ambil semua booking milik mentee (dengan pagination, filter, dan sorting)
+ *     description: Endpoint ini mengembalikan semua booking yang dimiliki oleh mentee tertentu, lengkap dengan informasi mentoring service, proyek, sesi mentoring, dan mentor profile.
  *     tags: [Booking]
  *     security:
  *       - bearerAuth: []
@@ -192,13 +194,17 @@ router.post(
  *         required: true
  *         schema:
  *           type: integer
+ *           minimum: 1
  *         example: 1
+ *         description: Halaman keberapa data ingin diambil.
  *       - in: query
  *         name: limit
  *         required: true
  *         schema:
  *           type: integer
+ *           minimum: 1
  *         example: 10
+ *         description: Jumlah item per halaman.
  *       - in: query
  *         name: status
  *         required: false
@@ -206,6 +212,7 @@ router.post(
  *           type: string
  *           enum: [pending, confirmed, completed, cancelled]
  *         example: confirmed
+ *         description: Filter berdasarkan status booking.
  *       - in: query
  *         name: sortBy
  *         required: false
@@ -213,6 +220,7 @@ router.post(
  *           type: string
  *           enum: [createdAt, bookingDate]
  *         example: createdAt
+ *         description: Urutkan hasil berdasarkan kolom tertentu.
  *       - in: query
  *         name: sortOrder
  *         required: false
@@ -220,20 +228,28 @@ router.post(
  *           type: string
  *           enum: [asc, desc]
  *         example: desc
+ *         description: Urutan pengurutan hasil (naik atau turun).
  *     responses:
  *       200:
- *         description: Berhasil mengambil daftar booking beserta service, projects, dan sesi mentoring
+ *         description: Berhasil mengambil daftar booking milik mentee
  *         content:
  *           application/json:
  *             example:
- *               message: Berhasil mengambil daftar booking.
+ *               message: "Berhasil mengambil daftar booking."
  *               data:
  *                 data:
  *                   - id: "book-001"
  *                     menteeId: "usr-001"
+ *                     status: "confirmed"
+ *                     bookingDate: "2025-10-12T07:45:23.000Z"
+ *                     createdAt: "2025-10-12T07:45:23.000Z"
+ *                     updatedAt: "2025-10-12T07:45:23.000Z"
  *                     mentoringService:
  *                       id: "svc-001"
  *                       serviceName: "Mentoring Web Development"
+ *                       description: "Belajar membuat aplikasi web modern"
+ *                       price: "300000"
+ *                       durationDays: 14
  *                       projects:
  *                         - id: "proj-001"
  *                           title: "Portfolio Website"
@@ -249,11 +265,14 @@ router.post(
  *                           meetingLink: "https://zoom.us/j/123456"
  *                           mentors:
  *                             - id: "mnt-001"
- *                               fullName: "John Doe"
  *                               mentorProfile:
  *                                 id: "prof-001"
- *                                 fullName: "John Doe"
- *                                 profilePicture: "https://cdn.example.com/profiles/john.jpg"
+ *                                 expertise: "Frontend Development"
+ *                                 user:
+ *                                   id: "usr-010"
+ *                                   fullName: "John Doe"
+ *                                   email: "john@example.com"
+ *                                   profilePicture: "https://cdn.example.com/profiles/john.jpg"
  *                     material: "Dasar-dasar React"
  *                     expectedOutput: "Mampu membuat mini project React"
  *                     supportDocument: "http://localhost:5000/supportDocuments/support-001.pdf"
@@ -261,42 +280,26 @@ router.post(
  *                       - userId: "usr-001"
  *                         isLeader: true
  *                         paymentStatus: "confirmed"
- *                   - id: "book-002"
- *                     menteeId: "usr-001"
- *                     mentoringService:
- *                       id: "svc-002"
- *                       serviceName: "UI/UX Design Basics"
- *                       projects:
- *                         - id: "proj-002"
- *                           title: "Redesign App Layout"
- *                           description: "Latihan membuat wireframe dan prototype di Figma"
- *                           deadline: "2025-10-25"
- *                           status: "pending_review"
- *                       mentoringSessions: []
- *                     material: "Figma dan wireframing"
- *                     expectedOutput: "Membuat desain aplikasi sederhana"
- *                     supportDocument: null
- *                     participants:
- *                       - userId: "usr-001"
- *                         isLeader: true
- *                         paymentStatus: "confirmed"
+ *                       - userId: "usr-002"
+ *                         isLeader: false
+ *                         paymentStatus: "pending"
  *                 pagination:
  *                   page: 1
  *                   limit: 10
  *                   total: 2
  *                   totalPages: 1
  *       401:
- *         description: Unauthorized (pengguna tidak login)
+ *         description: Unauthorized - pengguna belum login atau token tidak valid
  *         content:
  *           application/json:
  *             example:
- *               message: Unauthorized. User ID not found.
+ *               message: "Unauthorized. User ID not found."
  *       404:
- *         description: Tidak ada booking dengan status tertentu
+ *         description: Tidak ditemukan booking dengan status tertentu
  *         content:
  *           application/json:
  *             example:
- *               message: Tidak ditemukan booking dengan status "cancelled".
+ *               message: "Tidak ditemukan booking dengan status cancelled."
  */
 router.get(
   "/mentee/bookings",
@@ -396,6 +399,77 @@ router.get(
   authenticate,
   validate(getMenteeBookingDetailSchema),
   BookingController.getMenteeBookingDetailController
+);
+
+/**
+ * @swagger
+ * /api/booking/mentee/completed-programs:
+ *   get:
+ *     summary: Ambil semua program yang telah dilakukan oleh mentee (berdasarkan durasi program)
+ *     tags: [Booking]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         example: 1
+ *       - in: query
+ *         name: limit
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         example: 10
+ *       - in: query
+ *         name: sortBy
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [createdAt, bookingDate]
+ *         example: bookingDate
+ *       - in: query
+ *         name: sortOrder
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *         example: desc
+ *     responses:
+ *       200:
+ *         description: Berhasil mengambil daftar program yang telah dilakukan
+ *         content:
+ *           application/json:
+ *             example:
+ *               message: Berhasil mengambil program telah dilakukan.
+ *               data:
+ *                 data:
+ *                   - id: "book-001"
+ *                     menteeId: "usr-001"
+ *                     bookingDate: "2025-05-01T10:00:00Z"
+ *                     mentoringService:
+ *                       id: "svc-001"
+ *                       serviceName: "Frontend Masterclass"
+ *                       durationDays: 30
+ *                     status: "confirmed"
+ *                 pagination:
+ *                   page: 1
+ *                   limit: 10
+ *                   total: 1
+ *                   totalPages: 1
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             example:
+ *               message: Unauthorized. User ID not found.
+ */
+router.get(
+  "/mentee/completed-programs",
+  authenticate,
+  validate(getCompletedProgramsSchema),
+  BookingController.getCompletedProgramsController
 );
 
 /**

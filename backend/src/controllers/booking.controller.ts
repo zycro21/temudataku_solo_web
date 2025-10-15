@@ -109,6 +109,31 @@ export const getMenteeBookingDetailController = async (
   }
 };
 
+export const getCompletedProgramsController = async (
+  req: AuthenticatedRequestBooking,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+
+    const completedPrograms = await BookingService.getCompletedPrograms(
+      req.user.userId,
+      req.validatedQuery!
+    );
+
+    res.status(200).json({
+      message: "Berhasil mengambil program telah dilakukan.",
+      data: completedPrograms,
+    });
+  } catch (error: any) {
+    next(error);
+  }
+};
+
 export const updateMenteeBookingController = async (
   req: AuthenticatedRequestBooking,
   res: Response,

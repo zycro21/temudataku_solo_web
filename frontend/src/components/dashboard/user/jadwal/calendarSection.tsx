@@ -1,21 +1,26 @@
-// src/components/dashboard/user/calendarSection.tsx
 "use client";
 
 import { useState } from "react";
 import { useCalendar } from "@/components/dashboard/user/jadwal/calendarContext";
 import { ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
 
-type EventType = "class" | "mentoring" | "bootcamp" | "other";
+type EventType =
+  | "one-on-one"
+  | "group"
+  | "bootcamp"
+  | "shortclass"
+  | "live class"
+  | "other";
 
 export interface CalendarEvent {
   title: string;
   type: EventType;
-  time?: string; // optional
+  time?: string;
 }
 
 export default function CalendarSection() {
   const { selectedDate, setSelectedDate, events } = useCalendar();
-  const [currentDate, setCurrentDate] = useState(new Date()); // bulan yg ditampilkan
+  const [currentDate, setCurrentDate] = useState(new Date());
   const today = new Date();
 
   const daysInWeek = ["MIN", "SEN", "SEL", "RAB", "KAM", "JUM", "SAB"];
@@ -37,18 +42,14 @@ export default function CalendarSection() {
   const getCalendarDays = (year: number, month: number) => {
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
-
     const days: Date[] = [];
 
-    // Start dari minggu pertama (mundur ke Minggu)
     const startDate = new Date(firstDay);
     startDate.setDate(firstDay.getDate() - firstDay.getDay());
 
-    // End sampai Sabtu terakhir
     const endDate = new Date(lastDay);
     endDate.setDate(lastDay.getDate() + (6 - lastDay.getDay()));
 
-    // Loop semua tanggal dari startDate ke endDate
     const current = new Date(startDate);
     while (current <= endDate) {
       days.push(new Date(current));
@@ -75,14 +76,19 @@ export default function CalendarSection() {
     );
   };
 
+  // 🎨 Update warna berdasarkan tipe service
   const getEventStyle = (type: EventType) => {
     switch (type) {
-      case "class":
-        return "bg-red-400 text-white";
-      case "mentoring":
+      case "one-on-one":
         return "bg-yellow-400 text-white";
-      case "bootcamp":
+      case "group":
         return "bg-blue-500 text-white";
+      case "bootcamp":
+        return "bg-purple-500 text-white";
+      case "shortclass":
+        return "bg-pink-400 text-white";
+      case "live class":
+        return "bg-red-400 text-white";
       default:
         return "bg-emerald-500 text-white";
     }
@@ -97,7 +103,6 @@ export default function CalendarSection() {
     <div className="bg-white pt-1 px-6 pb-6 h-fit">
       {/* Header Kalender */}
       <div className="flex justify-between items-center mb-4">
-        {/* Kiri: Bulan + Tahun */}
         <div className="flex items-center space-x-2">
           <div className="flex items-center border border-gray-400 rounded-md px-3 py-1 cursor-pointer">
             <span className="text-lg font-semibold text-gray-800">
@@ -107,7 +112,6 @@ export default function CalendarSection() {
           </div>
         </div>
 
-        {/* Kanan: Navigasi bulan */}
         <div className="flex items-center space-x-2">
           <button
             onClick={goToPrevMonth}
@@ -129,7 +133,6 @@ export default function CalendarSection() {
 
       {/* Grid Kalender */}
       <div className="grid grid-cols-7 border border-gray-300 text-sm">
-        {/* Nama Hari */}
         {daysInWeek.map((day, index) => (
           <div
             key={index}
@@ -139,7 +142,6 @@ export default function CalendarSection() {
           </div>
         ))}
 
-        {/* Tanggal */}
         {calendarDays.map((date, index) => {
           const formattedDate = `${date.getFullYear()}-${(date.getMonth() + 1)
             .toString()
@@ -158,14 +160,12 @@ export default function CalendarSection() {
                 !isCurrentMonth ? "bg-gray-100 text-gray-400" : ""
               } ${isSelected ? "ring-2 ring-emerald-500" : ""}`}
             >
-              {/* Tooltip Today */}
               {isToday && (
                 <span className="absolute top-1 left-1/2 -translate-x-1/2 bg-black text-white text-xs px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition">
                   Today
                 </span>
               )}
 
-              {/* Tanggal kiri atas */}
               <div
                 className={`text-xs font-semibold w-6 h-6 flex items-center justify-center rounded-full ${
                   isToday ? "bg-emerald-500 text-white" : ""
@@ -174,7 +174,6 @@ export default function CalendarSection() {
                 {date.getDate()}
               </div>
 
-              {/* Event */}
               <div className="space-y-1 mt-1 text-xs flex-1 overflow-hidden">
                 {dayEvents.slice(0, 2).map((event, eventIndex) => (
                   <span
@@ -199,18 +198,26 @@ export default function CalendarSection() {
       </div>
 
       {/* Legenda */}
-      <div className="flex items-center space-x-4 mt-4 text-sm">
-        <div className="flex items-center space-x-1">
-          <span className="w-3 h-3 bg-red-400 rounded-sm"></span>
-          <span>Class</span>
-        </div>
+      <div className="flex items-center space-x-4 mt-4 text-sm flex-wrap">
         <div className="flex items-center space-x-1">
           <span className="w-3 h-3 bg-yellow-400 rounded-sm"></span>
-          <span>Mentoring</span>
+          <span>One-on-One</span>
         </div>
         <div className="flex items-center space-x-1">
           <span className="w-3 h-3 bg-blue-500 rounded-sm"></span>
+          <span>Group</span>
+        </div>
+        <div className="flex items-center space-x-1">
+          <span className="w-3 h-3 bg-purple-500 rounded-sm"></span>
           <span>Bootcamp</span>
+        </div>
+        <div className="flex items-center space-x-1">
+          <span className="w-3 h-3 bg-pink-400 rounded-sm"></span>
+          <span>Shortclass</span>
+        </div>
+        <div className="flex items-center space-x-1">
+          <span className="w-3 h-3 bg-red-400 rounded-sm"></span>
+          <span>Live Class</span>
         </div>
         <div className="flex items-center space-x-1">
           <span className="w-3 h-3 bg-emerald-500 rounded-sm"></span>

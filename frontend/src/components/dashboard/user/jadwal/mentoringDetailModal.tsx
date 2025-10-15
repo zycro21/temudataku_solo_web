@@ -37,13 +37,39 @@ export default function MentoringDetailDialog({
   trigger,
   event,
 }: MentoringDetailDialogProps) {
+  // 🔹 Helper untuk format tanggal ke gaya Indonesia
+  function formatTanggalIndonesia(dateString: string) {
+    if (!dateString) return "-";
+
+    const parts = dateString.split("-");
+    let day, month, year;
+
+    if (parts[0].length === 4) {
+      // format YYYY-MM-DD
+      [year, month, day] = parts;
+    } else {
+      // format DD-MM-YYYY
+      [day, month, year] = parts;
+    }
+
+    const formattedDate = new Date(`${year}-${month}-${day}`);
+    return formattedDate.toLocaleDateString("id-ID", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  }
+
+  const tanggalFormatted = formatTanggalIndonesia(event.date);
+
   return (
     <Dialog>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="max-w-lg p-6">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold text-gray-800">
-            {event.date}
+            {tanggalFormatted}
           </DialogTitle>
           <DialogDescription className="text-sm text-gray-500">
             Lihat jadwal sesi Anda hari ini.
@@ -57,7 +83,7 @@ export default function MentoringDetailDialog({
               <Calendar className="w-4 h-4 text-gray-900" /> Jadwal
             </p>
             <p className="ml-7 text-gray-600">
-              {event.date} pukul {event.time}
+              {tanggalFormatted} pukul {event.time}
             </p>
           </div>
 
@@ -75,8 +101,6 @@ export default function MentoringDetailDialog({
               <User className="w-4 h-4 text-gray-900" /> Mentor
             </p>
             <div className="ml-7 mt-2 flex items-center gap-3">
-              {" "}
-              {/* tambahin mt-2 */}
               {event.mentor.photo ? (
                 <img
                   src={event.mentor.photo}

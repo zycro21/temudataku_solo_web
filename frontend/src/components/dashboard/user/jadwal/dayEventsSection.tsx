@@ -1,9 +1,9 @@
-// src/components/dashboard/user/jadwal/dayEventsSection.tsx
 "use client";
 
 import { Calendar, Clock } from "lucide-react";
 import { useCalendar } from "@/components/dashboard/user/jadwal/calendarContext";
 import EventDetailDialog from "./eventDetailDialog";
+import { toast } from "sonner";
 
 export default function DayEventsSection() {
   const { selectedDate, events } = useCalendar();
@@ -23,7 +23,7 @@ export default function DayEventsSection() {
   const dayEvents = events[formattedDate] || [];
 
   return (
-    <div className="flex flex-col pt-14 px-6 pb-6 h-full">
+    <div className="flex flex-col pt-14 pl-0 pr-6 pb-6 h-full">
       {/* Header section */}
       <h2 className="text-lg font-semibold text-gray-800 mb-4">
         {isToday
@@ -79,7 +79,31 @@ export default function DayEventsSection() {
               </div>
 
               <div className="flex flex-col space-y-2">
-                <button className="bg-emerald-500 text-white py-1.5 rounded-md text-sm font-medium hover:bg-emerald-600 transition">
+                <button
+                  onClick={() => {
+                    if (event.meetingLink) {
+                      let link = event.meetingLink.trim();
+
+                      // kalau link berasal dari Google Calendar
+                      if (link.includes("google.com/url?q=")) {
+                        try {
+                          const urlObj = new URL(link);
+                          const realLink = urlObj.searchParams.get("q");
+                          if (realLink) link = realLink;
+                        } catch (err) {
+                          console.error("Invalid URL format:", err);
+                        }
+                      }
+
+                      window.open(link, "_blank", "noopener,noreferrer");
+                    } else {
+                      toast.warning(
+                        "Link meeting belum tersedia, Silahkan Hubungi Admin"
+                      );
+                    }
+                  }}
+                  className="bg-emerald-500 text-white py-1.5 rounded-md text-sm font-medium hover:bg-emerald-600 transition"
+                >
                   Join
                 </button>
 
@@ -90,12 +114,7 @@ export default function DayEventsSection() {
                     </button>
                   }
                   event={event}
-                  date={selectedDate.toLocaleDateString("id-ID", {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}
+                  date={formattedDate} // gunakan format YYYY-MM-DD
                 />
               </div>
             </div>

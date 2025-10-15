@@ -366,7 +366,18 @@ export const getMenteeBookings = async (
             include: {
               mentors: {
                 include: {
-                  mentorProfile: true,
+                  mentorProfile: {
+                    include: {
+                      user: {
+                        select: {
+                          id: true,
+                          fullName: true,
+                          email: true,
+                          profilePicture: true,
+                        },
+                      },
+                    },
+                  },
                 },
               },
             },
@@ -466,6 +477,60 @@ export const getMenteeBookingDetail = async (
   return {
     ...booking,
     participants: filteredParticipants,
+  };
+};
+
+export const getCompletedPrograms = async (
+  menteeId: string,
+  {
+    page,
+    limit,
+    sortBy,
+    sortOrder,
+  }: {
+    page: number;
+    limit: number;
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
+  }
+) => {
+  const skip = (page - 1) * limit;
+  const now = new Date();
+
+  // Ambil semua booking dengan join mentoringService
+  const bookings = await prisma.booking.findMany({
+    where: {
+      menteeId,
+    },
+    include: {
+      mentoringService: true,
+    },
+    orderBy: {
+      [sortBy ?? "bookingDate"]: sortOrder ?? "desc",
+    },
+  });
+
+  // Filter hanya yang sudah melewati masa program
+  const completedPrograms = bookings.filter((b) => {
+    if (!b.bookingDate || !b.mentoringService?.durationDays) return false;
+
+    const endDate = new Date(b.bookingDate);
+    endDate.setDate(endDate.getDate() + b.mentoringService.durationDays);
+
+    return endDate < now;
+  });
+
+  // Pagination manual
+  const paginated = completedPrograms.slice(skip, skip + limit);
+
+  return {
+    data: paginated,
+    pagination: {
+      page,
+      limit,
+      total: completedPrograms.length,
+      totalPages: Math.ceil(completedPrograms.length / limit),
+    },
   };
 };
 

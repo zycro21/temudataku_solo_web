@@ -47,6 +47,26 @@ export const getMenteeBookingDetailSchema = z.object({
   }),
 });
 
+export const getCompletedProgramsSchema = z.object({
+  query: z.object({
+    page: z
+      .string()
+      .regex(/^\d+$/, "Page harus berupa angka")
+      .transform(Number)
+      .default("1"),
+    limit: z
+      .string()
+      .regex(/^\d+$/, "Limit harus berupa angka")
+      .transform(Number)
+      .default("10"),
+    sortBy: z
+      .enum(["createdAt", "bookingDate"])
+      .optional()
+      .default("bookingDate"),
+    sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
+  }),
+});
+
 export const updateMenteeBookingSchema = z.object({
   params: z.object({
     id: z.string().nonempty("Booking ID harus diisi"),

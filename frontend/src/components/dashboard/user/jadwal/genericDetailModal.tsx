@@ -26,10 +26,10 @@ export default function GenericEventDetailDialog({
   trigger: React.ReactNode;
   event: {
     title?: string;
-    date: string; // e.g. "Sabtu, 26 April 2025"
-    time?: string; // e.g. "20.00 - 21.30 WIB"
-    sessionType?: string; // e.g. "Bootcamp Data Science"
-    mentor?: { name: string; email: string; avatar?: string };
+    date: string; // format bisa "26-04-2025" atau "2025-04-26"
+    time?: string;
+    sessionType?: string;
+    mentor?: { name: string; email: string; photo?: string };
     materi?: string;
     catatan?: string;
     zoomLink?: string;
@@ -49,13 +49,40 @@ export default function GenericEventDetailDialog({
     passcode,
   } = event;
 
+  // 🔹 Helper untuk ubah format tanggal ke Bahasa Indonesia
+  function formatTanggalIndonesia(dateString: string) {
+    if (!dateString) return "-";
+
+    const parts = dateString.split("-");
+    let day, month, year;
+
+    if (parts[0].length === 4) {
+      // format YYYY-MM-DD
+      [year, month, day] = parts;
+    } else {
+      // format DD-MM-YYYY
+      [day, month, year] = parts;
+    }
+
+    const formatted = new Date(`${year}-${month}-${day}`);
+    return formatted.toLocaleDateString("id-ID", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  }
+
+  const tanggalFormatted = formatTanggalIndonesia(date);
+
   return (
     <Dialog>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="max-w-lg p-6">
         <DialogHeader>
+          {/* Ganti date → tanggalFormatted */}
           <DialogTitle className="text-lg font-semibold text-gray-800">
-            {date}
+            {tanggalFormatted}
           </DialogTitle>
           <DialogDescription className="text-sm text-gray-500">
             Lihat jadwal sesi Anda pada tanggal ini.
@@ -69,7 +96,7 @@ export default function GenericEventDetailDialog({
               <Calendar className="w-4 h-4" /> Jadwal Sesi
             </p>
             <p className="ml-6 text-gray-600 mt-2">
-              {date} {time !== "-" ? `pukul ${time}` : ""}
+              {tanggalFormatted} {time !== "-" ? `pukul ${time}` : ""}
             </p>
           </div>
 
@@ -90,8 +117,8 @@ export default function GenericEventDetailDialog({
               <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100">
                 <Image
                   src={
-                    mentor?.avatar
-                      ? mentor.avatar
+                    mentor?.photo
+                      ? mentor.photo
                       : "/assets/dashboard/user/avatar.png"
                   }
                   alt={mentor?.name || "Mentor"}
