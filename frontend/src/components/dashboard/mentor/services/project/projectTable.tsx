@@ -33,6 +33,7 @@ interface Project {
   scheduleEnd: string; // ISO datetime
   status: "Lolos Tinjauan" | "Belum Ditinjau" | "Perlu Revisi";
   projectTitle: string;
+  filePaths?: string[];
   projectCreatedAt: string;
   title: string;
   projectLink: string;
@@ -98,6 +99,7 @@ export default function ProjectTable({
             projectTitle: item.projectTitle,
             projectCreatedAt: item.projectCreatedAt,
             projectLink: item.projectLink,
+            filePaths: item.filePaths || [],
           };
         });
 

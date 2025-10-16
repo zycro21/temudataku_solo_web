@@ -660,28 +660,45 @@ export const submit = async ({
   const customId = generateSubmissionId(menteeId, project.serviceId);
 
   // 5. Validasi file dan hitung plagiarism score
-  const validExtensions = [".pptx", ".ipynb"];
+  const validExtensions = [
+    ".png",
+    ".pdf",
+    ".psd",
+    ".xls",
+    ".csv",
+    ".docx",
+    ".ipynb",
+    ".pptx",
+  ];
+
   const extensions = filePaths.map((file) => path.extname(file).toLowerCase());
   if (extensions.some((ext) => !validExtensions.includes(ext))) {
-    throw new Error("Hanya file .pptx atau .ipynb yang diperbolehkan");
+    throw new Error(
+      "Format file tidak didukung. Gunakan salah satu dari: png, pdf, psd, xls, csv, docx, ipynb, pptx."
+    );
   }
+
   if (!extensions.every((ext) => ext === extensions[0])) {
     throw new Error("Semua file harus memiliki tipe yang sama");
   }
 
   const extension = extensions[0];
-  const targetType = extension === ".pptx" ? "pptx" : "ipynb";
 
   let plagiarismScore: number | null = null;
-  try {
-    plagiarismScore = await comparePlagiarismScore({
-      projectId,
-      currentFilePaths: filePaths,
-      fileType: targetType,
-    });
-  } catch (err: any) {
-    console.error("Error menghitung plagiarism score:", err.message);
-    throw new Error("Gagal menghitung skor plagiarisme");
+
+  // Jalankan plagiarism check hanya untuk .ipynb atau .pptx
+  if ([".ipynb", ".pptx"].includes(extensions[0])) {
+    try {
+      const targetType = extensions[0] === ".pptx" ? "pptx" : "ipynb";
+      plagiarismScore = await comparePlagiarismScore({
+        projectId,
+        currentFilePaths: filePaths,
+        fileType: targetType,
+      });
+    } catch (err: any) {
+      console.error("Error menghitung plagiarism score:", err.message);
+      throw new Error("Gagal menghitung skor plagiarisme");
+    }
   }
 
   // 6. Simpan ke DB
@@ -700,6 +717,46 @@ export const submit = async ({
   });
 
   return submission;
+};
+
+export const revise = async ({
+  submissionId,
+  menteeId,
+  title,
+  projectLink,
+  filePaths,
+}: {
+  submissionId: string;
+  menteeId: string;
+  title?: string;
+  projectLink?: string;
+  filePaths?: string[];
+}) => {
+  const submission = await prisma.projectSubmission.findUnique({
+    where: { id: submissionId },
+  });
+
+  if (!submission) throw new Error("Submission tidak ditemukan");
+  if (submission.menteeId !== menteeId)
+    throw new Error("Kamu tidak berhak mengedit submission ini");
+  if (submission.reviewStatus !== "REVISION_REQUIRED")
+    throw new Error("Submission ini tidak memerlukan revisi");
+
+  // Reset semua, pakai input baru atau kosongkan
+  const updated = await prisma.projectSubmission.update({
+    where: { id: submissionId },
+    data: {
+      title: title ?? "",
+      projectLink: projectLink ?? "",
+      filePaths: filePaths ?? [],
+      reviewStatus: "PENDING",
+      isReviewed: false,
+      isRevisedRequired: false,
+      updatedAt: new Date(),
+    },
+  });
+
+  return updated;
 };
 
 export const reviewSubmission = async ({

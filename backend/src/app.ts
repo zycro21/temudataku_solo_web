@@ -87,7 +87,7 @@ app.use(
   express.static(imagesPath)
 );
 
-const uploadsPath = path.join(__dirname, "../uploads/submissions");
+const uploadsPath = path.join(__dirname, "../uploads");
 console.log("Serving uploads from:", uploadsPath);
 app.use(
   "/uploads",

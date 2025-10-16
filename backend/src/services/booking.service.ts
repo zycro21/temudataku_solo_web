@@ -4,6 +4,15 @@ import ExcelJS from "exceljs";
 import { format, parseISO, subDays } from "date-fns";
 import { Buffer } from "buffer";
 import { format as formatDate } from "date-fns";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Path folder uploads utama
+const uploadsRoot = path.join(__dirname, "../../uploads");
 
 const prisma = new PrismaClient();
 
@@ -358,10 +367,37 @@ export const getMenteeBookings = async (
   const bookings = await prisma.booking.findMany({
     where: whereClause,
     include: {
-      // Include mentoringService beserta sessions dan mentor profile
       mentoringService: {
         include: {
-          projects: true,
+          projects: {
+            include: {
+              submissions: {
+                where: { menteeId },
+                select: {
+                  id: true,
+                  title: true,
+                  filePaths: true,
+                  projectId: true,
+                  projectLink: true,
+                  submissionDate: true,
+                  score: true,
+                  briefScore: true,
+                  technicalScore: true,
+                  creativityScore: true,
+                  completenessScore: true,
+                  plagiarismScore: true,
+                  mentorFeedback: true,
+                  mentorSuggestion: true,
+                  reviewStatus: true,
+                  isReviewed: true,
+                  isRevisedRequired: true,
+                  revisionDeadline: true,
+                  createdAt: true,
+                  updatedAt: true,
+                },
+              },
+            },
+          },
           mentoringSessions: {
             include: {
               mentors: {
@@ -395,7 +431,6 @@ export const getMenteeBookings = async (
 
   const total = await prisma.booking.count({ where: whereClause });
 
-  // Pengecekan jika status difilter tapi hasil kosong
   if (status && bookings.length === 0) {
     throw {
       status: 404,
@@ -403,8 +438,66 @@ export const getMenteeBookings = async (
     };
   }
 
+  // 🔹 Tambahkan status project + ukuran file submission
+  const enrichedBookings = bookings.map((booking) => {
+    const mentoringService = booking.mentoringService;
+    if (!mentoringService) return booking;
+
+    const projects = mentoringService.projects.map((proj) => {
+      const submissions = proj.submissions.map((subm) => {
+        let filesWithSize: any[] = [];
+
+        if (Array.isArray(subm.filePaths)) {
+          filesWithSize = subm.filePaths.map((fp) => {
+            try {
+              // Gabungkan path fisik ke file di uploads
+              const filePath = path.join(uploadsRoot, fp);
+              const stats = fs.statSync(filePath);
+              const sizeKB = (stats.size / 1024).toFixed(2) + " KB";
+              return { filePath: fp, size: sizeKB };
+            } catch (err) {
+              return { filePath: fp, size: "Unknown" };
+            }
+          });
+        }
+
+        return {
+          ...subm,
+          fileDetails: filesWithSize, // ⬅️ tambahkan properti baru
+        };
+      });
+
+      const submission = submissions?.[0];
+      let status = "Belum Dikumpulkan";
+
+      if (submission) {
+        if (submission.isReviewed && submission.reviewStatus === "REVIEWED") {
+          status = "Sudah Direview";
+        } else if (submission.isRevisedRequired) {
+          status = "Perlu Revisi";
+        } else {
+          status = "Sudah Dikumpulkan";
+        }
+      }
+
+      return {
+        ...proj,
+        status,
+        submissions, // gunakan submission yang sudah diubah
+      };
+    });
+
+    return {
+      ...booking,
+      mentoringService: {
+        ...mentoringService,
+        projects,
+      },
+    };
+  });
+
   return {
-    data: bookings,
+    data: enrichedBookings,
     pagination: {
       page,
       limit,

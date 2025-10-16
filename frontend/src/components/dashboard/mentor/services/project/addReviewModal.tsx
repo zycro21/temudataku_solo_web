@@ -29,6 +29,7 @@ interface AddReviewModalProps {
     projectCreatedAt: string;
     title: string;
     projectLink: string;
+    filePaths?: string[];
     date: string;
     scheduleStart: string;
     scheduleEnd: string;
@@ -97,31 +98,6 @@ export default function AddReviewModal({
     { title: "Bagian 3", desc: "Umpan Balik" },
   ];
 
-  const formatProjectSchedule = (project: {
-    zoomSchedule: string;
-    scheduleStart: string;
-    scheduleEnd: string;
-  }) => {
-    try {
-      const start = new Date(project.scheduleStart);
-      const end = new Date(project.scheduleEnd);
-
-      const dayName = format(start, "EEEE", { locale: id });
-      const dateStr = format(start, "dd MMMM yyyy", { locale: id });
-      const startTime = format(start, "HH.mm", { locale: id });
-      const endTime = format(end, "HH.mm", { locale: id });
-
-      return (
-        <>
-          <span className="font-semibold">{project.zoomSchedule}</span>:{" "}
-          {dayName}, {dateStr} pukul {startTime}-{endTime} WIB
-        </>
-      );
-    } catch (error) {
-      return <span className="font-semibold">{project.zoomSchedule}</span>;
-    }
-  };
-
   const handleSubmitReview = async () => {
     if (!project) return;
     if (!isStep3Valid) {
@@ -186,9 +162,13 @@ export default function AddReviewModal({
             </DialogTitle>
             <p className="text-sm text-gray-600 mt-0 mb-2">
               {project.projectTitle} :{" "}
-              {format(new Date(project.projectCreatedAt), "EEEE, dd-MM-yyyy HH:mm", {
-                locale: id,
-              })}{" "}
+              {format(
+                new Date(project.projectCreatedAt),
+                "EEEE, dd-MM-yyyy HH:mm",
+                {
+                  locale: id,
+                }
+              )}{" "}
               WIB
             </p>
           </DialogHeader>
@@ -308,7 +288,7 @@ export default function AddReviewModal({
                 </div>
               </div>
 
-              {/* Link Proyek */}
+              {/* Link / File Submission */}
               <div className="grid grid-cols-[16px_1fr] gap-3">
                 <Image
                   src="/assets/dashboard/mentor/service/link.svg"
@@ -318,15 +298,45 @@ export default function AddReviewModal({
                   className="relative top-[2px]"
                 />
                 <div>
-                  <p className="text-sm font-medium mb-1">Link Hasil Proyek</p>
-                  <a
-                    href={project.projectLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-emerald-600 underline break-all whitespace-normal"
-                  >
-                    {project.projectLink}
-                  </a>
+                  <p className="text-sm font-medium mb-1">
+                    Berkas / Link Proyek
+                  </p>
+
+                  {/* Jika ada filePaths */}
+                  {project.filePaths && project.filePaths.length > 0 && (
+                    <div className="space-y-1">
+                      {project.filePaths.map((file, idx) => (
+                        <a
+                          key={idx}
+                          href={`${process.env.NEXT_PUBLIC_API_BASE_URL}/uploads/${file}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block text-emerald-600 underline break-all whitespace-normal"
+                        >
+                          📄 File {idx + 1}: {file.split("/").pop()}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Jika ada projectLink */}
+                  {project.projectLink && (
+                    <a
+                      href={project.projectLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block text-emerald-600 underline break-all whitespace-normal"
+                    >
+                      🔗 {project.projectLink}
+                    </a>
+                  )}
+
+                  {/* Jika dua-duanya kosong */}
+                  {!project.filePaths?.length && !project.projectLink && (
+                    <p className="text-gray-500 italic">
+                      Belum ada file atau link dikumpulkan.
+                    </p>
+                  )}
                 </div>
               </div>
 

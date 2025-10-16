@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import axios from "axios";
 import {
   Dialog,
   DialogContent,
@@ -22,25 +23,27 @@ import {
 import { useRouter } from "next/navigation";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
-type PengumpulanBelumModalProps = {
+interface PengumpulanBelumModalProps {
   open: boolean;
-  setOpen: (val: boolean) => void;
+  setOpen: (open: boolean) => void;
   withTrigger?: boolean;
-};
+  projectId: string; // penting untuk endpoint
+}
 
 export default function PengumpulanBelumModal({
   open,
   setOpen,
   withTrigger = true,
+  projectId,
 }: PengumpulanBelumModalProps) {
   const [files, setFiles] = useState<File[]>([]);
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
   const [successOpen, setSuccessOpen] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // simpan timeout id biar bisa dibersihkan
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -53,7 +56,6 @@ export default function PengumpulanBelumModal({
   }, [open]);
 
   useEffect(() => {
-    // kalau modal sukses terbuka, set auto-close 5 detik
     if (successOpen) {
       timeoutRef.current = setTimeout(() => {
         setSuccessOpen(false);
@@ -62,9 +64,7 @@ export default function PengumpulanBelumModal({
     }
 
     return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, [successOpen, router]);
 
@@ -78,30 +78,62 @@ export default function PengumpulanBelumModal({
     setFiles(files.filter((_, i) => i !== idx));
   };
 
-  const handleSubmit = () => {
-    if (!title.trim()) {
-      setError("Judul project wajib diisi.");
-      return;
-    }
-    if (files.length === 0 && !url.trim()) {
-      setError("Minimal pilih file atau isi URL.");
-      return;
-    }
-
+  const handleSubmit = async () => {
     setError("");
-    console.log("Project status: Selesai");
 
-    setOpen(false); // Tutup modal form
-    setSuccessOpen(true); // Buka modal sukses
+    if (!title.trim()) {
+      setError("Judul proyek wajib diisi.");
+      return;
+    }
+
+    if (files.length === 0 && !url.trim()) {
+      setError("Wajib upload file atau isi URL proyek.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const formData = new FormData();
+      formData.append("title", title);
+      if (url) formData.append("projectLink", url);
+      files.forEach((file) => formData.append("submissionFile", file));
+
+      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+      const response = await axios.post(
+        `${baseUrl}/api/project/menteeSubmitProjects/${projectId}/submissions`,
+        formData,
+        {
+          withCredentials: true, // kirim cookie otomatis
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      if (response.status === 201) {
+        setOpen(false);
+        setSuccessOpen(true);
+
+        setTimeout(() => {
+          window.location.href = "/dashboard/user/pengumpulan";
+        }, 5000);
+      }
+    } catch (err: any) {
+      console.error("Submit error:", err);
+      if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else {
+        setError("Terjadi kesalahan saat mengirim submission.");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRedirectNow = () => {
-    // hentikan timer auto close
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-
-    // tutup modal dulu
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
     setSuccessOpen(false);
     setTimeout(() => {
       router.push("/dashboard/user/pengumpulan");
@@ -261,9 +293,10 @@ export default function PengumpulanBelumModal({
             </DialogClose>
             <Button
               onClick={handleSubmit}
+              disabled={loading}
               className="bg-emerald-500 hover:bg-emerald-600 text-white w-1/2"
             >
-              Kumpulkan
+              {loading ? "Mengirim..." : "Kumpulkan"}
             </Button>
           </DialogFooter>
         </DialogContent>

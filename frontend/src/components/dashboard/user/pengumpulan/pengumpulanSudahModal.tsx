@@ -16,7 +16,16 @@ type PengumpulanSudahModalProps = {
   setOpen: (val: boolean) => void;
   bootcampTitle: string;
   schedule: string;
-  projectTitle: string; // tambahan biar bisa tampil
+  projectTitle: string;
+  reviewData?: {
+    briefScore?: string;
+    technicalScore?: string;
+    creativityScore?: string;
+    completenessScore?: string;
+    mentorFeedback?: string;
+    mentorSuggestion?: string;
+    isRevisedRequired?: boolean;
+  };
 };
 
 export default function PengumpulanSudahModal({
@@ -25,13 +34,12 @@ export default function PengumpulanSudahModal({
   bootcampTitle,
   schedule,
   projectTitle,
+  reviewData,
 }: PengumpulanSudahModalProps) {
   const [step, setStep] = useState(1);
 
   useEffect(() => {
-    if (open) {
-      setStep(1);
-    }
+    if (open) setStep(1);
   }, [open]);
 
   const handleNext = () => setStep((s) => s + 1);
@@ -61,174 +69,119 @@ export default function PengumpulanSudahModal({
           </p>
         </DialogHeader>
 
-        {/* Step 1 */}
+        {/* STEP 1: Penilaian */}
         {step === 1 && (
           <div className="space-y-6 mt-2">
             <h3 className="text-emerald-600 font-semibold">
               Section 1 - Penilaian Proyek
             </h3>
+
             <div className="border-t border-gray-200 pt-4 mt-1 space-y-3">
-              {/* Group 1 */}
-              <div>
-                <p className="font-medium text-sm mb-2">
-                  Kesesuaian dengan Brief atau Tujuan Awal
-                </p>
-                <div className="space-y-2 text-sm">
-                  {[
+              {[
+                {
+                  label: "Kesesuaian dengan Brief atau Tujuan Awal",
+                  options: [
                     "Sangat Sesuai",
                     "Cukup Sesuai",
                     "Kurang Sesuai",
                     "Tidak Sesuai",
-                  ].map((opt) => (
-                    <label
-                      key={opt}
-                      className={`flex items-center gap-2 ${
-                        opt === "Cukup Sesuai"
-                          ? "text-emerald-600 font-semibold"
-                          : ""
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="kesesuaian"
-                        value={opt}
-                        checked={opt === "Cukup Sesuai"}
-                        readOnly
-                        className="accent-emerald-600"
-                      />
-                      {opt}
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Group 2 */}
-              <div>
-                <p className="font-medium text-sm mb-2">
-                  Kualitas Teknis (Coding / Desain / Analisis)
-                </p>
-                <div className="space-y-2 text-sm">
-                  {["Sangat Baik", "Cukup Baik", "Buruk", "Sangat Buruk"].map(
-                    (opt) => (
+                  ],
+                  value: reviewData?.briefScore,
+                  name: "brief",
+                },
+                {
+                  label: "Kualitas Teknis (Coding / Desain / Analisis)",
+                  options: [
+                    "Sangat Baik",
+                    "Cukup Baik",
+                    "Buruk",
+                    "Sangat Buruk",
+                  ],
+                  value: reviewData?.technicalScore,
+                  name: "technical",
+                },
+                {
+                  label: "Kreativitas dan Inisiatif",
+                  options: [
+                    "Sangat Baik",
+                    "Cukup Baik",
+                    "Buruk",
+                    "Sangat Buruk",
+                  ],
+                  value: reviewData?.creativityScore,
+                  name: "creativity",
+                },
+                {
+                  label: "Kelengkapan Proyek",
+                  options: ["Lengkap", "Belum Lengkap", "Perlu Revisi"],
+                  value: reviewData?.completenessScore,
+                  name: "completeness",
+                },
+              ].map((group) => (
+                <div key={group.name}>
+                  <p className="font-medium text-sm mb-2">{group.label}</p>
+                  <div className="space-y-2 text-sm">
+                    {group.options.map((opt) => (
                       <label
                         key={opt}
                         className={`flex items-center gap-2 ${
-                          opt === "Sangat Baik"
+                          opt === group.value
                             ? "text-emerald-600 font-semibold"
                             : ""
                         }`}
                       >
                         <input
                           type="radio"
-                          name="teknis"
+                          name={group.name}
                           value={opt}
-                          checked={opt === "Sangat Baik"}
+                          checked={opt === group.value}
                           readOnly
                           className="accent-emerald-600"
                         />
                         {opt}
                       </label>
-                    )
-                  )}
+                    ))}
+                  </div>
                 </div>
-              </div>
-
-              {/* Group 3 */}
-              <div>
-                <p className="font-medium text-sm mb-2">
-                  Kreativitas dan Inisiatif
-                </p>
-                <div className="space-y-2 text-sm">
-                  {["Sangat Baik", "Cukup Baik", "Buruk", "Sangat Buruk"].map(
-                    (opt) => (
-                      <label
-                        key={opt}
-                        className={`flex items-center gap-2 ${
-                          opt === "Sangat Baik"
-                            ? "text-emerald-600 font-semibold"
-                            : ""
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name="kreativitas"
-                          value={opt}
-                          checked={opt === "Sangat Baik"}
-                          readOnly
-                          className="accent-emerald-600"
-                        />
-                        {opt}
-                      </label>
-                    )
-                  )}
-                </div>
-              </div>
-
-              {/* Group 4 */}
-              <div>
-                <p className="font-medium text-sm mb-2">Kelengkapan Proyek</p>
-                <div className="space-y-2 text-sm">
-                  {["Lengkap", "Belum Lengkap", "Perlu Revisi"].map((opt) => (
-                    <label
-                      key={opt}
-                      className={`flex items-center gap-2 ${
-                        opt === "Lengkap"
-                          ? "text-emerald-600 font-semibold"
-                          : ""
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="kelengkapan"
-                        value={opt}
-                        checked={opt === "Lengkap"}
-                        readOnly
-                        className="accent-emerald-600"
-                      />
-                      {opt}
-                    </label>
-                  ))}
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         )}
 
-        {/* Step 2 */}
+        {/* STEP 2: Umpan Balik */}
         {step === 2 && (
           <div className="space-y-6 mt-2">
             <h3 className="text-emerald-600 font-semibold">
               Section 2 - Umpan Balik
             </h3>
+
             <div className="border-t border-gray-200 pt-2 mt-2 space-y-6">
-              {/* Komentar Umum */}
               <div>
                 <p className="font-medium text-sm mb-2">
                   Komentar Umum / Catatan Mentor
                 </p>
                 <p className="text-sm text-gray-700">
-                  Sudah oke. Bisa gali analisis chart lebih dalam
+                  {reviewData?.mentorFeedback || "-"}
                 </p>
               </div>
 
-              {/* Divider */}
               <div className="border-t border-gray-200 pt-2" />
 
-              {/* Saran Perbaikan */}
               <div>
                 <p className="font-medium text-sm mb-2">Saran Perbaikan</p>
-                <p className="text-sm text-gray-700">Tidak ada</p>
+                <p className="text-sm text-gray-700">
+                  {reviewData?.mentorSuggestion || "-"}
+                </p>
               </div>
 
-              {/* Divider */}
               <div className="border-t border-gray-200 pt-2" />
 
-              {/* Perlu Revisi Ulang */}
               <div>
                 <p className="font-medium text-sm mb-2">Perlu Revisi Ulang?</p>
                 <div className="space-y-2 text-sm">
                   {["Ya", "Tidak"].map((opt) => {
-                    const selected = opt === "Tidak"; // contoh hasil review
+                    const selected =
+                      reviewData?.isRevisedRequired === (opt === "Ya");
                     return (
                       <label
                         key={opt}

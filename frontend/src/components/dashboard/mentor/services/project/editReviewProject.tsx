@@ -30,6 +30,7 @@ interface EditReviewModalProps {
     projectCreatedAt: string;
     title: string;
     projectLink: string;
+    filePaths?: string[];
     date: string;
     scheduleStart: string;
     scheduleEnd: string;
@@ -332,7 +333,7 @@ export default function EditReviewModal({
                 </div>
               </div>
 
-              {/* Link Proyek */}
+              {/* Link / File Submission */}
               <div className="grid grid-cols-[16px_1fr] gap-3">
                 <Image
                   src="/assets/dashboard/mentor/service/link.svg"
@@ -342,15 +343,45 @@ export default function EditReviewModal({
                   className="relative top-[2px]"
                 />
                 <div>
-                  <p className="text-sm font-medium mb-1">Link Hasil Proyek</p>
-                  <a
-                    href={project.projectLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-emerald-600 underline break-all whitespace-normal"
-                  >
-                    {project.projectLink}
-                  </a>
+                  <p className="text-sm font-medium mb-1">
+                    Berkas / Link Proyek
+                  </p>
+
+                  {/* Jika ada filePaths */}
+                  {project.filePaths && project.filePaths.length > 0 && (
+                    <div className="space-y-1">
+                      {project.filePaths.map((file, idx) => (
+                        <a
+                          key={idx}
+                          href={`${process.env.NEXT_PUBLIC_API_BASE_URL}/uploads/${file}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block text-emerald-600 underline break-all whitespace-normal"
+                        >
+                          📄 File {idx + 1}: {file.split("/").pop()}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Jika ada projectLink */}
+                  {project.projectLink && (
+                    <a
+                      href={project.projectLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block text-emerald-600 underline break-all whitespace-normal"
+                    >
+                      🔗 {project.projectLink}
+                    </a>
+                  )}
+
+                  {/* Jika dua-duanya kosong */}
+                  {!project.filePaths?.length && !project.projectLink && (
+                    <p className="text-gray-500 italic">
+                      Belum ada file atau link dikumpulkan.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -375,7 +406,7 @@ export default function EditReviewModal({
               </div>
             </div>
           )}
-          
+
           {/* Page 2: Penilaian Proyek */}
           {step === 2 && (
             <div className="max-h-[400px] overflow-y-auto pr-1 space-y-6">

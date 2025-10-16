@@ -102,6 +102,17 @@ export const submitProjectSchema = z.object({
   }),
 });
 
+export const updateSubmissionSchema = z.object({
+  params: z.object({
+    submissionId: z.string().min(1),
+  }),
+  body: z.object({
+    title: z.string().optional(),
+    projectLink: z.string().optional(),
+  }),
+});
+
+
 export const reviewSubmissionSchema = z.object({
   params: z.object({
     id: z.string().min(1),

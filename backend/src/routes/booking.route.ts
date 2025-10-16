@@ -183,8 +183,10 @@ router.post(
  * @swagger
  * /api/booking/mentee/bookings:
  *   get:
- *     summary: Ambil semua booking milik mentee (dengan pagination, filter, dan sorting)
- *     description: Endpoint ini mengembalikan semua booking yang dimiliki oleh mentee tertentu, lengkap dengan informasi mentoring service, proyek, sesi mentoring, dan mentor profile.
+ *     summary: Ambil semua booking milik mentee (dengan pagination, filter, sorting, dan status submission project)
+ *     description: >
+ *       Endpoint ini mengembalikan semua booking yang dimiliki oleh mentee tertentu, lengkap dengan informasi mentoring service, proyek, submission milik mentee, sesi mentoring, serta profil mentor.
+ *       <br>Tambahan: setiap project kini memiliki field `status` (Belum Dikumpulkan, Sudah Dikumpulkan, Perlu Revisi, atau Sudah Direview) berdasarkan kondisi submission mentee.
  *     tags: [Booking]
  *     security:
  *       - bearerAuth: []
@@ -247,15 +249,35 @@ router.post(
  *                     mentoringService:
  *                       id: "svc-001"
  *                       serviceName: "Mentoring Web Development"
- *                       description: "Belajar membuat aplikasi web modern"
- *                       price: "300000"
+ *                       description: "Belajar membuat aplikasi web modern dengan React dan Next.js"
+ *                       price: 300000
  *                       durationDays: 14
  *                       projects:
  *                         - id: "proj-001"
  *                           title: "Portfolio Website"
  *                           description: "Bangun website portfolio menggunakan Next.js"
  *                           deadline: "2025-10-20"
- *                           status: "in_progress"
+ *                           status: "Sudah Direview"
+ *                           submissions:
+ *                             - id: "subm-001"
+ *                               projectId: "proj-001"
+ *                               projectLink: "https://drive.google.com/abc123"
+ *                               submissionDate: "2025-10-13T10:00:00Z"
+ *                               score: 95
+ *                               plagiarismScore: 3.2
+ *                               mentorFeedback: "Strukturnya sudah bagus, tinggal perbaiki UI."
+ *                               reviewStatus: "REVIEWED"
+ *                               isReviewed: true
+ *                               isRevisedRequired: false
+ *                               revisionDeadline: null
+ *                               createdAt: "2025-10-13T09:50:00Z"
+ *                               updatedAt: "2025-10-13T11:30:00Z"
+ *                         - id: "proj-002"
+ *                           title: "Todolist App"
+ *                           description: "Aplikasi manajemen tugas dengan React dan Zustand"
+ *                           deadline: "2025-10-25"
+ *                           status: "Belum Dikumpulkan"
+ *                           submissions: []
  *                       mentoringSessions:
  *                         - id: "sess-001"
  *                           date: "2025-10-15"

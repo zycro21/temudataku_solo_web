@@ -1,86 +1,118 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
+import axios from "axios";
 import Sidebar from "@/components/dashboard/user/sidebarDashboardUser";
 import DashboardHeader from "@/components/dashboard/user/dashboardHeader";
 import PengumpulanFilters from "@/components/dashboard/user/pengumpulan/pengumpulanFilters";
-import PengumpulanSection from "@/components/dashboard/user/pengumpulan/pengumpulanSection";
+import PengumpulanWrapper from "@/components/dashboard/user/pengumpulan/pengumpulanSection";
+
+interface Submission {
+  id: string;
+  title: string;
+  filePaths: string[];
+  projectLink?: string | null;
+  submissionDate: string;
+  fileDetails?: {
+    filePath: string;
+    size: string;
+  }[];
+
+  // properti untuk hasil review
+  briefScore?: string;
+  technicalScore?: string;
+  creativityScore?: string;
+  completenessScore?: string;
+  mentorFeedback?: string;
+  mentorSuggestion?: string;
+  isRevisedRequired?: boolean;
+}
 
 interface Project {
   id: string;
   title: string;
   description: string;
-  program: string;
+  program: string; // nama program, misal "Bootcamp - Data Science"
+  serviceType: string; // jenis program: bootcamp, shortclass, live class
   periode: string;
   image: string;
-  status: string; // Belum Dikumpulkan, Selesai, Sudah Direview
-  detailLink?: string; // tambahin field baru
+  status: string;
+  detailLink?: string;
+  submissions?: Submission[];
 }
 
 export default function PengumpulanDashboardUserPage() {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const [programFilter, setProgramFilter] = useState("Semua");
   const [statusFilter, setStatusFilter] = useState("Semua");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const buildTitle = () => {
-    if (programFilter === "Semua" && statusFilter === "Semua") return "Hasil";
-    if (programFilter === "Semua") return `Hasil - ${statusFilter}`;
-    if (statusFilter === "Semua") return `Hasil ${programFilter}`;
-    return `Hasil ${programFilter} - ${statusFilter}`;
-  };
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/booking/mentee/bookings`,
+          { withCredentials: true }
+        );
 
-  const allProjects: Project[] = [
-    {
-      id: "1",
-      title: "Bootcamp Data Science",
-      description:
-        "Project pada bootcamp ini merupakan prediksi harga rumah di daerah Jawa Timur.",
-      program: "Bootcamp",
-      periode: "April - Juli 2025",
-      image: "",
-      status: "Belum Dikumpulkan",
-      detailLink: "https://drive.google.com/file/d/bootcamp-ds",
-    },
-    {
-      id: "2",
-      title: "Python Short Class",
-      description:
-        "Project pada short class ini merupakan analisis dataset Python.",
-      program: "Short Class",
-      periode: "April - Juli 2025",
-      image: "",
-      status: "Sudah Direview",
-      detailLink: "https://drive.google.com/file/d/python-sc",
-    },
-    {
-      id: "3",
-      title: "Data Science Class",
-      description: "Project data science untuk analisis prediksi harga rumah.",
-      program: "Live Class",
-      periode: "April - Juli 2025",
-      image: "",
-      status: "Belum Dikumpulkan",
-      detailLink: "https://drive.google.com/file/d/ds-class",
-    },
-    {
-      id: "4",
-      title: "Bootcamp SQL",
-      description:
-        "Project pada bootcamp ini merupakan analisis data menggunakan SQL.",
-      program: "Bootcamp",
-      periode: "Jan - Maret 2025",
-      image: "",
-      status: "Selesai",
-      detailLink: "https://drive.google.com/file/d/bootcamp-sql",
-    },
-  ];
+        const bookings = res.data?.data?.data || [];
+
+        const mappedProjects: Project[] = bookings.flatMap((booking: any) => {
+          const service = booking.mentoringService;
+          const periode = service?.mentoringSessions?.[0]?.date || "-";
+          const program = service?.serviceName || "-";
+          const serviceType = service?.serviceType || "-"; // << penting!
+          const image = `/assets/dashboard/user/kokok.png`;
+
+          return (service?.projects || []).map((proj: any) => ({
+            id: proj.id,
+            title: proj.title,
+            description: proj.description,
+            program,
+            serviceType, // simpan di project
+            periode,
+            image,
+            status: proj.status || "Belum Dikumpulkan",
+            detailLink: proj.detailLink || undefined,
+            submissions: proj.submissions || [],
+          }));
+        });
+
+        setProjects(mappedProjects);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, []);
 
   const filteredProjects = useMemo(() => {
-    return allProjects.filter((project) => {
+    return projects.filter((project) => {
+      const normalize = (str: string) => str.toLowerCase().replace(/\s/g, "");
+
       const matchProgram =
-        programFilter === "Semua" || project.program === programFilter;
+        programFilter === "Semua" ||
+        normalize(project.serviceType) === normalize(programFilter);
+
+      // tambahkan mapping untuk filter "Selesai" agar sesuai dengan data API
+      const normalizedStatusFilter = (() => {
+        if (statusFilter === "Selesai") return "Sudah Dikumpulkan";
+        if (statusFilter === "Sudah Direview") return "Sudah Direview"; // tetap
+        return statusFilter;
+      })();
+
       const matchStatus =
-        statusFilter === "Semua" || project.status === statusFilter;
+        normalizedStatusFilter === "Semua" ||
+        (normalizedStatusFilter === "Sudah Direview"
+          ? project.status === "Sudah Direview" ||
+            project.status === "Perlu Revisi"
+          : project.status === normalizedStatusFilter);
+
       const matchSearch =
         searchQuery === "" ||
         project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -88,7 +120,7 @@ export default function PengumpulanDashboardUserPage() {
 
       return matchProgram && matchStatus && matchSearch;
     });
-  }, [programFilter, statusFilter, searchQuery, allProjects]);
+  }, [programFilter, statusFilter, searchQuery, projects]);
 
   return (
     <div className="flex mb-8">
@@ -100,7 +132,6 @@ export default function PengumpulanDashboardUserPage() {
             Pengumpulan
           </h1>
 
-          {/* Filter section */}
           <PengumpulanFilters
             programFilter={programFilter}
             statusFilter={statusFilter}
@@ -110,16 +141,14 @@ export default function PengumpulanDashboardUserPage() {
             onSearchChange={setSearchQuery}
           />
 
-          {/* Hasil Filter */}
-          {filteredProjects.length === 0 ? (
+          {loading ? (
+            <p className="text-gray-500 text-sm">Memuat project...</p>
+          ) : filteredProjects.length === 0 ? (
             <p className="text-gray-500">
-              Tidak ada projek dalam kategori {programFilter} - {statusFilter}.
+              Tidak ada project untuk filter {programFilter} - {statusFilter}.
             </p>
           ) : (
-            <PengumpulanSection
-              title={buildTitle()}
-              projects={filteredProjects}
-            />
+            <PengumpulanWrapper projects={filteredProjects} />
           )}
         </main>
       </div>

@@ -297,14 +297,17 @@ export const submitProject = async (
 
     // Cek kalau multiple files diupload
     const uploadedFiles = req.files as Express.Multer.File[] | undefined;
-    if (!uploadedFiles || uploadedFiles.length === 0) {
-      throw new Error("Harus mengirim minimal satu file.");
+    if ((!uploadedFiles || uploadedFiles.length === 0) && !projectLink) {
+      throw new Error("Harus mengirim minimal satu file atau link proyek.");
     }
 
-    // Gunakan path relatif: submissions/filename.ext
-    const filePaths = uploadedFiles.map((file) =>
-      path.join("submissions", file.filename).replace(/\\/g, "/")
-    );
+    // path relatif: submissions/filename.ext
+    const filePaths =
+      uploadedFiles && uploadedFiles.length > 0
+        ? uploadedFiles.map((file) =>
+            path.join("submissions", file.filename).replace(/\\/g, "/")
+          )
+        : [];
 
     const submission = await ProjectService.submit({
       projectId,
@@ -323,6 +326,41 @@ export const submitProject = async (
       },
     });
   } catch (error: any) {
+    next(error);
+  }
+};
+
+export const reviseSubmission = async (
+  req: AuthenticatedRequestProject,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { submissionId } = req.validatedParams;
+    const { title, projectLink } = req.validatedBody;
+    const menteeId = req.user?.userId!;
+    const uploadedFiles = req.files as Express.Multer.File[] | undefined;
+
+    const filePaths =
+      uploadedFiles && uploadedFiles.length > 0
+        ? uploadedFiles.map((file) =>
+            path.join("submissions", file.filename).replace(/\\/g, "/")
+          )
+        : [];
+
+    const updatedSubmission = await ProjectService.revise({
+      submissionId,
+      menteeId,
+      title,
+      projectLink,
+      filePaths,
+    });
+
+    res.status(200).json({
+      message: "Revisi submission berhasil diperbarui",
+      data: updatedSubmission,
+    });
+  } catch (error) {
     next(error);
   }
 };

@@ -21,6 +21,7 @@ import {
   getMenteeSubmissionsSchema,
   getMenteeSubmissionDetailSchema,
   getMentorServiceSubmissionListSchema,
+  updateSubmissionSchema,
 } from "../validations/project.validation.js";
 import { validate } from "../middlewares/validate.js";
 import { authenticate } from "../middlewares/authenticate.js";
@@ -1370,6 +1371,7 @@ router.get(
  * /api/project/menteeSubmitProjects/{id}/submissions:
  *   post:
  *     summary: Submit proyek (mentee)
+ *     description: "Endpoint untuk mentee mengirimkan submission proyek. Bisa upload file (png, pdf, psd, xls, csv, docx, ipynb, pptx). Fitur plagiarism check hanya untuk ipynb dan pptx."
  *     tags: [Project]
  *     security:
  *       - bearerAuth: []
@@ -1379,8 +1381,10 @@ router.get(
  *       - in: path
  *         name: id
  *         required: true
+ *         description: ID proyek yang akan dikirim submission-nya
  *         schema:
  *           type: string
+ *           example: "Project-000012"
  *     requestBody:
  *       required: true
  *       content:
@@ -1389,20 +1393,23 @@ router.get(
  *             type: object
  *             required:
  *               - submissionFile
- *               - sessionId
  *               - title
  *             properties:
- *               sessionId:
- *                 type: string
- *                 example: "sess-xyz123"
  *               title:
  *                 type: string
  *                 example: "Final Project Website Portfolio"
  *               projectLink:
  *                 type: string
- *                 example: "https://drive.google.com/..."
+ *                 description: "Opsional, jika submission berupa link (misalnya GitHub, Google Drive, atau Colab)"
+ *                 example: "https://github.com/user/project"
+ *               sessionId:
+ *                 type: string
+ *                 nullable: true
+ *                 description: "Opsional. Kosongkan jika tidak ada sesi mentoring terkait"
+ *                 example: ""
  *               submissionFile:
  *                 type: array
+ *                 description: "File proyek yang diupload (format: png, pdf, psd, xls, csv, docx, ipynb, pptx)"
  *                 items:
  *                   type: string
  *                   format: binary
@@ -1423,18 +1430,35 @@ router.get(
  *                     submission:
  *                       type: object
  *                       properties:
- *                         id: { type: string, example: "Submission-mentee123-svc456-20250701121500" }
- *                         projectId: { type: string }
- *                         menteeId: { type: string }
- *                         sessionId: { type: string }
- *                         title: { type: string, example: "Final Project Website Portfolio" }
- *                         projectLink: { type: string, example: "https://github.com/user/repo" }
+ *                         id:
+ *                           type: string
+ *                           example: "Submission-mentee123-svc456-20250701121500"
+ *                         projectId:
+ *                           type: string
+ *                           example: "Project-000012"
+ *                         menteeId:
+ *                           type: string
+ *                           example: "User-000456"
+ *                         sessionId:
+ *                           type: string
+ *                           nullable: true
+ *                           example: ""
+ *                         title:
+ *                           type: string
+ *                           example: "Final Project Website Portfolio"
+ *                         projectLink:
+ *                           type: string
+ *                           nullable: true
+ *                           example: "https://github.com/user/repo"
  *                         filePaths:
  *                           type: array
- *                           items: { type: string }
+ *                           items:
+ *                             type: string
+ *                             example: "uploads/projects/submission1.pdf"
  *                         plagiarismScore:
  *                           type: number
  *                           nullable: true
+ *                           example: 0.12
  *                         reviewStatus:
  *                           type: string
  *                           enum: [PENDING, REVIEWED, REVISION_REQUIRED]
@@ -1469,6 +1493,16 @@ router.get(
  *                 message:
  *                   type: string
  *                   example: Forbidden. Mentee only.
+ *       415:
+ *         description: Format file tidak didukung
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Format file tidak didukung. Gunakan salah satu dari: png, pdf, psd, xls, csv, docx, ipynb, pptx."
  *       500:
  *         description: Kesalahan pada server atau gagal hitung plagiarism score
  *         content:
@@ -1487,6 +1521,95 @@ router.post(
   handleSubmissionUpload("submissionFile", true),
   validate(submitProjectSchema),
   ProjectController.submitProject
+);
+
+/**
+ * @swagger
+ * /api/project/menteeSubmitProjects/{submissionId}/revise:
+ *   put:
+ *     summary: Update (revisi) submission proyek
+ *     description: "Endpoint untuk mentee melakukan revisi submission proyek. Bisa upload file baru atau update link proyek. Hanya bisa dilakukan jika status review = REVISION_REQUIRED."
+ *     tags: [Project]
+ *     security:
+ *       - bearerAuth: []
+ *     consumes:
+ *       - multipart/form-data
+ *     parameters:
+ *       - in: path
+ *         name: submissionId
+ *         required: true
+ *         description: ID submission yang akan direvisi
+ *         schema:
+ *           type: string
+ *           example: "Submission-User001-Service005-20250701121500"
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 example: "Final Project Revisi"
+ *               projectLink:
+ *                 type: string
+ *                 example: "https://github.com/user/revised-project"
+ *               submissionFile:
+ *                 type: array
+ *                 description: "File revisi proyek (opsional)"
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *     responses:
+ *       200:
+ *         description: Submission berhasil direvisi
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Revisi submission berhasil diperbarui"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       example: "Submission-User001-Service005-20250701121500"
+ *                     title:
+ *                       type: string
+ *                       example: "Final Project Revisi"
+ *                     projectLink:
+ *                       type: string
+ *                       example: "https://github.com/user/revised-project"
+ *                     filePaths:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                         example: "uploads/projects/submission1_revised.pdf"
+ *                     reviewStatus:
+ *                       type: string
+ *                       example: "PENDING"
+ *       400:
+ *         description: Validasi gagal
+ *       401:
+ *         description: Token tidak valid
+ *       403:
+ *         description: Akses ditolak (bukan mentee)
+ *       404:
+ *         description: Submission tidak ditemukan
+ *       500:
+ *         description: Kesalahan server
+ */
+router.put(
+  "/menteeSubmitProjects/:submissionId/revise",
+  authenticate,
+  authorizeRoles("mentee"),
+  handleSubmissionUpload("submissionFile", true),
+  validate(updateSubmissionSchema),
+  ProjectController.reviseSubmission
 );
 
 /**
