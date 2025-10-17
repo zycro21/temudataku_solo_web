@@ -416,6 +416,17 @@ export const getMenteeBookings = async (
                   },
                 },
               },
+              feedbacks: {
+                include: {
+                  user: {
+                    select: {
+                      id: true,
+                      fullName: true,
+                      profilePicture: true,
+                    },
+                  },
+                },
+              },
             },
           },
         },
@@ -450,7 +461,6 @@ export const getMenteeBookings = async (
         if (Array.isArray(subm.filePaths)) {
           filesWithSize = subm.filePaths.map((fp) => {
             try {
-              // Gabungkan path fisik ke file di uploads
               const filePath = path.join(uploadsRoot, fp);
               const stats = fs.statSync(filePath);
               const sizeKB = (stats.size / 1024).toFixed(2) + " KB";
@@ -463,7 +473,7 @@ export const getMenteeBookings = async (
 
         return {
           ...subm,
-          fileDetails: filesWithSize, // ⬅️ tambahkan properti baru
+          fileDetails: filesWithSize,
         };
       });
 
@@ -483,7 +493,7 @@ export const getMenteeBookings = async (
       return {
         ...proj,
         status,
-        submissions, // gunakan submission yang sudah diubah
+        submissions,
       };
     });
 

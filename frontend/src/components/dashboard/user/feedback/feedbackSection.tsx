@@ -5,6 +5,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Calendar, User } from "lucide-react";
 import TambahFeedbackModal from "./tambahFeedbackModal";
 import LihatFeedbackModal from "./lihatFeedbackModal";
+
 interface Feedback {
   id: string;
   title: string;
@@ -24,11 +25,13 @@ interface Feedback {
 interface FeedbackSectionProps {
   title: string;
   feedbacks: Feedback[];
+  onFeedbackSubmitted: () => void;
 }
 
 export default function FeedbackSection({
   title,
   feedbacks,
+  onFeedbackSubmitted,
 }: FeedbackSectionProps) {
   return (
     <div className="mb-6">
@@ -43,7 +46,6 @@ export default function FeedbackSection({
               key={feedback.id}
               className="p-0 overflow-hidden flex flex-col justify-between"
             >
-              {/* Gambar */}
               <div className="relative w-full h-48">
                 <Image
                   src={
@@ -59,7 +61,6 @@ export default function FeedbackSection({
                 />
               </div>
 
-              {/* Konten */}
               <CardContent className="px-5 py-6 flex-1 space-y-3">
                 <h3 className="text-lg font-bold text-gray-800">
                   {feedback.title}
@@ -67,7 +68,6 @@ export default function FeedbackSection({
                 <p className="text-sm text-gray-600">{feedback.description}</p>
               </CardContent>
 
-              {/* Footer */}
               <CardFooter className="flex flex-col items-start gap-4 px-5 pb-6 mt-auto">
                 <div className="flex items-center text-sm gap-2 text-gray-600">
                   <Calendar className="w-4 h-4" />
@@ -82,18 +82,17 @@ export default function FeedbackSection({
 
                 {feedback.status === "Belum" ? (
                   <TambahFeedbackModal
+                    sessionId={feedback.id}
                     feedbackTitle={feedback.title}
                     feedbackDate={feedback.date}
                     feedbackTime={feedback.time}
+                    onSuccess={onFeedbackSubmitted}
                   />
                 ) : (
                   <LihatFeedbackModal
                     feedbackTitle={feedback.title}
                     feedbackDate={feedback.date}
                     feedbackTime={feedback.time}
-                    answers={feedback.answers || {}}
-                    input1={feedback.input1 || ""}
-                    input2={feedback.input2 || ""}
                   />
                 )}
               </CardFooter>

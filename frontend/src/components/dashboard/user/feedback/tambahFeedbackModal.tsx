@@ -10,20 +10,27 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import SuccessModal from "./successModal";
+import axios from "axios";
+import { toast } from "sonner";
 
 interface TambahFeedbackModalProps {
+  sessionId: string;
   feedbackTitle: string;
   feedbackDate: string;
   feedbackTime: string;
+  onSuccess?: () => void;
 }
 
 export default function TambahFeedbackModal({
+  sessionId,
   feedbackTitle,
   feedbackDate,
   feedbackTime,
+  onSuccess,
 }: TambahFeedbackModalProps) {
   const [open, setOpen] = useState(false);
   const [successOpen, setSuccessOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const questions = [
     "Materi yang diberikan dalam pertemuan ini mudah dimengerti",
@@ -54,9 +61,54 @@ export default function TambahFeedbackModal({
     setInput2("");
   };
 
-  const handleSubmit = () => {
-    handleClose();
-    setSuccessOpen(true);
+  const handleSubmit = async () => {
+    if (loading) return;
+    setLoading(true);
+
+    try {
+      // Konversi jawaban mentee jadi rating (1–5)
+      const ratingValues: Record<string, number> = {
+        "Sangat Setuju": 5,
+        "Setuju": 4,
+        "Tidak Setuju": 2,
+        "Sangat Tidak Setuju": 1,
+      };
+
+      const numericAnswers = Object.values(answers).map(
+        (ans) => ratingValues[ans] ?? 0
+      );
+      const avgRating =
+        numericAnswers.reduce((a, b) => a + b, 0) / numericAnswers.length;
+
+      // Payload ke backend
+      const payload = {
+        sessionId,
+        rating: Math.round(avgRating),
+        comment: `${input1}\n\nCatatan tambahan: ${input2}`,
+        isAnonymous: false,
+      };
+
+      const res = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/feedback/createFeedbacks`,
+        payload,
+        {
+          withCredentials: true,
+        }
+      );
+
+      toast.success(res.data.message || "Feedback berhasil dikirim.");
+      if (onSuccess) onSuccess();
+      handleClose();
+      setSuccessOpen(true);
+    } catch (error: any) {
+      console.error("Error saat kirim feedback:", error);
+      toast.error(
+        error.response?.data?.message ||
+          "Gagal mengirim feedback. Coba lagi nanti."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -176,15 +228,15 @@ export default function TambahFeedbackModal({
               Batal
             </Button>
             <Button
-              disabled={!allAnswered}
+              disabled={!allAnswered || loading}
               className={`w-32 ${
-                allAnswered
+                allAnswered && !loading
                   ? "bg-emerald-500 hover:bg-emerald-600 text-white"
                   : "bg-gray-300 text-gray-500 cursor-not-allowed"
               }`}
               onClick={handleSubmit}
             >
-              Simpan
+              {loading ? "Menyimpan..." : "Simpan"}
             </Button>
           </div>
         </DialogContent>

@@ -1,117 +1,130 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
+import axios from "axios";
 import Sidebar from "@/components/dashboard/user/sidebarDashboardUser";
 import DashboardHeader from "@/components/dashboard/user/dashboardHeader";
 import FeedbackFilters from "@/components/dashboard/user/feedback/feedbackFilters";
 import FeedbackSection from "@/components/dashboard/user/feedback/feedbackSection";
 
+function formatDateAndTime(date: string, startTime: string, endTime: string) {
+  try {
+    const months = [
+      "Januari",
+      "Februari",
+      "Maret",
+      "April",
+      "Mei",
+      "Juni",
+      "Juli",
+      "Agustus",
+      "September",
+      "Oktober",
+      "November",
+      "Desember",
+    ];
+
+    const [day, month, year] = date.split("-");
+    const formattedDate = `${parseInt(day)} ${
+      months[parseInt(month) - 1]
+    } ${year}`;
+
+    const formatTime = (iso: string) => {
+      const d = new Date(iso);
+      return d.toLocaleTimeString("id-ID", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+    };
+
+    const start = formatTime(startTime);
+    const end = formatTime(endTime);
+
+    return { formattedDate, formattedTime: `${start} - ${end}` };
+  } catch {
+    return { formattedDate: date, formattedTime: `${startTime} - ${endTime}` };
+  }
+}
+
 interface Feedback {
   id: string;
   title: string;
   description: string;
-  program: string; // Bootcamp, Short Class, Mentoring, dll
-  category: string; // misal "Bootcamp Data Science", "Short Class Python"
+  program: string;
+  category: string;
   date: string;
   time: string;
   mentor: string;
   image: string;
-  status: "Belum" | "Sudah"; // Belum -> Tambah Umpan Balik, Sudah -> Lihat Umpan Balik
-  answers?: { [key: number]: string }; // optional, hanya ada kalau Sudah
+  status: "Belum" | "Sudah";
+  answers?: { [key: number]: string };
   input1?: string;
   input2?: string;
 }
 
 export default function FeedbackDashboardUserPage() {
+  const [feedbackData, setFeedbackData] = useState<Feedback[]>([]);
   const [programFilter, setProgramFilter] = useState("Semua");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const allFeedbacks: Feedback[] = [
-    {
-      id: "1",
-      title: "Data Science Class Week 3",
-      description:
-        "Pertemuan 1 membahas seberapa penting data science dan bagaimana step by step menjadi data scientist.",
-      program: "Bootcamp",
-      category: "Bootcamp Data Science",
-      date: "2 Mei 2025",
-      time: "10:00 - 12:00",
-      mentor: "Kak Rina",
-      image: "",
-      status: "Belum",
-    },
-    {
-      id: "2",
-      title: "Data Science Class Week 2",
-      description:
-        "Pertemuan 1 membahas seberapa penting data science dan bagaimana step by step menjadi data scientist.",
-      program: "Bootcamp",
-      category: "Bootcamp Data Science",
-      date: "2 Mei 2025",
-      time: "10:00 - 12:00",
-      mentor: "Kak Rina",
-      image: "",
-      status: "Belum",
-    },
-    {
-      id: "3",
-      title: "Data Science Class Week 1",
-      description:
-        "Pertemuan 1 membahas seberapa penting data science dan bagaimana step by step menjadi data scientist.",
-      program: "Bootcamp",
-      category: "Bootcamp Data Science",
-      date: "2 Mei 2025",
-      time: "10:00 - 12:00",
-      mentor: "Kak Rina",
-      image: "",
-      status: "Sudah",
-      answers: {
-        0: "Sangat Setuju",
-        1: "Setuju",
-        2: "Sangat Setuju",
-        3: "Setuju",
-        4: "Tidak Setuju",
-        5: "Setuju",
-        6: "Sangat Setuju",
-      },
-      input1:
-        "Menurut saya materinya sudah cukup bagus, mungkin bisa lebih banyak contoh real project.",
-      input2:
-        "Terima kasih banyak untuk mentor, semoga kelas berikutnya lebih interaktif lagi.",
-    },
-    {
-      id: "4",
-      title: "Python Short Class",
-      description:
-        "Pertemuan 1 membahas seberapa penting data science dan bagaimana step by step menjadi data scientist.",
-      program: "Short Class",
-      category: "Short Class Python",
-      date: "2 Mei 2025",
-      time: "10:00 - 12:00",
-      mentor: "Kak Rina",
-      image: "",
-      status: "Belum",
-    },
-    {
-      id: "5",
-      title: "Python Live Class",
-      description:
-        "Pertemuan 1 membahas seberapa penting data science dan bagaimana step by step menjadi data scientist.",
-      program: "Live Class",
-      category: "Live Class Python",
-      date: "10 Mei 2025",
-      time: "10:00 - 12:00",
-      mentor: "Kak Rina",
-      image: "g",
-      status: "Belum",
-    },
-  ];
+  const fetchFeedbacks = async () => {
+    try {
+      const res = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/booking/mentee/bookings`,
+        {
+          params: { page: 1, limit: 1000 },
+          withCredentials: true,
+        }
+      );
 
-  // Filter data
+      const bookings = res.data.data.data;
+
+      const transformed = bookings.flatMap((booking: any) => {
+        const service = booking.mentoringService;
+        if (!service || !service.mentoringSessions) return [];
+
+        return service.mentoringSessions.map((session: any) => {
+          const { formattedDate, formattedTime } = formatDateAndTime(
+            session.date,
+            session.startTime,
+            session.endTime
+          );
+
+          return {
+            id: session.id,
+            title: session.notes || "Sesi Mentoring",
+            description: service.description || "",
+            program: service.serviceType || "Mentoring",
+            category: service.serviceName,
+            date: formattedDate,
+            time: formattedTime,
+            mentor:
+              session.mentors?.[0]?.mentorProfile?.user?.fullName ||
+              "Mentor Tidak Diketahui",
+            image:
+              session.mentors?.[0]?.mentorProfile?.user?.profilePicture || "",
+            status: session.feedbacks?.length > 0 ? "Sudah" : "Belum",
+          };
+        });
+      });
+
+      setFeedbackData(transformed);
+    } catch (error) {
+      console.error("Gagal fetch feedback data:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchFeedbacks();
+  }, []);
+
   const filteredFeedbacks = useMemo(() => {
-    return allFeedbacks.filter((f) => {
+    return feedbackData.filter((f) => {
       const matchProgram =
-        programFilter === "Semua" || f.program === programFilter;
+        programFilter === "Semua" ||
+        f.program.toLowerCase() === programFilter.toLowerCase();
+
       const matchSearch =
         searchQuery === "" ||
         f.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -119,9 +132,8 @@ export default function FeedbackDashboardUserPage() {
 
       return matchProgram && matchSearch;
     });
-  }, [programFilter, searchQuery]);
+  }, [programFilter, searchQuery, feedbackData]);
 
-  // Grouping per category (Bootcamp Data Science, Short Class Python, dst)
   const groupedFeedbacks = useMemo(() => {
     const groups: Record<string, Feedback[]> = {};
     filteredFeedbacks.forEach((f) => {
@@ -141,7 +153,6 @@ export default function FeedbackDashboardUserPage() {
             Feedback
           </h1>
 
-          {/* Filter Section */}
           <FeedbackFilters
             programFilter={programFilter}
             searchQuery={searchQuery}
@@ -149,7 +160,6 @@ export default function FeedbackDashboardUserPage() {
             onSearchChange={setSearchQuery}
           />
 
-          {/* Section per Kategori */}
           {Object.keys(groupedFeedbacks).length === 0 ? (
             <p className="text-gray-500">
               Tidak ada feedback dalam kategori {programFilter}.
@@ -160,6 +170,7 @@ export default function FeedbackDashboardUserPage() {
                 key={category}
                 title={category}
                 feedbacks={feedbacks}
+                onFeedbackSubmitted={fetchFeedbacks}
               />
             ))
           )}
