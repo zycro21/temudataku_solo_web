@@ -1,5 +1,5 @@
 import { Router } from "express";
-import * as FeedbackController from "../controllers/feedback.controller";
+import * as FeedbackController from "../controllers/feedback.controller.js";
 import {
   createFeedbackSchema,
   updateFeedbackSchema,
@@ -11,10 +11,10 @@ import {
   patchFeedbackVisibilitySchema,
   exportFeedbackQuerySchema,
   feedbackStatsQuerySchema,
-} from "../validations/feedback.validation";
-import { validate } from "../middlewares/validate";
-import { authenticate } from "../middlewares/authenticate";
-import { authorizeRoles } from "../middlewares/authorizeRole";
+} from "../validations/feedback.validation.js";
+import { validate } from "../middlewares/validate.js";
+import { authenticate } from "../middlewares/authenticate.js";
+import { authorizeRoles } from "../middlewares/authorizeRole.js";
 
 const router = Router();
 
@@ -673,6 +673,13 @@ router.get(
  *         description: Filter berdasarkan sesi tertentu
  *         example: eabcaf65-0c11-41d2-8e6d-b93efc54b66c
  *       - in: query
+ *         name: program
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Filter berdasarkan nama program atau layanan mentoring (tidak case-sensitive)
+ *         example: UI/UX Design Intensive
+ *       - in: query
  *         name: sortBy
  *         required: false
  *         schema:
@@ -743,6 +750,9 @@ router.get(
  *                               serviceName:
  *                                 type: string
  *                                 example: UI/UX Design Intensive
+ *                               serviceType:
+ *                                 type: string
+ *                                 example: Group Mentoring
  *                       user:
  *                         type: object
  *                         properties:
@@ -752,7 +762,7 @@ router.get(
  *                           profilePicture:
  *                             type: string
  *                             nullable: true
- *                             example: null
+ *                             example: https://cdn.example.com/profile/abc123.jpg
  *       401:
  *         description: Tidak terautentikasi (token tidak disediakan atau salah)
  *         content:

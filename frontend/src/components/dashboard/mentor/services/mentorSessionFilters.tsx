@@ -26,6 +26,7 @@ export default function MentorSessionFilters({
     "Mentoring Group",
     "Bootcamp",
     "Short Class",
+    "Live Class",
   ];
 
   return (

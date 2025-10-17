@@ -2,15 +2,45 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
-import { ChevronDown, User, LayoutDashboard } from "lucide-react";
+import { ChevronDown, User } from "lucide-react";
 import { useRouter } from "next/navigation";
-// import AffiliatorModal from "./affiliatorModal";
+import axios from "axios";
+import { toast } from "sonner";
+import ProfileMentorModal from "./profileMentorModal";
 
-export default function DashboardHeaderAffiliator() {
+export default function DashboardHeaderMentor() {
   const [open, setOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  // Fetch user + auto redirect jika token expired
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/me`,
+          { withCredentials: true }
+        );
+        setUser(res.data.data);
+      } catch (err: any) {
+        console.error("Gagal fetch user:", err);
+
+        // kalau token expired (401), redirect ke login
+        if (err.response?.status === 401) {
+          toast.error("Sesi kamu sudah berakhir, silakan login ulang", {
+            duration: 5000,
+          });
+          router.replace("/"); // balik ke halaman login
+        } else {
+          setUser(null);
+        }
+      }
+    };
+
+    fetchUser();
+  }, [router]);
 
   // Tutup dropdown kalau klik di luar
   useEffect(() => {
@@ -28,8 +58,23 @@ export default function DashboardHeaderAffiliator() {
 
   const handleOpenProfile = () => {
     setProfileOpen(true);
-    setOpen(false); // auto close dropdown
+    setOpen(false);
   };
+
+  // avatar fallback jika tidak ada / default.jpg / default.png
+  const avatarUrl =
+    user?.profilePicture &&
+    !["default.jpg", "default.png"].includes(user.profilePicture)
+      ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${user.profilePicture}`
+      : "/assets/dashboard/user/avatar.png";
+
+  const fullName = user?.fullName || "Guest";
+
+  const role = user?.userRoles?.[0]?.role?.roleName
+    ? user.userRoles[0].role.roleName.replace(/^\w/, (c: string) =>
+        c.toUpperCase()
+      )
+    : "Mentor";
 
   return (
     <>
@@ -50,7 +95,7 @@ export default function DashboardHeaderAffiliator() {
           />
         </div>
 
-        {/* Right - Notification & User Info */}
+        {/* Right Section */}
         <div className="flex items-center gap-6 pr-6">
           {/* Notification */}
           <button className="relative flex items-center justify-center w-12 h-12 rounded-full border border-gray-300 bg-white">
@@ -70,17 +115,17 @@ export default function DashboardHeaderAffiliator() {
               className="flex items-center gap-2 focus:outline-none"
             >
               <Image
-                src="/assets/dashboard/user/avatar.png"
+                src={avatarUrl}
                 alt="User Avatar"
                 width={36}
                 height={36}
-                className="rounded-full"
+                className="rounded-full object-cover"
               />
               <div className="flex flex-col text-left">
                 <span className="text-sm font-medium text-gray-800">
-                  Maudy Ayunda
+                  {fullName}
                 </span>
-                <span className="text-xs text-gray-500">Mentor</span>
+                <span className="text-xs text-gray-500">{role}</span>
               </div>
               <ChevronDown
                 size={14}
@@ -90,7 +135,6 @@ export default function DashboardHeaderAffiliator() {
               />
             </button>
 
-            {/* Dropdown Menu */}
             {open && (
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-2 z-50">
                 <button
@@ -106,8 +150,7 @@ export default function DashboardHeaderAffiliator() {
         </div>
       </header>
 
-      {/* Affiliator Modal */}
-      {/* <AffiliatorModal open={profileOpen} onOpenChange={setProfileOpen} /> */}
+      <ProfileMentorModal open={profileOpen} onOpenChange={setProfileOpen} />
     </>
   );
 }

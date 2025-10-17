@@ -10,19 +10,23 @@ import {
 } from "@/components/ui/card";
 import { ChevronRight } from "lucide-react";
 import { FaStar } from "react-icons/fa";
+import { useEffect, useState } from "react";
+import axios from "axios";
 
-type Feedback = {
-  id: number;
-  mentee: string;
-  program: string;
-  skill: string;
-  rating: number;
-  comment: string;
-  date: string;
-};
+// Helper: cek apakah date masuk minggu berjalan
+function isThisWeek(date: Date) {
+  const localDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
 
-interface MentorFeedbackStatCardsProps {
-  feedbacks: Feedback[];
+  const now = new Date();
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  startOfWeek.setHours(0, 0, 0, 0);
+
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 6);
+  endOfWeek.setHours(23, 59, 59, 999);
+
+  return localDate >= startOfWeek && localDate <= endOfWeek;
 }
 
 // fungsi ekstrak keyword sederhana
@@ -67,11 +71,34 @@ function extractKeywords(text: string, max: number = 3): string[] {
   return sorted.slice(0, max);
 }
 
-export default function MentorFeedbackStatCards({
-  feedbacks,
-}: MentorFeedbackStatCardsProps) {
-  // jumlah feedback
-  const jumlahFeedback = feedbacks.length;
+export default function MentorFeedbackStatCards() {
+  const [feedbackCount, setFeedbackCount] = useState(0);
+  const [feedbackChange, setFeedbackChange] = useState(0);
+  const [feedbacks, setFeedbacks] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchFeedbacks = async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/feedback/mentor/feedbacks?limit=1000`,
+          { withCredentials: true }
+        );
+
+        const { data } = res.data;
+        setFeedbacks(data);
+        setFeedbackCount(data.length);
+
+        const newThisWeek = data.filter((f: any) =>
+          isThisWeek(new Date(f.submittedDate))
+        );
+        setFeedbackChange(newThisWeek.length);
+      } catch (error) {
+        console.error("Error fetching feedbacks:", error);
+      }
+    };
+
+    fetchFeedbacks();
+  }, []);
 
   // rata-rata rating
   const avgRating =
@@ -84,8 +111,8 @@ export default function MentorFeedbackStatCards({
   const stats = [
     {
       title: "Jumlah Feedback",
-      value: jumlahFeedback,
-      change: "+99 minggu ini", // manual dulu
+      value: feedbackCount,
+      change: `+${feedbackChange} minggu ini`,
       image: "/assets/dashboard/mentor/laporan.svg",
     },
     {

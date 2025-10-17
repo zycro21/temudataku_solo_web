@@ -1,5 +1,5 @@
 import { Router } from "express";
-import * as PracticeController from "../controllers/practice.controller";
+import * as PracticeController from "../controllers/practice.controller.js";
 import {
   createPracticeSchema,
   updatePracticeSchema,
@@ -40,15 +40,15 @@ import {
   getAllAdminPracticeReviewsSchema,
   getAdminPracticeReviewByIdSchema,
   exportAdminPracticeReviewsSchema,
-} from "../validations/practice.validation";
-import { validate } from "../middlewares/validate";
-import { authenticate } from "../middlewares/authenticate";
-import { authorizeRoles } from "../middlewares/authorizeRole";
+} from "../validations/practice.validation.js";
+import { validate } from "../middlewares/validate.js";
+import { authenticate } from "../middlewares/authenticate.js";
+import { authorizeRoles } from "../middlewares/authorizeRole.js";
 import {
   handleThumbnailUpload,
   handlePracticeFileUpload,
-} from "../middlewares/uploadImage";
-import { preloadPracticeTitle } from "../middlewares/preloadTitlePractice";
+} from "../middlewares/uploadImage.js";
+import { preloadPracticeTitle } from "../middlewares/preloadTitlePractice.js";
 
 const router = Router();
 
@@ -2408,7 +2408,7 @@ router.patch(
  * @swagger
  * /api/practice/mentees/practice-purchases:
  *   get:
- *     summary: Mendapatkan semua pembelian practice oleh mentee
+ *     summary: Mendapatkan daftar pembelian practice oleh mentee (beserta semua materi practice)
  *     tags: [Practices]
  *     security:
  *       - bearerAuth: []
@@ -2417,11 +2417,15 @@ router.patch(
  *         name: page
  *         schema:
  *           type: integer
+ *           example: 1
+ *         required: true
  *         description: Halaman saat ini
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
+ *           example: 10
+ *         required: true
  *         description: Jumlah item per halaman
  *       - in: query
  *         name: status
@@ -2436,7 +2440,7 @@ router.patch(
  *         description: Pencarian berdasarkan judul practice
  *     responses:
  *       200:
- *         description: Practice purchases fetched successfully
+ *         description: Berhasil mengambil daftar pembelian practice
  *         content:
  *           application/json:
  *             schema:
@@ -2458,10 +2462,20 @@ router.patch(
  *                         properties:
  *                           id:
  *                             type: string
- *                             example: "Purchase-1234567890"
+ *                             example: "purchase_123abc"
+ *                           userId:
+ *                             type: string
+ *                             example: "user_001"
+ *                           practiceId:
+ *                             type: string
+ *                             example: "practice_xyz"
  *                           status:
  *                             type: string
- *                             example: "pending"
+ *                             example: "confirmed"
+ *                           purchaseDate:
+ *                             type: string
+ *                             format: date-time
+ *                             example: "2025-07-01T12:00:00.000Z"
  *                           createdAt:
  *                             type: string
  *                             format: date-time
@@ -2475,18 +2489,63 @@ router.patch(
  *                             properties:
  *                               id:
  *                                 type: string
- *                                 example: "practice-xyz"
+ *                                 example: "practice_abc"
  *                               title:
  *                                 type: string
  *                                 example: "UI/UX Design Fundamental"
+ *                               description:
+ *                                 type: string
+ *                                 example: "Pelajari dasar-dasar desain UI/UX dari mentor berpengalaman."
  *                               thumbnailImages:
  *                                 type: array
  *                                 items:
  *                                   type: string
- *                                 example: ["https://example.com/img1.png"]
+ *                                 example: ["https://example.com/images/uiux.png"]
  *                               price:
  *                                 type: number
  *                                 example: 150000
+ *                               category:
+ *                                 type: string
+ *                                 example: "Design"
+ *                               isActive:
+ *                                 type: boolean
+ *                                 example: true
+ *                               practiceMaterials:
+ *                                 type: array
+ *                                 items:
+ *                                   type: object
+ *                                   properties:
+ *                                     id:
+ *                                       type: string
+ *                                       example: "material_123"
+ *                                     title:
+ *                                       type: string
+ *                                       example: "Pengenalan Dasar UI"
+ *                                     description:
+ *                                       type: string
+ *                                       example: "Materi ini membahas prinsip dasar desain antarmuka."
+ *                                     orderNumber:
+ *                                       type: integer
+ *                                       example: 1
+ *                                     status:
+ *                                       type: string
+ *                                       example: "active"
+ *                                     startDate:
+ *                                       type: string
+ *                                       format: date-time
+ *                                       example: "2025-07-02T10:00:00.000Z"
+ *                                     endDate:
+ *                                       type: string
+ *                                       format: date-time
+ *                                       example: "2025-07-10T10:00:00.000Z"
+ *                                     createdAt:
+ *                                       type: string
+ *                                       format: date-time
+ *                                       example: "2025-07-02T09:00:00.000Z"
+ *                                     updatedAt:
+ *                                       type: string
+ *                                       format: date-time
+ *                                       example: "2025-07-05T09:00:00.000Z"
  *                     page:
  *                       type: integer
  *                       example: 1
@@ -2495,12 +2554,12 @@ router.patch(
  *                       example: 10
  *                     total:
  *                       type: integer
- *                       example: 20
+ *                       example: 25
  *                     totalPages:
  *                       type: integer
- *                       example: 2
+ *                       example: 3
  *       400:
- *         description: Invalid query parameters
+ *         description: Parameter query tidak valid
  *         content:
  *           application/json:
  *             schema:
@@ -2519,9 +2578,25 @@ router.patch(
  *             schema:
  *               type: object
  *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
  *                 message:
  *                   type: string
  *                   example: Unauthorized
+ *       500:
+ *         description: Terjadi kesalahan server
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error
  */
 router.get(
   "/mentees/practice-purchases",

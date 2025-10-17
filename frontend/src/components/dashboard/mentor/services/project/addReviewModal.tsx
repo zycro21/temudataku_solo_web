@@ -15,6 +15,8 @@ import { id } from "date-fns/locale";
 import { X } from "lucide-react";
 import DiscardChangesModal from "./discardChangesModal";
 import SuccessCardAddReviewModal from "./successCardAddReview";
+import axios from "axios";
+import { toast } from "sonner";
 
 interface AddReviewModalProps {
   open: boolean;
@@ -24,7 +26,10 @@ interface AddReviewModalProps {
     name: string;
     email: string;
     projectTitle: string;
+    projectCreatedAt: string;
+    title: string;
     projectLink: string;
+    filePaths?: string[];
     date: string;
     scheduleStart: string;
     scheduleEnd: string;
@@ -42,6 +47,15 @@ export default function AddReviewModal({
   const [answers, setAnswers] = useState<{ [key: string]: string }>({});
   const [showDiscardModal, setShowDiscardModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      setStep(1);
+      setAnswers({});
+      setCompletedSteps([]);
+      setShowSuccessModal(false);
+    }
+  }, [open]);
 
   if (!project) return null;
 
@@ -84,28 +98,44 @@ export default function AddReviewModal({
     { title: "Bagian 3", desc: "Umpan Balik" },
   ];
 
-  const formatProjectSchedule = (project: {
-    zoomSchedule: string;
-    scheduleStart: string;
-    scheduleEnd: string;
-  }) => {
+  const handleSubmitReview = async () => {
+    if (!project) return;
+    if (!isStep3Valid) {
+      toast.error("Lengkapi semua isian terlebih dahulu.");
+      return;
+    }
+
     try {
-      const start = new Date(project.scheduleStart);
-      const end = new Date(project.scheduleEnd);
+      const payload = {
+        score: 0, // opsional
+        briefScore: answers["brief"],
+        technicalScore: answers["technical"],
+        creativityScore: answers["creativity"],
+        completenessScore: answers["completeness"],
+        mentorFeedback: answers["generalComment"],
+        mentorSuggestion: answers["improvement"],
+        isRevisedRequired: answers["revision"] === "yes",
+        revisionDeadline:
+          answers["revision"] === "yes" && answers["revisionDate"]
+            ? new Date(answers["revisionDate"]).toISOString()
+            : null,
+      };
 
-      const dayName = format(start, "EEEE", { locale: id });
-      const dateStr = format(start, "dd MMMM yyyy", { locale: id });
-      const startTime = format(start, "HH.mm", { locale: id });
-      const endTime = format(end, "HH.mm", { locale: id });
-
-      return (
-        <>
-          <span className="font-semibold">{project.zoomSchedule}</span>:{" "}
-          {dayName}, {dateStr} pukul {startTime}-{endTime} WIB
-        </>
+      const res = await axios.patch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/project/mentors/submissions/${project.id}`,
+        payload,
+        {
+          withCredentials: true,
+        }
       );
-    } catch (error) {
-      return <span className="font-semibold">{project.zoomSchedule}</span>;
+
+      toast.success("Penilaian berhasil dikirim!");
+      setShowSuccessModal(true);
+    } catch (error: any) {
+      console.error(error);
+      toast.error(
+        error.response?.data?.message || "Gagal mengirim penilaian proyek."
+      );
     }
   };
 
@@ -131,7 +161,15 @@ export default function AddReviewModal({
               Peninjauan Proyek
             </DialogTitle>
             <p className="text-sm text-gray-600 mt-0 mb-2">
-              {formatProjectSchedule(project)}
+              {project.projectTitle} :{" "}
+              {format(
+                new Date(project.projectCreatedAt),
+                "EEEE, dd-MM-yyyy HH:mm",
+                {
+                  locale: id,
+                }
+              )}{" "}
+              WIB
             </p>
           </DialogHeader>
 
@@ -198,84 +236,128 @@ export default function AddReviewModal({
 
           {/* Page 1: Identitas Proyek */}
           {step === 1 && (
-            <div className="space-y-5">
-              <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <Image
-                    src="/assets/dashboard/mentor/person.svg"
-                    alt="user"
-                    width={12}
-                    height={12}
-                    className="relative top-[-0.5px]"
-                  />
-                  <p className="text-sm font-medium">Nama Lengkap Mentee</p>
+            <div className="max-h-[400px] overflow-y-auto pr-1 space-y-4 px-1 break-words">
+              {/* Nama Lengkap */}
+              <div className="grid grid-cols-[16px_1fr] gap-3">
+                <Image
+                  src="/assets/dashboard/mentor/person.svg"
+                  alt="user"
+                  width={12}
+                  height={12}
+                  className="relative top-[2px]"
+                />
+                <div>
+                  <p className="text-sm font-medium mb-1">
+                    Nama Lengkap Mentee
+                  </p>
+                  <p className="text-gray-700">{project.name}</p>
                 </div>
-                <p className="text-gray-700 ml-[20px]">{project.name}</p>
               </div>
 
-              <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <Image
-                    src="/assets/dashboard/mentor/person.svg"
-                    alt="email"
-                    width={12}
-                    height={12}
-                    className="relative top-[-0.5px]"
-                  />
-                  <p className="text-sm font-medium">Email Mentee</p>
+              {/* Email */}
+              <div className="grid grid-cols-[16px_1fr] gap-3">
+                <Image
+                  src="/assets/dashboard/mentor/person.svg"
+                  alt="email"
+                  width={12}
+                  height={12}
+                  className="relative top-[2px]"
+                />
+                <div>
+                  <p className="text-sm font-medium mb-1">Email Mentee</p>
+                  <p className="text-gray-700">{project.email}</p>
                 </div>
-                <p className="text-gray-700 ml-[20px]">{project.email}</p>
               </div>
 
-              <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <Image
-                    src="/assets/dashboard/mentor/service/openbook.svg"
-                    alt="project"
-                    width={12}
-                    height={12}
-                    className="relative top-[-0.5px]"
-                  />
-                  <p className="text-sm font-medium">Judul atau Nama Proyek</p>
+              {/* Judul Proyek */}
+              <div className="grid grid-cols-[16px_1fr] gap-3">
+                <Image
+                  src="/assets/dashboard/mentor/service/openbook.svg"
+                  alt="project"
+                  width={12}
+                  height={12}
+                  className="relative top-[2px]"
+                />
+                <div>
+                  <p className="text-sm font-medium mb-1">
+                    Judul atau Nama Proyek
+                  </p>
+                  <p className="text-gray-700 break-words whitespace-normal">
+                    {project.title}
+                  </p>
                 </div>
-                <p className="text-gray-700 ml-[20px]">
-                  {project.projectTitle}
-                </p>
               </div>
 
-              <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <Image
-                    src="/assets/dashboard/mentor/service/link.svg"
-                    alt="link"
-                    width={12}
-                    height={12}
-                    className="relative top-[-0.5px]"
-                  />
-                  <p className="text-sm font-medium">Link Hasil Proyek</p>
+              {/* Link / File Submission */}
+              <div className="grid grid-cols-[16px_1fr] gap-3">
+                <Image
+                  src="/assets/dashboard/mentor/service/link.svg"
+                  alt="link"
+                  width={12}
+                  height={12}
+                  className="relative top-[2px]"
+                />
+                <div>
+                  <p className="text-sm font-medium mb-1">
+                    Berkas / Link Proyek
+                  </p>
+
+                  {/* Jika ada filePaths */}
+                  {project.filePaths && project.filePaths.length > 0 && (
+                    <div className="space-y-1">
+                      {project.filePaths.map((file, idx) => (
+                        <a
+                          key={idx}
+                          href={`${process.env.NEXT_PUBLIC_API_BASE_URL}/uploads/${file}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block text-emerald-600 underline break-all whitespace-normal"
+                        >
+                          📄 File {idx + 1}: {file.split("/").pop()}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Jika ada projectLink */}
+                  {project.projectLink && (
+                    <a
+                      href={project.projectLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block text-emerald-600 underline break-all whitespace-normal"
+                    >
+                      🔗 {project.projectLink}
+                    </a>
+                  )}
+
+                  {/* Jika dua-duanya kosong */}
+                  {!project.filePaths?.length && !project.projectLink && (
+                    <p className="text-gray-500 italic">
+                      Belum ada file atau link dikumpulkan.
+                    </p>
+                  )}
                 </div>
-                <a
-                  href={project.projectLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-emerald-600 underline ml-[20px]"
-                >
-                  {project.projectLink}
-                </a>
               </div>
 
-              <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <Image
-                    src="/assets/dashboard/mentor/calendar.svg"
-                    alt="calendar"
-                    width={12}
-                    height={12}
-                    className="relative top-[-0.5px]"
-                  />
-                  <p className="text-sm font-medium">Waktu Pengumpulan</p>
+              {/* Waktu Pengumpulan */}
+              <div className="grid grid-cols-[16px_1fr] gap-3">
+                <Image
+                  src="/assets/dashboard/mentor/calendar.svg"
+                  alt="calendar"
+                  width={12}
+                  height={12}
+                  className="relative top-[2px]"
+                />
+                <div>
+                  <p className="text-sm font-medium mb-1">Waktu Pengumpulan</p>
+                  <p className="text-gray-700">
+                    {format(new Date(project.date), "EEEE, dd-MM-yyyy HH:mm", {
+                      locale: id,
+                    })}{" "}
+                    WIB
+                  </p>
                 </div>
-                <p className="text-gray-700 ml-[20px]">{project.date}</p>
               </div>
             </div>
           )}
@@ -596,12 +678,11 @@ export default function AddReviewModal({
                 className="w-1/2 bg-emerald-600 text-white hover:bg-emerald-700
     disabled:bg-gray-300 disabled:cursor-not-allowed"
                 disabled={!isStep3Valid}
-                onClick={() => {
-                  console.log("Submit review", { project, answers });
-                  setShowSuccessModal(true); // buka modal sukses dulu
+                onClick={async () => {
+                  await handleSubmitReview();
                 }}
               >
-                Submit
+                Kirim Penilaian
               </Button>
             )}
           </div>

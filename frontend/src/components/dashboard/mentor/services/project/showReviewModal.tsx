@@ -12,6 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
+import axios from "axios";
+import { toast } from "sonner";
 
 interface ShowReviewModalProps {
   open: boolean;
@@ -21,7 +23,10 @@ interface ShowReviewModalProps {
     name: string;
     email: string;
     projectTitle: string;
+    projectCreatedAt: string;
+    title: string;
     projectLink: string;
+    filePaths?: string[];
     date: string;
     scheduleStart: string;
     scheduleEnd: string;
@@ -47,39 +52,64 @@ export default function ShowReviewModal({
 }: ShowReviewModalProps) {
   const [step, setStep] = useState(1);
   const [answers, setAnswers] = useState<{ [key: string]: string }>({});
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (project?.reviewAnswers) {
-      setAnswers(project.reviewAnswers);
-    }
-  }, [project]);
+    if (!open || !project?.id) return;
+
+    const fetchReviewDetails = async () => {
+      try {
+        setLoading(true);
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/project/mentorsSubmissions/${project.id}`,
+          { withCredentials: true }
+        );
+
+        const data = res.data.data;
+
+        const mappedAnswers = {
+          brief: data.briefScore || "",
+          technical: data.technicalScore || "",
+          creativity: data.creativityScore || "",
+          completeness: data.completenessScore || "",
+          generalComment: data.mentorFeedback || "",
+          improvement: data.mentorSuggestion || "",
+          revision: data.isRevisedRequired ? "yes" : "no",
+          revisionDate: data.revisionDeadline
+            ? data.revisionDeadline.split("T")[0]
+            : "",
+          confirmation: data.isReviewed ? "true" : "false",
+        };
+
+        // simpan ke project.reviewAnswers
+        project.reviewAnswers = mappedAnswers as {
+          brief: string;
+          technical: string;
+          creativity: string;
+          completeness: string;
+          generalComment: string;
+          improvement: string;
+          revision: "yes" | "no";
+          revisionDate: string;
+          confirmation: "true" | "false";
+        };
+
+        // dan juga simpan ke state 'answers' biar tampil di UI
+        setAnswers(mappedAnswers);
+      } catch (err: any) {
+        console.error(err);
+        toast.error(
+          err.response?.data?.message || "Gagal mengambil detail review."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReviewDetails();
+  }, [open, project?.id]);
 
   if (!project) return null;
-
-  const formatProjectSchedule = (project: {
-    zoomSchedule: string;
-    scheduleStart: string;
-    scheduleEnd: string;
-  }) => {
-    try {
-      const start = new Date(project.scheduleStart);
-      const end = new Date(project.scheduleEnd);
-
-      const dayName = format(start, "EEEE", { locale: id });
-      const dateStr = format(start, "dd MMMM yyyy", { locale: id });
-      const startTime = format(start, "HH.mm", { locale: id });
-      const endTime = format(end, "HH.mm", { locale: id });
-
-      return (
-        <>
-          <span className="font-semibold">{project.zoomSchedule}</span>:{" "}
-          {dayName}, {dateStr} pukul {startTime}-{endTime} WIB
-        </>
-      );
-    } catch {
-      return <span className="font-semibold">{project.zoomSchedule}</span>;
-    }
-  };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -93,90 +123,138 @@ export default function ShowReviewModal({
             Detail Peninjauan Proyek
           </DialogTitle>
           <p className="text-sm text-gray-600 mt-0 mb-2">
-            {formatProjectSchedule(project)}
+            {project.projectTitle} :{" "}
+            {format(
+              new Date(project.projectCreatedAt),
+              "EEEE, dd-MM-yyyy HH:mm",
+              {
+                locale: id,
+              }
+            )}{" "}
+            WIB
           </p>
         </DialogHeader>
 
         {/* Page 1: Identitas Proyek */}
         {step === 1 && (
-          <div className="space-y-5">
-            <div>
-              <h4 className="text-emerald-600 font-semibold">
-                Section 1 - Identitas Proyek
-              </h4>
-              <div className="border-b border-gray-300 w-full mt-2 mb-2" />
+          <div className="max-h-[400px] overflow-y-auto pr-1 space-y-4 px-1 break-words">
+            {/* Nama Lengkap Mentee */}
+            <div className="grid grid-cols-[16px_1fr] gap-3">
+              <Image
+                src="/assets/dashboard/mentor/person.svg"
+                alt="user"
+                width={12}
+                height={12}
+                className="relative top-[2px]"
+              />
+              <div>
+                <p className="text-sm font-medium mb-1">Nama Lengkap Mentee</p>
+                <p className="text-gray-700">{project.name}</p>
+              </div>
             </div>
 
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <Image
-                  src="/assets/dashboard/mentor/person.svg"
-                  alt="user"
-                  width={12}
-                  height={12}
-                />
-                <p className="text-sm font-medium">Nama Lengkap Mentee</p>
+            {/* Email Mentee */}
+            <div className="grid grid-cols-[16px_1fr] gap-3">
+              <Image
+                src="/assets/dashboard/mentor/person.svg"
+                alt="email"
+                width={12}
+                height={12}
+                className="relative top-[2px]"
+              />
+              <div>
+                <p className="text-sm font-medium mb-1">Email Mentee</p>
+                <p className="text-gray-700">{project.email}</p>
               </div>
-              <p className="text-gray-700 ml-[20px]">{project.name}</p>
             </div>
 
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <Image
-                  src="/assets/dashboard/mentor/person.svg"
-                  alt="email"
-                  width={12}
-                  height={12}
-                />
-                <p className="text-sm font-medium">Email Mentee</p>
+            {/* Judul Proyek */}
+            <div className="grid grid-cols-[16px_1fr] gap-3">
+              <Image
+                src="/assets/dashboard/mentor/service/openbook.svg"
+                alt="project"
+                width={12}
+                height={12}
+                className="relative top-[2px]"
+              />
+              <div>
+                <p className="text-sm font-medium mb-1">
+                  Judul atau Nama Proyek
+                </p>
+                <p className="text-gray-700 break-words whitespace-normal">
+                  {project.title}
+                </p>
               </div>
-              <p className="text-gray-700 ml-[20px]">{project.email}</p>
             </div>
 
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <Image
-                  src="/assets/dashboard/mentor/service/openbook.svg"
-                  alt="project"
-                  width={12}
-                  height={12}
-                />
-                <p className="text-sm font-medium">Judul Proyek</p>
+            {/* Link / File Submission */}
+            <div className="grid grid-cols-[16px_1fr] gap-3">
+              <Image
+                src="/assets/dashboard/mentor/service/link.svg"
+                alt="link"
+                width={12}
+                height={12}
+                className="relative top-[2px]"
+              />
+              <div>
+                <p className="text-sm font-medium mb-1">Berkas / Link Proyek</p>
+
+                {/* Jika ada filePaths */}
+                {project.filePaths && project.filePaths.length > 0 && (
+                  <div className="space-y-1">
+                    {project.filePaths.map((file, idx) => (
+                      <a
+                        key={idx}
+                        href={`${process.env.NEXT_PUBLIC_API_BASE_URL}/uploads/${file}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block text-emerald-600 underline break-all whitespace-normal"
+                      >
+                        📄 File {idx + 1}: {file.split("/").pop()}
+                      </a>
+                    ))}
+                  </div>
+                )}
+
+                {/* Jika ada projectLink */}
+                {project.projectLink && (
+                  <a
+                    href={project.projectLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block text-emerald-600 underline break-all whitespace-normal"
+                  >
+                    🔗 {project.projectLink}
+                  </a>
+                )}
+
+                {/* Jika dua-duanya kosong */}
+                {!project.filePaths?.length && !project.projectLink && (
+                  <p className="text-gray-500 italic">
+                    Belum ada file atau link dikumpulkan.
+                  </p>
+                )}
               </div>
-              <p className="text-gray-700 ml-[20px]">{project.projectTitle}</p>
             </div>
 
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <Image
-                  src="/assets/dashboard/mentor/service/link.svg"
-                  alt="link"
-                  width={12}
-                  height={12}
-                />
-                <p className="text-sm font-medium">Link Proyek</p>
+            {/* Waktu Pengumpulan */}
+            <div className="grid grid-cols-[16px_1fr] gap-3">
+              <Image
+                src="/assets/dashboard/mentor/calendar.svg"
+                alt="calendar"
+                width={12}
+                height={12}
+                className="relative top-[2px]"
+              />
+              <div>
+                <p className="text-sm font-medium mb-1">Waktu Pengumpulan</p>
+                <p className="text-gray-700">
+                  {format(new Date(project.date), "EEEE, dd-MM-yyyy HH:mm", {
+                    locale: id,
+                  })}{" "}
+                  WIB
+                </p>
               </div>
-              <a
-                href={project.projectLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-emerald-600 underline ml-[20px]"
-              >
-                {project.projectLink}
-              </a>
-            </div>
-
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <Image
-                  src="/assets/dashboard/mentor/calendar.svg"
-                  alt="calendar"
-                  width={12}
-                  height={12}
-                />
-                <p className="text-sm font-medium">Waktu Pengumpulan</p>
-              </div>
-              <p className="text-gray-700 ml-[20px]">{project.date}</p>
             </div>
           </div>
         )}

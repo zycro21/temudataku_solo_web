@@ -9,103 +9,123 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { ChevronRight } from "lucide-react";
+import { useEffect, useState } from "react";
+import axios from "axios";
 
-interface Event {
-  type: string;
-  time: string;
-  title: string;
-  description: string;
-  mentees?: any[];
-  material?: string;
-  notes?: string;
-  zoomLink?: string;
-  meetingId?: string;
-  passcode?: string;
-}
+// Helper: cek apakah date masuk minggu berjalan
+function isThisWeek(date: Date) {
+  const localDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
 
-interface MentorStatCardsProps {
-  events: Record<string, Event[]>;
-}
-
-export default function MentorStatCards({ events }: MentorStatCardsProps) {
-  // flatten semua event
-  const allEvents = Object.entries(events).flatMap(([date, evts]) =>
-    evts.map((evt) => ({ ...evt, date }))
-  );
-
-  // total sesi
-  const totalSessions = allEvents.length;
-
-  // waktu sekarang
   const now = new Date();
-
-  // hitung sesi selesai
-  const completedSessions = allEvents.filter((evt) => {
-    const [start, end] = evt.time.split("-");
-    const endTime = new Date(`${evt.date}T${end.replace(".", ":")}:00`);
-    return endTime < now;
-  }).length;
-
-  // cari range minggu ini (Senin - Minggu)
   const startOfWeek = new Date(now);
-  startOfWeek.setDate(now.getDate() - now.getDay() + 1); // Senin
+  startOfWeek.setDate(now.getDate() - ((now.getDay() + 6) % 7)); // Senin
   startOfWeek.setHours(0, 0, 0, 0);
 
   const endOfWeek = new Date(startOfWeek);
   endOfWeek.setDate(startOfWeek.getDate() + 6);
   endOfWeek.setHours(23, 59, 59, 999);
 
-  // sesi minggu ini
-  const sessionsThisWeek = allEvents.filter((evt) => {
-    const [start] = evt.time.split("-");
-    const eventTime = new Date(`${evt.date}T${start.replace(".", ":")}:00`);
-    return eventTime >= startOfWeek && eventTime <= endOfWeek;
+  return localDate >= startOfWeek && localDate <= endOfWeek;
+}
+
+export default function MentorStatCards() {
+  const [stats, setStats] = useState({
+    total: 0,
+    totalChange: 0,
+    completed: 0,
+    completedChange: 0,
+    notCompleted: 0,
+    notCompletedChange: 0,
+    cancelled: 0,
+    cancelledChange: 0,
   });
 
-  const completedThisWeek = sessionsThisWeek.filter((evt) => {
-    const [_, end] = evt.time.split("-");
-    const endTime = new Date(`${evt.date}T${end.replace(".", ":")}:00`);
-    return endTime < now;
-  });
+  useEffect(() => {
+    const fetchSessions = async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentoringSession/mentor/own-mentoring-sessions?page=1&limit=1000`,
+          { withCredentials: true }
+        );
 
-  const stats = [
+        const sessions = res.data;
+
+        const completed = sessions.filter((s: any) => s.status === "completed");
+        const notCompleted = sessions.filter(
+          (s: any) => s.status === "ongoing" || s.status === "scheduled"
+        );
+        const cancelled = sessions.filter((s: any) => s.status === "cancelled");
+
+        // weekly change pakai createdAt
+        const newThisWeek = sessions.filter((s: any) =>
+          isThisWeek(new Date(s.createdAt))
+        );
+        const completedThisWeek = completed.filter((s: any) =>
+          isThisWeek(new Date(s.createdAt))
+        );
+        const notCompletedThisWeek = notCompleted.filter((s: any) =>
+          isThisWeek(new Date(s.createdAt))
+        );
+        const cancelledThisWeek = cancelled.filter((s: any) =>
+          isThisWeek(new Date(s.createdAt))
+        );
+
+        setStats({
+          total: sessions.length,
+          totalChange: newThisWeek.length,
+          completed: completed.length,
+          completedChange: completedThisWeek.length,
+          notCompleted: notCompleted.length,
+          notCompletedChange: notCompletedThisWeek.length,
+          cancelled: cancelled.length,
+          cancelledChange: cancelledThisWeek.length,
+        });
+      } catch (error) {
+        console.error("Error fetching sessions:", error);
+      }
+    };
+
+    fetchSessions();
+  }, []);
+
+  const statsConfig = [
     {
       title: "Jumlah Sesi",
-      value: totalSessions,
-      change: `+${sessionsThisWeek.length} minggu ini`,
+      value: stats.total,
+      change: `+${stats.totalChange} minggu ini`,
       image: "/assets/dashboard/mentor/report.svg",
       color: "text-gray-900",
-      showChange: true,
+      showChange: true, // hanya ini yang true
     },
     {
       title: "Sesi Selesai",
-      value: completedSessions,
-      change: `+${completedThisWeek.length} minggu ini`,
+      value: stats.completed,
+      change: `+${stats.completedChange} minggu ini`,
       image: "/assets/dashboard/mentor/selesai.svg",
       color: "text-green-500",
-      showChange: false,
+      showChange: false, // tidak tampil
     },
     {
       title: "Sesi Belum Lengkap",
-      value: 5, // manual
-      change: "+3 minggu ini",
+      value: stats.notCompleted,
+      change: `+${stats.notCompletedChange} minggu ini`,
       image: "/assets/dashboard/mentor/belum.svg",
       color: "text-yellow-500",
-      showChange: false,
+      showChange: false, // tidak tampil
     },
     {
       title: "Sesi Dibatalkan",
-      value: 2, // manual
-      change: "+10 minggu ini",
+      value: stats.cancelled,
+      change: `+${stats.cancelledChange} minggu ini`,
       image: "/assets/dashboard/mentor/batal.svg",
       color: "text-red-500",
-      showChange: false,
+      showChange: false, // tidak tampil
     },
   ];
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
-      {stats.map((item, idx) => (
+      {statsConfig.map((item, idx) => (
         <Card
           key={idx}
           className="max-w-[360px] w-full flex flex-col justify-between px-0 py-2

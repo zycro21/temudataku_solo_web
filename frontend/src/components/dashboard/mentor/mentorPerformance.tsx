@@ -4,11 +4,107 @@ import { useRouter } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ChevronRight } from "lucide-react";
 import { FaStar } from "react-icons/fa";
+import { useEffect, useState } from "react";
+import axios from "axios";
+
+// daftar stopwords sederhana (bisa diperluas sesuai kebutuhan)
+const STOPWORDS = [
+  "yang",
+  "dan",
+  "atau",
+  "di",
+  "ke",
+  "dari",
+  "untuk",
+  "dengan",
+  "itu",
+  "ini",
+  "saya",
+  "kami",
+  "anda",
+  "dia",
+  "mereka",
+  "karena",
+  "sehingga",
+  "agar",
+  "sudah",
+  "akan",
+  "sangat",
+  "sekali",
+  "lebih",
+];
+
+// Fungsi ekstrak kata penting
+const extractTopKeywords = (comments: string[], topN: number = 3): string[] => {
+  const wordCount: Record<string, number> = {};
+
+  comments.forEach((comment) => {
+    const words = comment
+      .toLowerCase()
+      .replace(/[^a-zA-Z0-9\u00C0-\u017F\s]/g, "") // hilangkan tanda baca
+      .split(/\s+/)
+      .filter(
+        (word) =>
+          word.length > 2 && // minimal 3 huruf
+          !STOPWORDS.includes(word)
+      );
+
+    words.forEach((word) => {
+      wordCount[word] = (wordCount[word] || 0) + 1;
+    });
+  });
+
+  return Object.entries(wordCount)
+    .sort((a, b) => b[1] - a[1]) // sort by frekuensi
+    .slice(0, topN)
+    .map(([word]) => word.charAt(0).toUpperCase() + word.slice(1)); // kapital awal
+};
 
 export default function MentorPerformance() {
   const router = useRouter();
-  const rating = 3.7;
-  const feedbackCount = 253;
+
+  const [rating, setRating] = useState<number>(0);
+  const [feedbackCount, setFeedbackCount] = useState<number>(0);
+  const [tags, setTags] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchFeedbacks = async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/feedback/mentor/feedbacks`,
+          { withCredentials: true }
+        );
+
+        const feedbacks = res.data.data || [];
+
+        if (feedbacks.length > 0) {
+          // Hitung rating
+          const totalRating = feedbacks.reduce(
+            (sum: number, f: any) => sum + f.rating,
+            0
+          );
+          setFeedbackCount(feedbacks.length);
+          setRating(parseFloat((totalRating / feedbacks.length).toFixed(1)));
+
+          // Ambil 3 keyword terbanyak
+          const comments = feedbacks.map((f: any) => f.comment || "");
+          const topKeywords = extractTopKeywords(comments, 3);
+          setTags(topKeywords);
+        } else {
+          setFeedbackCount(0);
+          setRating(0);
+          setTags([]);
+        }
+      } catch (err) {
+        console.error("Gagal fetch feedbacks:", err);
+        setFeedbackCount(0);
+        setRating(0);
+        setTags([]);
+      }
+    };
+
+    fetchFeedbacks();
+  }, []);
 
   const getFeedbackMessage = (rating: number) => {
     if (rating <= 2.5) {
@@ -73,14 +169,20 @@ export default function MentorPerformance() {
             {renderStars(rating)}
           </div>
           <div className="flex gap-2 mt-4 flex-wrap">
-            {["Supportive", "Terstruktur", "Seru"].map((tag, idx) => (
-              <span
-                key={idx}
-                className="text-xs font-bold px-3 py-1 rounded-full bg-white border border-gray-300 text-black"
-              >
-                {tag}
+            {tags.length > 0 ? (
+              tags.map((tag, idx) => (
+                <span
+                  key={idx}
+                  className="text-xs font-bold px-3 py-1 rounded-full bg-white border border-gray-300 text-black"
+                >
+                  {tag}
+                </span>
+              ))
+            ) : (
+              <span className="text-xs text-gray-400">
+                Belum ada kata kunci feedback
               </span>
-            ))}
+            )}
           </div>
         </div>
 

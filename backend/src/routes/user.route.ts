@@ -1,5 +1,5 @@
 import { Router } from "express";
-import * as UserController from "../controllers/user.controller";
+import * as UserController from "../controllers/user.controller.js";
 import {
   updateUserSchema,
   updateUserRolesSchema,
@@ -7,11 +7,11 @@ import {
   getAllUsersSchema,
   exportUsersSchema,
   getUserByIdSchema,
-} from "../validations/user.validation";
-import { validate } from "../middlewares/validate";
-import { handleUpload } from "../middlewares/uploadImage";
-import { authenticate } from "../middlewares/authenticate";
-import { authorizeRoles } from "../middlewares/authorizeRole";
+} from "../validations/user.validation.js";
+import { validate } from "../middlewares/validate.js";
+import { handleUpload } from "../middlewares/uploadImage.js";
+import { authenticate } from "../middlewares/authenticate.js";
+import { authorizeRoles } from "../middlewares/authorizeRole.js";
 
 const router = Router();
 

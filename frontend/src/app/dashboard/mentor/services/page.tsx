@@ -31,7 +31,7 @@ export default function ServicesDashboardMentorPage() {
           </p>
 
           {/* Stat Cards */}
-          <div className="max-w-[100%] mb-6">
+          <div className="max-w-[100%] mb-5">
             <MentorStatCards />
           </div>
 

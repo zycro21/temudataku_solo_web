@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { useState, useMemo, useEffect } from "react";
 import DiscardChangesModal from "../services/project/discardChangesModal";
 import SuccessCardAddReviewModal from "./succesAddReport";
+import axios from "axios";
+import { toast } from "sonner";
 
 interface AddMentorReportModalProps {
   open: boolean;
@@ -18,6 +20,7 @@ interface AddMentorReportModalProps {
   program?: string;
   date?: string;
   time?: string;
+  sessionId?: string;
 }
 
 export default function AddMentorReportModal({
@@ -26,6 +29,7 @@ export default function AddMentorReportModal({
   program,
   date,
   time,
+  sessionId,
 }: AddMentorReportModalProps) {
   const initialForm = {
     understanding: "",
@@ -39,15 +43,16 @@ export default function AddMentorReportModal({
   const [formData, setFormData] = useState(initialForm);
   const [showDiscardModal, setShowDiscardModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
+    null
+  );
 
-  // reset form tiap kali modal utama ditutup
   useEffect(() => {
     if (!open) {
       setFormData(initialForm);
     }
   }, [open]);
 
-  // cek validasi form
   const isFormValid = useMemo(() => {
     return (
       formData.understanding &&
@@ -58,21 +63,48 @@ export default function AddMentorReportModal({
     );
   }, [formData]);
 
-  // handler ketika klik "Batal" atau "X"
   const handleAttemptClose = () => {
     setShowDiscardModal(true);
   };
 
-  // handler confirm buang perubahan
   const handleConfirmDiscard = () => {
     setShowDiscardModal(false);
-    onClose(); // tutup modal utama
+    onClose();
   };
 
-  // handler submit
-  const handleSubmit = () => {
-    // kalau nanti ada API call bisa ditaruh sini
-    setShowSuccessModal(true); // tampilkan modal sukses
+  const handleSubmit = async () => {
+    try {
+      const sessionIdToUse = sessionId || selectedSessionId;
+
+      console.log("Session ID dikirim:", sessionIdToUse);
+
+      if (!sessionIdToUse) {
+        toast.error("Session ID tidak ditemukan");
+        return;
+      }
+
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentorReports/mentor/reports`,
+        {
+          sessionId: sessionIdToUse,
+          understanding: formData.understanding,
+          participation: formData.participation,
+          challenges: formData.challenges,
+          commonQuestions: formData.questions,
+          nextFocus: formData.recommendations,
+          additionalNotes: formData.notes,
+        },
+        { withCredentials: true }
+      );
+
+      toast.success("Laporan mentor berhasil dibuat");
+      setShowSuccessModal(true);
+    } catch (error: any) {
+      console.error(error);
+      const msg =
+        error?.response?.data?.message || "Gagal membuat laporan mentor";
+      toast.error(msg);
+    }
   };
 
   return (

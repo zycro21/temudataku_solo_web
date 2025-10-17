@@ -29,6 +29,7 @@ export default function MentorFeedbackFilters({
     "Mentoring Group",
     "Bootcamp",
     "Short Class",
+    "Live Class",
   ];
 
   const skillOptions = [
@@ -36,6 +37,7 @@ export default function MentorFeedbackFilters({
     "Data Analysis",
     "Data Science",
     "Machine Learning",
+    "Lain-Lain",
   ];
 
   return (

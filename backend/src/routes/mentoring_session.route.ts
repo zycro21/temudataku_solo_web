@@ -1,5 +1,5 @@
 import { Router } from "express";
-import * as MentoringSessionController from "../controllers/mentoring_session.controller";
+import * as MentoringSessionController from "../controllers/mentoring_session.controller.js";
 import {
   createMentoringSessionSchema,
   getMentoringSessionsSchema,
@@ -12,10 +12,10 @@ import {
   updateMentorSessionBodySchema,
   publicGetSessionsSchema,
   publicGetSessionByIdSchema,
-} from "../validations/mentoring_session.validation";
-import { validate } from "../middlewares/validate";
-import { authenticate } from "../middlewares/authenticate";
-import { authorizeRoles } from "../middlewares/authorizeRole";
+} from "../validations/mentoring_session.validation.js";
+import { validate } from "../middlewares/validate.js";
+import { authenticate } from "../middlewares/authenticate.js";
+import { authorizeRoles } from "../middlewares/authorizeRole.js";
 
 const router = Router();
 
@@ -80,6 +80,14 @@ const router = Router();
  *               meetingLink:
  *                 type: string
  *                 example: "https://zoom.us/abc123"
+ *               meetingId:
+ *                 type: string
+ *                 description: ID meeting dari platform video conference
+ *                 example: "123-456-789"
+ *               passcode:
+ *                 type: string
+ *                 description: Passcode meeting jika ada
+ *                 example: "abc123"
  *               status:
  *                 type: string
  *                 enum: [scheduled, ongoing, completed, cancelled]
@@ -127,6 +135,14 @@ const router = Router();
  *                     meetingLink:
  *                       type: string
  *                       example: "https://zoom.us/abc123"
+ *                     meetingId:
+ *                       type: string
+ *                       description: ID meeting dari platform video conference
+ *                       example: "123-456-789"
+ *                     passcode:
+ *                       type: string
+ *                       description: Passcode meeting jika ada
+ *                       example: "abc123"
  *                     status:
  *                       type: string
  *                       example: scheduled
@@ -513,6 +529,14 @@ router.get(
  *               meetingLink:
  *                 type: string
  *                 example: "https://zoom.us/example-link"
+ *               meetingId:
+ *                 type: string
+ *                 description: ID meeting dari platform video conference
+ *                 example: "123-456-789"
+ *               passcode:
+ *                 type: string
+ *                 description: Passcode meeting jika ada
+ *                 example: "abc123"
  *               notes:
  *                 type: string
  *                 example: "Link baru dan catatan tambahan"
@@ -787,7 +811,7 @@ router.delete(
  *         description: "Format file yang diekspor (default: xlsx)"
  *     responses:
  *       200:
- *         description: File export sesi mentoring tersedia
+ *         description: File export sesi mentoring tersedia. File akan menyertakan kolom, sessionId, serviceName, sessionDate, startTime, endTime, durationMinutes, sessionStatus, meetingLink, meetingId, passcode, mentorNames, feedbackCount, averageRating, submissionId, submissionDate, filePath, plagiarismScore, score, mentorFeedback, isReviewed, menteeId, menteeName, menteeEmail, projectId, projectTitle, projectDescription, reviewerId, reviewerName, reviewerEmail, createdAt, updatedAt
  *         content:
  *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
  *             schema:
@@ -848,6 +872,12 @@ router.get(
  *                     type: integer
  *                   meetingLink:
  *                     type: string
+ *                   meetingId:
+ *                     type: string
+ *                     description: ID meeting dari platform video conference
+ *                   passcode:
+ *                     type: string
+ *                     description: Passcode meeting jika ada
  *                   status:
  *                     type: string
  *                     enum: [scheduled, ongoing, completed, cancelled]
@@ -912,6 +942,33 @@ router.get(
  *                       type: string
  *                     durationDays:
  *                       type: integer
+ *                     bookings:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           menteeId:
+ *                             type: string
+ *                           menteeName:
+ *                             type: string
+ *                           menteeEmail:
+ *                             type: string
+ *                           bookingDate:
+ *                             type: string
+ *                             format: date-time
+ *                           status:
+ *                             type: string
+ *                           specialRequests:
+ *                             type: string
+ *                             nullable: true
+ *                           material:
+ *                             type: string
+ *                             nullable: true
+ *                           expectedOutput:
+ *                             type: string
+ *                             nullable: true
  *                 date:
  *                   type: string
  *                   format: date
@@ -925,6 +982,12 @@ router.get(
  *                   type: integer
  *                 meetingLink:
  *                   type: string
+ *                 meetingId:
+ *                   type: string
+ *                   description: ID meeting dari platform video conference
+ *                 passcode:
+ *                   type: string
+ *                   description: Passcode meeting jika ada
  *                 status:
  *                   type: string
  *                   enum: [scheduled, ongoing, completed, cancelled]
@@ -998,9 +1061,15 @@ router.get(
  *                 enum: [scheduled, ongoing, completed, cancelled]
  *               meetingLink:
  *                 type: string
+ *               meetingId:
+ *                 type: string
+ *               passcode:
+ *                 type: string
  *             example:
  *               status: "ongoing"
  *               meetingLink: "https://meet.example.com/sesi-abc123"
+ *               meetingId: "123-456-789"
+ *               passcode: "abc123"
  *     responses:
  *       200:
  *         description: Sesi mentoring berhasil diperbarui
@@ -1022,6 +1091,10 @@ router.get(
  *                     status:
  *                       type: string
  *                     meetingLink:
+ *                       type: string
+ *                     meetingId:
+ *                       type: string
+ *                     passcode:
  *                       type: string
  *                     updatedAt:
  *                       type: string

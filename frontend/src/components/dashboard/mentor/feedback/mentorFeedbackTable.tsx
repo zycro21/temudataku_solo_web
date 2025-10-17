@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import axios from "axios";
 import FeedbackDialog from "./feedbackDialogModal";
 import Image from "next/image";
 
@@ -15,18 +16,27 @@ interface Feedback {
 }
 
 interface MentorFeedbackTableProps {
-  feedbacks: Feedback[];
   programFilter: string;
   skillFilter: string;
   searchQuery: string;
 }
 
+const serviceMap: Record<string, string> = {
+  "one-on-one": "Mentoring 1 on 1",
+  group: "Mentoring Group",
+  bootcamp: "Bootcamp",
+  shortclass: "Short Class",
+  "live class": "Live Class",
+};
+
 export default function MentorFeedbackTable({
-  feedbacks,
   programFilter,
   skillFilter,
   searchQuery,
 }: MentorFeedbackTableProps) {
+  const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
@@ -38,28 +48,81 @@ export default function MentorFeedbackTable({
     direction: "asc" | "desc" | "default";
   }>({ key: null, direction: "default" });
 
+  const detectSkillFromServiceName = (serviceName: string): string => {
+    const lower = serviceName.toLowerCase();
+    if (lower.includes("analysis")) return "Data Analysis";
+    if (lower.includes("science")) return "Data Science";
+    if (lower.includes("machine learning") || lower.includes("ml"))
+      return "Machine Learning";
+    return "Lain-Lain";
+  };
+
+  // FETCH FEEDBACK MENTOR (DENGAN FILTER)
+  useEffect(() => {
+    const fetchFeedbacks = async () => {
+      setLoading(true);
+      try {
+        // Buat parameter query sesuai filter
+        const params: Record<string, string> = {};
+        if (programFilter !== "Semua") params.program = programFilter;
+        if (sortConfig.key === "rating") params.sortBy = "rating";
+        if (sortConfig.direction === "asc" || sortConfig.direction === "desc") {
+          params.sortOrder = sortConfig.direction;
+        }
+        params.limit = String(itemsPerPage);
+
+        const queryString = new URLSearchParams(params).toString();
+
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/feedback/mentor/feedbacks?${queryString}`,
+          { withCredentials: true }
+        );
+
+        const data = res.data?.data || [];
+        const mapped = data.map((item: any, index: number) => {
+          const serviceName = item.session.mentoringService.serviceName || "";
+          return {
+            id: index + 1,
+            mentee: item.user.fullName,
+            program:
+              serviceMap[item.session.mentoringService.serviceType] ||
+              serviceName,
+            skill: detectSkillFromServiceName(serviceName),
+            rating: item.rating,
+            comment: item.comment,
+            date: new Date(item.submittedDate).toLocaleDateString("id-ID"),
+          };
+        });
+
+        setFeedbacks(mapped);
+      } catch (error) {
+        console.error("Gagal mengambil feedback mentor:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeedbacks();
+  }, [programFilter, sortConfig, itemsPerPage]);
+
   // Filtering
   const filteredData = useMemo(() => {
     return feedbacks.filter((f) => {
-      const matchProgram =
-        programFilter === "Semua" || f.program === programFilter;
-      const matchSkill =
-        skillFilter === "Semua" ||
-        f.skill.toLowerCase() === skillFilter.toLowerCase();
       const matchSearch =
         searchQuery === "" ||
         f.mentee.toLowerCase().includes(searchQuery.toLowerCase()) ||
         f.program.toLowerCase().includes(searchQuery.toLowerCase()) ||
         f.comment.toLowerCase().includes(searchQuery.toLowerCase());
 
-      return matchProgram && matchSkill && matchSearch;
+      const matchSkill = skillFilter === "Semua" || f.skill === skillFilter;
+
+      return matchSearch && matchSkill;
     });
-  }, [programFilter, skillFilter, searchQuery]);
+  }, [feedbacks, searchQuery, skillFilter]);
 
   const handleSort = (key: string) => {
     setSortConfig((prev) => {
       if (prev.key === key) {
-        // cycle direction: default → asc → desc → default
         const nextDirection =
           prev.direction === "default"
             ? "asc"
@@ -68,7 +131,7 @@ export default function MentorFeedbackTable({
             : "default";
         return { key, direction: nextDirection };
       }
-      return { key, direction: "asc" }; // kolom baru → mulai asc
+      return { key, direction: "asc" };
     });
   };
 
@@ -80,7 +143,6 @@ export default function MentorFeedbackTable({
         const valB = b[sortConfig.key as keyof Feedback];
 
         if (sortConfig.key === "date") {
-          // parse date
           const dateA = new Date(valA as string).getTime();
           const dateB = new Date(valB as string).getTime();
           return sortConfig.direction === "asc" ? dateA - dateB : dateB - dateA;
@@ -95,7 +157,6 @@ export default function MentorFeedbackTable({
           : String(valB).localeCompare(String(valA));
       });
     } else {
-      // default → berdasarkan id terbaru (desc)
       data.sort((a, b) => b.id - a.id);
     }
     return data;
@@ -106,11 +167,17 @@ export default function MentorFeedbackTable({
   const startIdx = (currentPage - 1) * itemsPerPage;
   const currentRows = sortedData.slice(startIdx, startIdx + itemsPerPage);
 
-  // Helper buat truncate komentar
-  const truncate = (text: string, maxLength: number) => {
-    if (text.length <= maxLength) return text;
-    return text.slice(0, maxLength) + "...";
-  };
+  const truncate = (text: string, maxLength: number) =>
+    text.length <= maxLength ? text : text.slice(0, maxLength) + "...";
+
+  // 🧭 LOADING STATE
+  if (loading) {
+    return (
+      <div className="text-center py-10 text-gray-500">
+        Memuat data feedback...
+      </div>
+    );
+  }
 
   return (
     <>
@@ -119,7 +186,6 @@ export default function MentorFeedbackTable({
           <table className="w-full border border-gray-200 text-sm">
             <thead>
               <tr className="bg-gray-50 text-left text-gray-600 font-medium">
-                {/* Mentee */}
                 <th
                   onClick={() => handleSort("mentee")}
                   className={`px-4 py-3 cursor-pointer select-none ${
@@ -138,7 +204,6 @@ export default function MentorFeedbackTable({
                       : "")}
                 </th>
 
-                {/* Program */}
                 <th
                   onClick={() => handleSort("program")}
                   className={`px-4 py-3 cursor-pointer select-none ${
@@ -157,7 +222,6 @@ export default function MentorFeedbackTable({
                       : "")}
                 </th>
 
-                {/* Rating */}
                 <th
                   onClick={() => handleSort("rating")}
                   className={`px-4 py-3 cursor-pointer select-none ${
@@ -176,7 +240,6 @@ export default function MentorFeedbackTable({
                       : "")}
                 </th>
 
-                {/* Komentar */}
                 <th
                   onClick={() => handleSort("comment")}
                   className={`px-4 py-3 cursor-pointer select-none ${
@@ -195,7 +258,6 @@ export default function MentorFeedbackTable({
                       : "")}
                 </th>
 
-                {/* Tanggal */}
                 <th
                   onClick={() => handleSort("date")}
                   className={`px-4 py-3 cursor-pointer select-none ${
@@ -214,7 +276,6 @@ export default function MentorFeedbackTable({
                       : "")}
                 </th>
 
-                {/* Aksi (tidak sortable) */}
                 <th className="px-4 py-3 text-center">Aksi</th>
               </tr>
             </thead>
@@ -232,7 +293,6 @@ export default function MentorFeedbackTable({
                     <td className="px-4 py-3 text-gray-600">
                       {truncate(f.comment, 65)}{" "}
                     </td>
-
                     <td className="px-4 py-3">{f.date}</td>
                     <td className="px-4 py-3 text-center">
                       <button
@@ -276,7 +336,6 @@ export default function MentorFeedbackTable({
             </p>
 
             <div className="flex items-center gap-2">
-              {/* Prev */}
               <button
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
@@ -305,7 +364,6 @@ export default function MentorFeedbackTable({
                   </button>
                 ))}
 
-              {/* Next */}
               <button
                 onClick={() =>
                   setCurrentPage((p) => Math.min(totalPages, p + 1))
@@ -317,7 +375,6 @@ export default function MentorFeedbackTable({
               </button>
             </div>
 
-            {/* Select per halaman */}
             <div className="flex items-center gap-2">
               <span>Tampilkan per halaman</span>
               <select

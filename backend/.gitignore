@@ -3,3 +3,11 @@ dist
 .env
 src/configs/temudataku-web-solo-firebase-adminsdk-fbsvc-4fe0d51db7.json
 src/configs/temudataku-web-solo-cc104c240de6.json
+uploads/certificate/*
+!uploads/certificate/.gitkeep
+uploads/practiceFile/*
+!uploads/practiceFile/.gitkeep
+uploads/submissions/*
+!uploads/submissions/.gitkeep
+uploads/supportDocument/*
+!uploads/supportDocument/.gitkeep

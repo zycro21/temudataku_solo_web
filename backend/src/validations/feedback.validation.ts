@@ -56,6 +56,7 @@ export const getMentorFeedbacksSchema = z.object({
     sortBy: z.enum(["rating", "submittedDate"]).optional(),
     sortOrder: z.enum(["asc", "desc"]).optional(),
     limit: z.string().transform(Number).optional(),
+    program: z.string().optional(),
   }),
 });
 

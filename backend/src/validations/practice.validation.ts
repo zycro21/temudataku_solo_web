@@ -350,7 +350,7 @@ export const getAllPracticeProgressSchema = z.object({
       .string()
       .optional()
       .transform((val) => (val ? parseInt(val) : 10))
-      .refine((val) => val >= 1 && val <= 100, {
+      .refine((val) => val >= 1 && val <= 1000, {
         message: "Limit must be between 1 and 100",
       }),
     search: z.string().max(100, "Search term too long").optional(),

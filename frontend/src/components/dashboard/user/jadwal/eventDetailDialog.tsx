@@ -1,9 +1,9 @@
-// src/components/dashboard/user/jadwal/EventDetailDialog.tsx
 "use client";
 
-import { CalendarEvent } from "./calendarContext";
+import { useCalendar } from "./calendarContext";
 import MentoringDetailDialog from "./mentoringDetailModal";
 import GenericEventDetailDialog from "./genericDetailModal";
+import { CalendarEvent } from "./calendarContext";
 
 interface EventDetailDialogProps {
   trigger: React.ReactNode;
@@ -16,88 +16,69 @@ export default function EventDetailDialog({
   event,
   date,
 }: EventDetailDialogProps) {
-  switch (event.type) {
+  const { eventDetails } = useCalendar();
+
+  // Ambil semua sesi pada tanggal ini
+  const sessionsForDate = eventDetails[date] || [];
+
+  // Cari sesi yang cocok berdasarkan ID unik dari CalendarEvent
+  const sessionData =
+    sessionsForDate.find((s: any) => s.id === event.id) || null;
+
+  if (!sessionData) {
+    console.warn("Tidak menemukan detail sesi untuk:", event.title, date);
+    return null;
+  }
+
+  // Normalisasi event.type ke dalam dua kategori utama
+  const eventCategory =
+    event.type === "one-on-one" ||
+    event.type === "group" ||
+    event.type === "other"
+      ? "mentoring"
+      : "class";
+
+  switch (eventCategory) {
+    // ======================
+    // CASE: MENTORING
+    // ======================
     case "mentoring":
       return (
         <MentoringDetailDialog
           trigger={trigger}
           event={{
-            title: event.title,
-            date,
-            time: event.time || "-",
-            mentor: { name: "Siti Nurhaliza", email: "siti@example.com" },
-            materi: "Power BI untuk analisis data",
-            catatan:
-              "Saya ingin penjelasan lebih dalam tentang data cleaning menggunakan Power BI",
-            zoomLink: "https://zoom.us/mentoring/TemuDataku",
-            meetingId: "981 9357 9211",
-            passcode: "987652",
+            title: sessionData.title,
+            date: sessionData.date,
+            time: sessionData.time || "-",
+            mentor: sessionData.mentor || { name: "-", email: "-", photo: "" },
+            materi: sessionData.materi || "-",
+            catatan: sessionData.catatan || "-",
+            zoomLink: sessionData.zoomLink || "-",
+            meetingId: sessionData.meetingId || "-",
+            passcode: sessionData.passcode || "-",
           }}
         />
       );
 
-    case "bootcamp":
-      return (
-        <GenericEventDetailDialog
-          trigger={trigger}
-          event={{
-            title: event.title,
-            date,
-            time: event.time || "-",
-            sessionType: event.title,
-            mentor: {
-              name: "Dinda Ayu Lestari",
-              email: "dinda.ayu@example.com",
-              avatar: "/assets/avatar/dinda.jpg",
-            },
-            materi: "Power BI untuk analisis data",
-            catatan: "Siapkan dataset yang ingin dianalisis",
-            zoomLink: "https://zoom.us/bootcamp/TemuDataku",
-            meetingId: "981 9357 9211",
-            passcode: "987652",
-          }}
-        />
-      );
-
+    // ======================
+    // CASE: CLASS (Bootcamp, Shortclass, Live Class)
+    // ======================
     case "class":
-      return (
-        <GenericEventDetailDialog
-          trigger={trigger}
-          event={{
-            title: event.title,
-            date,
-            time: event.time || "-",
-            sessionType: event.title,
-            mentor: {
-              name: "Rina Amelia",
-              email: "rina@example.com",
-              avatar: "/assets/avatar/rina.jpg",
-            },
-            materi: "Machine Learning Basics",
-            catatan: "",
-            zoomLink: "https://meet.google.com/class/ML",
-            meetingId: "123 4567 890",
-            passcode: "111222",
-          }}
-        />
-      );
-
-    case "other":
     default:
       return (
         <GenericEventDetailDialog
           trigger={trigger}
           event={{
-            title: event.title,
-            date,
-            time: event.time || "-",
-            sessionType: event.title,
-            mentor: { name: "Admin", email: "admin@example.com" },
-            materi: "Kegiatan tambahan",
-            catatan: "",
-            zoomLink: "",
-            meetingId: "",
-            passcode: "",
+            title: sessionData.title,
+            date: sessionData.date,
+            time: sessionData.time || "-",
+            sessionType: sessionData.serviceType || "Class",
+            mentor: sessionData.mentor || { name: "-", email: "-", photo: "" },
+            materi: sessionData.materi || "-",
+            catatan: sessionData.catatan || "-",
+            zoomLink: sessionData.zoomLink || "-",
+            meetingId: sessionData.meetingId || "-",
+            passcode: sessionData.passcode || "-",
           }}
         />
       );

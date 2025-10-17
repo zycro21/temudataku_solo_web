@@ -1,9 +1,10 @@
 import { Request, Response, NextFunction } from "express";
-import { AuthenticatedRequestBooking } from "../middlewares/authenticate";
+import { AuthenticatedRequestBooking } from "../middlewares/authenticate.js";
 import { format } from "date-fns";
 import { HttpError } from "../utils/httpError";
-import * as BookingService from "../services/booking.service";
+import * as BookingService from "../services/booking.service.js";
 import { PrismaClient } from "@prisma/client";
+import path from "path";
 
 const prisma = new PrismaClient();
 
@@ -23,10 +24,18 @@ export const createBookingController = async (
       return;
     }
 
-    const booking = await BookingService.createBooking(
-      req.user.userId,
-      req.validatedBody
-    );
+    // Ambil file support document (multiple)
+    let supportDocument: string[] | null = null;
+    if (req.files && Array.isArray(req.files)) {
+      supportDocument = (req.files as Express.Multer.File[]).map((file) =>
+        path.join("supportDocuments", file.filename).replace(/\\/g, "/")
+      );
+    }
+
+    const booking = await BookingService.createBooking(req.user.userId, {
+      ...req.validatedBody,
+      supportDocument,
+    });
 
     res.status(201).json({
       success: true,
@@ -100,6 +109,31 @@ export const getMenteeBookingDetailController = async (
   }
 };
 
+export const getCompletedProgramsController = async (
+  req: AuthenticatedRequestBooking,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+
+    const completedPrograms = await BookingService.getCompletedPrograms(
+      req.user.userId,
+      req.validatedQuery!
+    );
+
+    res.status(200).json({
+      message: "Berhasil mengambil program telah dilakukan.",
+      data: completedPrograms,
+    });
+  } catch (error: any) {
+    next(error);
+  }
+};
+
 export const updateMenteeBookingController = async (
   req: AuthenticatedRequestBooking,
   res: Response,
@@ -112,7 +146,8 @@ export const updateMenteeBookingController = async (
     }
 
     const bookingId = req.validatedParams?.id;
-    const { specialRequests, participantIds } = req.validatedBody || {};
+    const { specialRequests, participantIds, material, expectedOutput } =
+      req.validatedBody || {};
 
     if (!bookingId) {
       res.status(400).json({ message: "Booking ID tidak ditemukan." });
@@ -122,7 +157,7 @@ export const updateMenteeBookingController = async (
     const updatedBooking = await BookingService.updateMenteeBooking(
       req.user.userId,
       bookingId,
-      { specialRequests, participantIds }
+      { specialRequests, participantIds, material, expectedOutput }
     );
 
     res.status(200).json({
@@ -309,6 +344,115 @@ export const getBookingParticipantsController = async (
       menteeId
     );
     res.json({ participants });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getMentorEarningsController = async (
+  req: AuthenticatedRequestBooking,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!req.validatedQuery) throw new Error("Query belum divalidasi");
+
+    const { page, limit } = req.validatedQuery;
+
+    const roles = req.user?.roles || [];
+
+    let result;
+
+    if (roles.includes("admin")) {
+      // Admin bisa lihat semua mentor earnings, dengan pagination
+      result = await BookingService.getAllMentorsEarnings({
+        page: page!,
+        limit: limit!,
+      });
+    } else if (roles.includes("mentor")) {
+      if (!req.user?.mentorProfileId)
+        throw new Error("MentorProfileId tidak ditemukan");
+      // Mentor hanya bisa lihat earnings sendiri
+      result = await BookingService.getMentorEarnings({
+        mentorId: req.user.mentorProfileId,
+      });
+    } else {
+      res.status(403).json({ message: "Forbidden" });
+      return;
+    }
+
+    res.status(200).json({
+      message: "Berhasil mengambil earnings.",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getMentorBookingsController = async (
+  req: AuthenticatedRequestBooking,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!req.validatedQuery) throw new Error("Query belum divalidasi");
+
+    const roles = req.user?.roles || [];
+    let mentorId: string | undefined;
+
+    if (roles.includes("admin")) {
+      mentorId = req.validatedQuery.mentorId;
+    } else if (roles.includes("mentor")) {
+      if (!req.user?.mentorProfileId) {
+        throw new Error("MentorProfileId tidak ditemukan");
+      }
+      mentorId = req.user.mentorProfileId; // selalu ambil dari JWT untuk mentor
+    } else {
+      res.status(403).json({ message: "Forbidden" });
+      return;
+    }
+
+    const result = await BookingService.getMentorBookings({ mentorId });
+
+    res.status(200).json({
+      message: "Berhasil mengambil booking mentor.",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getMentorStatBookingsController = async (
+  req: AuthenticatedRequestBooking,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!req.validatedQuery) throw new Error("Query belum divalidasi");
+
+    const roles = req.user?.roles || [];
+    let mentorId: string | undefined;
+
+    if (roles.includes("admin")) {
+      mentorId = req.validatedQuery.mentorId; // opsional
+    } else if (roles.includes("mentor")) {
+      if (!req.user?.mentorProfileId) {
+        throw new Error("MentorProfileId tidak ditemukan");
+      }
+      mentorId = req.user.mentorProfileId; // selalu dari JWT
+    } else {
+      res.status(403).json({ message: "Forbidden" });
+      return;
+    }
+
+    const result = await BookingService.getMentorMenteeStats({ mentorId });
+
+    res.status(200).json({
+      message: "Berhasil mengambil rekap mentee per service.",
+      data: result,
+    });
   } catch (error) {
     next(error);
   }

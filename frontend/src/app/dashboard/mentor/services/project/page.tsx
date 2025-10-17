@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import MentorSidebar from "@/components/dashboard/mentor/sidebarDashboardMentor";
 import DashboardAffHeader from "@/components/dashboard/mentor/headerDashboardMentor";
 import { ChevronRight } from "lucide-react";
@@ -60,7 +60,18 @@ export default function ScheduleDashboardMentorPage() {
 
               {/* Table Section */}
               <div className="mb-8">
-                <ProjectTable searchQuery={searchQuery} statusFilter={statusFilter} />
+                <Suspense
+                  fallback={
+                    <div className="text-center py-4">
+                      Loading project table...
+                    </div>
+                  }
+                >
+                  <ProjectTable
+                    searchQuery={searchQuery}
+                    statusFilter={statusFilter}
+                  />
+                </Suspense>
               </div>
             </div>
           </div>

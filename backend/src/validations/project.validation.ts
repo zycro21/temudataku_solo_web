@@ -97,27 +97,62 @@ export const submitProjectSchema = z.object({
       .url("File path harus berupa URL yang valid.")
       .optional(),
     sessionId: z.string().optional(),
+    title: z.string().optional(),
+    projectLink: z.string().optional(),
   }),
 });
+
+export const updateSubmissionSchema = z.object({
+  params: z.object({
+    submissionId: z.string().min(1),
+  }),
+  body: z.object({
+    title: z.string().optional(),
+    projectLink: z.string().optional(),
+  }),
+});
+
 
 export const reviewSubmissionSchema = z.object({
   params: z.object({
     id: z.string().min(1),
   }),
-  body: z.object({
-    mentorFeedback: z.string().min(1, "Komentar Mentor wajib diisi"),
-    Score: z.number().min(0).max(100),
-    sessionId: z.string().optional(),
-  }),
+  body: z
+    .object({
+      score: z.number().min(0).max(100).optional(),
+      briefScore: z.string().optional(),
+      technicalScore: z.string().optional(),
+      creativityScore: z.string().optional(),
+      completenessScore: z.string().optional(),
+      mentorFeedback: z.string().min(1, "Komentar Mentor wajib diisi"),
+      mentorSuggestion: z.string().optional(),
+      isRevisedRequired: z.boolean().optional(),
+      revisionDeadline: z.string().datetime().nullable().optional(),
+      sessionId: z.string().optional(),
+    })
+    .refine(
+      (data) => {
+        if (data.isRevisedRequired && !data.revisionDeadline) {
+          return false;
+        }
+        return true;
+      },
+      {
+        message: "revisionDeadline wajib diisi jika isRevisedRequired = true",
+        path: ["revisionDeadline"],
+      }
+    ),
 });
 
 export const getAdminSubmissionListSchema = z.object({
   query: z.object({
-    search: z.string().optional(), // cari berdasarkan nama mentee
+    search: z.string().optional(),
     projectId: z.string().optional(),
     serviceId: z.string().optional(),
     isReviewed: z.enum(["true", "false"]).optional(),
-    sortBy: z.enum(["submissionDate", "createdAt", "Score"]).optional(),
+    sortBy: z
+      .enum(["submissionDate", "createdAt", "score", "plagiarismScore"])
+      .optional(),
     sortOrder: z.enum(["asc", "desc"]).optional(),
     page: z.string().optional(),
     limit: z.string().optional(),
@@ -142,6 +177,12 @@ export const getMentorProjectSubmissionListSchema = z.object({
   }),
 });
 
+export const getMentorServiceSubmissionListSchema = z.object({
+  params: z.object({
+    serviceId: z.string().min(1, "Service ID is required"),
+  }),
+});
+
 export const getMentorSubmissionDetailSchema = z.object({
   params: z.object({
     id: z.string().min(1, "Submission ID is required"),
@@ -161,8 +202,8 @@ export const getMenteeSubmissionsSchema = z.object({
       .string()
       .optional()
       .transform((val) => (val ? parseInt(val, 10) : 10))
-      .refine((val) => !isNaN(val) && val > 0 && val <= 100, {
-        message: "Limit must be between 1 and 100",
+      .refine((val) => !isNaN(val) && val > 0 && val <= 1000, {
+        message: "Limit must be between 1 and 1000",
       }),
   }),
 });

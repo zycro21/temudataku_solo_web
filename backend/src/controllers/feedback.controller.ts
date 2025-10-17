@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from "express";
-import { AuthenticatedRequestFeedback } from "../middlewares/authenticate";
+import { AuthenticatedRequestFeedback } from "../middlewares/authenticate.js";
 import { format } from "date-fns";
 import { HttpError } from "../utils/httpError";
-import * as FeedbackService from "../services/feedback.service";
+import * as FeedbackService from "../services/feedback.service.js";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -147,7 +147,15 @@ export const getMentorFeedbacks = async (
   next: NextFunction
 ) => {
   try {
-    const { rating, sessionId, sortBy, sortOrder, limit } = req.validatedQuery;
+    const {
+      rating,
+      sessionId,
+      sortBy = "submittedDate",
+      sortOrder = "desc",
+      limit = 10,
+      program,
+    } = req.validatedQuery;
+
     const mentorProfileId = req.user?.mentorProfileId;
 
     if (!mentorProfileId) {
@@ -162,6 +170,7 @@ export const getMentorFeedbacks = async (
       sortBy,
       sortOrder,
       limit,
+      program,
     });
 
     if (result.length === 0) {
@@ -176,6 +185,7 @@ export const getMentorFeedbacks = async (
       message: "Berhasil mengambil feedback untuk mentor",
       data: result,
     });
+    return;
   } catch (error) {
     next(error);
   }

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import * as MentorServiceController from "../controllers/mentor_service.controller";
+import * as MentorServiceController from "../controllers/mentor_service.controller.js";
 import {
   createMentoringServiceSchema,
   getAllMentoringServicesSchema,
@@ -10,10 +10,10 @@ import {
   getMentoringServiceDetailValidatorSchema,
   PublicMentoringServiceQuery,
   PublicMentoringServiceIdParamSchema,
-} from "../validations/mentor_service.validation";
-import { validate } from "../middlewares/validate";
-import { authenticate } from "../middlewares/authenticate";
-import { authorizeRoles } from "../middlewares/authorizeRole";
+} from "../validations/mentor_service.validation.js";
+import { validate } from "../middlewares/validate.js";
+import { authenticate } from "../middlewares/authenticate.js";
+import { authorizeRoles } from "../middlewares/authorizeRole.js";
 
 const router = Router();
 
@@ -759,7 +759,7 @@ router.get(
  *                       price:
  *                         type: number
  *                       serviceType:
- *                         type: string
+ *                         type: string 
  *                         nullable: true
  *                       maxParticipants:
  *                         type: integer

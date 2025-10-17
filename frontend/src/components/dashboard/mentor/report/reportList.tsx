@@ -1,70 +1,239 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import AddMentorReportModal from "./AddMentorReportModal";
 import EditMentorReportModal from "./editMentorReport";
 import ShowMentorReportModal from "./viewMentorReport";
+import axios from "axios";
+import { toast } from "sonner";
 
-interface Report {
+// ============================
+// TIPE DATA & FETCH LOGIC
+// ============================
+
+interface Session {
+  id: string;
+  serviceName: string;
+  serviceType: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+}
+
+interface ReportData {
+  id: string;
+  sessionId: string;
+  understanding?: string;
+  participation?: string;
+  challenges?: string;
+  commonQuestions?: string;
+  nextFocus?: string;
+  additionalNotes?: string;
+}
+
+interface CombinedReport {
   id: string;
   program: string;
-  type: "Mentoring 1 on 1" | "Mentoring Group" | "Bootcamp" | "ShortClass";
+  type: string;
   date: string;
   time: string;
   participants: number;
   status: "Belum Diisi" | "Belum Lengkap" | "Selesai";
-
-  // Tambahan untuk mendukung Edit / Lihat laporan
-  reportData?: {
-    understanding: string;
-    participation: string;
-    challenges: string;
-    questions: string;
-    recommendations: string;
-    notes: string;
-  };
+  reportData?: ReportData;
 }
 
 interface ReportListProps {
-  reports: Report[];
   statusFilter: string;
   programFilter: string;
   searchQuery: string;
 }
 
+const mapReportData = (data?: ReportData) => {
+  if (!data) return undefined;
+  return {
+    understanding: data.understanding || "",
+    participation: data.participation || "",
+    challenges: data.challenges || "",
+    questions: data.commonQuestions || "",
+    recommendations: data.nextFocus || "",
+    notes: data.additionalNotes || "",
+  };
+};
+
+// Format tanggal ke "Senin, 28 April 2025"
+const formatDateIndo = (dateString: string): string => {
+  if (!dateString) return "-";
+
+  // Deteksi format dd-mm-yyyy dan ubah ke yyyy-mm-dd biar bisa di-parse
+  let formattedDate = dateString;
+  if (/^\d{2}-\d{2}-\d{4}$/.test(dateString)) {
+    const [day, month, year] = dateString.split("-");
+    formattedDate = `${year}-${month}-${day}`;
+  }
+
+  const date = new Date(formattedDate);
+  if (isNaN(date.getTime())) return "-";
+
+  const options: Intl.DateTimeFormatOptions = {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    timeZone: "Asia/Jakarta",
+  };
+
+  return date.toLocaleDateString("id-ID", options);
+};
+
+// Format waktu ke "07.00 - 08.00" WIB
+const formatTimeRange = (startTime: string, endTime: string): string => {
+  if (!startTime || !endTime) return "-";
+  const start = new Date(startTime);
+  const end = new Date(endTime);
+
+  const options: Intl.DateTimeFormatOptions = {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Asia/Jakarta",
+  };
+
+  const startFormatted = start
+    .toLocaleTimeString("id-ID", options)
+    .replace(".", ":");
+  const endFormatted = end
+    .toLocaleTimeString("id-ID", options)
+    .replace(".", ":");
+
+  return `${startFormatted} - ${endFormatted}`;
+};
+
 export default function ReportList({
-  reports,
   statusFilter,
   programFilter,
   searchQuery,
 }: ReportListProps) {
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [reports, setReports] = useState<CombinedReport[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // state modal
+  // Modal states
+  const [currentPage, setCurrentPage] = useState(1);
   const [openModal, setOpenModal] = useState(false);
   const [modalType, setModalType] = useState<"add" | "edit" | "view" | null>(
     null
   );
-  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [selectedReport, setSelectedReport] = useState<CombinedReport | null>(
+    null
+  );
+  const [detailedReport, setDetailedReport] = useState<any | null>(null);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // --- Filtering ---
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, programFilter, searchQuery]);
+
+  // ============================
+  // FETCH & MERGE DATA LOGIC
+  // ============================
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+
+        // 1️⃣ Ambil semua laporan mentor
+        const reportRes = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentorReports/mentor/reports?page=1&limit=1000`,
+          { withCredentials: true }
+        );
+        const reports = reportRes.data.data || [];
+
+        // 2️⃣ Ambil semua sesi mentor
+        const sessionRes = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentoringSession/mentor/own-mentoring-sessions`,
+          { withCredentials: true }
+        );
+        const sessions = sessionRes.data || [];
+
+        // 3️⃣ Gabungkan data
+        const merged: CombinedReport[] = sessions.map((session: Session) => {
+          const report = reports.find(
+            (r: ReportData) => r.sessionId === session.id
+          );
+
+          const isIncomplete = (r?: ReportData) => {
+            if (!r) return false;
+            const keys = [
+              "understanding",
+              "participation",
+              "challenges",
+              "commonQuestions",
+              "nextFocus",
+            ];
+            return keys.some(
+              (k) =>
+                !r[k as keyof ReportData] || r[k as keyof ReportData] === ""
+            );
+          };
+
+          let status: CombinedReport["status"];
+          if (!report) status = "Belum Diisi";
+          else if (isIncomplete(report)) status = "Belum Lengkap";
+          else status = "Selesai";
+
+          return {
+            id: session.id,
+            program: session.serviceName || "-",
+            type: session.serviceType || "Mentoring 1 on 1",
+            date: formatDateIndo(session.date),
+            time: formatTimeRange(session.startTime, session.endTime),
+            participants: 1,
+            status,
+            reportData: report,
+          };
+        });
+
+        setReports(merged);
+      } catch (err) {
+        console.error(err);
+        setError("Gagal memuat data laporan mentor");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // ============================
+  // ⬇️ FILTERING & PAGINATION
+  // ============================
+  const typeMapping: Record<string, string> = {
+    "Mentoring 1 on 1": "one-on-one",
+    "Mentoring Group": "group",
+    Bootcamp: "bootcamp",
+    "Short Class": "shortclass",
+    "Live Class": "live class",
+  };
+
   const filteredReports = reports.filter((r) => {
     const matchStatus =
       statusFilter === "Semua" ||
       r.status.toLowerCase() === statusFilter.toLowerCase();
+
     const matchProgram =
       programFilter === "Semua" ||
-      r.type.toLowerCase().includes(programFilter.toLowerCase());
+      r.type.toLowerCase() === typeMapping[programFilter]?.toLowerCase();
+
     const matchSearch =
       searchQuery === "" ||
       r.program.toLowerCase().includes(searchQuery.toLowerCase()) ||
       r.type.toLowerCase().includes(searchQuery.toLowerCase());
+
     return matchStatus && matchProgram && matchSearch;
   });
 
-  // --- Pagination ---
   const totalPages = Math.ceil(filteredReports.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentData = filteredReports.slice(
@@ -72,7 +241,18 @@ export default function ReportList({
     startIndex + itemsPerPage
   );
 
-  const renderStatusBadge = (status: Report["status"]) => {
+  // ============================
+  // ⬇️ UI BAGIAN LIST & MODAL
+  // ============================
+
+  if (loading)
+    return (
+      <p className="text-center text-gray-500 py-6">Memuat data laporan...</p>
+    );
+
+  if (error) return <p className="text-center text-red-500 py-6">{error}</p>;
+
+  const renderStatusBadge = (status: CombinedReport["status"]) => {
     switch (status) {
       case "Belum Diisi":
         return (
@@ -113,7 +293,7 @@ export default function ReportList({
     }
   };
 
-  const renderActionButton = (report: Report) => {
+  const renderActionButton = (report: CombinedReport) => {
     if (report.status === "Belum Diisi") {
       return (
         <button
@@ -144,10 +324,25 @@ export default function ReportList({
     }
     return (
       <button
-        onClick={() => {
-          setSelectedReport(report);
-          setModalType("view");
-          setOpenModal(true);
+        onClick={async () => {
+          try {
+            setSelectedReport(report);
+            setModalType("view");
+            setLoading(true);
+
+            const res = await axios.get(
+              `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentorReports/mentor/reports/${report.reportData?.id}`,
+              { withCredentials: true }
+            );
+
+            setDetailedReport(res.data.data); // simpan hasil detail laporan
+            setOpenModal(true);
+          } catch (err) {
+            console.error(err);
+            toast.error("Gagal memuat detail laporan");
+          } finally {
+            setLoading(false);
+          }
         }}
         className="px-6 py-3 text-base font-medium bg-white text-emerald-600 border border-emerald-600 rounded-lg hover:bg-emerald-50 cursor-pointer"
       >
@@ -295,6 +490,7 @@ export default function ReportList({
               <select
                 value={itemsPerPage}
                 onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
                   setCurrentPage(1);
                 }}
                 className="border rounded px-2 py-1 text-sm"
@@ -308,36 +504,44 @@ export default function ReportList({
         )}
       </div>
 
-      {/* ✅ Render modal sesuai type */}
-      {modalType === "add" && (
+      {/* Modal */}
+      {modalType === "add" && selectedReport && (
         <AddMentorReportModal
           open={openModal}
           onClose={() => setOpenModal(false)}
-          program={selectedReport?.program}
-          date={selectedReport?.date}
-          time={selectedReport?.time}
+          program={selectedReport.program}
+          date={selectedReport.date}
+          time={selectedReport.time}
+          sessionId={selectedReport.id} // ✅ tambahkan ini
         />
       )}
 
-      {modalType === "edit" && (
+      {modalType === "edit" && selectedReport && (
         <EditMentorReportModal
           open={openModal}
           onClose={() => setOpenModal(false)}
-          program={selectedReport?.program}
-          date={selectedReport?.date}
-          time={selectedReport?.time}
-          reportData={selectedReport?.reportData}
+          program={selectedReport.program}
+          date={selectedReport.date}
+          time={selectedReport.time}
+          reportData={mapReportData(selectedReport.reportData)}
         />
       )}
 
-      {modalType === "view" && (
+      {modalType === "view" && selectedReport && detailedReport && (
         <ShowMentorReportModal
           open={openModal}
           onClose={() => setOpenModal(false)}
-          program={selectedReport?.program}
-          date={selectedReport?.date}
-          time={selectedReport?.time}
-          reportData={selectedReport?.reportData}
+          program={selectedReport.program}
+          date={selectedReport.date}
+          time={selectedReport.time}
+          reportData={{
+            understanding: detailedReport.understanding,
+            participation: detailedReport.participation,
+            challenges: detailedReport.challenges,
+            questions: detailedReport.commonQuestions,
+            recommendations: detailedReport.nextFocus,
+            notes: detailedReport.additionalNotes,
+          }}
         />
       )}
     </>

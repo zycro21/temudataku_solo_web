@@ -1,7 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import axios from "axios";
+import { useSearchParams } from "next/navigation";
+import { useMemo, useState, useEffect } from "react";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import AddReviewModal from "./addReviewModal";
 import EditReviewModal from "./editReviewProject";
@@ -21,6 +23,7 @@ interface ReviewAnswers {
 
 interface Project {
   id: string;
+  menteeId: string;
   name: string;
   email: string;
   photo: string;
@@ -30,6 +33,9 @@ interface Project {
   scheduleEnd: string; // ISO datetime
   status: "Lolos Tinjauan" | "Belum Ditinjau" | "Perlu Revisi";
   projectTitle: string;
+  filePaths?: string[];
+  projectCreatedAt: string;
+  title: string;
   projectLink: string;
   reviewAnswers?: ReviewAnswers; // opsional, hanya ada kalau sudah ditinjau
 }
@@ -54,156 +60,59 @@ export default function ProjectTable({
 
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const projects: Project[] = [
-    {
-      id: "ABCD01",
-      name: "Gilang Dirga",
-      email: "gilangdirg1@gmail.com",
-      photo: "",
-      date: "2025-05-04",
-      zoomSchedule: "Mentoring Power BI",
-      scheduleStart: "2025-04-21T12:00:00",
-      scheduleEnd: "2025-04-21T13:15:00",
-      status: "Lolos Tinjauan",
-      projectTitle:
-        "Power BI untuk analisis data pengaruh media sosial pada remaja",
-      projectLink: "https://gsheet.co.idehhe",
-      reviewAnswers: {
-        brief: "Sangat Sesuai",
-        technical: "Cukup Baik",
-        creativity: "Sangat Baik",
-        completeness: "Lengkap",
-        generalComment: "Proyek sudah sesuai brief, visualisasi cukup jelas.",
-        improvement: "Bisa tambahkan insight tambahan pada grafik.",
-        revision: "no",
-        revisionDate: "",
-        confirmation: "true",
-      },
-    },
-    {
-      id: "ABCD02",
-      name: "Rina Suryani",
-      email: "sarah.connor@gmail.com",
-      photo: "",
-      date: "2025-05-04",
-      zoomSchedule: "Bootcamp Looker Studio",
-      scheduleStart: "2025-04-22T13:30:00",
-      scheduleEnd: "2025-04-22T14:45:00",
-      status: "Lolos Tinjauan",
-      projectTitle: "Dashboard Analitik Penjualan dengan Looker Studio",
-      projectLink: "https://looker.example.com/abcd02",
-      reviewAnswers: {
-        brief: "Cukup Sesuai",
-        technical: "Sangat Baik",
-        creativity: "Cukup Baik",
-        completeness: "Lengkap",
-        generalComment: "Dashboard rapi dan mudah dipahami.",
-        improvement: "Tambahkan filter interaktif untuk user.",
-        revision: "no",
-        revisionDate: "",
-        confirmation: "true",
-      },
-    },
-    {
-      id: "ABCD03",
-      name: "Budi Santoso",
-      email: "john.doe@gmail.com",
-      photo: "",
-      date: "2025-05-04",
-      zoomSchedule: "Shortclass Python Flask",
-      scheduleStart: "2025-04-22T15:00:00",
-      scheduleEnd: "2025-04-22T16:15:00",
-      status: "Lolos Tinjauan",
-      projectTitle: "Website Analisis Sentimen dengan Python Flask",
-      projectLink: "https://github.com/budi-sentiment",
-      reviewAnswers: {
-        brief: "Sangat Sesuai",
-        technical: "Cukup Baik",
-        creativity: "Kurang Baik",
-        completeness: "Lengkap",
-        generalComment: "Implementasi sudah jalan dengan baik.",
-        improvement: "Perhatikan struktur kode agar lebih rapi.",
-        revision: "no",
-        revisionDate: "",
-        confirmation: "true",
-      },
-    },
-    {
-      id: "ABCD04",
-      name: "Nina Pratiwi",
-      email: "alice.james@gmail.com",
-      photo: "",
-      date: "2025-05-04",
-      zoomSchedule: "Mentoring Machine Learning",
-      scheduleStart: "2025-04-23T10:00:00",
-      scheduleEnd: "2025-04-23T11:15:00",
-      status: "Perlu Revisi",
-      projectTitle: "Model Prediksi Harga Rumah dengan Machine Learning",
-      projectLink: "https://colab.research.google.com/abcd04",
-      reviewAnswers: {
-        brief: "Cukup Sesuai",
-        technical: "Kurang Baik",
-        creativity: "Cukup Baik",
-        completeness: "Perlu Revisi",
-        generalComment: "Model sudah jalan tapi akurasi rendah.",
-        improvement: "Gunakan lebih banyak data training.",
-        revision: "yes",
-        revisionDate: "2025-05-15",
-        confirmation: "true",
-      },
-    },
-    {
-      id: "ABCD05",
-      name: "Andi Wijaya",
-      email: "bob.marley@gmail.com",
-      photo: "",
-      date: "2025-05-04",
-      zoomSchedule: "Bootcamp Mobile App",
-      scheduleStart: "2025-04-23T11:30:00",
-      scheduleEnd: "2025-04-23T12:45:00",
-      status: "Perlu Revisi",
-      projectTitle: "Aplikasi Mobile Manajemen Tugas",
-      projectLink: "https://play.google.com/store/apps/details?id=abcd05",
-      reviewAnswers: {
-        brief: "Kurang Sesuai",
-        technical: "Cukup Baik",
-        creativity: "Sangat Baik",
-        completeness: "Belum Lengkap",
-        generalComment: "UI bagus, tapi fitur masih minim.",
-        improvement: "Tambahkan fitur notifikasi & sinkronisasi.",
-        revision: "yes",
-        revisionDate: "2025-05-20",
-        confirmation: "true",
-      },
-    },
-    {
-      id: "ABCD06",
-      name: "Siti Aminah",
-      email: "jane.smith@gmail.com",
-      photo: "",
-      date: "2025-05-04",
-      zoomSchedule: "Shortclass Data Visualization",
-      scheduleStart: "2025-04-24T09:00:00",
-      scheduleEnd: "2025-04-24T10:15:00",
-      status: "Belum Ditinjau",
-      projectTitle: "Analisis Visualisasi Data Kesehatan Masyarakat",
-      projectLink: "https://public.tableau.com/views/abcd06",
-    },
-    {
-      id: "ABCD07",
-      name: "Tono Rahardjo",
-      email: "michael.brown@gmail.com",
-      photo: "",
-      date: "2025-09-24",
-      zoomSchedule: "Mentoring E-commerce",
-      scheduleStart: "2025-09-09T14:00:00",
-      scheduleEnd: "2025-09-09T15:15:00",
-      status: "Belum Ditinjau",
-      projectTitle: "E-commerce Website dengan Next.js",
-      projectLink: "https://tono-store.vercel.app",
-    },
-  ];
+  const searchParams = useSearchParams();
+  const serviceId = searchParams.get("serviceId");
+
+  useEffect(() => {
+    if (!serviceId) return;
+
+    const fetchProjects = async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/project/mentor-services/${serviceId}/submissions`,
+          {
+            withCredentials: true,
+          }
+        );
+
+        const mappedData = res.data.data.map((item: any) => {
+          return {
+            id: item.id,
+            menteeId: item.menteeId,
+            name: item.menteeName,
+            email: item.menteeEmail,
+            photo: item.menteePhoto || "",
+            date: item.submissionDate,
+            zoomSchedule: item.zoomSchedule || "",
+            scheduleStart: item.submissionDate,
+            scheduleEnd: item.submissionDate,
+            status:
+              item.reviewStatus === "REVIEWED"
+                ? "Lolos Tinjauan"
+                : item.reviewStatus === "REVISION_REQUIRED"
+                ? "Perlu Revisi"
+                : "Belum Ditinjau",
+            title: item.title, // <- Judul Submission
+            projectTitle: item.projectTitle,
+            projectCreatedAt: item.projectCreatedAt,
+            projectLink: item.projectLink,
+            filePaths: item.filePaths || [],
+          };
+        });
+
+        setProjects(mappedData);
+      } catch (err) {
+        console.error("Gagal fetch projects:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, [serviceId]);
 
   // Filtering
   const filteredProjects = useMemo(() => {
@@ -219,6 +128,8 @@ export default function ProjectTable({
       return matchesSearch && matchesStatus;
     });
   }, [projects, searchQuery, statusFilter]);
+
+  const hasData = filteredProjects.length > 0;
 
   // Sorting
   const sortedProjects = useMemo(() => {
@@ -318,6 +229,32 @@ export default function ProjectTable({
     return null;
   };
 
+  if (loading) {
+    return (
+      <div className="text-center text-gray-500 py-10">
+        Sedang memuat data project...
+      </div>
+    );
+  }
+
+  if (!loading && projects.length === 0) {
+    return (
+      <div className="text-center text-gray-500 py-16 bg-gray-50 rounded-lg shadow-sm">
+        <p className="text-lg font-medium">
+          Belum ada Submission yang dikumpulkan untuk Service ini.
+        </p>
+      </div>
+    );
+  }
+
+  if (!loading && !hasData) {
+    return (
+      <div className="text-center py-8 text-gray-500 text-sm">
+        Tidak ada hasil yang cocok dengan pencarian atau filter saat ini.
+      </div>
+    );
+  }
+
   return (
     <>
       <div>
@@ -359,27 +296,42 @@ export default function ProjectTable({
             </thead>
 
             <tbody>
-              {currentRows.map((p) => (
+              {currentRows.map((p, i) => (
                 <tr
                   key={p.id}
                   className="text-sm hover:bg-gray-50 transition-colors"
                 >
-                  <td className="px-3 py-3">{p.id}</td>
+                  <td className="px-3 py-3">{p.menteeId}</td>
 
                   {/* Foto center */}
                   <td className="px-2 py-3 text-center">
                     <Image
-                      src={p.photo || "/assets/dashboard/user/avatar.png"}
+                      src={
+                        p.photo && p.photo !== "default.jpg"
+                          ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${p.photo}`
+                          : "/assets/dashboard/user/avatar.png"
+                      }
                       alt={p.name}
                       width={40}
                       height={40}
-                      className="rounded-full inline-block"
+                      className="rounded-full inline-block object-cover"
                     />
                   </td>
 
                   <td className="px-4 py-3">{p.name}</td>
                   <td className="px-4 py-3">{p.email}</td>
-                  <td className="px-4 py-3">{p.date}</td>
+                  <td className="px-4 py-3">
+                    {(() => {
+                      const localDate = new Date(p.date);
+                      const day = String(localDate.getDate()).padStart(2, "0");
+                      const month = String(localDate.getMonth() + 1).padStart(
+                        2,
+                        "0"
+                      );
+                      const year = localDate.getFullYear();
+                      return `${day}-${month}-${year}`;
+                    })()}
+                  </td>
 
                   <td className="px-3 py-3">
                     <span

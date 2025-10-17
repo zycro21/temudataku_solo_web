@@ -1,9 +1,9 @@
 import { PrismaClient } from "@prisma/client";
 import { nanoid } from "nanoid";
-import { hashPassword, comparePassword } from "../utils/hashPassword";
-import { generateVerificationToken } from "../utils/tokenRegister";
-import { HttpError } from "../utils/httpError";
-import { sendEmailVerification } from "../utils/sendEmailVerification";
+import { hashPassword, comparePassword } from "../utils/hashPassword.js";
+import { generateVerificationToken } from "../utils/tokenRegister.js";
+import { HttpError } from "../utils/httpError.js";
+import { sendEmailVerification } from "../utils/sendEmailVerification.js";
 import jwt from "jsonwebtoken";
 
 const prisma = new PrismaClient();

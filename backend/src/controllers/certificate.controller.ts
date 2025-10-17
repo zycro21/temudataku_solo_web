@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from "express";
-import { AuthenticatedRequestCertificate } from "../middlewares/authenticate";
+import { AuthenticatedRequestCertificate } from "../middlewares/authenticate.js";
 import { format } from "date-fns";
 import { HttpError } from "../utils/httpError";
-import * as CertificateService from "../services/certificate.service";
+import * as CertificateService from "../services/certificate.service.js";
 import { PrismaClient } from "@prisma/client";
 import path from "path";
 

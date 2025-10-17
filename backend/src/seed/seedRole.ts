@@ -4,30 +4,30 @@ const prisma = new PrismaClient();
 async function main() {
   const roles = [
     {
-      id: 1,
-      role_name: "admin",
+      id: "1",
+      roleName: "admin",
       description: "Administrator of the system",
     },
     {
-      id: 2,
-      role_name: "mentor",
+      id: "2",
+      roleName: "mentor",
       description: "Mentor that helps mentees",
     },
     {
-      id: 3,
-      role_name: "mentee",
+      id: "3",
+      roleName: "mentee",
       description: "User who wants to learn",
     },
     {
-      id: 4,
-      role_name: "affiliator",
+      id: "4",
+      roleName: "affiliator",
       description: "Affiliator who brings new users",
     },
   ];
 
   for (const role of roles) {
-    await prisma.roles.upsert({
-      where: { role_name: role.role_name },
+    await prisma.role.upsert({
+      where: { roleName: role.roleName },
       update: {},
       create: role,
     });

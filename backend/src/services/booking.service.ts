@@ -4,6 +4,15 @@ import ExcelJS from "exceljs";
 import { format, parseISO, subDays } from "date-fns";
 import { Buffer } from "buffer";
 import { format as formatDate } from "date-fns";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Path folder uploads utama
+const uploadsRoot = path.join(__dirname, "../../uploads");
 
 const prisma = new PrismaClient();
 
@@ -67,12 +76,18 @@ export const createBooking = async (
     specialRequests,
     bookingDate,
     participantIds = [],
+    material,
+    expectedOutput,
+    supportDocument,
   }: {
     mentoringServiceId: string;
     referralUsageId?: string;
     specialRequests?: string;
     bookingDate?: string;
     participantIds?: string[];
+    material?: string;
+    expectedOutput?: string;
+    supportDocument?: string[] | null;
   }
 ) => {
   const mentoringService = await prisma.mentoringService.findUnique({
@@ -254,6 +269,11 @@ export const createBooking = async (
         referralUsageId,
         specialRequests,
         bookingDate: finalBookingDate,
+        material,
+        expectedOutput,
+        supportDocument: supportDocument
+          ? JSON.stringify(supportDocument)
+          : null, // simpan JSON string
         status: isManualBooking ? "confirmed" : "pending",
         participants: {
           create: [
@@ -347,7 +367,59 @@ export const getMenteeBookings = async (
   const bookings = await prisma.booking.findMany({
     where: whereClause,
     include: {
-      mentoringService: true,
+      mentoringService: {
+        include: {
+          projects: {
+            include: {
+              submissions: {
+                where: { menteeId },
+                select: {
+                  id: true,
+                  title: true,
+                  filePaths: true,
+                  projectId: true,
+                  projectLink: true,
+                  submissionDate: true,
+                  score: true,
+                  briefScore: true,
+                  technicalScore: true,
+                  creativityScore: true,
+                  completenessScore: true,
+                  plagiarismScore: true,
+                  mentorFeedback: true,
+                  mentorSuggestion: true,
+                  reviewStatus: true,
+                  isReviewed: true,
+                  isRevisedRequired: true,
+                  revisionDeadline: true,
+                  createdAt: true,
+                  updatedAt: true,
+                },
+              },
+            },
+          },
+          mentoringSessions: {
+            include: {
+              mentors: {
+                include: {
+                  mentorProfile: {
+                    include: {
+                      user: {
+                        select: {
+                          id: true,
+                          fullName: true,
+                          email: true,
+                          profilePicture: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
       participants: true,
     },
     orderBy: {
@@ -359,7 +431,6 @@ export const getMenteeBookings = async (
 
   const total = await prisma.booking.count({ where: whereClause });
 
-  // Tambahkan pengecekan jika status di-filter tapi hasil kosong
   if (status && bookings.length === 0) {
     throw {
       status: 404,
@@ -367,8 +438,66 @@ export const getMenteeBookings = async (
     };
   }
 
+  // 🔹 Tambahkan status project + ukuran file submission
+  const enrichedBookings = bookings.map((booking) => {
+    const mentoringService = booking.mentoringService;
+    if (!mentoringService) return booking;
+
+    const projects = mentoringService.projects.map((proj) => {
+      const submissions = proj.submissions.map((subm) => {
+        let filesWithSize: any[] = [];
+
+        if (Array.isArray(subm.filePaths)) {
+          filesWithSize = subm.filePaths.map((fp) => {
+            try {
+              // Gabungkan path fisik ke file di uploads
+              const filePath = path.join(uploadsRoot, fp);
+              const stats = fs.statSync(filePath);
+              const sizeKB = (stats.size / 1024).toFixed(2) + " KB";
+              return { filePath: fp, size: sizeKB };
+            } catch (err) {
+              return { filePath: fp, size: "Unknown" };
+            }
+          });
+        }
+
+        return {
+          ...subm,
+          fileDetails: filesWithSize, // ⬅️ tambahkan properti baru
+        };
+      });
+
+      const submission = submissions?.[0];
+      let status = "Belum Dikumpulkan";
+
+      if (submission) {
+        if (submission.isReviewed && submission.reviewStatus === "REVIEWED") {
+          status = "Sudah Direview";
+        } else if (submission.isRevisedRequired) {
+          status = "Perlu Revisi";
+        } else {
+          status = "Sudah Dikumpulkan";
+        }
+      }
+
+      return {
+        ...proj,
+        status,
+        submissions, // gunakan submission yang sudah diubah
+      };
+    });
+
+    return {
+      ...booking,
+      mentoringService: {
+        ...mentoringService,
+        projects,
+      },
+    };
+  });
+
   return {
-    data: bookings,
+    data: enrichedBookings,
     pagination: {
       page,
       limit,
@@ -385,7 +514,19 @@ export const getMenteeBookingDetail = async (
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
     include: {
-      mentoringService: true,
+      mentoringService: {
+        include: {
+          mentoringSessions: {
+            include: {
+              mentors: {
+                include: {
+                  mentorProfile: true,
+                },
+              },
+            },
+          },
+        },
+      },
       participants: {
         include: {
           user: {
@@ -432,15 +573,73 @@ export const getMenteeBookingDetail = async (
   };
 };
 
+export const getCompletedPrograms = async (
+  menteeId: string,
+  {
+    page,
+    limit,
+    sortBy,
+    sortOrder,
+  }: {
+    page: number;
+    limit: number;
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
+  }
+) => {
+  const skip = (page - 1) * limit;
+  const now = new Date();
+
+  // Ambil semua booking dengan join mentoringService
+  const bookings = await prisma.booking.findMany({
+    where: {
+      menteeId,
+    },
+    include: {
+      mentoringService: true,
+    },
+    orderBy: {
+      [sortBy ?? "bookingDate"]: sortOrder ?? "desc",
+    },
+  });
+
+  // Filter hanya yang sudah melewati masa program
+  const completedPrograms = bookings.filter((b) => {
+    if (!b.bookingDate || !b.mentoringService?.durationDays) return false;
+
+    const endDate = new Date(b.bookingDate);
+    endDate.setDate(endDate.getDate() + b.mentoringService.durationDays);
+
+    return endDate < now;
+  });
+
+  // Pagination manual
+  const paginated = completedPrograms.slice(skip, skip + limit);
+
+  return {
+    data: paginated,
+    pagination: {
+      page,
+      limit,
+      total: completedPrograms.length,
+      totalPages: Math.ceil(completedPrograms.length / limit),
+    },
+  };
+};
+
 export const updateMenteeBooking = async (
   userId: string,
   bookingId: string,
   {
     specialRequests,
     participantIds,
+    material,
+    expectedOutput,
   }: {
     specialRequests?: string;
     participantIds?: string[];
+    material?: string;
+    expectedOutput?: string;
   }
 ) => {
   const booking = await prisma.booking.findUnique({
@@ -479,11 +678,13 @@ export const updateMenteeBooking = async (
     };
   }
 
-  // Update booking data
+  // Update booking data (material & expectedOutput opsional)
   await prisma.booking.update({
     where: { id: bookingId },
     data: {
       specialRequests,
+      material,
+      expectedOutput,
       updatedAt: new Date(),
     },
   });
@@ -494,7 +695,6 @@ export const updateMenteeBooking = async (
       where: { bookingId },
     });
 
-    // Tambahkan mentee sebagai peserta sekaligus leader
     const newParticipants = [
       {
         bookingId,
@@ -791,6 +991,9 @@ export const exportAdminBookings = async (formatType: "csv" | "excel") => {
     Status: booking.status ?? "-",
     Participants: booking.participants.map((p) => p.user.fullName).join(", "),
     ReferralCode: booking.referralUsage?.referralCode.code ?? "-",
+    Material: booking.material ?? "-",
+    ExpectedOutput: booking.expectedOutput ?? "-",
+    SupportDocument: booking.supportDocument ?? "-",
     CreatedAt: booking.createdAt?.toISOString() ?? "-",
   }));
 
@@ -868,4 +1071,252 @@ export const getBookingParticipants = async (
     paymentStatus: p.paymentStatus,
     user: p.user,
   }));
+};
+
+export const getMentorEarnings = async (params: { mentorId: string }) => {
+  const { mentorId } = params;
+
+  const now = new Date();
+  const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+
+  // === TOTAL SEMUA WAKTU ===
+  const allEarningsRaw = await prisma.booking.findMany({
+    where: {
+      status: { in: ["confirmed", "completed"] },
+      mentoringService: {
+        mentors: {
+          some: { mentorProfileId: mentorId },
+        },
+      },
+    },
+    include: { payment: true },
+  });
+
+  const totalAllTime = allEarningsRaw.reduce(
+    (sum, b) => sum + (b.payment?.amount ? Number(b.payment.amount) : 0),
+    0
+  );
+
+  // === TOTAL BULAN INI ===
+  const earningsThisMonthRaw = await prisma.booking.findMany({
+    where: {
+      status: { in: ["confirmed", "completed"] },
+      mentoringService: {
+        mentors: {
+          some: { mentorProfileId: mentorId },
+        },
+      },
+      bookingDate: { gte: startOfThisMonth },
+    },
+    include: { payment: true },
+  });
+
+  const totalThisMonth = earningsThisMonthRaw.reduce(
+    (sum, b) => sum + (b.payment?.amount ? Number(b.payment.amount) : 0),
+    0
+  );
+
+  // === TOTAL BULAN LALU ===
+  const earningsLastMonthRaw = await prisma.booking.findMany({
+    where: {
+      status: { in: ["confirmed", "completed"] },
+      mentoringService: {
+        mentors: {
+          some: { mentorProfileId: mentorId },
+        },
+      },
+      bookingDate: { gte: startOfLastMonth, lte: endOfLastMonth },
+    },
+    include: { payment: true },
+  });
+
+  const totalLastMonth = earningsLastMonthRaw.reduce(
+    (sum, b) => sum + (b.payment?.amount ? Number(b.payment.amount) : 0),
+    0
+  );
+
+  // === HITUNG GROWTH PERCENT ===
+  const growthPercent =
+    totalLastMonth === 0
+      ? totalThisMonth > 0
+        ? 100
+        : 0
+      : ((totalThisMonth - totalLastMonth) / totalLastMonth) * 100;
+
+  return {
+    total: totalAllTime,
+    growthPercent: Math.round(growthPercent),
+  };
+};
+
+// Fungsi untuk admin: semua mentor, pagination
+export const getAllMentorsEarnings = async (params: {
+  page: number;
+  limit: number;
+}) => {
+  const { page, limit } = params;
+  const skip = (page - 1) * limit;
+
+  const mentors = await prisma.mentorProfile.findMany({
+    skip,
+    take: limit,
+    include: {
+      user: true,
+    },
+  });
+
+  const data = await Promise.all(
+    mentors.map(async (mentor) => {
+      const earnings = await getMentorEarnings({ mentorId: mentor.id });
+      return {
+        mentorId: mentor.id,
+        fullName: mentor.user.fullName,
+        ...earnings,
+      };
+    })
+  );
+
+  const totalCount = await prisma.mentorProfile.count();
+
+  return {
+    data,
+    pagination: {
+      total: totalCount,
+      page,
+      limit,
+      totalPages: Math.ceil(totalCount / limit),
+    },
+  };
+};
+
+export const getMentorBookings = async ({
+  mentorId,
+}: {
+  mentorId?: string;
+}) => {
+  // ambil semua booking yang terkait dengan mentoringService
+  const bookings = await prisma.booking.findMany({
+    where: mentorId
+      ? {
+          mentoringService: {
+            mentors: {
+              some: {
+                mentorProfileId: mentorId,
+              },
+            },
+          },
+        }
+      : {}, // admin tanpa filter = semua booking
+    include: {
+      mentoringService: true,
+      participants: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              city: true,
+              province: true,
+              profilePicture: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  // transform hasil agar lebih rapi
+  return bookings.map((b) => ({
+    bookingId: b.id,
+    serviceId: b.mentoringServiceId,
+    serviceName: b.mentoringService.serviceName,
+    serviceType: b.mentoringService.serviceType,
+    status: b.status,
+    material: b.material,
+    expectedOutput: b.expectedOutput,
+    supportDocument: b.supportDocument,
+    participants: b.participants.map((p) => ({
+      participantId: p.id,
+      isLeader: p.isLeader,
+      paymentStatus: p.paymentStatus,
+      user: p.user,
+    })),
+  }));
+};
+
+export const getMentorMenteeStats = async ({
+  mentorId,
+}: {
+  mentorId?: string;
+}) => {
+  const services = await prisma.mentoringService.findMany({
+    where: mentorId
+      ? {
+          mentors: { some: { mentorProfileId: mentorId } },
+        }
+      : {},
+    include: {
+      mentors: { select: { mentorProfileId: true } },
+      mentoringSessions: {
+        include: {
+          mentors: { select: { mentorProfileId: true } },
+        },
+      },
+      bookings: {
+        include: {
+          participants: { select: { userId: true } },
+        },
+      },
+    },
+  });
+
+  const statsMap = new Map<
+    string,
+    {
+      mentorId: string;
+      serviceType: string;
+      totalMentees: number;
+      totalSessions: number;
+    }
+  >();
+
+  services.forEach((service) => {
+    service.mentors.forEach((m) => {
+      // filter khusus kalau mentorId diset
+      if (mentorId && m.mentorProfileId !== mentorId) return;
+
+      const key = `${m.mentorProfileId}-${service.serviceType ?? ""}`;
+      if (!statsMap.has(key)) {
+        statsMap.set(key, {
+          mentorId: m.mentorProfileId,
+          serviceType: service.serviceType ?? "",
+          totalMentees: 0,
+          totalSessions: 0,
+        });
+      }
+
+      const stat = statsMap.get(key)!;
+
+      // hitung session hanya yang mentor ini terlibat
+      const sessionsCount = service.mentoringSessions.filter((s) =>
+        s.mentors.some((sm) => sm.mentorProfileId === m.mentorProfileId)
+      ).length;
+
+      stat.totalSessions += sessionsCount;
+
+      // mentee hanya dihitung jika memang ada session
+      if (sessionsCount > 0) {
+        const menteeSet = new Set<string>();
+        service.bookings.forEach((b) => {
+          b.participants.forEach((p) => menteeSet.add(p.userId));
+        });
+        stat.totalMentees += menteeSet.size;
+      }
+    });
+  });
+
+  return Array.from(statsMap.values());
 };

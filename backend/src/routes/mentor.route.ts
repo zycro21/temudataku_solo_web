@@ -1,5 +1,5 @@
 import { Router } from "express";
-import * as MentorController from "../controllers/mentor.controller";
+import * as MentorController from "../controllers/mentor.controller.js";
 import {
   createMentorProfileSchema,
   updateMentorProfileSchema,
@@ -9,10 +9,10 @@ import {
   getMentorProfileByIdSchema,
   getPublicMentorProfileByIdSchema,
   deleteMentorProfileSchema,
-} from "../validations/mentor.validation";
-import { validate } from "../middlewares/validate";
-import { authenticate } from "../middlewares/authenticate";
-import { authorizeRoles } from "../middlewares/authorizeRole";
+} from "../validations/mentor.validation.js";
+import { validate } from "../middlewares/validate.js";
+import { authenticate } from "../middlewares/authenticate.js";
+import { authorizeRoles } from "../middlewares/authorizeRole.js";
 
 const router = Router();
 

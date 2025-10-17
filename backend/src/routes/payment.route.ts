@@ -1,5 +1,5 @@
 import { Router } from "express";
-import * as PaymentController from "../controllers/payment.controller";
+import * as PaymentController from "../controllers/payment.controller.js";
 import {
   createPaymentSchema,
   getAdminPaymentsSchema,
@@ -8,10 +8,10 @@ import {
   getMyPaymentsSchema,
   updatePaymentStatusSchema,
   getMyPaymentDetailSchema,
-} from "../validations/payment.validation";
-import { validate } from "../middlewares/validate";
-import { authenticate } from "../middlewares/authenticate";
-import { authorizeRoles } from "../middlewares/authorizeRole";
+} from "../validations/payment.validation.js";
+import { validate } from "../middlewares/validate.js";
+import { authenticate } from "../middlewares/authenticate.js";
+import { authorizeRoles } from "../middlewares/authorizeRole.js";
 
 const router = Router();
 

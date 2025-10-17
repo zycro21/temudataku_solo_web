@@ -11,6 +11,7 @@ export type Project = {
   mentor: string;
   program: string;
   date: string; // Tanggal & Waktu Pengumpulan
+  deadline?: string;
   projectFile: string; // link file / nama file
   topic: string;
   statusDetail: string;
@@ -21,8 +22,23 @@ export type Project = {
 export const columns: ColumnDef<Project>[] = [
   {
     id: "select",
-    header: ({ table }) => <Checkbox checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")} onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)} aria-label="Select all" />,
-    cell: ({ row }) => <Checkbox checked={row.getIsSelected()} onCheckedChange={(value) => row.toggleSelected(!!value)} aria-label="Select row" />,
+    header: ({ table }) => (
+      <Checkbox
+        checked={
+          table.getIsAllPageRowsSelected() ||
+          (table.getIsSomePageRowsSelected() && "indeterminate")
+        }
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="Select all"
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="Select row"
+      />
+    ),
     enableSorting: false,
     enableHiding: false,
     size: 40, // biar kecil, sama seperti w-12
@@ -78,7 +94,12 @@ export const columns: ColumnDef<Project>[] = [
     cell: ({ row }) => {
       const file = row.original.projectFile;
       return file ? (
-        <a href={file} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+        <a
+          href={file}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:underline"
+        >
           Lihat
         </a>
       ) : (

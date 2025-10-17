@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from "express";
-import { AuthenticatedRequestProject } from "../middlewares/authenticate";
+import { AuthenticatedRequestProject } from "../middlewares/authenticate.js";
 import { format } from "date-fns";
 import { HttpError } from "../utils/httpError";
-import * as ProjectService from "../services/project.service";
+import * as ProjectService from "../services/project.service.js";
 import { PrismaClient } from "@prisma/client";
 import path from "path";
 
@@ -188,6 +188,25 @@ export const getMentorProjectDetail = async (
   }
 };
 
+export const getUniqueMenteesService = async (
+  req: AuthenticatedRequestProject,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.user?.userId!;
+
+    const totalUniqueMentees = await ProjectService.getUniqueMentees(userId);
+
+    res.status(200).json({
+      message: "Total mentee unik berhasil diambil",
+      totalUniqueMentees,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const getMenteeProjects = async (
   req: AuthenticatedRequestProject,
   res: Response,
@@ -273,25 +292,30 @@ export const submitProject = async (
 ) => {
   try {
     const { id: projectId } = req.validatedParams;
-    const { sessionId } = req.validatedBody;
+    const { sessionId, title, projectLink } = req.validatedBody;
     const menteeId = req.user?.userId!;
 
     // Cek kalau multiple files diupload
     const uploadedFiles = req.files as Express.Multer.File[] | undefined;
-    if (!uploadedFiles || uploadedFiles.length === 0) {
-      throw new Error("Harus mengirim minimal satu file.");
+    if ((!uploadedFiles || uploadedFiles.length === 0) && !projectLink) {
+      throw new Error("Harus mengirim minimal satu file atau link proyek.");
     }
 
-    // Gunakan path relatif: submissions/filename.ext
-    const filePaths = uploadedFiles.map((file) =>
-      path.join("submissions", file.filename).replace(/\\/g, "/")
-    );
+    // path relatif: submissions/filename.ext
+    const filePaths =
+      uploadedFiles && uploadedFiles.length > 0
+        ? uploadedFiles.map((file) =>
+            path.join("submissions", file.filename).replace(/\\/g, "/")
+          )
+        : [];
 
     const submission = await ProjectService.submit({
       projectId,
       menteeId,
       filePaths,
       sessionId,
+      title,
+      projectLink,
     });
 
     res.status(201).json({
@@ -302,6 +326,41 @@ export const submitProject = async (
       },
     });
   } catch (error: any) {
+    next(error);
+  }
+};
+
+export const reviseSubmission = async (
+  req: AuthenticatedRequestProject,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { submissionId } = req.validatedParams;
+    const { title, projectLink } = req.validatedBody;
+    const menteeId = req.user?.userId!;
+    const uploadedFiles = req.files as Express.Multer.File[] | undefined;
+
+    const filePaths =
+      uploadedFiles && uploadedFiles.length > 0
+        ? uploadedFiles.map((file) =>
+            path.join("submissions", file.filename).replace(/\\/g, "/")
+          )
+        : [];
+
+    const updatedSubmission = await ProjectService.revise({
+      submissionId,
+      menteeId,
+      title,
+      projectLink,
+      filePaths,
+    });
+
+    res.status(200).json({
+      message: "Revisi submission berhasil diperbarui",
+      data: updatedSubmission,
+    });
+  } catch (error) {
     next(error);
   }
 };
@@ -350,7 +409,8 @@ export const getAdminSubmissions = async (
     const limitNum = parseInt(limit);
 
     const sortFieldMap: Record<string, string> = {
-      score: "Score",
+      score: "score",
+      plagiarismScore: "plagiarismScore",
       submissionDate: "submissionDate",
       createdAt: "createdAt",
     };
@@ -441,6 +501,29 @@ export const getMentorProjectSubmissions = async (
     const submissions = await ProjectService.getMentorProjectSubmissionsService(
       {
         projectId,
+        mentorProfileId,
+      }
+    );
+
+    res.status(200).json({ success: true, data: submissions });
+    return;
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getMentorServiceSubmissions = async (
+  req: AuthenticatedRequestProject,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const serviceId = req.params.serviceId;
+    const mentorProfileId = req.user?.mentorProfileId;
+
+    const submissions = await ProjectService.getMentorServiceSubmissionsService(
+      {
+        serviceId,
         mentorProfileId,
       }
     );

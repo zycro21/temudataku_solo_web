@@ -1,12 +1,12 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import * as AuthService from "../services/auth.service";
-import { HttpError } from "../utils/httpError";
-import { sendResetPasswordEmail } from "../utils/sendEmailVerification";
-import { AuthenticatedRequest } from "../middlewares/authenticate";
+import * as AuthService from "../services/auth.service.js";
+import { HttpError } from "../utils/httpError.js";
+import { sendResetPasswordEmail } from "../utils/sendEmailVerification.js";
+import { AuthenticatedRequest } from "../middlewares/authenticate.js";
 import path from "path";
 import fs from "fs";
-import { uploadPath } from "../middlewares/uploadImage";
+import { uploadPath } from "../middlewares/uploadImage.js";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();

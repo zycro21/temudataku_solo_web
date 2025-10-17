@@ -16,6 +16,9 @@ model Booking {
   bookingDate         DateTime?           @default(now())
   status              String?             @db.VarChar
   specialRequests     String?
+  material            String?             // materi yang diminta mentee
+  expectedOutput      String?             // ekspektasi output dari mentee
+  supportDocument     String?             // dokumen tambahan dari mentee
   createdAt           DateTime?           @default(now())
   updatedAt           DateTime?
 
@@ -129,8 +132,28 @@ model MentorProfile {
   mentoringServices    MentoringServiceMentor[]
   mentoringSessions    MentoringSessionMentor[]
   practices            Practice[]
+  reports              MentorReport[]
 
   @@map("mentor_profiles")
+}
+
+model MentorReport {
+  id                String           @id @default(cuid())
+  sessionId         String
+  mentorProfileId   String
+  understanding     String?
+  participation     String?
+  challenges        String?
+  commonQuestions   String?
+  nextFocus         String?
+  additionalNotes   String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  session           MentoringSession @relation(fields: [sessionId], references: [id])
+  mentorProfile     MentorProfile    @relation(fields: [mentorProfileId], references: [id])
+
+  @@map("mentor_report")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -183,6 +206,8 @@ model MentoringSession {
   endTime            String              @map("end_time")
   durationMinutes    Int                 @map("duration_minutes")
   meetingLink        String?             @db.VarChar @map("meeting_link")
+  meetingId          String?             @db.VarChar @map("meeting_id")   // NEW
+  passcode           String?             @db.VarChar @map("passcode")     // NEW
   status             String?             @db.VarChar
   notes              String?
   createdAt          DateTime?           @default(now()) @db.Timestamp(6) @map("created_at")
@@ -192,6 +217,7 @@ model MentoringSession {
   mentors            MentoringSessionMentor[]
   mentoringService   MentoringService    @relation(fields: [serviceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   projectSubmissions ProjectSubmission[] 
+  reports            MentorReport[]
 
   @@map("mentoring_sessions")
 }
@@ -392,26 +418,51 @@ model Project {
 }
 
 model ProjectSubmission {
-  id              String            @id @default(cuid())
-  projectId       String            @map("project_id")
-  menteeId        String            @map("mentee_id")
-  sessionId       String?           @map("session_id") // optional
-  filePaths       String[]          @map("file_paths")
-  submissionDate  DateTime?         @default(now()) @db.Timestamp(6) @map("submission_date")
-  plagiarismScore Decimal?          @db.Decimal @map("plagiarism_score")
-  Score           Decimal?          @db.Decimal
-  mentorFeedback  String?           @db.VarChar @map("mentor_feedback")
-  isReviewed      Boolean?          @default(false) @map("is_reviewed")
-  gradedBy        String?           @map("graded_by")
-  createdAt       DateTime?         @default(now()) @db.Timestamp(6) @map("created_at")
-  updatedAt       DateTime?         @db.Timestamp(6) @map("updated_at")
+  id               String            @id @default(cuid())
+  projectId        String            @map("project_id")
+  menteeId         String            @map("mentee_id")
+  sessionId        String?           @map("session_id") // optional
+  title            String?           @db.VarChar // judul submission dari mentee
+  filePaths        String[]          @map("file_paths")
+  projectLink      String?           @db.VarChar // link tambahan (Drive, GitHub, dll.)
+  submissionDate   DateTime?         @default(now()) @db.Timestamp(6) @map("submission_date")
+  
+  // skor otomatis / sistem
+  plagiarismScore  Decimal?          @db.Decimal @map("plagiarism_score")
+  score            Decimal?          @db.Decimal // agregasi dari seluruh skor penilaian
 
-  project         Project           @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  user            User              @relation("SubmissionByMentee", fields: [menteeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  session         MentoringSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  gradedByUser    User?             @relation("SubmissionGradedByMentor", fields: [gradedBy], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  // skor per-metriks
+  briefScore        String?          @map("brief_score") // kesesuaian brief
+  technicalScore    String?          @map("technical_score") // kualitas teknis
+  creativityScore   String?          @map("creativity_score") // kreativitas
+  completenessScore String?          @map("completeness_score") // kelengkapan
+
+  // feedback mentor
+  mentorFeedback   String?           @db.VarChar @map("mentor_feedback") // feedback singkat
+  mentorSuggestion String?           @db.VarChar @map("mentor_suggestion") // saran
+
+  // status review
+  isReviewed       Boolean?          @default(false) @map("is_reviewed")
+  reviewStatus     ReviewStatus      @default(PENDING) @map("review_status") // enum baru
+  isRevisedRequired Boolean?         @default(false) @map("is_revised_required")
+  revisionDeadline DateTime?         @map("revision_deadline")
+
+  gradedBy         String?           @map("graded_by")
+  createdAt        DateTime?         @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt        DateTime?         @db.Timestamp(6) @map("updated_at")
+
+  project          Project           @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user             User              @relation("SubmissionByMentee", fields: [menteeId], references: [id], onDelete: Cascade, onUpdate: Cascade) 
+  session          MentoringSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  gradedByUser     User?             @relation("SubmissionGradedByMentor", fields: [gradedBy], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@map("project_submissions")
+}
+
+enum ReviewStatus {
+  PENDING
+  REVIEWED
+  REVISION_REQUIRED
 }
 
 model ReferralCommisions {
@@ -476,6 +527,17 @@ model Role {
   @@map("roles")
 }
 
+model UserActivityLog {
+  id           String   @id @default(cuid())
+  userId       String
+  page         String
+  durationSec  Int       @default(0)
+  accessedAt   DateTime  @default(now())
+
+  user         User      @relation(fields: [userId], references: [id])
+
+  @@map("user_activity_logs")
+}
 
 model UserBehavior {
   id          String     @id @default(cuid())
@@ -542,6 +604,7 @@ model User {
   gradedSubmissions          ProjectSubmission[]      @relation("SubmissionGradedByMentor")
   referralCodes              ReferralCode[]
   referralUsages             ReferralUsage[]
+  activityLogs               UserActivityLog[]
   userBehavior               UserBehavior[]
   userRoles                  UserRole[]
   withdrawalMethods          WithdrawalMethod[] 

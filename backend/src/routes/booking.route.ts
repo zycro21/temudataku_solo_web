@@ -1,5 +1,5 @@
 import { Router } from "express";
-import * as BookingController from "../controllers/booking.controller";
+import * as BookingController from "../controllers/booking.controller.js";
 import {
   createBookingSchema,
   getMenteeBookingsSchema,
@@ -10,10 +10,14 @@ import {
   updateAdminBookingStatusValidator,
   exportAdminBookingsValidator,
   getBookingParticipantsIdValidator,
-} from "../validations/booking.validation";
-import { validate } from "../middlewares/validate";
-import { authenticate } from "../middlewares/authenticate";
-import { authorizeRoles } from "../middlewares/authorizeRole";
+  getMentorEarningsValidator,
+  getMentorBookingsValidator,
+  getCompletedProgramsSchema,
+} from "../validations/booking.validation.js";
+import { validate } from "../middlewares/validate.js";
+import { authenticate } from "../middlewares/authenticate.js";
+import { authorizeRoles } from "../middlewares/authorizeRole.js";
+import { handleSupportDocumentUpload } from "../middlewares/uploadImage.js";
 
 const router = Router();
 
@@ -35,7 +39,7 @@ const router = Router();
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             required:
@@ -59,12 +63,26 @@ const router = Router();
  *                 type: string
  *                 format: date
  *                 description: (Wajib untuk one-on-one dan group) Tanggal booking dalam format YYYY-MM-DD
+ *               material:
+ *                 type: string
+ *                 description: (Opsional) Materi atau bahan yang ingin dibahas
+ *               expectedOutput:
+ *                 type: string
+ *                 description: (Opsional) Hasil yang diharapkan dari sesi
+ *               supportDocument:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *                 description: (Opsional) Dokumen pendukung dalam bentuk file (PDF, DOCX, PNG, dll.)
  *           example:
  *             mentoringServiceId: "svc-001"
  *             participantIds: ["usr-002", "usr-003"]
  *             referralUsageId: "ref-001"
  *             specialRequests: "Mohon gunakan Zoom"
  *             bookingDate: "2025-07-15"
+ *             material: "Proposal bisnis"
+ *             expectedOutput: "Feedback detail untuk pitch deck"
  *     responses:
  *       201:
  *         description: Booking berhasil dibuat
@@ -75,11 +93,16 @@ const router = Router();
  *               message: Booking berhasil dibuat.
  *               data:
  *                 id: "Booking-group-8638552204"
- *                 menteeId: "000008"
- *                 mentoringServiceId: "group-000002"
- *                 referralUsageId: "cmaa2m8d10001csssui0zoi3h8hfdidinfd"
+ *                 menteeId: "usr-001"
+ *                 mentoringServiceId: "svc-001"
+ *                 referralUsageId: "ref-001"
  *                 specialRequests: "Mohon gunakan Zoom"
  *                 bookingDate: "2025-07-15T00:00:00.000Z"
+ *                 material: "Proposal bisnis"
+ *                 expectedOutput: "Feedback detail untuk pitch deck"
+ *                 supportDocument:
+ *                   - "supportDocument/SupportDoc-Proposal-20251002-153011.pdf"
+ *                   - "supportDocument/SupportDoc-Dataset-20251002-153020.pdf"
  *                 status: "confirmed"
  *                 participants:
  *                   - userId: "usr-001"
@@ -93,7 +116,7 @@ const router = Router();
  *                     paymentStatus: "confirmed"
  *                 payment:
  *                   id: "pay-001"
- *                   bookingId: "book-001"
+ *                   bookingId: "Booking-group-8638552204"
  *                   amount: 50000
  *                   status: "confirmed"
  *                 originalPrice: 50000
@@ -102,27 +125,56 @@ const router = Router();
  *         description: Permintaan tidak valid (body tidak lengkap, layanan tidak tersedia, dsb)
  *         content:
  *           application/json:
- *             example:
- *               success: false
- *               message: bookingDate wajib diisi untuk layanan one-on-one atau group.
+ *             examples:
+ *               invalidDate:
+ *                 summary: Format tanggal salah
+ *                 value:
+ *                   success: false
+ *                   message: "Format bookingDate tidak valid. Gunakan yyyy-mm-dd."
+ *               overCapacity:
+ *                 summary: Peserta melebihi kapasitas
+ *                 value:
+ *                   success: false
+ *                   message: "Maksimal 5 peserta diperbolehkan."
+ *               duplicateParticipants:
+ *                 summary: Duplikat participantIds
+ *                 value:
+ *                   success: false
+ *                   message: "Terdapat duplikat pada participantIds."
  *       401:
  *         description: Unauthorized (pengguna tidak login)
  *         content:
  *           application/json:
  *             example:
  *               success: false
- *               message: Unauthorized. User ID not found.
+ *               message: "Unauthorized. User ID not found."
+ *       404:
+ *         description: Data tidak ditemukan (mentoring service atau referral usage tidak ada)
+ *         content:
+ *           application/json:
+ *             examples:
+ *               serviceNotFound:
+ *                 summary: Layanan tidak ada
+ *                 value:
+ *                   success: false
+ *                   message: "Mentoring service tidak ditemukan atau tidak aktif."
+ *               referralNotFound:
+ *                 summary: Referral tidak ada
+ *                 value:
+ *                   success: false
+ *                   message: "Referral usage tidak ditemukan."
  *       500:
  *         description: Kesalahan internal server
  *         content:
  *           application/json:
  *             example:
  *               success: false
- *               message: Terjadi kesalahan pada server.
+ *               message: "Terjadi kesalahan pada server."
  */
 router.post(
   "/createBooking",
   authenticate,
+  handleSupportDocumentUpload("supportDocument", true), // multiple upload
   validate(createBookingSchema),
   BookingController.createBookingController
 );
@@ -131,7 +183,10 @@ router.post(
  * @swagger
  * /api/booking/mentee/bookings:
  *   get:
- *     summary: Ambil semua booking milik mentee
+ *     summary: Ambil semua booking milik mentee (dengan pagination, filter, sorting, dan status submission project)
+ *     description: >
+ *       Endpoint ini mengembalikan semua booking yang dimiliki oleh mentee tertentu, lengkap dengan informasi mentoring service, proyek, submission milik mentee, sesi mentoring, serta profil mentor.
+ *       <br>Tambahan: setiap project kini memiliki field `status` (Belum Dikumpulkan, Sudah Dikumpulkan, Perlu Revisi, atau Sudah Direview) berdasarkan kondisi submission mentee.
  *     tags: [Booking]
  *     security:
  *       - bearerAuth: []
@@ -141,13 +196,17 @@ router.post(
  *         required: true
  *         schema:
  *           type: integer
+ *           minimum: 1
  *         example: 1
+ *         description: Halaman keberapa data ingin diambil.
  *       - in: query
  *         name: limit
  *         required: true
  *         schema:
  *           type: integer
+ *           minimum: 1
  *         example: 10
+ *         description: Jumlah item per halaman.
  *       - in: query
  *         name: status
  *         required: false
@@ -155,6 +214,7 @@ router.post(
  *           type: string
  *           enum: [pending, confirmed, completed, cancelled]
  *         example: confirmed
+ *         description: Filter berdasarkan status booking.
  *       - in: query
  *         name: sortBy
  *         required: false
@@ -162,6 +222,7 @@ router.post(
  *           type: string
  *           enum: [createdAt, bookingDate]
  *         example: createdAt
+ *         description: Urutkan hasil berdasarkan kolom tertentu.
  *       - in: query
  *         name: sortOrder
  *         required: false
@@ -169,50 +230,98 @@ router.post(
  *           type: string
  *           enum: [asc, desc]
  *         example: desc
+ *         description: Urutan pengurutan hasil (naik atau turun).
  *     responses:
  *       200:
- *         description: Berhasil mengambil daftar booking
+ *         description: Berhasil mengambil daftar booking milik mentee
  *         content:
  *           application/json:
  *             example:
- *               message: Berhasil mengambil daftar booking.
+ *               message: "Berhasil mengambil daftar booking."
  *               data:
  *                 data:
  *                   - id: "book-001"
  *                     menteeId: "usr-001"
+ *                     status: "confirmed"
+ *                     bookingDate: "2025-10-12T07:45:23.000Z"
+ *                     createdAt: "2025-10-12T07:45:23.000Z"
+ *                     updatedAt: "2025-10-12T07:45:23.000Z"
  *                     mentoringService:
  *                       id: "svc-001"
- *                       title: "Mentoring Web Development"
+ *                       serviceName: "Mentoring Web Development"
+ *                       description: "Belajar membuat aplikasi web modern dengan React dan Next.js"
+ *                       price: 300000
+ *                       durationDays: 14
+ *                       projects:
+ *                         - id: "proj-001"
+ *                           title: "Portfolio Website"
+ *                           description: "Bangun website portfolio menggunakan Next.js"
+ *                           deadline: "2025-10-20"
+ *                           status: "Sudah Direview"
+ *                           submissions:
+ *                             - id: "subm-001"
+ *                               projectId: "proj-001"
+ *                               projectLink: "https://drive.google.com/abc123"
+ *                               submissionDate: "2025-10-13T10:00:00Z"
+ *                               score: 95
+ *                               plagiarismScore: 3.2
+ *                               mentorFeedback: "Strukturnya sudah bagus, tinggal perbaiki UI."
+ *                               reviewStatus: "REVIEWED"
+ *                               isReviewed: true
+ *                               isRevisedRequired: false
+ *                               revisionDeadline: null
+ *                               createdAt: "2025-10-13T09:50:00Z"
+ *                               updatedAt: "2025-10-13T11:30:00Z"
+ *                         - id: "proj-002"
+ *                           title: "Todolist App"
+ *                           description: "Aplikasi manajemen tugas dengan React dan Zustand"
+ *                           deadline: "2025-10-25"
+ *                           status: "Belum Dikumpulkan"
+ *                           submissions: []
+ *                       mentoringSessions:
+ *                         - id: "sess-001"
+ *                           date: "2025-10-15"
+ *                           startTime: "10:00"
+ *                           endTime: "12:00"
+ *                           durationMinutes: 120
+ *                           meetingLink: "https://zoom.us/j/123456"
+ *                           mentors:
+ *                             - id: "mnt-001"
+ *                               mentorProfile:
+ *                                 id: "prof-001"
+ *                                 expertise: "Frontend Development"
+ *                                 user:
+ *                                   id: "usr-010"
+ *                                   fullName: "John Doe"
+ *                                   email: "john@example.com"
+ *                                   profilePicture: "https://cdn.example.com/profiles/john.jpg"
+ *                     material: "Dasar-dasar React"
+ *                     expectedOutput: "Mampu membuat mini project React"
+ *                     supportDocument: "http://localhost:5000/supportDocuments/support-001.pdf"
  *                     participants:
  *                       - userId: "usr-001"
  *                         isLeader: true
  *                         paymentStatus: "confirmed"
- *                   - id: "book-002"
- *                     menteeId: "usr-001"
- *                     mentoringService:
- *                       id: "svc-002"
- *                       title: "UI/UX Design Basics"
- *                     participants:
- *                       - userId: "usr-001"
- *                         isLeader: true
- *                         paymentStatus: "confirmed"
+ *                       - userId: "usr-002"
+ *                         isLeader: false
+ *                         paymentStatus: "pending"
  *                 pagination:
  *                   page: 1
  *                   limit: 10
  *                   total: 2
  *                   totalPages: 1
  *       401:
- *         description: Unauthorized (pengguna tidak login)
+ *         description: Unauthorized - pengguna belum login atau token tidak valid
  *         content:
  *           application/json:
  *             example:
- *               message: Unauthorized. User ID not found.
+ *               message: "Unauthorized. User ID not found."
  *       404:
- *         description: Tidak ada booking dengan status tertentu
+ *         description: Tidak ditemukan booking dengan status tertentu
  *         content:
  *           application/json:
  *             example:
- *               message: Tidak ditemukan booking dengan status "cancelled".
+ *               message: "Tidak ditemukan booking dengan status cancelled."
  */
 router.get(
   "/mentee/bookings",
@@ -249,8 +358,20 @@ router.get(
  *                 menteeId: "usr-001"
  *                 mentoringService:
  *                   id: "svc-001"
- *                   title: "UI/UX Design Basics"
+ *                   serviceName: "UI/UX Design Basics"
  *                   serviceType: "group"
+ *                   mentoringSessions:
+ *                     - id: "sess-001"
+ *                       date: "2025-10-15"
+ *                       startTime: "10:00"
+ *                       endTime: "12:00"
+ *                       durationMinutes: 120
+ *                       mentors:
+ *                         - id: "msm-001"
+ *                           mentorProfile:
+ *                             id: "mentor-001"
+ *                             fullName: "John Doe"
+ *                             profilePicture: null
  *                 participants:
  *                   - userId: "usr-001"
  *                     isLeader: true
@@ -266,6 +387,10 @@ router.get(
  *                   id: "pay-001"
  *                   amount: 200000
  *                   status: "confirmed"
+ *                 material: "Materi tentang user interface"
+ *                 expectedOutput: "Membuat wireframe sederhana"
+ *                 supportDocument:
+ *                   - "supportDocuments/SupportDoc-laporan_1-20251002-232514.pdf"
  *       400:
  *         description: Booking ID tidak ditemukan di parameter
  *         content:
@@ -300,6 +425,77 @@ router.get(
 
 /**
  * @swagger
+ * /api/booking/mentee/completed-programs:
+ *   get:
+ *     summary: Ambil semua program yang telah dilakukan oleh mentee (berdasarkan durasi program)
+ *     tags: [Booking]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         example: 1
+ *       - in: query
+ *         name: limit
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         example: 10
+ *       - in: query
+ *         name: sortBy
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [createdAt, bookingDate]
+ *         example: bookingDate
+ *       - in: query
+ *         name: sortOrder
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *         example: desc
+ *     responses:
+ *       200:
+ *         description: Berhasil mengambil daftar program yang telah dilakukan
+ *         content:
+ *           application/json:
+ *             example:
+ *               message: Berhasil mengambil program telah dilakukan.
+ *               data:
+ *                 data:
+ *                   - id: "book-001"
+ *                     menteeId: "usr-001"
+ *                     bookingDate: "2025-05-01T10:00:00Z"
+ *                     mentoringService:
+ *                       id: "svc-001"
+ *                       serviceName: "Frontend Masterclass"
+ *                       durationDays: 30
+ *                     status: "confirmed"
+ *                 pagination:
+ *                   page: 1
+ *                   limit: 10
+ *                   total: 1
+ *                   totalPages: 1
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             example:
+ *               message: Unauthorized. User ID not found.
+ */
+router.get(
+  "/mentee/completed-programs",
+  authenticate,
+  validate(getCompletedProgramsSchema),
+  BookingController.getCompletedProgramsController
+);
+
+/**
+ * @swagger
  * /api/booking/mentee/bookings/{id}:
  *   patch:
  *     summary: Update booking mentee
@@ -329,6 +525,12 @@ router.get(
  *                 items:
  *                   type: string
  *                 example: ["usr-002", "usr-003"]
+ *               material:
+ *                 type: string
+ *                 example: "Materi tentang user interface"
+ *               expectedOutput:
+ *                 type: string
+ *                 example: "Membuat wireframe sederhana"
  *     responses:
  *       200:
  *         description: Booking berhasil diperbarui
@@ -339,6 +541,8 @@ router.get(
  *               data:
  *                 id: "book-001"
  *                 specialRequests: "Tolong mulai tepat waktu"
+ *                 material: "Materi tentang user interface"
+ *                 expectedOutput: "Membuat wireframe sederhana"
  *                 participants:
  *                   - userId: "usr-001"
  *                     isLeader: true
@@ -515,12 +719,25 @@ router.delete(
  *                   - id: "book-123"
  *                     status: "confirmed"
  *                     bookingDate: "2025-07-01T10:00:00Z"
+ *                     specialRequests: "Tolong mulai tepat waktu"
+ *                     material: "Materi UI/UX Basics"
+ *                     expectedOutput: "Membuat wireframe sederhana"
+ *                     supportDocument: ["supportDocuments/SupportDoc-laporan_1-20251002-232514.pdf"]
  *                     mentee:
  *                       id: "user-1"
  *                       fullName: "John Doe"
  *                     mentoringService:
  *                       id: "service-1"
  *                       serviceName: "Kelas Public Speaking"
+ *                     referralUsage:
+ *                       id: "ref-001"
+ *                       referralCode:
+ *                         id: "code-001"
+ *                         code: "REF2025"
+ *                     payment:
+ *                       id: "pay-001"
+ *                       amount: 200000
+ *                       status: "confirmed"
  *                 meta:
  *                   page: 1
  *                   limit: 10
@@ -573,6 +790,10 @@ router.get(
  *                 id: "book-123"
  *                 status: "confirmed"
  *                 bookingDate: "2025-07-01T10:00:00Z"
+ *                 specialRequests: "Minta tambahan materi A"
+ *                 material: "Materi A"
+ *                 expectedOutput: "Bisa presentasi lancar"
+ *                 supportDocument: "link-ke-dokumen.pdf"
  *                 mentee:
  *                   id: "user-1"
  *                   fullName: "John Doe"
@@ -703,7 +924,7 @@ router.patch(
  * @swagger
  * /api/booking/adminExportBook:
  *   get:
- *     summary: Export data booking (admin)
+ *     summary: Export data booking (admin) termasuk kolom baru seperti material, expectedOutput, supportDocument
  *     tags: [Booking]
  *     security:
  *       - bearerAuth: []
@@ -711,7 +932,7 @@ router.patch(
  *       - name: format
  *         in: query
  *         required: true
- *         description: Format file hasil export (csv atau excel)
+ *         description: Format file hasil export (csv atau excel). Semua kolom booking akan di-export.
  *         schema:
  *           type: string
  *           enum: [csv, excel]
@@ -832,6 +1053,276 @@ router.get(
   authenticate,
   validate(getBookingParticipantsIdValidator),
   BookingController.getBookingParticipantsController
+);
+
+/**
+ * @swagger
+ * /api/booking/mentor/earnings:
+ *   get:
+ *     summary: Ambil total earnings mentor
+ *     description: >
+ *       - Admin bisa melihat earnings semua mentor dengan pagination.
+ *       - Mentor hanya bisa melihat earnings miliknya sendiri.
+ *     tags: [Booking]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: mentorId
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: ID mentor (hanya digunakan oleh admin, opsional)
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: number
+ *           default: 1
+ *         required: false
+ *         description: Nomor halaman (hanya untuk admin)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *           default: 10
+ *         required: false
+ *         description: Jumlah data per halaman (hanya untuk admin)
+ *     responses:
+ *       200:
+ *         description: Total earnings berhasil diambil
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Berhasil mengambil earnings.
+ *                 data:
+ *                   oneOf:
+ *                     - type: object
+ *                       description: Earnings mentor tunggal (untuk role mentor)
+ *                       properties:
+ *                         total:
+ *                           type: number
+ *                           example: 1500000
+ *                         growthPercent:
+ *                           type: number
+ *                           example: 20
+ *                     - type: object
+ *                       description: Earnings semua mentor (untuk admin)
+ *                       properties:
+ *                         data:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               mentorId:
+ *                                 type: string
+ *                                 example: "clhvf3k00001abc123xyz"
+ *                               fullName:
+ *                                 type: string
+ *                                 example: "Dimas Putra"
+ *                               total:
+ *                                 type: number
+ *                                 example: 1500000
+ *                               growthPercent:
+ *                                 type: number
+ *                                 example: 20
+ *                         pagination:
+ *                           type: object
+ *                           properties:
+ *                             total:
+ *                               type: number
+ *                               example: 50
+ *                             page:
+ *                               type: number
+ *                               example: 1
+ *                             limit:
+ *                               type: number
+ *                               example: 10
+ *                             totalPages:
+ *                               type: number
+ *                               example: 5
+ *       401:
+ *         description: Unauthorized - token tidak valid atau tidak disertakan
+ *       403:
+ *         description: Forbidden - user tidak memiliki role admin atau mentor
+ *       500:
+ *         description: Internal Server Error
+ */
+router.get(
+  "/mentor/earnings",
+  authenticate,
+  authorizeRoles("admin", "mentor"),
+  validate(getMentorEarningsValidator),
+  BookingController.getMentorEarningsController
+);
+
+/**
+ * @swagger
+ * /api/booking/mentor/bookings:
+ *   get:
+ *     summary: Ambil daftar booking yang berkaitan dengan mentor (beserta participants)
+ *     description: >
+ *       - Mentor hanya bisa melihat booking miliknya sendiri (service yang dia handle).
+ *       - Admin bisa melihat booking semua mentor (opsional pakai query `mentorId`).
+ *     tags: [Booking]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: mentorId
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: ID mentorProfile (opsional, hanya untuk admin)
+ *     responses:
+ *       200:
+ *         description: Daftar booking berhasil diambil
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Berhasil mengambil booking mentor.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       bookingId:
+ *                         type: string
+ *                         example: "clhvf3k00001abc123xyz"
+ *                       serviceId:
+ *                         type: string
+ *                         example: "clhvf3k0000service123"
+ *                       serviceName:
+ *                         type: string
+ *                         example: "Mentoring 1 on 1"
+ *                       serviceType:
+ *                         type: string
+ *                         example: "1-on-1"
+ *                       status:
+ *                         type: string
+ *                         example: "confirmed"
+ *                       material:
+ *                         type: string
+ *                         description: Materi yang diminta mentee
+ *                         example: "Belajar presentasi"
+ *                       expectedOutput:
+ *                         type: string
+ *                         description: Ekspektasi output dari mentee
+ *                         example: "Presentasi lancar dan percaya diri"
+ *                       supportDocument:
+ *                         type: string
+ *                         description: Link dokumen pendukung yang diunggah mentee
+ *                         example: "https://example.com/doc.pdf"
+ *                       participants:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             participantId:
+ *                               type: string
+ *                               example: "clhvf3k0000part123"
+ *                             isLeader:
+ *                               type: boolean
+ *                               example: true
+ *                             paymentStatus:
+ *                               type: string
+ *                               example: "confirmed"
+ *                             user:
+ *                               type: object
+ *                               properties:
+ *                                 id:
+ *                                   type: string
+ *                                 fullName:
+ *                                   type: string
+ *                                 email:
+ *                                   type: string
+ *                                 city:
+ *                                   type: string
+ *                                 province:
+ *                                   type: string
+ *                                 profilePicture:
+ *                                   type: string
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       500:
+ *         description: Internal Server Error
+ */
+router.get(
+  "/mentor/bookings",
+  authenticate,
+  authorizeRoles("admin", "mentor"),
+  validate(getMentorBookingsValidator),
+  BookingController.getMentorBookingsController
+);
+
+/**
+ * @swagger
+ * /api/booking/mentorStat/bookings:
+ *   get:
+ *     summary: Ambil jumlah mentee per tipe service
+ *     description: >
+ *       - Mentor hanya bisa melihat rekap jumlah mentee dari service yang dia handle.
+ *       - Admin bisa melihat semua mentor (opsional pakai query `mentorId` untuk filter).
+ *     tags: [Booking]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: mentorId
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: ID mentorProfile (opsional, hanya untuk admin)
+ *     responses:
+ *       200:
+ *         description: Rekap jumlah mentee per service type berhasil diambil
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Berhasil mengambil rekap mentee per service.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       mentorId:
+ *                         type: string
+ *                         example: "clhvf3k00001mentor123"
+ *                       serviceType:
+ *                         type: string
+ *                         example: "1-on-1"
+ *                       totalMentees:
+ *                         type: integer
+ *                         example: 15
+ *                       totalSessions:
+ *                         type: integer
+ *                         example: 7
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       500:
+ *         description: Internal Server Error
+ */
+router.get(
+  "/mentorStat/bookings",
+  authenticate,
+  authorizeRoles("admin", "mentor"),
+  validate(getMentorBookingsValidator),
+  BookingController.getMentorStatBookingsController
 );
 
 export default router;

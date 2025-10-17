@@ -1,32 +1,34 @@
 import express, { Application } from "express";
 import cookieParser from "cookie-parser";
 import { PrismaClient } from "@prisma/client";
-import { errorHandler } from "./middlewares/errorHandler";
-import { notFound } from "./middlewares/notFound";
+import { errorHandler } from "./middlewares/errorHandler.js";
+import { notFound } from "./middlewares/notFound.js";
 import path from "path";
 import fs from "fs";
 import cors from "cors";
-import { corsOptions } from "./configs/corsConfig";
-import authRoutes from "./routes/auth.route";
-import userRoutes from "./routes/user.route";
-import mentorRoutes from "./routes/mentor.route";
-import mentorServiceRoutes from "./routes/mentor_service.route";
-import mentoringSessionRoutes from "./routes/mentoring_session.route";
-import feedbackRoutes from "./routes/feedback.route";
-import notificationRoute from "./routes/notification.route";
-import bookingRoute from "./routes/booking.route";
-import projectRoute from "./routes/project.route";
-import certificateRoute from "./routes/certificate.route";
-import practiceRoute from "./routes/practice.route";
-import behaviorRoute from "./routes/behavior.route";
-import referralRoute from "./routes/referral.route";
-import paymentRoute from "./routes/payment.route";
-import withdrawalRoute from "./routes/withdrawal.route";
-import "./schedulers/cron";
+import { corsOptions } from "./configs/corsConfig.js";
+import authRoutes from "./routes/auth.route.js";
+import userRoutes from "./routes/user.route.js";
+import mentorRoutes from "./routes/mentor.route.js";
+import mentorServiceRoutes from "./routes/mentor_service.route.js";
+import mentoringSessionRoutes from "./routes/mentoring_session.route.js";
+import feedbackRoutes from "./routes/feedback.route.js";
+import notificationRoute from "./routes/notification.route.js";
+import bookingRoute from "./routes/booking.route.js";
+import projectRoute from "./routes/project.route.js";
+import certificateRoute from "./routes/certificate.route.js";
+import practiceRoute from "./routes/practice.route.js";
+import behaviorRoute from "./routes/behavior.route.js";
+import referralRoute from "./routes/referral.route.js";
+import paymentRoute from "./routes/payment.route.js";
+import withdrawalRoute from "./routes/withdrawal.route.js";
+import mentorReportRoute from "./routes/mentor_report.route.js";
+import userActivityLog from "./routes/userActivityLog.route.js";
+import "./schedulers/cron.js";
 import { fileURLToPath } from "url";
-import swaggerJsdoc from 'swagger-jsdoc';
-import swaggerUi from 'swagger-ui-express';
-import swaggerOptions from './swagger/swaggerOptions'
+import swaggerJsdoc from "swagger-jsdoc";
+import swaggerUi from "swagger-ui-express";
+import swaggerOptions from "./swagger/swaggerOptions.js";
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -67,6 +69,8 @@ app.use("/api/behavior", behaviorRoute);
 app.use("/api/referral", referralRoute);
 app.use("/api/payment", paymentRoute);
 app.use("/api/withdrawals", withdrawalRoute);
+app.use("/api/mentorReports", mentorReportRoute);
+app.use("/api/logActivity", userActivityLog);
 
 // Path Static untuk Images
 // Perbaikan di sini, mengganti __dirname dengan yang benar menggunakan import.meta.url
@@ -83,7 +87,7 @@ app.use(
   express.static(imagesPath)
 );
 
-const uploadsPath = path.join(__dirname, "../uploads/submissions");
+const uploadsPath = path.join(__dirname, "../uploads");
 console.log("Serving uploads from:", uploadsPath);
 app.use(
   "/uploads",
@@ -113,12 +117,27 @@ const practiceFilesPath = path.join(__dirname, "../uploads/practiceFile");
 console.log("Serving practice files from:", practiceFilesPath);
 app.use("/practiceFiles", express.static(practiceFilesPath));
 
+const supportDocPath = path.join(__dirname, "../uploads/supportDocument");
+console.log("Serving support documents from:", supportDocPath);
+
+app.use(
+  "/supportDocuments",
+  (req, res, next) => {
+    console.log("Accessing support document path:", req.path);
+    const filePath = path.join(supportDocPath, req.path);
+    console.log("Looking for file:", filePath);
+    next();
+  },
+  express.static(supportDocPath)
+);
+
 // Swagger Docs
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Handler setelah semua route
 app.use(errorHandler);
 app.use(notFound);
 
-export { app, prisma };
+export { prisma };
+export default app;

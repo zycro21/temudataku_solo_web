@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
+import axios from "axios";
 
 interface Feedback {
   id: number;
@@ -11,15 +12,22 @@ interface Feedback {
   rating: number;
   comment: string;
   date: string;
-  avatarUrl?: string; // optional avatar
+  avatarUrl?: string;
 }
 
 interface MentorFeedbackGridProps {
-  feedbacks: Feedback[];
   programFilter: string;
   skillFilter: string;
   searchQuery: string;
 }
+
+const serviceMap: Record<string, string> = {
+  "one-on-one": "Mentoring 1 on 1",
+  group: "Mentoring Group",
+  bootcamp: "Bootcamp",
+  shortclass: "Short Class",
+  "live class": "Live Class",
+};
 
 // fungsi ekstrak keyword sederhana
 function extractKeywords(text: string, max: number = 3): string[] {
@@ -64,13 +72,78 @@ function extractKeywords(text: string, max: number = 3): string[] {
 }
 
 export default function MentorFeedbackGrid({
-  feedbacks,
   programFilter,
   skillFilter,
   searchQuery,
 }: MentorFeedbackGridProps) {
+  const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(6);
+
+  const detectSkillFromServiceName = (serviceName: string): string => {
+    const lower = serviceName.toLowerCase();
+    if (lower.includes("analysis")) return "Data Analysis";
+    if (lower.includes("science")) return "Data Science";
+    if (lower.includes("machine learning") || lower.includes("ml"))
+      return "Machine Learning";
+    return "Lain-Lain";
+  };
+
+  // 🔹 FETCH FEEDBACK MENTOR
+  useEffect(() => {
+    const fetchFeedbacks = async () => {
+      setLoading(true);
+      try {
+        const params: Record<string, string> = {};
+        if (programFilter !== "Semua") params.program = programFilter;
+        params.limit = "50"; // ambil lebih banyak biar grid penuh
+
+        const queryString = new URLSearchParams(params).toString();
+
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/feedback/mentor/feedbacks?${queryString}`,
+          { withCredentials: true }
+        );
+
+        const data = res.data?.data || [];
+        const mapped = data.map((item: any, index: number) => {
+          const serviceName = item.session.mentoringService.serviceName || "";
+
+          // avatar fallback logic
+          const profilePicture = item.user?.profilePicture;
+          const avatarUrl =
+            profilePicture &&
+            profilePicture !== "default.jpg" &&
+            profilePicture !== "default.png"
+              ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${profilePicture}`
+              : "/assets/dashboard/user/avatar.png";
+
+          return {
+            id: index + 1,
+            mentee: item.user.fullName,
+            program:
+              serviceMap[item.session.mentoringService.serviceType] ||
+              serviceName,
+            skill: detectSkillFromServiceName(serviceName),
+            rating: item.rating,
+            comment: item.comment,
+            date: new Date(item.submittedDate).toLocaleDateString("id-ID"),
+            avatarUrl, // ✅ sudah sesuai format avatar
+          };
+        });
+
+        setFeedbacks(mapped);
+      } catch (error) {
+        console.error("Gagal mengambil feedback mentor:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeedbacks();
+  }, [programFilter]);
 
   const filteredData = useMemo(() => {
     return feedbacks.filter((f) => {
@@ -92,6 +165,14 @@ export default function MentorFeedbackGrid({
   const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
   const startIdx = (currentPage - 1) * itemsPerPage;
   const currentRows = filteredData.slice(startIdx, startIdx + itemsPerPage);
+
+  if (loading) {
+    return (
+      <div className="text-center py-10 text-gray-500">
+        Memuat data feedback...
+      </div>
+    );
+  }
 
   return (
     <div>

@@ -2,11 +2,26 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
-import { Carousel, CarouselApi, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import {
+  Carousel,
+  CarouselApi,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 import { Briefcase, Calendar, Code } from "lucide-react";
 import React from "react";
 import Image from "next/image";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { describe } from "node:test";
 
 // Bagi mentor ke dalam grup isi 6
@@ -92,7 +107,7 @@ const MentorSection = () => {
   }, [api]);
 
   return (
-    <section className="py-8 md:py-16">
+    <section id="mentorSection" className="py-10 md:py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center mb-8">
           <div>
@@ -118,12 +133,23 @@ const MentorSection = () => {
               <CarouselItem key={groupIndex}>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 py-5">
                   {group.map((mentor) => (
-                    <div key={mentor.id} className="bg-white rounded-lg shadow-lg overflow-hidden h-full">
+                    <div
+                      key={mentor.id}
+                      className="bg-white rounded-lg shadow-lg overflow-hidden h-full"
+                    >
                       <div className="relative h-64 bg-gradient-to-br from-gray-100 to-gray-200">
-                        <Image src={mentor.image} alt={mentor.name} width={500} height={500} className="w-full h-full object-cover" />
+                        <Image
+                          src={mentor.image}
+                          alt={mentor.name}
+                          width={500}
+                          height={500}
+                          className="w-full h-full object-cover"
+                        />
                       </div>
                       <div className="p-6">
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">{mentor.name}</h3>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">
+                          {mentor.name}
+                        </h3>
                         <div className="space-y-2 mb-4">
                           <div className="flex items-center gap-2 text-sm text-gray-600">
                             <Briefcase className="w-4 h-4" />
@@ -152,11 +178,26 @@ const MentorSection = () => {
                           </DialogTrigger>
                           <DialogContent className="max-w-lg">
                             <DialogHeader>
-                              <DialogDescription>
+                              <VisuallyHidden>
+                                <DialogTitle>
+                                  {selectedMentor?.name}
+                                </DialogTitle>
+                              </VisuallyHidden>
+                              <DialogDescription asChild>
                                 <div className="mt-4">
-                                  <Image width={500} height={500} src={selectedMentor?.image} alt={selectedMentor?.name} className="w-full h-60 object-cover rounded-t-md mb-4" />
+                                  <div className="w-full flex justify-center bg-white rounded-t-md mb-4">
+                                    <Image
+                                      width={500}
+                                      height={500}
+                                      src={selectedMentor?.image}
+                                      alt={selectedMentor?.name}
+                                      className="max-h-60 w-auto object-contain"
+                                    />
+                                  </div>
                                   <div className="mb-4">
-                                    <span className="text-xl font-bold text-gray-900 mb-2">{selectedMentor?.name}</span>
+                                    <span className="text-xl font-bold text-gray-900 mb-2">
+                                      {selectedMentor?.name}
+                                    </span>
                                   </div>
                                   <div className="flex items-center gap-2 text-sm">
                                     <Briefcase className="w-4 h-4" />
@@ -170,8 +211,12 @@ const MentorSection = () => {
                                     <Code className="w-4 h-4" />
                                     <span>{selectedMentor?.skills}</span>
                                   </div>
-                                  <p className="text-sm font-semibold mt-4">Biografi :</p>
-                                  <p className="text-sm">{selectedMentor?.biography}</p>
+                                  <p className="text-sm font-bold mt-4">
+                                    Biografi :
+                                  </p>
+                                  <p className="text-sm">
+                                    {selectedMentor?.biography}
+                                  </p>
                                 </div>
                               </DialogDescription>
                             </DialogHeader>
@@ -193,7 +238,15 @@ const MentorSection = () => {
 
         <div className="flex justify-center mt-6 space-x-2">
           {Array.from({ length: count }).map((_, index) => (
-            <button key={index} onClick={() => api?.scrollTo(index)} className={`w-3 h-3 rounded-full transition-colors ${index + 1 === current ? "bg-emerald-500" : "bg-gray-300 hover:bg-gray-400"}`} />
+            <button
+              key={index}
+              onClick={() => api?.scrollTo(index)}
+              className={`w-3 h-3 rounded-full transition-colors ${
+                index + 1 === current
+                  ? "bg-emerald-500"
+                  : "bg-gray-300 hover:bg-gray-400"
+              }`}
+            />
           ))}
         </div>
       </div>

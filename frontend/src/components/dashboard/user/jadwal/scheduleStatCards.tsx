@@ -1,36 +1,67 @@
-// src/components/dashboard/user/scheduleStatCards.tsx
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { ChevronRight } from "lucide-react";
-import { useCalendar } from "@/components/dashboard/user/jadwal/calendarContext";
+import axios from "axios";
+import { toast } from "sonner";
 
 export default function ScheduleStatCards() {
-  const { events } = useCalendar();
-  const today = new Date();
+  const [programCount, setProgramCount] = useState<number | null>(null);
+  const [completedProgramCount, setCompletedProgramCount] = useState<
+    number | null
+  >(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  // Hitung total program terdaftar
-  const allEvents = Object.values(events).flat();
-  const totalPrograms = allEvents.length;
+  useEffect(() => {
+    const fetchProgramData = async () => {
+      try {
+        // ambil jumlah program terdaftar
+        const [registeredRes, completedRes] = await Promise.all([
+          axios.get(
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/booking/mentee/bookings`,
+            {
+              params: { page: 1, limit: 1000 },
+              withCredentials: true,
+            }
+          ),
+          axios.get(
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/booking/mentee/completed-programs`,
+            {
+              params: { page: 1, limit: 1000 },
+              withCredentials: true,
+            }
+          ),
+        ]);
 
-  // Hitung total program yang sudah lewat
-  const pastPrograms = Object.entries(events).reduce((count, [date, evts]) => {
-    const eventDate = new Date(date);
-    if (eventDate < today) {
-      return count + evts.length;
-    }
-    return count;
-  }, 0);
+        const totalRegistered =
+          registeredRes.data?.data?.pagination?.total ?? 0;
+        const totalCompleted = completedRes.data?.data?.pagination?.total ?? 0;
+
+        setProgramCount(totalRegistered);
+        setCompletedProgramCount(totalCompleted);
+      } catch (error: any) {
+        console.error(error);
+        toast.error(
+          error?.response?.data?.message || "Gagal memuat data program."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProgramData();
+  }, []);
 
   const stats = [
     {
       title: "Program Terdaftar",
-      value: totalPrograms,
+      value: programCount ?? 0,
       icon: "/assets/dashboard/user/programterdaftar.svg",
     },
     {
       title: "Program Telah Dilakukan",
-      value: pastPrograms,
+      value: completedProgramCount ?? 0,
       icon: "/assets/dashboard/user/programterdaftar.svg",
     },
   ];
@@ -42,7 +73,6 @@ export default function ScheduleStatCards() {
           key={idx}
           className="relative p-4 bg-white border border-gray-200 rounded-lg shadow-sm max-w-[240px] w-full"
         >
-          {/* Chevron Right */}
           <ChevronRight className="absolute top-3 right-3 w-4 h-4 text-gray-800" />
 
           {/* Icon + Title */}
@@ -58,10 +88,14 @@ export default function ScheduleStatCards() {
           </div>
 
           {/* Value */}
-          <div className="mt-5">
-            <span className="text-3xl font-bold text-gray-900">
-              {item.value}
-            </span>
+          <div className="mt-5 h-9 flex items-center">
+            {loading ? (
+              <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto" />
+            ) : (
+              <span className="text-3xl font-bold text-gray-900">
+                {item.value}
+              </span>
+            )}
           </div>
         </div>
       ))}

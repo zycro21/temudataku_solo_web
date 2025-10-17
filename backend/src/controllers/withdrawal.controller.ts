@@ -8,11 +8,11 @@ import {
   exportWithdrawal,
   toggleWithdrawalStatus,
   getAdminWithdrawals,
-} from "../services/withdrawal.service";
+} from "../services/withdrawal.service.js";
 import {
   AuthenticatedRequest,
   AuthenticatedRequestWithdrawal,
-} from "../middlewares/authenticate";
+} from "../middlewares/authenticate.js";
 import { format as formatDate, subDays } from "date-fns";
 
 export const getAllWithdrawal = async (

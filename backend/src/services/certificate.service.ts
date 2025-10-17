@@ -7,7 +7,7 @@ import PDFDocument from "pdfkit";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { uploadToGoogleDrive } from "../utils/googleDrive";
+import { uploadToGoogleDrive } from "../utils/googleDrive.js";
 
 const prisma = new PrismaClient();
 
@@ -354,7 +354,7 @@ export const generateCertificateService = async ({
       submissions: {
         where: { menteeId },
         select: {
-          Score: true,
+          score: true,
           mentorFeedback: true,
           gradedByUser: {
             select: {
@@ -370,7 +370,7 @@ export const generateCertificateService = async ({
   // Format project data for PDF
   const projectList = projects.map((project) => ({
     title: project.title,
-    grade: project.submissions[0]?.Score?.toString(),
+    grade: project.submissions[0]?.score?.toString(),
     feedback: project.submissions[0]?.mentorFeedback ?? undefined, // Convert null to undefined
     mentorName: project.submissions[0]?.gradedByUser?.fullName,
   }));

@@ -1,39 +1,9 @@
-// src/components/dashboard/user/scheduleSection.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
-
-// Data dummy jadwal per tanggal
-const allSchedules: Record<
-  string,
-  { title: string; time: string; linkText: string }[]
-> = {
-  "2025-09-02": [
-    {
-      title: "Data Science Class",
-      time: "Hari Ini, 10.00 - 12.00",
-      linkText: "Zoom Meeting",
-    },
-    {
-      title: "Mentoring 1 on 1",
-      time: "Hari Ini, 15.00 - 16.00",
-      linkText: "Zoom Meeting",
-    },
-    {
-      title: "Extra Session",
-      time: "Hari Ini, 19.00 - 20.00",
-      linkText: "Zoom Meeting",
-    },
-  ],
-  "2025-09-03": [
-    {
-      title: "Team Sync",
-      time: "Besok, 09.00 - 10.00",
-      linkText: "Google Meet",
-    },
-  ],
-};
+import axios from "axios";
+import { toast } from "sonner"; // pastikan sudah ada
 
 // SVG Zoom Icon
 const ZoomIcon = () => (
@@ -46,22 +16,30 @@ const ZoomIcon = () => (
   </svg>
 );
 
+interface ScheduleItem {
+  title: string;
+  time: string;
+  linkText: string;
+  meetingLink?: string;
+}
+
 export default function ScheduleSection() {
   const today = new Date();
   const [currentDate, setCurrentDate] = useState(today);
+  const [selectedDate, setSelectedDate] = useState(today);
+  const [allSchedules, setAllSchedules] = useState<
+    Record<string, ScheduleItem[]>
+  >({});
 
-  // Ambil awal minggu (Senin)
   const getStartOfWeek = (date: Date) => {
     const start = new Date(date);
-    const day = start.getDay(); // 0 = Minggu
+    const day = start.getDay();
     const diff = day === 0 ? -6 : 1 - day;
     start.setDate(start.getDate() + diff);
     return start;
   };
 
   const startOfWeek = getStartOfWeek(currentDate);
-
-  // Buat daftar tanggal Senin - Minggu
   const weekDates = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(startOfWeek);
     d.setDate(startOfWeek.getDate() + i);
@@ -70,20 +48,20 @@ export default function ScheduleSection() {
 
   const days = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
 
-  // Navigasi minggu
   const goToPrevWeek = () => {
     const prev = new Date(startOfWeek);
     prev.setDate(prev.getDate() - 7);
     setCurrentDate(prev);
+    setSelectedDate(prev);
   };
 
   const goToNextWeek = () => {
     const next = new Date(startOfWeek);
     next.setDate(next.getDate() + 7);
     setCurrentDate(next);
+    setSelectedDate(next);
   };
 
-  // Generate bulan -6 sampai +6 dari bulan sekarang
   const monthOptions = Array.from({ length: 13 }, (_, i) => {
     const date = new Date(today);
     date.setMonth(today.getMonth() - 6 + i);
@@ -96,16 +74,72 @@ export default function ScheduleSection() {
 
   const currentValue = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
 
-  // State untuk hari yang dipilih
-  const [selectedDate, setSelectedDate] = useState(today);
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/booking/mentee/bookings`,
+          {
+            params: { page: 1, limit: 100 },
+            withCredentials: true,
+          }
+        );
 
-  const formatDateKey = (date: Date) => date.toISOString().split("T")[0];
+        const bookings = res.data.data.data;
+        const schedules: Record<string, ScheduleItem[]> = {};
+
+        bookings.forEach((booking: any) => {
+          const sessions = booking.mentoringService?.mentoringSessions || [];
+          sessions.forEach((session: any) => {
+            if (!session.date) return;
+            const key = session.date;
+            if (!schedules[key]) schedules[key] = [];
+
+            const start = new Date(session.startTime).toLocaleTimeString(
+              "id-ID",
+              { hour: "2-digit", minute: "2-digit" }
+            );
+            const end = new Date(session.endTime).toLocaleTimeString("id-ID", {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+
+            const [day, month, year] = session.date.split("-").map(Number);
+            const sessionDate = new Date(year, month - 1, day);
+            const isToday =
+              sessionDate.toDateString() === new Date().toDateString();
+
+            const timeStr = `${isToday ? "Hari Ini, " : ""}${start} - ${end}`;
+
+            schedules[key].push({
+              title: booking.mentoringService.serviceName || "Sesi Mentoring",
+              time: timeStr,
+              linkText: "Zoom Meeting",
+              meetingLink: session.meetingLink,
+            });
+          });
+        });
+
+        setAllSchedules(schedules);
+      } catch (err) {
+        console.error("Gagal fetch bookings:", err);
+      }
+    };
+
+    fetchBookings();
+  }, []);
+
+  const formatDateKey = (date: Date) => {
+    const d = date.getDate().toString().padStart(2, "0");
+    const m = (date.getMonth() + 1).toString().padStart(2, "0");
+    const y = date.getFullYear();
+    return `${d}-${m}-${y}`;
+  };
 
   const scheduleItems = allSchedules[formatDateKey(selectedDate)] || [];
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm">
-      {/* Header section */}
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold text-gray-800">Jadwal</h2>
         <div className="relative">
@@ -129,7 +163,6 @@ export default function ScheduleSection() {
         </div>
       </div>
 
-      {/* Date navigation section */}
       <div className="flex items-center justify-between mb-4">
         <ChevronLeft
           className="w-5 h-5 text-gray-400 cursor-pointer"
@@ -144,11 +177,11 @@ export default function ScheduleSection() {
                 key={index}
                 onClick={() => setSelectedDate(date)}
                 className={`flex flex-col items-center justify-center w-12 h-16 rounded-lg cursor-pointer transition-colors
-        ${
-          isSelected
-            ? "bg-emerald-600 text-white font-semibold shadow-lg"
-            : "text-gray-600 hover:bg-gray-100"
-        }`}
+          ${
+            isSelected
+              ? "bg-emerald-600 text-white font-semibold shadow-lg"
+              : "text-gray-600 hover:bg-gray-100"
+          }`}
               >
                 <span className="text-base font-semibold">
                   {date.getDate()}
@@ -164,7 +197,6 @@ export default function ScheduleSection() {
         />
       </div>
 
-      {/* Schedule list */}
       <div
         className={`space-y-4 ${
           scheduleItems.length > 1
@@ -184,13 +216,40 @@ export default function ScheduleSection() {
                 </span>
                 <span className="text-sm text-gray-500 mt-1">{item.time}</span>
               </div>
-              <a
-                href="#"
-                className="flex items-center text-sm font-medium text-blue-600 bg-white border border-white rounded-full px-3 py-1 shadow-sm hover:bg-gray-50 transition-colors"
+
+              <button
+                onClick={() => {
+                  if (item.meetingLink) {
+                    let link = item.meetingLink.trim();
+
+                    // Deteksi link Google Calendar
+                    if (link.includes("google.com/url?q=")) {
+                      try {
+                        const urlObj = new URL(link);
+                        const realLink = urlObj.searchParams.get("q");
+                        if (realLink) link = realLink;
+                      } catch (err) {
+                        console.error("Invalid URL format:", err);
+                      }
+                    }
+
+                    window.open(link, "_blank", "noopener,noreferrer");
+                  } else {
+                    toast.warning(
+                      "Link meeting belum tersedia, Silahkan hubungi admin."
+                    );
+                  }
+                }}
+                className={`flex items-center text-sm font-medium rounded-full px-3 py-1 shadow-sm transition-colors
+                  ${
+                    item.meetingLink
+                      ? "text-blue-600 bg-white border border-white hover:bg-gray-50"
+                      : "text-red-500 bg-gray-100 cursor-not-allowed"
+                  }`}
               >
-                {item.linkText === "Zoom Meeting" && <ZoomIcon />}
-                {item.linkText}
-              </a>
+                <ZoomIcon />
+                {item.meetingLink ? "Zoom Meeting" : "Belum ada Link"}
+              </button>
             </div>
           ))
         ) : (

@@ -1,15 +1,15 @@
 import { Router } from "express";
-import * as AuthController from "../controllers/auth.controller";
-import { validate } from "../middlewares/validate";
+import * as AuthController from "../controllers/auth.controller.js";
+import { validate } from "../middlewares/validate.js";
 import {
   registerSchema,
   loginSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
   changePasswordSchema,
-} from "../validations/auth.validation";
-import { handleUpload } from "../middlewares/uploadImage";
-import { authenticate } from "../middlewares/authenticate";
+} from "../validations/auth.validation.js";
+import { handleUpload } from "../middlewares/uploadImage.js";
+import { authenticate } from "../middlewares/authenticate.js";
 
 const router = Router();
 

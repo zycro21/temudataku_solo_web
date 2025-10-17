@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Edit, FileText, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { SesiMentoring } from "./columns";
+import { Project } from "./columns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -16,9 +16,9 @@ interface DataTableProps<TData, TValue> {
   data: TData[];
 }
 
-export function DataTable<TData extends SesiMentoring, TValue>({ columns, data }: DataTableProps<TData, TValue>) {
+export function DataTable<TData extends Project, TValue>({ columns, data }: DataTableProps<TData, TValue>) {
   const [globalFilter, setGlobalFilter] = React.useState("");
-  const [selectedProject, setSelectedProject] = React.useState<SesiMentoring | null>(null);
+  const [selectedProject, setSelectedProject] = React.useState<Project | null>(null);
   const [showDetailDialog, setShowDetailDialog] = React.useState(false);
   const [showEditDialog, setShowEditDialog] = React.useState(false);
 

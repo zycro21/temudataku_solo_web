@@ -13,6 +13,8 @@ export const createBookingSchema = z.object({
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/)
       .optional(),
+    material: z.string().optional(),
+    expectedOutput: z.string().optional(),
   }),
 });
 
@@ -45,6 +47,26 @@ export const getMenteeBookingDetailSchema = z.object({
   }),
 });
 
+export const getCompletedProgramsSchema = z.object({
+  query: z.object({
+    page: z
+      .string()
+      .regex(/^\d+$/, "Page harus berupa angka")
+      .transform(Number)
+      .default("1"),
+    limit: z
+      .string()
+      .regex(/^\d+$/, "Limit harus berupa angka")
+      .transform(Number)
+      .default("10"),
+    sortBy: z
+      .enum(["createdAt", "bookingDate"])
+      .optional()
+      .default("bookingDate"),
+    sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
+  }),
+});
+
 export const updateMenteeBookingSchema = z.object({
   params: z.object({
     id: z.string().nonempty("Booking ID harus diisi"),
@@ -52,6 +74,8 @@ export const updateMenteeBookingSchema = z.object({
   body: z.object({
     specialRequests: z.string().optional(),
     participantIds: z.array(z.string()).optional(),
+    material: z.string().optional(),      
+    expectedOutput: z.string().optional(),  
   }),
 });
 
@@ -124,5 +148,19 @@ export const getBookingParticipantsIdValidator = z.object({
       .regex(/^Booking-(bootcamp|shortclass|liveclass|one-on-one|group)-\d+$/, {
         message: "Format ID booking tidak valid",
       }),
+  }),
+});
+
+export const getMentorEarningsValidator = z.object({
+  query: z.object({
+    mentorId: z.string().optional(), // optional, hanya untuk admin
+    page: z.number().int().min(1).optional().default(1),
+    limit: z.number().int().min(1).max(100).optional().default(10),
+  }),
+});
+
+export const getMentorBookingsValidator = z.object({
+  query: z.object({
+    mentorId: z.string().optional(),
   }),
 });

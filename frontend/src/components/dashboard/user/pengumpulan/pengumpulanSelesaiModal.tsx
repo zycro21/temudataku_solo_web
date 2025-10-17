@@ -12,9 +12,9 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
 
 type PengumpulanSelesaiModalProps = {
+  projectId: string;
   bootcampTitle: string;
   schedule: string;
   projectTitle: string;
@@ -22,9 +22,11 @@ type PengumpulanSelesaiModalProps = {
   fileSize?: string;
   fileUrl?: string;
   url?: string;
+  withTrigger?: boolean;
 };
 
 export default function PengumpulanSelesaiModal({
+  projectId,
   bootcampTitle,
   schedule,
   projectTitle,
@@ -32,6 +34,7 @@ export default function PengumpulanSelesaiModal({
   fileSize,
   fileUrl,
   url,
+  withTrigger = true,
 }: PengumpulanSelesaiModalProps) {
   const [openSelesai, setOpenSelesai] = useState(false);
   const [openBelum, setOpenBelum] = useState(false);
@@ -40,12 +43,14 @@ export default function PengumpulanSelesaiModal({
     <>
       {/* Modal selesai */}
       <Dialog open={openSelesai} onOpenChange={setOpenSelesai}>
-        <DialogTrigger asChild>
-          <Button className="bg-emerald-500 hover:bg-emerald-600 text-white w-full">
-            Lihat Project -{" "}
-            <span className="text-red-500 font-semibold">Selesai</span>
-          </Button>
-        </DialogTrigger>
+        {withTrigger && (
+          <DialogTrigger asChild>
+            <Button className="bg-emerald-500 hover:bg-emerald-600 text-white w-full">
+              Lihat Project -{" "}
+              <span className="text-yellow-500 font-semibold">Selesai</span>
+            </Button>
+          </DialogTrigger>
+        )}
 
         <DialogContent
           className="sm:max-w-lg"
@@ -82,7 +87,10 @@ export default function PengumpulanSelesaiModal({
                   <div className="flex items-center gap-2">
                     <span className="text-gray-500">📄</span>
                     <div className="flex flex-col">
-                      <span className="font-medium truncate max-w-[150px]">
+                      <span
+                        className="font-medium truncate max-w-[200px] text-gray-800"
+                        title={fileName}
+                      >
                         {fileName}
                       </span>
                       <span className="text-xs text-gray-500">{fileSize}</span>
@@ -98,13 +106,6 @@ export default function PengumpulanSelesaiModal({
                       )}
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    className="ml-3 text-gray-400 hover:text-red-500"
-                    onClick={() => alert("Hapus file di sini")}
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
                 </div>
               ) : (
                 <p className="text-sm text-gray-500 italic">
@@ -142,8 +143,8 @@ export default function PengumpulanSelesaiModal({
             <Button
               className="bg-emerald-500 hover:bg-emerald-600 text-white w-1/2"
               onClick={() => {
-                setOpenSelesai(false); // tutup modal selesai
-                setTimeout(() => setOpenBelum(true), 200); // buka modal belum
+                setOpenSelesai(false);
+                setTimeout(() => setOpenBelum(true), 200);
               }}
             >
               Kumpulkan Ulang
@@ -157,6 +158,7 @@ export default function PengumpulanSelesaiModal({
         open={openBelum}
         setOpen={setOpenBelum}
         withTrigger={false}
+        projectId={projectId}
       />
     </>
   );

@@ -10,6 +10,8 @@ export const createMentoringSession = async (input: {
   startTime: { hour: number; minute: number };
   endTime: { hour: number; minute: number };
   meetingLink?: string;
+  meetingId?: string;
+  passcode?: string;
   status?: string;
   notes?: string;
   mentorProfileIds: string[];
@@ -20,6 +22,8 @@ export const createMentoringSession = async (input: {
     startTime,
     endTime,
     meetingLink,
+    meetingId,
+    passcode,
     status,
     notes,
     mentorProfileIds,
@@ -158,6 +162,8 @@ export const createMentoringSession = async (input: {
       endTime: endDateTime.toISOString(), // Menyimpan endTime sebagai string ISO
       durationMinutes,
       meetingLink,
+      meetingId,
+      passcode,
       status: sessionStatus,
       notes,
     },
@@ -375,7 +381,7 @@ export const getMentoringSessionById = async (id: string) => {
           filePaths: true,
           submissionDate: true,
           plagiarismScore: true,
-          Score: true,
+          score: true,
           user: {
             select: {
               id: true,
@@ -422,6 +428,8 @@ export const updateMentoringSession = async (
     startTime?: { hour: number; minute: number };
     endTime?: { hour: number; minute: number };
     meetingLink?: string;
+    meetingId?: string;
+    passcode?: string;
     notes?: string;
   }
 ) => {
@@ -454,6 +462,16 @@ export const updateMentoringSession = async (
   if (data.meetingLink) {
     updatePayload.meetingLink = data.meetingLink;
     changedFields.push("meetingLink");
+  }
+
+  if (data.meetingId) {
+    updatePayload.meetingId = data.meetingId;
+    changedFields.push("meetingId");
+  }
+
+  if (data.passcode) {
+    updatePayload.passcode = data.passcode;
+    changedFields.push("passcode");
   }
 
   if (data.notes) {
@@ -713,7 +731,7 @@ export const exportMentoringSessions = async (format: "xlsx" | "csv") => {
           filePaths: true,
           submissionDate: true,
           plagiarismScore: true,
-          Score: true,
+          score: true,
           mentorFeedback: true,
           isReviewed: true,
           createdAt: true,
@@ -759,6 +777,9 @@ export const exportMentoringSessions = async (format: "xlsx" | "csv") => {
         endTime: session.endTime,
         durationMinutes: session.durationMinutes,
         sessionStatus: session.status,
+        meetingLink: session.meetingLink ?? null,
+        meetingId: session.meetingId ?? null,
+        passcode: session.passcode ?? null,
         mentorNames: session.mentors
           .map((m) => m.mentorProfile.user.fullName)
           .join(", "),
@@ -769,7 +790,7 @@ export const exportMentoringSessions = async (format: "xlsx" | "csv") => {
         submissionDate: submission.submissionDate,
         filePath: submission.filePaths,
         plagiarismScore: submission.plagiarismScore?.toNumber() ?? null,
-        score: submission.Score?.toNumber() ?? null,
+        score: submission.score?.toNumber() ?? null,
         mentorFeedback: submission.mentorFeedback,
         isReviewed: submission.isReviewed,
 
@@ -844,7 +865,7 @@ export const getOwnMentorSessions = async (mentorProfileId: string) => {
       },
       projectSubmissions: {
         select: {
-          Score: true,
+          score: true,
         },
       },
     },
@@ -861,13 +882,14 @@ export const getOwnMentorSessions = async (mentorProfileId: string) => {
 
     const averageProjectScore = session.projectSubmissions.length
       ? session.projectSubmissions.reduce(
-          (sum, ps) => sum + (ps.Score?.toNumber() || 0),
+          (sum, ps) => sum + (ps.score?.toNumber() || 0),
           0
         ) / session.projectSubmissions.length
       : null;
 
     return {
       id: session.id,
+      serviceId: session.serviceId,
       serviceName: session.mentoringService.serviceName,
       serviceType: session.mentoringService.serviceType,
       date: session.date,
@@ -875,6 +897,8 @@ export const getOwnMentorSessions = async (mentorProfileId: string) => {
       endTime: session.endTime,
       durationMinutes: session.durationMinutes,
       meetingLink: session.meetingLink,
+      meetingId: session.meetingId,
+      passcode: session.passcode,
       status: session.status,
       averageRating,
       averageProjectScore,
@@ -904,6 +928,24 @@ export const getMentorSessionDetail = async (
           description: true,
           serviceType: true,
           durationDays: true,
+          bookings: {
+            select: {
+              id: true,
+              mentee: {
+                select: {
+                  id: true,
+                  fullName: true,
+                  email: true,
+                },
+              },
+              bookingDate: true,
+              status: true,
+              specialRequests: true,
+              material: true,
+              expectedOutput: true,
+              supportDocument: true,
+            },
+          },
         },
       },
       mentors: {
@@ -928,7 +970,7 @@ export const getMentorSessionDetail = async (
       },
       projectSubmissions: {
         select: {
-          Score: true,
+          score: true,
         },
       },
     },
@@ -943,19 +985,35 @@ export const getMentorSessionDetail = async (
 
   const averageProjectScore = session.projectSubmissions.length
     ? session.projectSubmissions.reduce(
-        (sum, ps) => sum + (ps.Score?.toNumber() || 0),
+        (sum, ps) => sum + (ps.score?.toNumber() || 0),
         0
       ) / session.projectSubmissions.length
     : null;
 
   return {
     id: session.id,
-    service: session.mentoringService,
+    service: {
+      ...session.mentoringService,
+      bookings: session.mentoringService.bookings.map((b) => ({
+        id: b.id,
+        menteeId: b.mentee.id,
+        menteeName: b.mentee.fullName,
+        menteeEmail: b.mentee.email,
+        bookingDate: b.bookingDate,
+        status: b.status,
+        specialRequests: b.specialRequests,
+        material: b.material,
+        expectedOutput: b.expectedOutput,
+        supportDocument: b.supportDocument,
+      })),
+    },
     date: session.date,
     startTime: session.startTime,
     endTime: session.endTime,
     durationMinutes: session.durationMinutes,
     meetingLink: session.meetingLink,
+    meetingId: session.meetingId,
+    passcode: session.passcode,
     status: session.status,
     notes: session.notes,
     mentorList: session.mentors.map((m) => ({
@@ -980,6 +1038,8 @@ export const updateByMentor = async ({
   updates: {
     status?: string;
     meetingLink?: string;
+    meetingId?: string;
+    passcode?: string;
   };
 }) => {
   // Cek apakah mentor tergabung di sesi ini
