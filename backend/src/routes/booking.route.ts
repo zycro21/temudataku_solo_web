@@ -183,9 +183,9 @@ router.post(
  * @swagger
  * /api/booking/mentee/bookings:
  *   get:
- *     summary: Ambil semua booking milik mentee (dengan pagination, filter, sorting, dan status submission project)
+ *     summary: Ambil semua booking milik mentee (dengan pagination, filter, sorting, feedback, dan status submission project)
  *     description: >
- *       Endpoint ini mengembalikan semua booking yang dimiliki oleh mentee tertentu, lengkap dengan informasi mentoring service, proyek, submission milik mentee, sesi mentoring, serta profil mentor.
+ *       Endpoint ini mengembalikan semua booking yang dimiliki oleh mentee tertentu, lengkap dengan informasi mentoring service, proyek, submission milik mentee, sesi mentoring, profil mentor, serta feedback yang sudah diberikan untuk setiap sesi.
  *       <br>Tambahan: setiap project kini memiliki field `status` (Belum Dikumpulkan, Sudah Dikumpulkan, Perlu Revisi, atau Sudah Direview) berdasarkan kondisi submission mentee.
  *     tags: [Booking]
  *     security:
@@ -295,9 +295,15 @@ router.post(
  *                                   fullName: "John Doe"
  *                                   email: "john@example.com"
  *                                   profilePicture: "https://cdn.example.com/profiles/john.jpg"
- *                     material: "Dasar-dasar React"
- *                     expectedOutput: "Mampu membuat mini project React"
- *                     supportDocument: "http://localhost:5000/supportDocuments/support-001.pdf"
+ *                           feedbacks:
+ *                             - id: "fb-001"
+ *                               rating: 5
+ *                               comment: "Sesi mentoring sangat membantu!"
+ *                               createdAt: "2025-10-16T10:00:00Z"
+ *                               user:
+ *                                 id: "usr-001"
+ *                                 fullName: "Jane Smith"
+ *                                 profilePicture: "https://cdn.example.com/profiles/jane.jpg"
  *                     participants:
  *                       - userId: "usr-001"
  *                         isLeader: true

@@ -15,13 +15,14 @@ export default function FeedbackFilters({
   onProgramChange,
   onSearchChange,
 }: FeedbackFiltersProps) {
+  // value = data dari backend, label = teks yang ditampilkan
   const programOptions = [
-    "Semua",
-    "Bootcamp",
-    "Mentoring 1 on 1",
-    "Mentoring Group",
-    "Short Class",
-    "Live Class",
+    { label: "Semua", value: "Semua" },
+    { label: "Bootcamp", value: "bootcamp" },
+    { label: "Mentoring 1 on 1", value: "one-on-one" },
+    { label: "Mentoring Group", value: "group" },
+    { label: "Short Class", value: "shortclass" },
+    { label: "Live Class", value: "live class" },
   ];
 
   return (
@@ -44,15 +45,15 @@ export default function FeedbackFilters({
         <div className="flex flex-wrap gap-2">
           {programOptions.map((option) => (
             <button
-              key={option}
-              onClick={() => onProgramChange(option)}
+              key={option.value}
+              onClick={() => onProgramChange(option.value)}
               className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                programFilter === option
+                programFilter === option.value
                   ? "bg-emerald-500 text-white"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
               }`}
             >
-              {option}
+              {option.label}
             </button>
           ))}
         </div>
