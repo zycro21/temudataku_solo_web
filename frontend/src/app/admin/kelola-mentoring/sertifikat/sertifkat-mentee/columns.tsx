@@ -4,6 +4,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Eye, Edit, Trash2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export type MenteeCertificate = {
   id: string;
@@ -27,6 +28,14 @@ const getProgramBadgeColor = (program: string) => {
 };
 
 export const columnsMentee: ColumnDef<MenteeCertificate>[] = [
+  {
+    id: "select",
+    header: ({ table }) => <Checkbox checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")} onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)} aria-label="Select all" />,
+    cell: ({ row }) => <Checkbox checked={row.getIsSelected()} onCheckedChange={(value) => row.toggleSelected(!!value)} aria-label="Select row" />,
+    enableSorting: false,
+    enableHiding: false,
+    size: 40, // biar kecil, sama seperti w-12
+  },
   {
     accessorKey: "id",
     header: "ID Sertifikat",
