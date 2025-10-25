@@ -210,6 +210,10 @@ model MentoringSession {
   passcode           String?             @db.VarChar @map("passcode")     // NEW
   status             String?             @db.VarChar
   notes              String?
+
+  pptLink            String?             @db.VarChar @map("ppt_link")
+  recordingLink      String?             @db.VarChar @map("recording_link")
+
   createdAt          DateTime?           @default(now()) @db.Timestamp(6) @map("created_at")
   updatedAt          DateTime?           @db.Timestamp(6) @map("updated_at")
 

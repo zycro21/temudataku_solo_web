@@ -88,6 +88,14 @@ const router = Router();
  *                 type: string
  *                 description: Passcode meeting jika ada
  *                 example: "abc123"
+ *               pptLink:
+ *                 type: string
+ *                 description: Link ke file PPT materi sesi (opsional)
+ *                 example: "https://drive.google.com/file/d/abc123/view"
+ *               recordingLink:
+ *                 type: string
+ *                 description: Link ke rekaman video sesi (opsional)
+ *                 example: "https://youtube.com/watch?v=xyz987"
  *               status:
  *                 type: string
  *                 enum: [scheduled, ongoing, completed, cancelled]
@@ -137,12 +145,16 @@ const router = Router();
  *                       example: "https://zoom.us/abc123"
  *                     meetingId:
  *                       type: string
- *                       description: ID meeting dari platform video conference
  *                       example: "123-456-789"
  *                     passcode:
  *                       type: string
- *                       description: Passcode meeting jika ada
  *                       example: "abc123"
+ *                     pptLink:
+ *                       type: string
+ *                       example: "https://drive.google.com/file/d/abc123/view"
+ *                     recordingLink:
+ *                       type: string
+ *                       example: "https://youtube.com/watch?v=xyz987"
  *                     status:
  *                       type: string
  *                       example: scheduled
@@ -165,14 +177,6 @@ const router = Router();
  *                                 example: "Frontend Development"
  *       400:
  *         description: Bad request (misal input tidak valid atau mentor bentrok)
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Terdapat mentor yang sedang bertugas di sesi lain
  *       401:
  *         description: Unauthorized (tidak login)
  *       403:
@@ -275,6 +279,18 @@ router.post(
  *                         type: integer
  *                       meetingLink:
  *                         type: string
+ *                       meetingId:
+ *                         type: string
+ *                         example: "123-456-789"
+ *                       passcode:
+ *                         type: string
+ *                         example: "abc123"
+ *                       pptLink:
+ *                         type: string
+ *                         example: "https://drive.google.com/file/d/abc123/view"
+ *                       recordingLink:
+ *                         type: string
+ *                         example: "https://youtube.com/watch?v=xyz987"
  *                       status:
  *                         type: string
  *                       notes:
@@ -370,6 +386,7 @@ router.get(
  *                   properties:
  *                     id:
  *                       type: string
+ *                       example: "Session-XYZ123"
  *                     date:
  *                       type: string
  *                       example: "01-07-2025"
@@ -378,10 +395,21 @@ router.get(
  *                       example: "2025-07-01T02:00:00.000Z"
  *                     endTime:
  *                       type: string
+ *                       example: "2025-07-01T03:00:00.000Z"
  *                     durationMinutes:
  *                       type: integer
+ *                       example: 60
  *                     meetingLink:
  *                       type: string
+ *                       example: "https://us05web.zoom.us/j/123456789"
+ *                     pptLink:
+ *                       type: string
+ *                       nullable: true
+ *                       example: "https://drive.google.com/file/d/abcd1234"
+ *                     recordingLink:
+ *                       type: string
+ *                       nullable: true
+ *                       example: "https://youtu.be/exampleRecording"
  *                     status:
  *                       type: string
  *                       enum: [scheduled, ongoing, completed, cancelled]
@@ -446,7 +474,7 @@ router.get(
  *                             items: { type: string }
  *                           submissionDate: { type: string }
  *                           plagiarismScore: { type: number, nullable: true }
- *                           Score: { type: number, nullable: true }
+ *                           score: { type: number, nullable: true }
  *                           user:
  *                             type: object
  *                             properties:
@@ -508,7 +536,6 @@ router.get(
  *                 example: "10-07-2025"
  *               startTime:
  *                 type: object
- *                 description: Jam mulai (WIB)
  *                 properties:
  *                   hour:
  *                     type: integer
@@ -518,7 +545,6 @@ router.get(
  *                     example: 30
  *               endTime:
  *                 type: object
- *                 description: Jam selesai (WIB)
  *                 properties:
  *                   hour:
  *                     type: integer
@@ -531,12 +557,16 @@ router.get(
  *                 example: "https://zoom.us/example-link"
  *               meetingId:
  *                 type: string
- *                 description: ID meeting dari platform video conference
  *                 example: "123-456-789"
  *               passcode:
  *                 type: string
- *                 description: Passcode meeting jika ada
  *                 example: "abc123"
+ *               pptLink:
+ *                 type: string
+ *                 example: "https://drive.google.com/example-ppt"
+ *               recordingLink:
+ *                 type: string
+ *                 example: "https://zoom.us/rec/share/xxxx"
  *               notes:
  *                 type: string
  *                 example: "Link baru dan catatan tambahan"
@@ -559,11 +589,10 @@ router.get(
  *                       description: Data terbaru sesi mentoring
  *                     changedFields:
  *                       type: array
- *                       description: Field yang berubah
  *                       items:
  *                         type: string
  *       400:
- *         description: "Request tidak valid (misal: startTime lebih besar dari endTime)"
+ *         description: Request tidak valid
  *       401:
  *         description: Unauthorized
  *       403:
@@ -795,48 +824,6 @@ router.delete(
 
 /**
  * @swagger
- * /api/mentoringSession/export/admin/mentoring-sessions:
- *   get:
- *     summary: Export sesi mentoring (admin)
- *     tags: [MentoringSession]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: format
- *         required: false
- *         schema:
- *           type: string
- *           enum: [csv, xlsx]
- *         description: "Format file yang diekspor (default: xlsx)"
- *     responses:
- *       200:
- *         description: File export sesi mentoring tersedia. File akan menyertakan kolom, sessionId, serviceName, sessionDate, startTime, endTime, durationMinutes, sessionStatus, meetingLink, meetingId, passcode, mentorNames, feedbackCount, averageRating, submissionId, submissionDate, filePath, plagiarismScore, score, mentorFeedback, isReviewed, menteeId, menteeName, menteeEmail, projectId, projectTitle, projectDescription, reviewerId, reviewerName, reviewerEmail, createdAt, updatedAt
- *         content:
- *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
- *             schema:
- *               type: string
- *               format: binary
- *           text/csv:
- *             schema:
- *               type: string
- *               format: binary
- *       401:
- *         description: Unauthorized
- *       403:
- *         description: Forbidden
- *       500:
- *         description: Terjadi kesalahan saat proses ekspor data
- */
-router.get(
-  "/export/admin/mentoring-sessions",
-  authenticate,
-  authorizeRoles("admin"),
-  MentoringSessionController.exportSessionsController
-);
-
-/**
- * @swagger
  * /api/mentoringSession/mentor/own-mentoring-sessions:
  *   get:
  *     summary: Ambil semua sesi mentoring milik mentor sendiri
@@ -855,44 +842,73 @@ router.get(
  *                 properties:
  *                   id:
  *                     type: string
+ *                     example: "sess-abc123"
+ *                   serviceId:
+ *                     type: string
+ *                     example: "srv-xyz789"
  *                   serviceName:
  *                     type: string
+ *                     example: "Short Class: Data Analysis"
  *                   serviceType:
  *                     type: string
+ *                     example: "shortclass"
  *                   date:
  *                     type: string
  *                     format: date
+ *                     example: "2025-10-20"
  *                   startTime:
  *                     type: string
  *                     format: date-time
+ *                     example: "2025-10-20T09:00:00Z"
  *                   endTime:
  *                     type: string
  *                     format: date-time
+ *                     example: "2025-10-20T10:00:00Z"
  *                   durationMinutes:
  *                     type: integer
+ *                     example: 60
  *                   meetingLink:
  *                     type: string
+ *                     nullable: true
+ *                     example: "https://us05web.zoom.us/j/88462726078?pwd=e0hArbEvWQZXhUFaT7cvjnM8hYHZ4M"
  *                   meetingId:
  *                     type: string
- *                     description: ID meeting dari platform video conference
+ *                     nullable: true
+ *                     example: "88462726078"
  *                   passcode:
  *                     type: string
- *                     description: Passcode meeting jika ada
+ *                     nullable: true
+ *                     example: "12345"
+ *                   pptLink:
+ *                     type: string
+ *                     nullable: true
+ *                     description: Link ke file presentasi (PPT) sesi mentoring
+ *                     example: "https://drive.google.com/file/d/abcd1234/view"
+ *                   recordingLink:
+ *                     type: string
+ *                     nullable: true
+ *                     description: Link ke rekaman video sesi mentoring
+ *                     example: "https://drive.google.com/file/d/xyz987/view"
  *                   status:
  *                     type: string
  *                     enum: [scheduled, ongoing, completed, cancelled]
+ *                     example: "completed"
  *                   averageRating:
  *                     type: number
  *                     nullable: true
+ *                     example: 4.5
  *                   averageProjectScore:
  *                     type: number
  *                     nullable: true
+ *                     example: 87.5
  *                   createdAt:
  *                     type: string
  *                     format: date-time
+ *                     example: "2025-10-10T15:00:00Z"
  *                   updatedAt:
  *                     type: string
  *                     format: date-time
+ *                     example: "2025-10-15T18:00:00Z"
  *       401:
  *         description: Unauthorized
  *       403:
@@ -921,6 +937,7 @@ router.get(
  *         required: true
  *         schema:
  *           type: string
+ *         description: ID sesi mentoring
  *     responses:
  *       200:
  *         description: Detail sesi mentoring berhasil diambil
@@ -931,17 +948,22 @@ router.get(
  *               properties:
  *                 id:
  *                   type: string
+ *                   example: "Session-abc123"
  *                 service:
  *                   type: object
  *                   properties:
  *                     serviceName:
  *                       type: string
+ *                       example: "Bootcamp Web Development"
  *                     description:
  *                       type: string
+ *                       example: "Pelatihan intensif selama 7 hari"
  *                     serviceType:
  *                       type: string
+ *                       example: "bootcamp"
  *                     durationDays:
  *                       type: integer
+ *                       example: 7
  *                     bookings:
  *                       type: array
  *                       items:
@@ -949,51 +971,82 @@ router.get(
  *                         properties:
  *                           id:
  *                             type: string
+ *                             example: "Booking-xyz987"
  *                           menteeId:
  *                             type: string
+ *                             example: "User-567"
  *                           menteeName:
  *                             type: string
+ *                             example: "Budi Santoso"
  *                           menteeEmail:
  *                             type: string
+ *                             example: "budi@example.com"
  *                           bookingDate:
  *                             type: string
  *                             format: date-time
+ *                             example: "2025-10-20T09:00:00Z"
  *                           status:
  *                             type: string
+ *                             example: "confirmed"
  *                           specialRequests:
  *                             type: string
  *                             nullable: true
+ *                             example: "Ingin fokus pembahasan Next.js"
  *                           material:
  *                             type: string
  *                             nullable: true
+ *                             example: "Frontend Architecture"
  *                           expectedOutput:
  *                             type: string
  *                             nullable: true
+ *                             example: "Mampu membuat SPA sederhana"
  *                 date:
  *                   type: string
  *                   format: date
+ *                   example: "2025-10-22"
  *                 startTime:
  *                   type: string
  *                   format: date-time
+ *                   example: "2025-10-22T08:00:00Z"
  *                 endTime:
  *                   type: string
  *                   format: date-time
+ *                   example: "2025-10-22T09:30:00Z"
  *                 durationMinutes:
  *                   type: integer
+ *                   example: 90
  *                 meetingLink:
  *                   type: string
+ *                   nullable: true
+ *                   example: "https://us05web.zoom.us/j/88462726078?pwd=e0hArbEvWQZXhUFaT7cvjnM8hYHZ4M"
  *                 meetingId:
  *                   type: string
+ *                   nullable: true
  *                   description: ID meeting dari platform video conference
+ *                   example: "88462726078"
  *                 passcode:
  *                   type: string
+ *                   nullable: true
  *                   description: Passcode meeting jika ada
+ *                   example: "123456"
+ *                 pptLink:
+ *                   type: string
+ *                   nullable: true
+ *                   description: Link file presentasi sesi (PPT)
+ *                   example: "https://drive.google.com/file/d/abcd123/view"
+ *                 recordingLink:
+ *                   type: string
+ *                   nullable: true
+ *                   description: Link rekaman sesi mentoring
+ *                   example: "https://drive.google.com/file/d/xyz987/view"
  *                 status:
  *                   type: string
  *                   enum: [scheduled, ongoing, completed, cancelled]
+ *                   example: "completed"
  *                 notes:
  *                   type: string
  *                   nullable: true
+ *                   example: "Sesi berjalan lancar, mentee sangat aktif"
  *                 mentorList:
  *                   type: array
  *                   items:
@@ -1001,23 +1054,30 @@ router.get(
  *                     properties:
  *                       mentorProfileId:
  *                         type: string
+ *                         example: "MentorProfile-001"
  *                       fullName:
  *                         type: string
+ *                         example: "Dimas Putra"
  *                       profilePicture:
  *                         type: string
  *                         nullable: true
+ *                         example: "https://res.cloudinary.com/demo/image/upload/v123/avatar.png"
  *                 averageRating:
  *                   type: number
  *                   nullable: true
+ *                   example: 4.7
  *                 averageProjectScore:
  *                   type: number
  *                   nullable: true
+ *                   example: 88.5
  *                 createdAt:
  *                   type: string
  *                   format: date-time
+ *                   example: "2025-10-01T10:00:00Z"
  *                 updatedAt:
  *                   type: string
  *                   format: date-time
+ *                   example: "2025-10-15T15:30:00Z"
  *       400:
  *         description: ID sesi tidak valid
  *       403:
@@ -1065,11 +1125,19 @@ router.get(
  *                 type: string
  *               passcode:
  *                 type: string
+ *               pptLink:
+ *                 type: string
+ *                 description: Tautan file presentasi (PPT)
+ *               recordingLink:
+ *                 type: string
+ *                 description: Tautan rekaman video mentoring
  *             example:
- *               status: "ongoing"
- *               meetingLink: "https://meet.example.com/sesi-abc123"
+ *               status: "completed"
+ *               meetingLink: "https://meet.example.com/session-xyz"
  *               meetingId: "123-456-789"
  *               passcode: "abc123"
+ *               pptLink: "https://drive.google.com/ppt-example"
+ *               recordingLink: "https://drive.google.com/recording-example"
  *     responses:
  *       200:
  *         description: Sesi mentoring berhasil diperbarui
@@ -1095,6 +1163,10 @@ router.get(
  *                     meetingId:
  *                       type: string
  *                     passcode:
+ *                       type: string
+ *                     pptLink:
+ *                       type: string
+ *                     recordingLink:
  *                       type: string
  *                     updatedAt:
  *                       type: string
@@ -1189,6 +1261,14 @@ router.patch(
  *                         type: integer
  *                       status:
  *                         type: string
+ *                       pptLink:
+ *                         type: string
+ *                         nullable: true
+ *                         description: Tautan file presentasi (PPT)
+ *                       recordingLink:
+ *                         type: string
+ *                         nullable: true
+ *                         description: Tautan rekaman video mentoring
  *                       mentors:
  *                         type: array
  *                         items:
@@ -1298,6 +1378,14 @@ router.get(
  *                       enum: [scheduled, ongoing]
  *                     notes:
  *                       type: string
+ *                     pptLink:                # ✅ Tambahan baru
+ *                       type: string
+ *                       nullable: true
+ *                       description: "Tautan file PPT sesi mentoring"
+ *                     recordingLink:          # ✅ Tambahan baru
+ *                       type: string
+ *                       nullable: true
+ *                       description: "Tautan rekaman video sesi mentoring"
  *                     mentoringService:
  *                       type: object
  *                       properties:

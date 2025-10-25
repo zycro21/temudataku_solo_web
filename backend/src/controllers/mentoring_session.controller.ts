@@ -257,14 +257,22 @@ export const updateMentorSessionController = async (
   try {
     const mentorProfileId = req.user?.mentorProfileId;
     const sessionId = req.validatedParams?.id;
-    const { status, meetingLink, meetingId, passcode } = req.validatedBody as {
+    const {
+      status,
+      meetingLink,
+      meetingId,
+      passcode,
+      pptLink,
+      recordingLink,
+    } = req.validatedBody as {
       status?: "scheduled" | "ongoing" | "completed" | "cancelled";
       meetingLink?: string;
       meetingId?: string;
       passcode?: string;
+      pptLink?: string;
+      recordingLink?: string;
     };
 
-    // Cek apakah mentorProfileId dan sessionId ada
     if (!mentorProfileId || !sessionId) {
       res.status(400).json({
         message: "Mentor atau sesi tidak valid",
@@ -273,22 +281,25 @@ export const updateMentorSessionController = async (
       return;
     }
 
-    // Coba untuk memperbarui sesi mentoring
     const updatedSession = await MentoringSessionService.updateByMentor({
       sessionId,
       mentorProfileId,
-      updates: { status, meetingLink, meetingId, passcode },
+      updates: {
+        status,
+        meetingLink,
+        meetingId,
+        passcode,
+        pptLink,
+        recordingLink,
+      },
     });
 
-    // Kirim respons sukses
     res.status(200).json({
       message: "Sesi mentoring berhasil diperbarui",
       status: "success",
       data: updatedSession,
     });
-    return;
   } catch (error) {
-    // Tangani kesalahan dan kirim respons kegagalan
     next(error);
   }
 };

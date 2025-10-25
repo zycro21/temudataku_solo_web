@@ -46,6 +46,11 @@ export const createMentoringSessionSchema = z
     meetingLink: z.string().url().optional(),
     meetingId: z.string().optional(),
     passcode: z.string().optional(),
+    pptLink: z.string().url("pptLink harus berupa URL valid").optional(),
+    recordingLink: z
+      .string()
+      .url("recordingLink harus berupa URL valid")
+      .optional(),
     status: z
       .enum(["scheduled", "ongoing", "completed", "cancelled"])
       .optional(),
@@ -234,6 +239,8 @@ export const updateMentoringSessionSchema = z.object({
       meetingId: z.string().optional(),
       passcode: z.string().optional(),
       notes: z.string().optional(),
+      pptLink: z.string().url().optional(),
+      recordingLink: z.string().url().optional(),
     })
     .superRefine((data, ctx) => {
       const { date, startTime, endTime } = data;
@@ -315,10 +322,19 @@ export const updateMentorSessionBodySchema = z.object({
       meetingLink: z.string().url("Meeting link tidak valid").optional(),
       meetingId: z.string().optional(),
       passcode: z.string().optional(),
+      pptLink: z.string().url("PPT link tidak valid").optional(),
+      recordingLink: z.string().url("Recording link tidak valid").optional(),
     })
-    .refine((data) => data.status || data.meetingLink, {
-      message: "Minimal harus ada satu field yang diupdate",
-    }),
+    .refine(
+      (data) =>
+        data.status ||
+        data.meetingLink ||
+        data.meetingId ||
+        data.passcode ||
+        data.pptLink ||
+        data.recordingLink,
+      { message: "Minimal harus ada satu field yang diupdate" }
+    ),
 });
 
 export const publicGetSessionsSchema = z.object({

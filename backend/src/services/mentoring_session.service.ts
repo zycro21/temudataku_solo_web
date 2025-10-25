@@ -12,6 +12,8 @@ export const createMentoringSession = async (input: {
   meetingLink?: string;
   meetingId?: string;
   passcode?: string;
+  pptLink?: string;
+  recordingLink?: string;
   status?: string;
   notes?: string;
   mentorProfileIds: string[];
@@ -24,6 +26,8 @@ export const createMentoringSession = async (input: {
     meetingLink,
     meetingId,
     passcode,
+    pptLink,
+    recordingLink,
     status,
     notes,
     mentorProfileIds,
@@ -157,13 +161,15 @@ export const createMentoringSession = async (input: {
     data: {
       id: sessionId,
       serviceId,
-      date: sessionDate, // Menggunakan string date dalam format dd-mm-yyyy
-      startTime: startDateTime.toISOString(), // Menyimpan startTime sebagai string ISO
-      endTime: endDateTime.toISOString(), // Menyimpan endTime sebagai string ISO
+      date: sessionDate,
+      startTime: startDateTime.toISOString(),
+      endTime: endDateTime.toISOString(),
       durationMinutes,
       meetingLink,
       meetingId,
       passcode,
+      pptLink,
+      recordingLink,
       status: sessionStatus,
       notes,
     },
@@ -431,6 +437,8 @@ export const updateMentoringSession = async (
     meetingId?: string;
     passcode?: string;
     notes?: string;
+    pptLink?: string;
+    recordingLink?: string;
   }
 ) => {
   const session = await prisma.mentoringSession.findUnique({ where: { id } });
@@ -477,6 +485,15 @@ export const updateMentoringSession = async (
   if (data.notes) {
     updatePayload.notes = data.notes;
     changedFields.push("notes");
+  }
+
+  if (data.pptLink) {
+    updatePayload.pptLink = data.pptLink;
+    changedFields.push("pptLink");
+  }
+  if (data.recordingLink) {
+    updatePayload.recordingLink = data.recordingLink;
+    changedFields.push("recordingLink");
   }
 
   // Default: pakai waktu lama
@@ -762,56 +779,149 @@ export const exportMentoringSessions = async (format: "xlsx" | "csv") => {
     },
   });
 
-  const flatData = sessions.flatMap((session) =>
-    session.projectSubmissions.map((submission) => {
-      const averageRating = session.feedbacks.length
+  type FlatRow = {
+    sessionId: string;
+    serviceName: string | null;
+    sessionDate: string;
+    startTime: string;
+    endTime: string;
+    durationMinutes: number;
+    sessionStatus: string | null;
+    meetingLink: string | null;
+    meetingId: string | null;
+    passcode: string | null;
+    pptLink: string | null;
+    recordingLink: string | null;
+    mentorNames: string;
+    feedbackCount: number;
+    averageRating: number | null;
+    submissionId: string | null;
+    submissionDate: Date | null;
+    filePath: string | null;
+    plagiarismScore: number | null;
+    score: number | null;
+    mentorFeedback: string | null;
+    isReviewed: boolean | null;
+    menteeId: string | null;
+    menteeName: string | null;
+    menteeEmail: string | null;
+    projectId: string | null;
+    projectTitle: string | null;
+    projectDescription: string | null;
+    reviewerId: string | null;
+    reviewerName: string | null;
+    reviewerEmail: string | null;
+    createdAt: Date | null;
+    updatedAt: Date | null;
+  };
+
+  // 🔹 Flatten data agar bisa diekspor
+  const flatData: FlatRow[] = sessions.flatMap((session): FlatRow[] => {
+    const averageRating =
+      session.feedbacks.length > 0
         ? session.feedbacks.reduce((sum, f) => sum + f.rating, 0) /
           session.feedbacks.length
         : null;
 
-      return {
+    // Jika belum ada submission, tetap tampilkan 1 baris
+    if (session.projectSubmissions.length === 0) {
+      return [
+        {
+          sessionId: session.id,
+          serviceName: session.mentoringService?.serviceName ?? null,
+          sessionDate: session.date,
+          startTime: session.startTime,
+          endTime: session.endTime,
+          durationMinutes: session.durationMinutes,
+          sessionStatus: session.status ?? null,
+          meetingLink: session.meetingLink ?? null,
+          meetingId: session.meetingId ?? null,
+          passcode: session.passcode ?? null,
+          pptLink: session.pptLink ?? null,
+          recordingLink: session.recordingLink ?? null,
+          mentorNames: session.mentors
+            .map((m) => m.mentorProfile.user.fullName)
+            .join(", "),
+          feedbackCount: session.feedbacks.length,
+          averageRating,
+          submissionId: null,
+          submissionDate: null,
+          filePath: null,
+          plagiarismScore: null,
+          score: null,
+          mentorFeedback: null,
+          isReviewed: null,
+          menteeId: null,
+          menteeName: null,
+          menteeEmail: null,
+          projectId: null,
+          projectTitle: null,
+          projectDescription: null,
+          reviewerId: null,
+          reviewerName: null,
+          reviewerEmail: null,
+          createdAt: session.createdAt ?? null,
+          updatedAt: session.updatedAt ?? null,
+        },
+      ];
+    }
+
+    // Kalau ada projectSubmissions, flatten semua
+    return session.projectSubmissions.map(
+      (submission): FlatRow => ({
         sessionId: session.id,
-        serviceName: session.mentoringService?.serviceName,
+        serviceName: session.mentoringService?.serviceName ?? null,
         sessionDate: session.date,
         startTime: session.startTime,
         endTime: session.endTime,
         durationMinutes: session.durationMinutes,
-        sessionStatus: session.status,
+        sessionStatus: session.status ?? null,
         meetingLink: session.meetingLink ?? null,
         meetingId: session.meetingId ?? null,
         passcode: session.passcode ?? null,
+        pptLink: session.pptLink ?? null,
+        recordingLink: session.recordingLink ?? null,
         mentorNames: session.mentors
           .map((m) => m.mentorProfile.user.fullName)
           .join(", "),
         feedbackCount: session.feedbacks.length,
         averageRating,
-
-        submissionId: submission.id,
-        submissionDate: submission.submissionDate,
-        filePath: submission.filePaths,
-        plagiarismScore: submission.plagiarismScore?.toNumber() ?? null,
-        score: submission.score?.toNumber() ?? null,
-        mentorFeedback: submission.mentorFeedback,
-        isReviewed: submission.isReviewed,
-
-        menteeId: submission.user.id,
-        menteeName: submission.user.fullName,
-        menteeEmail: submission.user.email,
-
-        projectId: submission.project.id,
-        projectTitle: submission.project.title,
-        projectDescription: submission.project.description,
-
+        submissionId: submission.id ?? null,
+        submissionDate: submission.submissionDate ?? null,
+        filePath: Array.isArray(submission.filePaths)
+          ? submission.filePaths.join(", ")
+          : submission.filePaths ?? null,
+        plagiarismScore:
+          submission.plagiarismScore?.toNumber?.() ??
+          (typeof submission.plagiarismScore === "number"
+            ? submission.plagiarismScore
+            : null),
+        score:
+          submission.score?.toNumber?.() ??
+          (typeof submission.score === "number" ? submission.score : null),
+        mentorFeedback: submission.mentorFeedback ?? null,
+        isReviewed: submission.isReviewed ?? null,
+        menteeId: submission.user?.id ?? null,
+        menteeName: submission.user?.fullName ?? null,
+        menteeEmail: submission.user?.email ?? null,
+        projectId: submission.project?.id ?? null,
+        projectTitle: submission.project?.title ?? null,
+        projectDescription: submission.project?.description ?? null,
         reviewerId: submission.gradedByUser?.id ?? null,
         reviewerName: submission.gradedByUser?.fullName ?? null,
         reviewerEmail: submission.gradedByUser?.email ?? null,
+        createdAt: submission.createdAt ?? null,
+        updatedAt: submission.updatedAt ?? null,
+      })
+    );
+  });
 
-        createdAt: submission.createdAt,
-        updatedAt: submission.updatedAt,
-      };
-    })
-  );
+  // 🩹 FIX: kalau flatData kosong, jangan error
+  if (!flatData || flatData.length === 0) {
+    throw new Error("Tidak ada data sesi mentoring untuk diekspor.");
+  }
 
+  // 🔹 Export ke CSV
   if (format === "csv") {
     const parser = new Parser();
     const csv = parser.parse(flatData);
@@ -820,58 +930,47 @@ export const exportMentoringSessions = async (format: "xlsx" | "csv") => {
       mimeType: "text/csv",
       fileExtension: "csv",
     };
-  } else {
-    const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet("Mentoring Sessions");
-
-    sheet.columns = Object.keys(flatData[0]).map((key) => ({
-      header: key,
-      key,
-      width: 25,
-    }));
-
-    sheet.addRows(flatData);
-
-    const buffer = await workbook.xlsx.writeBuffer();
-    return {
-      buffer,
-      mimeType:
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      fileExtension: "xlsx",
-    };
   }
+
+  // 🔹 Export ke XLSX
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet("Mentoring Sessions");
+
+  // Type-safe: pastikan ada minimal satu row
+  const firstRow = flatData[0] as Record<string, unknown>;
+
+  sheet.columns = Object.keys(firstRow).map((key) => ({
+    header: key,
+    key,
+    width: 25,
+  }));
+
+  sheet.addRows(flatData);
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  return {
+    buffer,
+    mimeType:
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    fileExtension: "xlsx",
+  };
 };
 
 export const getOwnMentorSessions = async (mentorProfileId: string) => {
   const sessions = await prisma.mentoringSession.findMany({
     where: {
       mentors: {
-        some: {
-          mentorProfileId,
-        },
+        some: { mentorProfileId },
       },
     },
     include: {
       mentoringService: {
-        select: {
-          serviceName: true,
-          serviceType: true,
-        },
+        select: { serviceName: true, serviceType: true },
       },
-      feedbacks: {
-        select: {
-          rating: true,
-        },
-      },
-      projectSubmissions: {
-        select: {
-          score: true,
-        },
-      },
+      feedbacks: { select: { rating: true } },
+      projectSubmissions: { select: { score: true } },
     },
-    orderBy: {
-      date: "desc",
-    },
+    orderBy: { date: "desc" },
   });
 
   return sessions.map((session) => {
@@ -899,6 +998,8 @@ export const getOwnMentorSessions = async (mentorProfileId: string) => {
       meetingLink: session.meetingLink,
       meetingId: session.meetingId,
       passcode: session.passcode,
+      pptLink: session.pptLink,
+      recordingLink: session.recordingLink,
       status: session.status,
       averageRating,
       averageProjectScore,
@@ -916,9 +1017,7 @@ export const getMentorSessionDetail = async (
     where: {
       id: sessionId,
       mentors: {
-        some: {
-          mentorProfileId,
-        },
+        some: { mentorProfileId },
       },
     },
     include: {
@@ -932,11 +1031,7 @@ export const getMentorSessionDetail = async (
             select: {
               id: true,
               mentee: {
-                select: {
-                  id: true,
-                  fullName: true,
-                  email: true,
-                },
+                select: { id: true, fullName: true, email: true },
               },
               bookingDate: true,
               status: true,
@@ -954,25 +1049,14 @@ export const getMentorSessionDetail = async (
             select: {
               id: true,
               user: {
-                select: {
-                  fullName: true,
-                  profilePicture: true,
-                },
+                select: { fullName: true, profilePicture: true },
               },
             },
           },
         },
       },
-      feedbacks: {
-        select: {
-          rating: true,
-        },
-      },
-      projectSubmissions: {
-        select: {
-          score: true,
-        },
-      },
+      feedbacks: { select: { rating: true } },
+      projectSubmissions: { select: { score: true } },
     },
   });
 
@@ -1014,6 +1098,8 @@ export const getMentorSessionDetail = async (
     meetingLink: session.meetingLink,
     meetingId: session.meetingId,
     passcode: session.passcode,
+    pptLink: session.pptLink,
+    recordingLink: session.recordingLink,
     status: session.status,
     notes: session.notes,
     mentorList: session.mentors.map((m) => ({
@@ -1040,9 +1126,10 @@ export const updateByMentor = async ({
     meetingLink?: string;
     meetingId?: string;
     passcode?: string;
+    pptLink?: string;
+    recordingLink?: string;
   };
 }) => {
-  // Cek apakah mentor tergabung di sesi ini
   const isAuthorized = await prisma.mentoringSessionMentor.findFirst({
     where: {
       mentoringSessionId: sessionId,
@@ -1054,22 +1141,16 @@ export const updateByMentor = async ({
     throw { status: 403, message: "Anda tidak tergabung dalam sesi ini" };
   }
 
-  // Hitung jumlah update dalam 3 hari terakhir
   const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
   const recentUpdates = await prisma.mentoringSession.findMany({
     where: {
       id: sessionId,
       updatedAt: { gte: threeDaysAgo },
-      mentors: {
-        some: { mentorProfileId },
-      },
+      mentors: { some: { mentorProfileId } },
     },
   });
 
-  // Hitung update yang dilakukan mentor ini
-  const updateCount = recentUpdates.length;
-
-  if (updateCount >= 2) {
+  if (recentUpdates.length >= 2) {
     throw {
       status: 429,
       message: "Anda hanya bisa mengubah sesi ini maksimal 2 kali dalam 3 hari",
@@ -1146,6 +1227,8 @@ export async function getSessionsByServiceId({
       endTime: true,
       durationMinutes: true,
       status: true,
+      pptLink: true,
+      recordingLink: true,
       mentors: {
         select: {
           mentorProfile: {
@@ -1219,6 +1302,8 @@ export const getPublicMentoringSessionById = async (id: string) => {
       durationMinutes: true,
       status: true,
       notes: true,
+      pptLink: true,
+      recordingLink: true,
       mentoringService: {
         select: {
           serviceName: true,
@@ -1260,7 +1345,6 @@ export const getPublicMentoringSessionById = async (id: string) => {
     throw new Error("Sesi mentoring tidak ditemukan");
   }
 
-  // Periksa apakah status null atau tidak valid
   if (!session.status || !["scheduled", "ongoing"].includes(session.status)) {
     throw new Error("Sesi mentoring ini tidak tersedia untuk publik");
   }
