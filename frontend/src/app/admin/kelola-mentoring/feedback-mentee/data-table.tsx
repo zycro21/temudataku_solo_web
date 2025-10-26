@@ -274,9 +274,11 @@ export function DataTable<TData extends Datas, TValue>({ columns, data }: DataTa
             <Button
               className="flex-1 bg-[#0CA678] hover:bg-[#08916C] text-white"
               onClick={() => {
-                setEditFormData(selectedProject);
-                setShowDetailDialog(false);
-                setShowEditDialog(true);
+                if (selectedProject) {
+                  setEditFormData(selectedProject);
+                  setShowDetailDialog(false);
+                  setShowEditDialog(true);
+                }
               }}
             >
               Edit

@@ -5,7 +5,7 @@ import { ColumnDef, flexRender, getCoreRowModel, getPaginationRowModel, getFilte
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Edit, FileText, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Datas } from "./columns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -214,11 +214,11 @@ export function DataTable<TData extends Datas, TValue>({ columns, data }: DataTa
               <div className="grid grid-cols-2 gap-8">
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Kepuasan Keterlibatan Mentee</p>
-                  <p className="text-lg font-semibold text-gray-900">{selectedProject.evaluasi.kepuasan}</p>
+                  <p className="text-lg font-semibold text-gray-900">{selectedProject?.evaluasi.kepuasan}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Keaktifan Mentee</p>
-                  <p className="text-lg font-semibold text-gray-900">{selectedProject.evaluasi.keaktifan}</p>
+                  <p className="text-lg font-semibold text-gray-900">{selectedProject?.evaluasi.keaktifan}</p>
                 </div>
               </div>
 
@@ -258,9 +258,11 @@ export function DataTable<TData extends Datas, TValue>({ columns, data }: DataTa
             <Button
               className="flex-1 bg-[#0CA678] hover:bg-[#08916C] text-white"
               onClick={() => {
-                setEditFormData(selectedProject);
-                setShowDetailDialog(false);
-                setShowEditDialog(true);
+                if (selectedProject) {
+                  setEditFormData(selectedProject);
+                  setShowDetailDialog(false);
+                  setShowEditDialog(true);
+                }
               }}
             >
               Edit
