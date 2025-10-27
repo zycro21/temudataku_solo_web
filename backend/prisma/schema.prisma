@@ -563,6 +563,22 @@ model Role {
   @@map("roles")
 }
 
+model ShortLink {
+  id              String    @id @default(cuid())
+  shortCode       String    @unique @map("short_code")
+  originalUrl     String    @db.VarChar @map("original_url")
+  createdById     String?   @map("created_by_id")
+  expiresAt       DateTime? @map("expires_at")
+  clickCount      Int       @default(0) @map("click_count")
+  isActive        Boolean   @default(true) @map("is_active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime? @map("updated_at")
+
+  createdBy       User?     @relation("UserShortLinks", fields: [createdById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@map("short_links")
+}
+
 model UserActivityLog {
   id           String   @id @default(cuid())
   userId       String
@@ -646,6 +662,7 @@ model User {
   userBehavior               UserBehavior[]
   userRoles                  UserRole[]
   withdrawalMethods          WithdrawalMethod[] 
+  shortLinks                 ShortLink[]              @relation("UserShortLinks")
 
   @@map("users")
 }

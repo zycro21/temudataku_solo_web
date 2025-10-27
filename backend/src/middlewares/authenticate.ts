@@ -389,6 +389,41 @@ export interface AuthenticatedRequestLog extends Request {
   validatedQuery?: any;
 }
 
+export interface AuthenticatedRequestShortLink extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+  };
+  validatedBody?: {
+    // POST /api/shortlinks
+    shortCode?: string; // custom short code opsional
+    originalUrl?: string;
+    expiresAt?: string; // opsional, format: yyyy-mm-dd
+    isActive?: boolean;
+
+    // PUT /api/shortlinks/:id
+    updatedOriginalUrl?: string;
+    updatedExpiresAt?: string;
+    updatedIsActive?: boolean;
+  };
+
+  validatedParams?: {
+    id?: string; // untuk /api/shortlinks/:id
+    shortCode?: string; // untuk /s/:shortCode
+  };
+
+  validatedQuery?: {
+    page?: string;
+    limit?: string;
+    search?: string;
+    sort_by?: "createdAt" | "clickCount" | "expiresAt";
+    order?: "asc" | "desc";
+  };
+}
+
 export const authenticate = (
   req: AuthenticatedRequest,
   res: Response,

@@ -24,6 +24,13 @@ const router = express.Router();
 
 /**
  * @swagger
+ * tags:
+ *   name: Practices Submission
+ *   description: Manajemen practices submission
+ */
+
+/**
+ * @swagger
  * /api/practiceSubmissions/practice/submissions:
  *   post:
  *     summary: Mentee mengirimkan submission untuk suatu practice
