@@ -231,6 +231,20 @@ export interface AuthenticatedRequestPractice extends Request {
     isCompleted?: boolean;
     timeSpentSeconds?: number;
     lastAccessed?: Date; // Mendukung input yyyy-mm-dd
+    
+    // Practice Submission
+    notes?: string;
+    files?: string[];
+    statusSubmission?: string;
+
+    // Optional penilaian/feedback (diisi nanti oleh mentor)
+    kesesuaian?: string;
+    kualitas?: string;
+    kreativitas?: string;
+    kelengkapan?: string;
+    komentar?: string;
+    saran?: string;
+    perluRevisi?: boolean;
   };
   validatedParams?: any;
   validatedQuery?: any;

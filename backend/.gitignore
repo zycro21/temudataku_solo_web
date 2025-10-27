@@ -11,3 +11,11 @@ uploads/submissions/*
 !uploads/submissions/.gitkeep
 uploads/supportDocument/*
 !uploads/supportDocument/.gitkeep
+uploads/practice/submissions/*
+!uploads/practice/submissions/.gitkeep
+
+images/*
+!images/.gitkeep
+!images/thumbnailPractice/
+images/thumbnailPractice/*
+!images/thumbnailPractice/.gitkeep

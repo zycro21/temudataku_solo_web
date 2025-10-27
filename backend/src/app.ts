@@ -24,6 +24,7 @@ import paymentRoute from "./routes/payment.route.js";
 import withdrawalRoute from "./routes/withdrawal.route.js";
 import mentorReportRoute from "./routes/mentor_report.route.js";
 import userActivityLog from "./routes/userActivityLog.route.js";
+import practiceSubmissionsRoute from "./routes/practice_submission.route.js";
 import "./schedulers/cron.js";
 import { fileURLToPath } from "url";
 import swaggerJsdoc from "swagger-jsdoc";
@@ -71,6 +72,7 @@ app.use("/api/payment", paymentRoute);
 app.use("/api/withdrawals", withdrawalRoute);
 app.use("/api/mentorReports", mentorReportRoute);
 app.use("/api/logActivity", userActivityLog);
+app.use("/api/practiceSubmissions", practiceSubmissionsRoute);
 
 // Path Static untuk Images
 // Perbaikan di sini, mengganti __dirname dengan yang benar menggunakan import.meta.url
@@ -129,6 +131,23 @@ app.use(
     next();
   },
   express.static(supportDocPath)
+);
+
+const practiceSubmissionsPath = path.join(
+  __dirname,
+  "../uploads/practice/submissions"
+);
+console.log("Serving practice submissions from:", practiceSubmissionsPath);
+
+app.use(
+  "/practiceSubmissions",
+  (req, res, next) => {
+    console.log("Accessing practice submissions path:", req.path);
+    const filePath = path.join(practiceSubmissionsPath, req.path);
+    console.log("Looking for file:", filePath);
+    next();
+  },
+  express.static(practiceSubmissionsPath)
 );
 
 // Swagger Docs

@@ -294,3 +294,63 @@ export const handleSupportDocumentUpload = (
 };
 
 export { finalSupportDocPath as supportDocumentUploadPath };
+
+// === Untuk Upload Practice Submission Files ===
+const practiceSubmissionPath = path.join(
+  __dirname,
+  "../../uploads/practice/submissions"
+);
+const normalizedPracticePath = path.normalize(practiceSubmissionPath);
+const finalPracticePath = normalizedPracticePath.replace(/^\\/, "");
+
+// Pastikan foldernya ada
+if (!fs.existsSync(finalPracticePath)) {
+  fs.mkdirSync(finalPracticePath, { recursive: true });
+}
+
+const practiceSubmissionStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, finalPracticePath);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const baseName = path
+      .basename(file.originalname, ext)
+      .replace(/\s+/g, "-") // Ganti spasi dengan "-"
+      .replace(/[^a-zA-Z0-9-_]/g, ""); // Hapus karakter aneh
+
+    const now = new Date();
+    const formattedTime = `${now.getFullYear()}${(now.getMonth() + 1)
+      .toString()
+      .padStart(2, "0")}${now.getDate().toString().padStart(2, "0")}-${now
+      .getHours()
+      .toString()
+      .padStart(2, "0")}${now.getMinutes().toString().padStart(2, "0")}${now
+      .getSeconds()
+      .toString()
+      .padStart(2, "0")}`;
+
+    const filename = `PracticeSubmission-${baseName}-${formattedTime}${ext}`;
+    cb(null, filename);
+  },
+});
+
+const practiceSubmissionUploader = multer({
+  storage: practiceSubmissionStorage,
+  limits: {
+    fileSize: 20 * 1024 * 1024, // Maksimal 20 MB per file
+  },
+});
+
+export const handlePracticeSubmissionUpload = (
+  field: string,
+  isMultiple: boolean = false,
+  max: number = 5
+) => {
+  return isMultiple
+    ? practiceSubmissionUploader.array(field, max)
+    : practiceSubmissionUploader.single(field);
+};
+
+// Export path final agar bisa dipakai di tempat lain (misal untuk static serve)
+export { finalPracticePath as practiceSubmissionUploadPath };

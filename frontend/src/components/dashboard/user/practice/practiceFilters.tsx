@@ -49,10 +49,10 @@ export default function PracticeFilters({
             <button
               key={option}
               onClick={() => onLevelChange(option)}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                 levelFilter === option
-                  ? "bg-emerald-500 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? "bg-emerald-500 text-white scale-105"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-105"
               }`}
             >
               {option}
@@ -69,10 +69,10 @@ export default function PracticeFilters({
             <button
               key={option}
               onClick={() => onStatusChange(option)}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                 statusFilter === option
-                  ? "bg-emerald-500 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? "bg-emerald-500 text-white scale-105"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-105"
               }`}
             >
               {option}
