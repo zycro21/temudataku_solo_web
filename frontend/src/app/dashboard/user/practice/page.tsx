@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import axios from "axios";
 import Sidebar from "@/components/dashboard/user/sidebarDashboardUser";
 import DashboardHeader from "@/components/dashboard/user/dashboardHeader";
 import PracticeFilters from "@/components/dashboard/user/practice/practiceFilters";
@@ -39,129 +40,102 @@ interface Practice {
   };
 }
 
-const VALID_LEVELS = ["Pemula", "Menengah", "Ahli"] as const;
-const VALID_STATUS = ["Belum Dikerjakan", "Selesai", "Sudah Direview"] as const;
-
 export default function PracticeDashboardUserPage() {
   const [levelFilter, setLevelFilter] = useState("Semua");
   const [statusFilter, setStatusFilter] = useState("Semua");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Dummy data practice
-  const rawPractice: Practice[] = [
-    {
-      id: "1",
-      title: "EDA practice",
-      description:
-        "Practice ini berfokus memberikan pemahaman lebih terkait EDA dengan topik kesehatan.",
-      level: "Pemula",
-      status: "Belum Dikerjakan",
-      dateStart: "05 Maret 2025",
-      dateEnd: "10 Maret 2025",
-      image: "",
-      detailUrl: "/practice/1", // bisa route berbeda
-    },
-    {
-      id: "2",
-      title: "Data Cleaning practice",
-      description:
-        "Practice ini berfokus memberikan pemahaman lebih terkait Data Cleaning dengan dataset real.",
-      level: "Menengah",
-      status: "Belum Dikerjakan",
-      dateStart: "05 Maret 2025",
-      dateEnd: "10 Maret 2025",
-      image: "",
-      detailUrl: "https://drive.google.com/example-link-2", // bisa link drive
-    },
-    {
-      id: "3",
-      title: "Modeling practice",
-      description:
-        "Practice ini berfokus memberikan pemahaman lebih terkait Machine Learning Modeling.",
-      level: "Pemula",
-      status: "Selesai",
-      dateStart: "05 Maret 2025",
-      dateEnd: "10 Maret 2025",
-      image: "",
-      detailUrl: "/practice/3",
-      submission: {
-        notes:
-          "Forecasting memang tidak dimulai dari code scratch, tapi dari hasil akurasi sudah sangat bagus sekaliiiii",
-        fileName: "Prediction.pdf",
-        fileSize: "400 KB",
-        fileUrl: "#",
-      },
-    },
-    {
-      id: "4",
-      title: "Machine Learning Advance",
-      description:
-        "Practice ini berfokus memberikan pemahaman lebih terkait Machine Learning Advance.",
-      level: "Menengah",
-      status: "Sudah Direview",
-      dateStart: "05 September 2025",
-      dateEnd: "10 September 2025",
-      image: "",
-      detailUrl: "/practice/3",
-      submission: {
-        notes: "Tugas Machine Learning di Cloud VPS",
-        fileName: "Prediction.pdf",
-        fileSize: "1200 KB",
-        fileUrl: "#",
-      },
-      review: {
-        penilaian: {
-          kesesuaian: "Cukup Sesuai",
-          kualitas: "Sangat Baik",
-          kreativitas: "Cukup Baik",
-          kelengkapan: "Lengkap",
-        },
-        feedback: {
-          komentar: "Sudah oke, analisis cloud cukup detail.",
-          saran: "Bisa coba gunakan AutoML untuk eksperimen tambahan.",
-          perluRevisi: "Tidak",
-        },
-      },
-    },
-    {
-      id: "5",
-      title: "Deep Learning Practice",
-      description: "Practice ini fokus pada CNN untuk image classification.",
-      level: "Ahli",
-      status: "Sudah Direview",
-      dateStart: "15 September 2025",
-      dateEnd: "20 September 2025",
-      image: "",
-      detailUrl: "/practice/5",
-      submission: {
-        notes: "Model CNN cukup optimal dengan 90% akurasi.",
-        fileName: "CNN_Model.pdf",
-        fileSize: "800 KB",
-        fileUrl: "#",
-      },
-      review: {
-        penilaian: {
-          kesesuaian: "Sangat Sesuai",
-          kualitas: "Cukup Baik",
-          kreativitas: "Sangat Baik",
-          kelengkapan: "Perlu Revisi",
-        },
-        feedback: {
-          komentar: "Struktur CNN bagus, tapi dokumentasi masih kurang.",
-          saran: "Lengkapi laporan dengan confusion matrix & ROC curve.",
-          perluRevisi: "Ya",
-        },
-      },
-    },
-  ] as Practice[];
+  const [practices, setPractices] = useState<Practice[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const allPractice = rawPractice.filter(
-    (p) => VALID_LEVELS.includes(p.level) && VALID_STATUS.includes(p.status)
-  );
+  useEffect(() => {
+    const fetchPractices = async () => {
+      try {
+        setLoading(true);
 
-  // Filtering
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/practice/mentees/practice-purchases`,
+          {
+            withCredentials: true,
+            params: {
+              page: 1,
+              limit: 100,
+            },
+          }
+        );
+
+        const apiData = res.data.data.data.map((p: any) => {
+          const material = p.practice.practiceMaterials?.[0];
+          const review = p.practice.practiceReviews?.[0];
+
+          // Hitung tanggal start = 1 hari setelah purchaseDate
+          const purchaseDate = new Date(p.purchaseDate);
+          const startDate = new Date(purchaseDate);
+          startDate.setDate(startDate.getDate() + 1);
+
+          // Hitung tanggal end = 20 hari setelah startDate
+          const endDate = new Date(startDate);
+          endDate.setDate(endDate.getDate() + 20);
+
+          return {
+            id: p.practice.id,
+            title: p.practice.title,
+            description: p.practice.description,
+            // ambil dari "practiceType"
+            level: p.practice.practiceType || "Pemula",
+            // status tetap sama seperti logika sebelumnya
+            status:
+              review != null
+                ? "Sudah Direview"
+                : material
+                ? "Selesai"
+                : "Belum Dikerjakan",
+            // gunakan tanggal hasil kalkulasi
+            dateStart: startDate.toLocaleDateString("id-ID", {
+              day: "2-digit",
+              month: "long",
+              year: "numeric",
+            }),
+            dateEnd: endDate.toLocaleDateString("id-ID", {
+              day: "2-digit",
+              month: "long",
+              year: "numeric",
+            }),
+            // ambil dari "thumbnailImages"
+            image:
+              p.practice.thumbnailImages?.[0] || "/images/default-practice.jpg",
+            detailUrl: `/practice/${p.practice.id}`,
+            review: review
+              ? {
+                  penilaian: {
+                    kesesuaian: "Sangat Sesuai",
+                    kualitas: "Baik",
+                    kreativitas: "Baik",
+                    kelengkapan: "Lengkap",
+                  },
+                  feedback: {
+                    komentar: review.comment || "",
+                    saran: "",
+                    perluRevisi: "Tidak",
+                  },
+                }
+              : undefined,
+          };
+        });
+
+        setPractices(apiData);
+      } catch (err) {
+        console.error("Error fetching practices:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPractices();
+  }, [searchQuery, statusFilter]);
+
   const filteredPractice = useMemo(() => {
-    return allPractice.filter((p) => {
+    return practices.filter((p) => {
       const matchLevel = levelFilter === "Semua" || p.level === levelFilter;
       const matchStatus = statusFilter === "Semua" || p.status === statusFilter;
       const matchSearch =
@@ -169,9 +143,8 @@ export default function PracticeDashboardUserPage() {
         p.title.toLowerCase().includes(searchQuery.toLowerCase());
       return matchLevel && matchStatus && matchSearch;
     });
-  }, [allPractice, levelFilter, statusFilter, searchQuery]);
+  }, [practices, levelFilter, statusFilter, searchQuery]);
 
-  // Grouping by status
   const groupedPractice = useMemo(() => {
     const groups: Record<string, Practice[]> = {};
     filteredPractice.forEach((p) => {
@@ -193,7 +166,6 @@ export default function PracticeDashboardUserPage() {
             Practice
           </h1>
 
-          {/* Filter Section */}
           <PracticeFilters
             levelFilter={levelFilter}
             statusFilter={statusFilter}
@@ -203,21 +175,16 @@ export default function PracticeDashboardUserPage() {
             onSearchChange={setSearchQuery}
           />
 
-          {/* Jika kosong → fallback */}
-          {isEmpty ? (
+          {loading ? (
+            <p className="text-gray-500">Memuat data...</p>
+          ) : isEmpty ? (
             <div className="flex flex-col items-center justify-center text-center py-20">
               <Ban className="w-16 h-16 text-gray-300 mb-4" />
               <h3 className="text-gray-700 font-semibold mb-1">
                 Belum ada practice
               </h3>
               <p className="text-gray-500 text-sm mb-6">
-                {statusFilter === "Sudah Direview"
-                  ? "Saat ini, Anda belum memiliki practice yang sudah direview"
-                  : statusFilter === "Selesai"
-                  ? "Saat ini, Anda belum memiliki practice yang sudah selesai"
-                  : statusFilter === "Belum Dikerjakan"
-                  ? "Saat ini, Anda belum memiliki practice yang belum dikerjakan"
-                  : "Saat ini, Anda belum memiliki practice yang dapat dikerjakan"}
+                Tidak ditemukan practice yang sesuai
               </p>
               <Link
                 href="/practice"
@@ -227,25 +194,13 @@ export default function PracticeDashboardUserPage() {
               </Link>
             </div>
           ) : (
-            Object.entries(groupedPractice).map(([status, practices]) => {
-              let sectionTitle = "";
-
-              if (levelFilter !== "Semua" && statusFilter !== "Semua") {
-                sectionTitle = `${levelFilter} dan ${status}`;
-              } else if (levelFilter !== "Semua" && statusFilter === "Semua") {
-                sectionTitle = levelFilter;
-              } else {
-                sectionTitle = status;
-              }
-
-              return (
-                <PracticeSection
-                  key={status}
-                  title={sectionTitle}
-                  practices={practices}
-                />
-              );
-            })
+            Object.entries(groupedPractice).map(([status, practices]) => (
+              <PracticeSection
+                key={status}
+                title={status}
+                practices={practices}
+              />
+            ))
           )}
         </main>
       </div>

@@ -2408,7 +2408,8 @@ router.patch(
  * @swagger
  * /api/practice/mentees/practice-purchases:
  *   get:
- *     summary: Mendapatkan daftar pembelian practice oleh mentee (beserta semua materi practice)
+ *     summary: Mendapatkan daftar pembelian practice oleh mentee (termasuk materi dan review miliknya)
+ *     description: Endpoint ini mengembalikan semua practice yang telah dibeli oleh mentee beserta daftar materi (practiceMaterials) dan review pribadi mentee (practiceReviews) jika ada.
  *     tags: [Practices]
  *     security:
  *       - bearerAuth: []
@@ -2440,7 +2441,7 @@ router.patch(
  *         description: Pencarian berdasarkan judul practice
  *     responses:
  *       200:
- *         description: Berhasil mengambil daftar pembelian practice
+ *         description: Berhasil mengambil daftar pembelian practice mentee beserta materi dan review-nya
  *         content:
  *           application/json:
  *             schema:
@@ -2542,6 +2543,70 @@ router.patch(
  *                                       type: string
  *                                       format: date-time
  *                                       example: "2025-07-02T09:00:00.000Z"
+ *                                     updatedAt:
+ *                                       type: string
+ *                                       format: date-time
+ *                                       example: "2025-07-05T09:00:00.000Z"
+ *                                     practiceFiles:
+ *                                       type: array
+ *                                       items:
+ *                                         type: object
+ *                                         properties:
+ *                                           id:
+ *                                             type: string
+ *                                             example: "file_456"
+ *                                           fileName:
+ *                                             type: string
+ *                                             example: "UI-Basics.pdf"
+ *                                           filePath:
+ *                                             type: string
+ *                                             example: "/uploads/practice/files/UI-Basics.pdf"
+ *                                           fileType:
+ *                                             type: string
+ *                                             example: "pdf"
+ *                                           fileSize:
+ *                                             type: integer
+ *                                             example: 2048
+ *                                           orderNumber:
+ *                                             type: integer
+ *                                             example: 1
+ *                                           createdAt:
+ *                                             type: string
+ *                                             format: date-time
+ *                                             example: "2025-07-02T09:00:00.000Z"
+ *                                           updatedAt:
+ *                                             type: string
+ *                                             format: date-time
+ *                                             example: "2025-07-05T09:00:00.000Z"
+ *                               practiceReviews:
+ *                                 type: array
+ *                                 description: Daftar review yang diberikan oleh mentee untuk practice ini (biasanya hanya 1)
+ *                                 items:
+ *                                   type: object
+ *                                   properties:
+ *                                     id:
+ *                                       type: string
+ *                                       example: "review_001"
+ *                                     userId:
+ *                                       type: string
+ *                                       example: "user_001"
+ *                                     practiceId:
+ *                                       type: string
+ *                                       example: "practice_abc"
+ *                                     rating:
+ *                                       type: integer
+ *                                       example: 5
+ *                                     comment:
+ *                                       type: string
+ *                                       example: "Practice sangat membantu saya memahami dasar desain UI/UX."
+ *                                     submittedDate:
+ *                                       type: string
+ *                                       format: date-time
+ *                                       example: "2025-07-05T09:00:00.000Z"
+ *                                     createdAt:
+ *                                       type: string
+ *                                       format: date-time
+ *                                       example: "2025-07-05T09:00:00.000Z"
  *                                     updatedAt:
  *                                       type: string
  *                                       format: date-time

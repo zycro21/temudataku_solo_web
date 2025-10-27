@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Calendar } from "lucide-react";
+import { Calendar, Download } from "lucide-react";
 
 interface Sertifikat {
   id: string;
@@ -13,6 +13,7 @@ interface Sertifikat {
   dateRange: string;
   image: string;
   downloadLink?: string;
+  hasCertificate: boolean;
 }
 
 interface SertifikatSectionProps {
@@ -35,19 +36,13 @@ export default function SertifikatSection({
           {sertifikats.map((sertifikat) => (
             <Card
               key={sertifikat.id}
-              className="p-0 overflow-hidden flex flex-col justify-between"
+              className="p-0 overflow-hidden flex flex-col justify-between shadow-sm hover:shadow-md transition"
             >
               {/* Gambar */}
               <div className="relative w-full h-48">
                 <Image
-                  src={
-                    sertifikat.image &&
-                    (sertifikat.image.startsWith("/") ||
-                      sertifikat.image.startsWith("http"))
-                      ? sertifikat.image
-                      : "/assets/dashboard/user/kokok.png"
-                  }
-                  alt={sertifikat.title}
+                  src="/assets/dashboard/user/kokok.png"
+                  alt="Certificate Placeholder"
                   fill
                   className="object-cover"
                 />
@@ -62,23 +57,46 @@ export default function SertifikatSection({
                   {sertifikat.description}
                 </p>
 
-                <div className="flex text-sm gap-2 text-gray-600 mt-4">
-                  <Calendar className="w-4 h-4" />
-                  <span className="font-bold">{sertifikat.dateRange}</span>
+                {/* Status sertifikat */}
+                <div className="flex flex-col mt-3">
+                  <div className="flex items-center text-sm gap-2">
+                    <Calendar className="w-4 h-4 text-gray-500" />
+                    <span className="font-medium text-gray-600">
+                      {sertifikat.dateRange}
+                    </span>
+                  </div>
+
+                  <div
+                    className={`flex items-center text-sm font-semibold mt-5 ${
+                      sertifikat.hasCertificate
+                        ? "text-emerald-600"
+                        : "text-red-500"
+                    }`}
+                  >
+                    {sertifikat.hasCertificate
+                      ? "Sertifikat sudah terbit"
+                      : "Sertifikat belum terbit"}
+                  </div>
                 </div>
               </CardContent>
 
-              {/* Footer dengan tombol Download */}
-              <CardFooter className="flex px-5 pb-6 mt-auto w-full">
-                {sertifikat.downloadLink && (
-                  <a
-                    href={sertifikat.downloadLink}
-                    download
-                    className="w-full text-center px-3 py-2 text-sm font-medium rounded-md bg-emerald-500 text-white hover:bg-emerald-600 transition"
-                  >
-                    Download
-                  </a>
-                )}
+              {/* Footer: hanya tombol Unduh */}
+              <CardFooter className="flex px-5 pb-6 mt-0 w-full">
+                <button
+                  disabled={!sertifikat.hasCertificate}
+                  onClick={() => {
+                    if (sertifikat.hasCertificate && sertifikat.downloadLink)
+                      window.open(sertifikat.downloadLink, "_blank");
+                  }}
+                  className={`flex items-center justify-center gap-2 w-full px-4 py-2.5 text-sm font-semibold rounded-md transition-all duration-200 ${
+                    sertifikat.hasCertificate
+                      ? "bg-emerald-500 text-white hover:bg-emerald-600 active:scale-[0.98] cursor-pointer"
+                      : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  }`}
+                >
+                  <Download className="w-4 h-4" />
+                  Unduh Sertifikat
+                </button>
               </CardFooter>
             </Card>
           ))}

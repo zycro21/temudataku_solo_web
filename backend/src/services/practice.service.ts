@@ -1367,6 +1367,9 @@ export const getPracticePurchases = async (input: {
         practice: {
           include: {
             practiceMaterials: true,
+            practiceReviews: {
+              where: { userId }, // hanya review oleh mentee ini
+            },
           },
         },
       },
