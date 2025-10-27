@@ -124,7 +124,7 @@ export default function AdminMentorPage() {
 
       {/* DataTable */}
       <Card className="p-6">
-        <h2 className="text-lg font-semibold text-gray-900">Jadwal Sesi Mentoring</h2>
+        <h2 className="text-lg font-semibold text-gray-900">Jadwal Sesi Pratice</h2>
         <DataTable columns={columns} data={projects} />
       </Card>
     </>
