@@ -29,7 +29,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         { name: "Feedback Mentee", icon: User, href: "/admin/kelola-mentoring/feedback-mentee" },
       ],
     },
-    { name: "Kelola Practice", icon: BookOpen, href: "/admin/practice" },
+    { name: "Kelola Practice", icon: BookOpen, href: "/admin/kelola-practice" },
     { name: "Transaksi", icon: CreditCard, href: "/admin/transaksi" },
     { name: "Produk & Event", icon: Package, href: "/admin/produk-event" },
     {
