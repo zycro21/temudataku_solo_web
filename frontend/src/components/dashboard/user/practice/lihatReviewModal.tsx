@@ -59,7 +59,11 @@ export default function LihatReviewModal({
         </button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent
+        className="sm:max-w-lg"
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>Lihat Review</DialogTitle>
           <p className="text-xs text-gray-500">

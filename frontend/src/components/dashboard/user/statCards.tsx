@@ -139,7 +139,7 @@ export default function StatCards() {
       icon: "/assets/dashboard/user/programterdaftar.svg",
     },
     {
-      title: "Jumlah Materi",
+      title: "Jumlah Materi (Practice + E-Learning)",
       value: materiCount ?? 0,
       icon: "/assets/dashboard/user/jumlahmateri.svg",
     },

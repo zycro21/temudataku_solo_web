@@ -65,32 +65,38 @@ export default function PracticeDashboardUserPage() {
         );
 
         const apiData = res.data.data.data.map((p: any) => {
-          const material = p.practice.practiceMaterials?.[0];
-          const review = p.practice.practiceReviews?.[0];
+          const submission = p.practice.practiceSubmissions?.[0];
 
-          // Hitung tanggal start = 1 hari setelah purchaseDate
+          // gunakan submission yang sudah direview
+          const review =
+            submission && submission.status === "reviewed"
+              ? submission
+              : undefined;
+
+          // Hitung tanggal start dan end
           const purchaseDate = new Date(p.purchaseDate);
           const startDate = new Date(purchaseDate);
           startDate.setDate(startDate.getDate() + 1);
 
-          // Hitung tanggal end = 20 hari setelah startDate
           const endDate = new Date(startDate);
           endDate.setDate(endDate.getDate() + 20);
+
+          // Tentukan status
+          let status: Practice["status"] = "Belum Dikerjakan";
+          if (submission) {
+            if (submission.status === "reviewed") {
+              status = "Sudah Direview";
+            } else {
+              status = "Selesai";
+            }
+          }
 
           return {
             id: p.practice.id,
             title: p.practice.title,
             description: p.practice.description,
-            // ambil dari "practiceType"
             level: p.practice.practiceType || "Pemula",
-            // status tetap sama seperti logika sebelumnya
-            status:
-              review != null
-                ? "Sudah Direview"
-                : material
-                ? "Selesai"
-                : "Belum Dikerjakan",
-            // gunakan tanggal hasil kalkulasi
+            status,
             dateStart: startDate.toLocaleDateString("id-ID", {
               day: "2-digit",
               month: "long",
@@ -101,22 +107,41 @@ export default function PracticeDashboardUserPage() {
               month: "long",
               year: "numeric",
             }),
-            // ambil dari "thumbnailImages"
             image:
               p.practice.thumbnailImages?.[0] || "/images/default-practice.jpg",
             detailUrl: `/practice/${p.practice.id}`,
+
+            // data submission
+            submission: submission
+              ? {
+                  notes: submission.notes || "",
+                  fileName: submission.files?.[0]
+                    ? submission.files[0].split("/").pop()
+                    : "",
+                  fileSize: "-",
+                  fileUrl: submission.files?.[0]
+                    ? `${
+                        process.env.NEXT_PUBLIC_API_BASE_URL
+                      }/practiceSubmissions/${submission.files[0]
+                        .split("/")
+                        .pop()}`
+                    : "",
+                }
+              : undefined,
+
+            // data review
             review: review
               ? {
                   penilaian: {
-                    kesesuaian: "Sangat Sesuai",
-                    kualitas: "Baik",
-                    kreativitas: "Baik",
-                    kelengkapan: "Lengkap",
+                    kesesuaian: review.kesesuaian || "-",
+                    kualitas: review.kualitas || "-",
+                    kreativitas: review.kreativitas || "-",
+                    kelengkapan: review.kelengkapan || "-",
                   },
                   feedback: {
-                    komentar: review.comment || "",
-                    saran: "",
-                    perluRevisi: "Tidak",
+                    komentar: review.komentar || "",
+                    saran: review.saran || "",
+                    perluRevisi: review.perluRevisi ? "Ya" : "Tidak",
                   },
                 }
               : undefined,

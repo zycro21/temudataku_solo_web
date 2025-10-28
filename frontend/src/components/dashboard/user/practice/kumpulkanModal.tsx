@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import Image from "next/image";
-import { X } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -20,12 +20,21 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import SubmitSuccessDialog from "./successSubmit";
+import axios from "axios";
+import { toast } from "sonner";
 
-export default function SubmitPracticeDialog() {
+interface SubmitPracticeDialogProps {
+  practiceId: string;
+}
+
+export default function SubmitPracticeDialog({
+  practiceId,
+}: SubmitPracticeDialogProps) {
   const [notes, setNotes] = useState("");
   const [files, setFiles] = useState<File[]>([]);
-  const [open, setOpen] = useState(false); // kontrol modal pengumpulan
+  const [open, setOpen] = useState(false);
   const [successOpen, setSuccessOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newFiles = e.target.files ? Array.from(e.target.files) : [];
@@ -36,10 +45,47 @@ export default function SubmitPracticeDialog() {
     setFiles(files.filter((_, i) => i !== idx));
   };
 
-  const handleSubmit = () => {
-    // TODO: tambahkan API call kalau perlu
-    setOpen(false); // tutup modal pengumpulan
-    setSuccessOpen(true); // buka modal success
+  const handleSubmit = async () => {
+    if (!practiceId) return alert("Practice ID tidak ditemukan!");
+    if (files.length === 0) return alert("Minimal unggah 1 file!");
+
+    try {
+      setLoading(true);
+
+      const formData = new FormData();
+      formData.append("practiceId", practiceId);
+      if (notes) formData.append("notes", notes);
+      files.forEach((file) => formData.append("files", file));
+
+      const res = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/practiceSubmissions/practice/submissions`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+          withCredentials: true,
+        }
+      );
+
+      if (res.data?.success) {
+        setOpen(false);
+        setSuccessOpen(true);
+        setNotes("");
+        setFiles([]);
+
+        toast.success("Practice berhasil dikumpulkan!");
+      } else {
+        toast.error(res.data?.message || "Gagal mengirim submission.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Terjadi kesalahan saat mengirim submission.", {
+        description: err.response?.data?.message,
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -84,7 +130,6 @@ export default function SubmitPracticeDialog() {
                 alt="Upload"
                 width={40}
                 height={40}
-                className="text-emerald-500"
               />
               <p className="text-sm text-gray-500 mb-2">
                 Pilih file atau seret di sini <br />
@@ -157,17 +202,24 @@ export default function SubmitPracticeDialog() {
           </div>
 
           {/* Footer */}
-          <DialogFooter className="flex justify-between mt-6">
+          <DialogFooter className="flex justify-between mt-6 px-6 gap-3">
             <DialogClose asChild>
-              <Button variant="outline" className="w-1/2 mr-2">
+              <Button variant="outline" className="w-1/2">
                 Kembali
               </Button>
             </DialogClose>
             <Button
-              className="w-1/2 bg-emerald-500 hover:bg-emerald-600 text-white"
+              className="w-1/2 bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center"
               onClick={handleSubmit}
+              disabled={loading}
             >
-              Kumpulkan
+              {loading ? (
+                <>
+                  <Loader2 className="animate-spin h-4 w-4 mr-2" /> Mengirim...
+                </>
+              ) : (
+                "Kumpulkan"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

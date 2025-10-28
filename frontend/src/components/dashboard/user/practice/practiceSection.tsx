@@ -155,10 +155,14 @@ export default function PracticeSection({
 
                 {/* Footer */}
                 <CardFooter className="flex px-5 pb-6 mt-auto w-full">
-                  {practice.status === "Belum Dikerjakan" && <KumpulkanModal />}
+                  {practice.status === "Belum Dikerjakan" && (
+                    <KumpulkanModal practiceId={practice.id} />
+                  )}
+                  
                   {practice.status === "Selesai" && (
                     <LihatPengumpulanModal submission={practice.submission} />
                   )}
+                  
                   {practice.status === "Sudah Direview" && practice.review && (
                     <LihatReviewModal
                       bootcampTitle={practice.title}
