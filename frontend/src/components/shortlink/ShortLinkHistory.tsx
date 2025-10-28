@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { useRouter } from "next/navigation";
 
 export default function ShortLinkHistory() {
+  const router = useRouter();
   const [links, setLinks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -11,6 +13,18 @@ export default function ShortLinkHistory() {
   const itemsPerPage = 10; // jumlah baris per halaman
 
   useEffect(() => {
+    // 🔁 interceptor untuk tangkap 401
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          console.warn("Token expired, redirecting...");
+          router.push("/shorten-link");
+        }
+        return Promise.reject(error);
+      }
+    );
+
     const fetchLinks = async () => {
       try {
         const res = await axios.get(
@@ -29,7 +43,12 @@ export default function ShortLinkHistory() {
     };
 
     fetchLinks();
-  }, []);
+
+    // cleanup interceptor saat komponen unmount
+    return () => {
+      axios.interceptors.response.eject(interceptor);
+    };
+  }, [router]);
 
   const totalPages = Math.ceil(links.length / itemsPerPage);
   const paginatedLinks = links.slice(

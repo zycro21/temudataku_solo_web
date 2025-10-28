@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
+import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 
 export default function CreateShortLink() {
+  const router = useRouter();
   const [originalUrl, setOriginalUrl] = useState("");
   const [customCode, setCustomCode] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
@@ -20,6 +22,24 @@ export default function CreateShortLink() {
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const [showModal, setShowModal] = useState(false);
+
+  // Tangani token expired (401) hanya untuk halaman ini
+  useEffect(() => {
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          console.warn("Token expired, redirecting...");
+          router.push("/shorten-link");
+        }
+        return Promise.reject(error);
+      }
+    );
+
+    return () => {
+      axios.interceptors.response.eject(interceptor);
+    };
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +52,9 @@ export default function CreateShortLink() {
 
       const payload: any = { originalUrl };
       if (customCode.trim()) payload.shortCode = customCode.trim();
-      if (expiresAt) payload.expiresAt = expiresAt;
+      if (expiresAt) {
+        payload.expiresAt = new Date(expiresAt).toISOString();
+      }
 
       const res = await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/shortlink/shortlinks`,
@@ -43,11 +65,11 @@ export default function CreateShortLink() {
       const newShortUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/s/${res.data.data.shortCode}`;
       setShortUrl(newShortUrl);
 
-      // Auto copy to clipboard
+      // 📋 Auto copy to clipboard
       await navigator.clipboard.writeText(newShortUrl);
       setCopied(true);
 
-      // Tampilkan modal
+      // 💬 Tampilkan modal sukses
       setShowModal(true);
     } catch (err: any) {
       setError(err.response?.data?.message || "Gagal membuat short link");
@@ -85,7 +107,7 @@ export default function CreateShortLink() {
           </label>
           <input
             type="text"
-            placeholder="Contoh: kelas-ml"
+            placeholder="Contoh: kelas-ml (6-40 karakter, Char yang diperbolehkan: Huruf, Angka, - (dash), dan _(underscore))"
             value={customCode}
             onChange={(e) => setCustomCode(e.target.value)}
             className="border rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
