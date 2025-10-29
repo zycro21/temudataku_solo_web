@@ -412,7 +412,7 @@ export const getPaymentsByUser = async ({
         createdAt: Date | null;
         booking?: {
           mentoringService?: {
-            title?: string;
+            serviceName?: string;
           } | null;
         } | null;
         practicePurchase?: {
@@ -432,7 +432,7 @@ export const getPaymentsByUser = async ({
       id: p.id,
       type: isBooking ? "booking" : "practice",
       title: isBooking
-        ? p.booking?.mentoringService?.title
+        ? p.booking?.mentoringService?.serviceName
         : p.practicePurchase?.practice?.title,
       amount: p.amount,
       status: p.status,
