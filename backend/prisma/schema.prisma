@@ -586,7 +586,7 @@ model UserActivityLog {
   durationSec  Int       @default(0)
   accessedAt   DateTime  @default(now())
 
-  user         User      @relation(fields: [userId], references: [id])
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_activity_logs")
 }
