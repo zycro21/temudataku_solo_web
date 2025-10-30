@@ -87,8 +87,8 @@ export default function ShortlinkLoginPage() {
           {/* Left image */}
           <div className="hidden md:block">
             <Image
-              src="/images/image.svg"
-              alt="Shortlink Illustration"
+              src="/assets/auth/ilustration.svg"
+              alt="3D Robot Illustration"
               width={500}
               height={500}
               className="rounded-lg"
