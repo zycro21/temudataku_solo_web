@@ -137,3 +137,19 @@ export const PublicMentoringServiceIdParamSchema = z.object({
     id: z.string().min(1, "Service ID is required"),
   }),
 });
+
+export const getNewServicesSchema = z.object({
+  query: z.object({
+    page: z
+      .string()
+      .regex(/^\d+$/, "Page harus berupa angka")
+      .transform(Number)
+      .default("1"),
+    limit: z
+      .string()
+      .regex(/^\d+$/, "Limit harus berupa angka")
+      .transform(Number)
+      .default("10"),
+    search: z.string().optional(),
+  }),
+});

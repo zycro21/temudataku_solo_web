@@ -10,6 +10,7 @@ import {
   getMentoringServiceDetailValidatorSchema,
   PublicMentoringServiceQuery,
   PublicMentoringServiceIdParamSchema,
+  getNewServicesSchema,
 } from "../validations/mentor_service.validation.js";
 import { validate } from "../middlewares/validate.js";
 import { authenticate } from "../middlewares/authenticate.js";
@@ -1130,6 +1131,77 @@ router.get(
   "/public-mentoring-services/:id",
   validate(PublicMentoringServiceIdParamSchema),
   MentorServiceController.getPublicMentoringServiceDetailController
+);
+
+/**
+ * @swagger
+ * /api/mentorService/new-services:
+ *   get:
+ *     summary: Mendapatkan daftar layanan baru yang belum pernah dibeli atau dibooking oleh mentee
+ *     description: >
+ *       Endpoint ini mengembalikan gabungan **MentoringService** dan **Practice** yang belum pernah dibeli (dari `practice_purchases`) atau dibooking (dari `bookings`) oleh mentee yang sedang login.
+ *       <br>Digunakan untuk menampilkan rekomendasi layanan baru di homepage.
+ *     tags: [Homepage]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Nomor halaman.
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 10
+ *         description: Jumlah item per halaman.
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Filter berdasarkan nama service atau practice.
+ *     responses:
+ *       200:
+ *         description: Daftar layanan baru yang belum pernah dibeli/dibooking.
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: "Berhasil mengambil daftar layanan baru."
+ *               data:
+ *                 data:
+ *                   - type: "mentoring"
+ *                     id: "svc-001"
+ *                     title: "Mentoring UI/UX Design"
+ *                     description: "Belajar membuat tampilan aplikasi yang menarik."
+ *                     price: 300000
+ *                     durationDays: 7
+ *                   - type: "practice"
+ *                     id: "prac-002"
+ *                     title: "Fullstack Challenge"
+ *                     description: "Bangun aplikasi CRUD end-to-end."
+ *                     price: 150000
+ *                 pagination:
+ *                   page: 1
+ *                   limit: 10
+ *                   total: 2
+ *                   totalPages: 1
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             example:
+ *               message: "Unauthorized. User ID not found."
+ */
+router.get(
+  "/new-services",
+  authenticate,
+  validate(getNewServicesSchema),
+  MentorServiceController.getNewServicesController
 );
 
 export default router;

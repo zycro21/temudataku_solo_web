@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Sidebar from "@/components/dashboard/user/sidebarDashboardUser";
 import DashboardHeader from "@/components/dashboard/user/dashboardHeader";
 import EventFilters from "@/components/dashboard/user/event/eventFilters";
 import EventSection from "@/components/dashboard/user/event/eventSection";
 import { Ban } from "lucide-react";
 import Link from "next/link";
+import axios from "axios";
 
 export interface EventItem {
   id: string;
@@ -18,61 +19,110 @@ export interface EventItem {
   schedule: string;
   location: string;
   image: string;
+  type: "practice" | "mentoring";
 }
 
 const VALID_CATEGORIES = ["Berbayar", "Gratis"] as const;
 export type Category = (typeof VALID_CATEGORIES)[number] | "Semua";
 
+// 🔹 Helper untuk format tanggal (bisa fleksibel karena format di API tidak seragam)
+const formatDate = (dateStr: string | null): string => {
+  if (!dateStr) return "Jadwal Menyusul"; // 🔹 ubah dari TBA ke Jadwal Menyusul
+  try {
+    const parsed =
+      dateStr.includes("T") || dateStr.includes("-")
+        ? new Date(dateStr)
+        : new Date(dateStr.replace(/(\d{2})-(\d{2})-(\d{4})/, "$3-$2-$1"));
+
+    if (isNaN(parsed.getTime())) return "Jadwal Menyusul";
+
+    return parsed.toLocaleDateString("id-ID", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return "Jadwal Menyusul";
+  }
+};
+
 export default function EventDashboardUserPage() {
   const [categoryFilter, setCategoryFilter] = useState<Category>("Semua");
   const [searchQuery, setSearchQuery] = useState("");
+  const [events, setEvents] = useState<EventItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // 🔑 type guard agar TS yakin category valid
-  const isValidCategory = (
-    cat: string
-  ): cat is (typeof VALID_CATEGORIES)[number] =>
-    (VALID_CATEGORIES as readonly string[]).includes(cat);
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        setLoading(true);
 
-  // Dummy data event
-  const allEvents: EventItem[] = [
-    {
-      id: "1",
-      title: "How To Become Data Scientist",
-      description:
-        "Ingin memulai karir di bidang data science tapi tidak tahu harus mulai dari mana? Webinar ini hadir untuk membantu kamu memahami langkah-langkah konkret menjadi seorang Data Scientist!",
-      category: "Berbayar",
-      dateStart: "05 Maret 2025",
-      dateEnd: "10 Maret 2025",
-      schedule: "12 Maret 2025",
-      location: "Zoom Meeting",
-      image: "",
-    },
-    {
-      id: "2",
-      title: "How To Become Data Scientist",
-      description:
-        "Ingin memulai karir di bidang data science tapi tidak tahu harus mulai dari mana? Webinar ini hadir untuk membantu kamu memahami langkah-langkah konkret menjadi seorang Data Scientist!",
-      category: "Gratis",
-      dateStart: "05 Maret 2025",
-      dateEnd: "10 Maret 2025",
-      schedule: "12 Maret 2025",
-      location: "Zoom Meeting",
-      image: "",
-    },
-  ].filter((e): e is EventItem => isValidCategory(e.category));
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentorService/new-services?page=1&limit=9`,
+          {
+            withCredentials: true,
+          }
+        );
 
-  // Filter data
+        const fetched = res.data.data.data;
+
+        // Map hasil API ke EventItem[]
+        const mapped: EventItem[] = fetched.map((item: any) => ({
+          id: item.id,
+          title: item.title,
+          description: item.description ?? "-",
+          category: Number(item.price) === 0 ? "Gratis" : "Berbayar",
+          dateStart: formatDate(item.dateStart),
+          dateEnd: formatDate(item.dateEnd),
+          schedule: item.schedule ?? "TBA",
+          location:
+            item.type === "mentoring"
+              ? `Online Mentoring (${item.serviceType ?? "General"})`
+              : "Online Practice",
+          image: "/assets/dashboard/user/kokok.png",
+          type: item.type
+        }));
+
+        setEvents(mapped);
+      } catch (error: any) {
+        console.error("Gagal mengambil data event:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEvents();
+  }, []);
+
+  // Filter kategori + pencarian
   const filteredEvents = useMemo(() => {
-    return allEvents.filter((e) => {
+    const now = new Date();
+
+    return events.filter((e) => {
+      // 🔹 Filter kategori & pencarian
       const matchCategory =
         categoryFilter === "Semua" || e.category === categoryFilter;
       const matchSearch =
         searchQuery === "" ||
         e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         e.description.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchCategory && matchSearch;
+
+      // Konversi kembali dateStart untuk filter waktu
+      const rawDateStart = e.dateStart?.toLowerCase().includes("jadwal")
+        ? null
+        : new Date(e.dateStart);
+      const rawDateEnd = e.dateEnd?.toLowerCase().includes("jadwal")
+        ? null
+        : new Date(e.dateEnd);
+
+      const isUpcoming =
+        !rawDateStart || isNaN(rawDateStart.getTime()) // jadwal menyusul
+          ? true
+          : rawDateStart >= now; // hanya event yang belum lewat
+
+      return matchCategory && matchSearch && isUpcoming;
     });
-  }, [allEvents, categoryFilter, searchQuery]);
+  }, [events, categoryFilter, searchQuery]);
 
   const isEmpty = filteredEvents.length === 0;
 
@@ -84,7 +134,6 @@ export default function EventDashboardUserPage() {
         <main className="flex-1 p-6 pl-7 bg-gray-50 overflow-x-hidden">
           <h1 className="text-3xl font-semibold text-gray-800 mb-6">Event</h1>
 
-          {/* Filter Section */}
           <EventFilters
             categoryFilter={categoryFilter}
             searchQuery={searchQuery}
@@ -92,8 +141,11 @@ export default function EventDashboardUserPage() {
             onSearchChange={setSearchQuery}
           />
 
-          {/* Jika kosong → fallback */}
-          {isEmpty ? (
+          {loading ? (
+            <div className="flex justify-center py-20 text-gray-500">
+              Memuat event...
+            </div>
+          ) : isEmpty ? (
             <div className="flex flex-col items-center justify-center text-center py-20">
               <Ban className="w-16 h-16 text-gray-300 mb-4" />
               <h3 className="text-gray-700 font-semibold mb-1">

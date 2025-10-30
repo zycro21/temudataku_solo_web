@@ -995,3 +995,153 @@ export const getPublicMentoringServiceDetail = async (id: string) => {
       })),
   };
 };
+
+export const getNewServices = async (
+  userId: string,
+  {
+    page,
+    limit,
+    search,
+  }: {
+    page: number;
+    limit: number;
+    search?: string;
+  }
+) => {
+  const skip = (page - 1) * limit;
+
+  // 🔹 Ambil semua practiceId & mentoringServiceId yang sudah dibeli/dibooking
+  const purchasedPractices = await prisma.practicePurchase.findMany({
+    where: { userId },
+    select: { practiceId: true },
+  });
+
+  const bookedServices = await prisma.booking.findMany({
+    where: { menteeId: userId },
+    select: { mentoringServiceId: true },
+  });
+
+  const purchasedPracticeIds = purchasedPractices.map((p) => p.practiceId);
+  const bookedServiceIds = bookedServices.map((b) => b.mentoringServiceId);
+
+  // ======================================================
+  // 🔹 Ambil MentoringService
+  // ======================================================
+  const mentoringWhere: Prisma.MentoringServiceWhereInput = {
+    isActive: true,
+    id: { notIn: bookedServiceIds },
+    serviceType: { in: ["bootcamp", "shortclass", "live class"] },
+    ...(search && {
+      serviceName: { contains: search, mode: "insensitive" },
+    }),
+  };
+
+  const mentoringServices = await prisma.mentoringService.findMany({
+    where: mentoringWhere,
+    select: {
+      id: true,
+      serviceName: true,
+      description: true,
+      price: true,
+      durationDays: true,
+      benefits: true,
+      serviceType: true,
+      createdAt: true,
+      mentoringSessions: {
+        select: { date: true },
+        orderBy: { date: "asc" },
+      },
+    },
+  });
+
+  // ======================================================
+  // 🔹 Ambil Practice
+  // ======================================================
+  const practiceWhere: Prisma.PracticeWhereInput = {
+    isActive: true,
+    id: { notIn: purchasedPracticeIds },
+    ...(search && {
+      title: { contains: search, mode: "insensitive" },
+    }),
+  };
+
+  const practices = await prisma.practice.findMany({
+    where: practiceWhere,
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      price: true,
+      category: true,
+      mentorId: true,
+      createdAt: true,
+    },
+  });
+
+  // ======================================================
+  // 🔹 Gabungkan dan mapping hasil
+  // ======================================================
+
+  const mentoringMapped = mentoringServices.map((m) => {
+    let dateStart: string | null = null;
+    let dateEnd: string | null = null;
+
+    if (m.mentoringSessions.length > 0) {
+      const first = m.mentoringSessions[0].date;
+      const last = m.mentoringSessions[m.mentoringSessions.length - 1].date;
+      dateStart = first;
+      dateEnd = last;
+    }
+
+    return {
+      type: "mentoring",
+      id: m.id,
+      title: m.serviceName,
+      description: m.description ?? "-",
+      price: m.price,
+      durationDays: m.durationDays,
+      benefits: m.benefits,
+      serviceType: m.serviceType,
+      dateStart: dateStart ?? null,
+      dateEnd: dateEnd ?? dateStart ?? null,
+      schedule: "Online",
+      createdAt: m.createdAt,
+    };
+  });
+
+  const practiceMapped = practices.map((p) => ({
+    type: "practice",
+    id: p.id,
+    title: p.title,
+    description: p.description ?? "-",
+    price: p.price,
+    category: p.category,
+    mentorId: p.mentorId,
+    dateStart: p.createdAt?.toISOString() ?? null,
+    dateEnd: p.createdAt?.toISOString() ?? null,
+    schedule: "Tugas Online",
+    createdAt: p.createdAt,
+  }));
+
+  // ======================================================
+  // 🔹 Gabung semua dan sorting
+  // ======================================================
+  const combined = [...mentoringMapped, ...practiceMapped].sort((a, b) => {
+    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return dateB - dateA;
+  });
+
+  const total = combined.length;
+  const paginated = combined.slice(skip, skip + limit);
+
+  return {
+    data: paginated,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};

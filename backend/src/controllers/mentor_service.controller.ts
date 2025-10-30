@@ -10,7 +10,7 @@ const prisma = new PrismaClient();
 export const createMentoringServiceController = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction  
+  next: NextFunction
 ) => {
   try {
     const input = req.validatedBody ?? req.body;
@@ -332,6 +332,39 @@ export const getPublicMentoringServiceDetailController = async (
     res.status(200).json({ data });
   } catch (error) {
     console.error("Error in getPublicMentoringServiceDetailController:", error);
+    next(error);
+  }
+};
+
+export const getNewServicesController = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+
+    // Konversi ke number di sini
+    const { page = "1", limit = "10", search } = req.validatedQuery || {};
+    const parsedPage = Number(page);
+    const parsedLimit = Number(limit);
+
+    // Panggil service dengan tipe sesuai definisi
+    const result = await MentorServiceService.getNewServices(req.user.userId, {
+      page: parsedPage,
+      limit: parsedLimit,
+      search,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Berhasil mengambil daftar layanan baru.",
+      data: result,
+    });
+  } catch (error) {
     next(error);
   }
 };

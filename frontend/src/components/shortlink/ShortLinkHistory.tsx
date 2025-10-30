@@ -13,7 +13,7 @@ export default function ShortLinkHistory() {
   const itemsPerPage = 10; // jumlah baris per halaman
 
   useEffect(() => {
-    // 🔁 interceptor untuk tangkap 401
+    // interceptor untuk tangkap 401
     const interceptor = axios.interceptors.response.use(
       (response) => response,
       (error) => {

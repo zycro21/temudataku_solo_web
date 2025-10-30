@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { useRouter } from "next/navigation"; // ✅ Tambahkan ini
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Calendar, MapPin } from "lucide-react";
 import type { EventItem } from "@/app/dashboard/user/event/page";
@@ -30,6 +31,18 @@ export default function EventSection({ events }: EventSectionProps) {
 
 function EventCard({ event }: { event: EventItem }) {
   const [showFull, setShowFull] = useState(false);
+  const router = useRouter(); // untuk navigasi
+
+  //  Fungsi ketika tombol Daftar diklik
+  const handleDaftar = () => {
+    if (event.type === "practice") {
+      router.push("/practice");
+    } else if (event.type === "mentoring") {
+      router.push("/mentoring");
+    } else {
+      console.warn("Tipe event tidak dikenali:", event.type);
+    }
+  };
 
   return (
     <Card className="p-0 overflow-hidden flex flex-col justify-between">
@@ -83,7 +96,7 @@ function EventCard({ event }: { event: EventItem }) {
             <div className="flex items-center gap-2 mb-1">
               <Calendar className="w-4 h-4 text-black" />
               <span>Dari</span>
-              <span className="ml-30">Sampai</span>
+              <span className="ml-35">Sampai</span>
             </div>
             <div className="flex items-center gap-14 ml-6">
               <span className="text-gray-800 font-semibold">
@@ -120,7 +133,10 @@ function EventCard({ event }: { event: EventItem }) {
 
       {/* Footer */}
       <CardFooter className="flex px-5 pb-6 w-full">
-        <button className="w-full text-center px-3 py-2 text-sm font-medium rounded-md bg-emerald-500 text-white hover:bg-emerald-600 transition cursor-pointer">
+        <button
+          onClick={handleDaftar}
+          className="w-full text-center px-3 py-2 text-sm font-medium rounded-md bg-emerald-500 text-white hover:bg-emerald-600 transition cursor-pointer"
+        >
           Daftar
         </button>
       </CardFooter>
