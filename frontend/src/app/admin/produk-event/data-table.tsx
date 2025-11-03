@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Project } from "./columns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
+import Image from "next/image";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -213,7 +214,7 @@ export function DataTable<TData extends Project, TValue>({ columns, data }: Data
                     <label className="text-sm font-medium text-gray-600 block mb-2">Foto Produk Atau Event</label>
                     <div className="w-full h-48 bg-gray-200 rounded-lg overflow-hidden">
                       {selectedProduct.foto ? (
-                        <img src={selectedProduct.foto} alt={selectedProduct.nama} className="w-full h-full object-cover" />
+                        <Image src={selectedProduct.foto} alt={selectedProduct.nama} width={400} height={250} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full bg-gray-300 flex items-center justify-center">
                           <span className="text-gray-500">Product Image</span>
@@ -336,7 +337,7 @@ export function DataTable<TData extends Project, TValue>({ columns, data }: Data
                   <div className="border-2 border-dashed border-green-300 bg-green-50 rounded-lg p-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4">
-                        <img src={editFormData.foto} alt="foto" className="w-16 h-16 rounded object-cover bg-gray-300" />
+                        <Image src={editFormData.foto} alt="foto" width={64} height={64} className="w-16 h-16 rounded object-cover bg-gray-300" />
                         <div>
                           <p className="font-medium text-gray-900">File Berhasil Diupload</p>
                           <p className="text-sm text-gray-600">foto_produk.jpg</p>
@@ -360,12 +361,18 @@ export function DataTable<TData extends Project, TValue>({ columns, data }: Data
 
                   <div>
                     <label className="text-sm font-medium text-gray-900 block mb-2">Kategori Produk</label>
-                    <select value={editFormData.bootcamp} onChange={(e) => setEditFormData({ ...editFormData, bootcamp: e.target.value })} className="w-full border rounded-lg px-3 py-2 text-sm">
-                      <option>Mentoring</option>
-                      <option>Practice</option>
-                      <option>Bootcamp</option>
-                      <option>Event</option>
-                    </select>
+                    <Select value={editFormData.bootcamp} onValueChange={(value) => setEditFormData({ ...editFormData, bootcamp: value })}>
+                      <SelectTrigger className="w-full rounded-lg">
+                        <SelectValue placeholder="Pilih kategori bootcamp" />
+                      </SelectTrigger>
+
+                      <SelectContent>
+                        <SelectItem value="Mentoring">Mentoring</SelectItem>
+                        <SelectItem value="Practice">Practice</SelectItem>
+                        <SelectItem value="Bootcamp">Bootcamp</SelectItem>
+                        <SelectItem value="Event">Event</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
@@ -395,10 +402,16 @@ export function DataTable<TData extends Project, TValue>({ columns, data }: Data
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-900 block mb-2">Status</label>
-                    <select value={editFormData.status} onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })} className="w-full border rounded-lg px-3 py-2 text-sm">
-                      <option>Aktif</option>
-                      <option>Non Aktif</option>
-                    </select>
+                    <Select value={editFormData.status} onValueChange={(value) => setEditFormData({ ...editFormData, status: value })}>
+                      <SelectTrigger className="w-full rounded-lg">
+                        <SelectValue placeholder="Pilih status" />
+                      </SelectTrigger>
+
+                      <SelectContent>
+                        <SelectItem value="Aktif">Aktif</SelectItem>
+                        <SelectItem value="Non Aktif">Non Aktif</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
