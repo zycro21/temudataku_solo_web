@@ -5,10 +5,10 @@ import { FileText, Download, Clock, CheckCircle, Eye, Plus } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-import { DataTable as DataTableSertifikatTerbit } from "./history/sertifikat-terbit/data-table";
-import { DataTable as DataTableSertifikatMentee } from "./history/sertifkat-mentee/data-table";
-import { columns as columnsSertifikatTerbit, PublishedCertificate } from "./history/sertifikat-terbit/columns";
-import { columnsMentee, MenteeCertificate } from "./history/sertifkat-mentee/columns";
+import { DataTable as DataTableSertifikatTerbit } from "./sertifikat-terbit/data-table";
+import { DataTable as DataTableSertifikatMentee } from "./sertifikat-mentee/data-table";
+import { columns as columnsSertifikatTerbit, PublishedCertificate } from "./sertifikat-terbit/columns";
+import { columnsMentee, MenteeCertificate } from "./sertifikat-mentee/columns";
 export default function AdminMentorPage() {
   const publishedCertificates: PublishedCertificate[] = [
     {
