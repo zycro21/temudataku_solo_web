@@ -62,7 +62,7 @@ export default function CreateShortLink() {
         { withCredentials: true }
       );
 
-      const newShortUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/s/${res.data.data.shortCode}`;
+      const newShortUrl = `${process.env.NEXT_PUBLIC_SHORTLINK_BASE_URL}/s/${res.data.data.shortCode}`;
       setShortUrl(newShortUrl);
 
       // 📋 Auto copy to clipboard
