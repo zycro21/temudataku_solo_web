@@ -12,8 +12,6 @@ export default function ShortLinkHistory() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10; // jumlah baris per halaman
 
-  console.log("ENV_CHECK >>>", process.env.NEXT_PUBLIC_SHORTLINK_BASE_URL);
-
   useEffect(() => {
     // interceptor untuk tangkap 401
     const interceptor = axios.interceptors.response.use(
