@@ -231,7 +231,7 @@ export interface AuthenticatedRequestPractice extends Request {
     isCompleted?: boolean;
     timeSpentSeconds?: number;
     lastAccessed?: Date; // Mendukung input yyyy-mm-dd
-    
+
     // Practice Submission
     notes?: string;
     files?: string[];
@@ -422,6 +422,115 @@ export interface AuthenticatedRequestShortLink extends Request {
     sort_by?: "createdAt" | "clickCount" | "expiresAt";
     order?: "asc" | "desc";
   };
+}
+
+export interface AuthenticatedRequestElearning extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+  };
+  validatedBody?: {
+    mentorId?: string;
+    title?: string;
+    description?: string;
+    thumbnailImages?: string[];
+    price?: number;
+    category?: string;
+    tags?: string[];
+    targetAudience?: string;
+    level?: string;
+    estimatedDuration?: string;
+    benefits?: string;
+    toolsUsed?: string;
+    isActive?: boolean;
+  };
+  validatedParams?: any;
+  validatedQuery?: any;
+  file?: Express.Multer.File;
+}
+
+export interface AuthenticatedRequestSubChapter extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+  };
+  validatedBody?: {
+    title: string;
+    description?: string;
+    orderNumber: number;
+    estimatedTime?: string;
+  };
+  validatedParams?: {
+    id?: string;
+    courseId?: string;
+  };
+  validatedQuery?: any;
+}
+
+interface ReorderBody {
+  newOrder: string[];
+}
+
+export interface AuthenticatedRequestReorderSubChapter extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+  };
+  validatedBody?: ReorderBody;
+  validatedParams?: { courseId?: string };
+}
+
+export interface AuthenticatedRequestDuplicateSubChapter extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+  };
+  validatedBody?: {
+    targetCourseId: string;
+  };
+  validatedParams?: {
+    id?: string;
+  };
+}
+
+export interface AuthenticatedRequestSubBab extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+  };
+  validatedBody?: {
+    title?: string;
+    estimatedTime?: string;
+    orderNumber?: number;
+    // Untuk duplikasi
+    targetSubChapterId?: string;
+    newTitle?: string;
+    // Tambahan untuk reorder
+    updates?: {
+      subBabId: string;
+      newOrderNumber: number;
+    }[];
+  };
+  validatedParams?: {
+    id?: string;
+    subChapterId?: string;
+  };
+  validatedQuery?: any;
 }
 
 export const authenticate = (

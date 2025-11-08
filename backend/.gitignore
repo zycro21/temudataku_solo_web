@@ -19,3 +19,5 @@ images/*
 !images/thumbnailPractice/
 images/thumbnailPractice/*
 !images/thumbnailPractice/.gitkeep
+images/elearningThumbnail/*
+!images/elearningThumbnail/.gitkeep

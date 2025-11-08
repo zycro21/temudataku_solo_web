@@ -95,6 +95,300 @@ model ExportLog {
   @@map("export_logs")
 }
 
+model ELearningCourse {
+  id                String              @id @default(cuid())
+  mentorId          String              @map("mentor_id")
+  title             String              @db.VarChar
+  description       String?
+  thumbnailImages   String[]            @db.VarChar @map("thumbnail_images")
+  price             Decimal             @db.Decimal
+  category          String?             @db.VarChar
+  tags              String[]            @db.VarChar
+  targetAudience    String?             @db.VarChar
+  level             String?             @db.VarChar // Beginner, Intermediate, Advanced
+  estimatedDuration String?             @db.VarChar
+  benefits          String?
+  toolsUsed         String?
+  isActive          Boolean?            @default(true) @map("is_active")
+  createdAt         DateTime?           @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt         DateTime?           @db.Timestamp(6) @map("updated_at")
+
+  // Relations
+  mentorProfile     MentorProfile       @relation("MentorCourses", fields: [mentorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  subChapters       ELearningSubChapter[]
+  purchases         ELearningPurchase[]
+  reviews           ELearningReview[]
+  certificates      ELearningCertificate[]
+  discussions       ELearningDiscussion[]
+
+  @@map("e_learning_courses")
+}
+
+model ELearningSubChapter {
+  id              String            @id @default(cuid())
+  courseId        String            @map("course_id")
+  title           String            @db.VarChar
+  description     String?
+  orderNumber     Int               @map("order_number")
+  estimatedTime   String?           @db.VarChar
+  createdAt       DateTime?         @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt       DateTime?         @db.Timestamp(6) @map("updated_at")
+
+  // Relations
+  course          ELearningCourse   @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  subBabs         ELearningSubBab[]
+
+  @@map("e_learning_sub_chapters")
+}
+
+model ELearningSubBab {
+  id              String            @id @default(cuid())
+  subChapterId    String            @map("sub_chapter_id")
+  title           String            @db.VarChar
+  orderNumber     Int?
+  estimatedTime   String?           @db.VarChar
+  createdAt       DateTime?         @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt       DateTime?         @db.Timestamp(6) @map("updated_at")
+
+  // Relations
+  subChapter      ELearningSubChapter @relation(fields: [subChapterId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  videos          ELearningVideo[]
+  texts           ELearningText[]      // deskripsi/penjelasan materi
+  quiz            ELearningQuiz?
+  assignment      ELearningAssignment?
+  progresses      ELearningProgress[]
+  bookmarks       ELearningBookmark[]
+
+  @@map("e_learning_sub_babs")
+}
+
+// Tabel baru untuk menyimpan teks/penjelasan materi per SubBab
+model ELearningText {
+  id           String          @id @default(cuid())
+  subBabId     String          @map("sub_bab_id")
+  title        String?         @db.VarChar
+  textContent  String          @db.Text
+  orderNumber  Int?
+  createdAt    DateTime?       @default(now())
+  updatedAt    DateTime?       @default(now()) @db.Timestamp(6)
+
+  subBab       ELearningSubBab @relation(fields: [subBabId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("e_learning_texts")
+}
+
+model ELearningVideo {
+  id               String              @id @default(cuid())
+  subBabId         String              @map("sub_bab_id")
+  title            String              @db.VarChar
+  videoUrl         String              @db.VarChar
+  durationSeconds  Int?
+  orderNumber      Int?
+  isPreview        Boolean?            @default(false)
+  createdAt        DateTime?           @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt        DateTime?           @db.Timestamp(6) @map("updated_at")
+
+  subBab           ELearningSubBab     @relation(fields: [subBabId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("e_learning_videos")
+}
+
+model ELearningQuiz {
+  id               String              @id @default(cuid())
+  subBabId         String              @unique @map("sub_bab_id")
+  title            String              @db.VarChar
+  description      String?
+  totalQuestions   Int?
+  timeLimitMinutes Int?
+  createdAt        DateTime?           @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt        DateTime?           @db.Timestamp(6) @map("updated_at")
+
+  subBab           ELearningSubBab     @relation(fields: [subBabId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  questions        ELearningQuestion[]
+  quizAttempts     ELearningQuizAttempt[]
+
+  @@map("e_learning_quizzes")
+}
+
+model ELearningQuestion {
+  id              String            @id @default(cuid())
+  quizId          String            @map("quiz_id")
+  questionText    String            @db.Text
+  options         String[]          @db.VarChar
+  correctAnswer   String            @db.VarChar
+  explanation     String?
+  orderNumber     Int?
+  createdAt       DateTime?         @default(now())
+
+  quiz            ELearningQuiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@map("e_learning_questions")
+}
+
+model ELearningQuizAttempt {
+  id              String             @id @default(cuid())
+  quizId          String             @map("quiz_id")
+  userId          String             @map("user_id")
+  score           Int?
+  startedAt       DateTime?          @default(now())
+  completedAt     DateTime?
+  answers         Json?              @db.JsonB
+
+  // tambahan
+  isAutoGraded    Boolean?           @default(true)
+  gradedBy        String?            @map("graded_by")
+  gradedAt        DateTime?
+  remarks         String?            // catatan dari mentor kalau ada review manual
+
+  quiz            ELearningQuiz      @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([quizId, userId])
+  @@map("e_learning_quiz_attempts")
+}
+
+model ELearningAssignment {
+  id               String              @id @default(cuid())
+  subBabId         String              @unique @map("sub_bab_id")
+  title            String              @db.VarChar
+  description      String?
+  dueDays          Int?
+  createdAt        DateTime?           @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt        DateTime?           @db.Timestamp(6) @map("updated_at")
+
+  subBab           ELearningSubBab     @relation(fields: [subBabId], references: [id], onDelete: Cascade)
+  submissions      ELearningSubmission[]
+
+  @@map("e_learning_assignments")
+}
+
+model ELearningSubmission {
+  id              String                    @id @default(cuid())
+  assignmentId    String                    @map("assignment_id")
+  userId          String                    @map("user_id")
+  notes           String?
+  files           String[]                  @db.VarChar
+  submittedAt     DateTime?                 @default(now())
+  status          ELearningSubmissionStatus @default(PENDING)
+  reviewedById    String?                   @map("reviewed_by_id")
+  reviewedAt      DateTime?
+
+  feedback        String?
+  score           Int?
+
+  // tambahan
+  gradeBreakdown      Json?     @db.JsonB // contoh: {"content":8,"structure":9,"creativity":7}
+  isRevisionRequired  Boolean?  @default(false)
+  revisionDeadline     DateTime?
+
+  assignment      ELearningAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  user            User                @relation("ELearningSubmittedBy", fields: [userId], references: [id])
+  reviewer        User?               @relation("ELearningReviewedBy", fields: [reviewedById], references: [id])
+
+  @@unique([assignmentId, userId])
+  @@map("e_learning_submissions")
+}
+
+enum ELearningSubmissionStatus {
+  PENDING
+  REVIEWED
+  REVISION_REQUIRED
+  APPROVED
+  REJECTED
+}
+
+model ELearningPurchase {
+  id               String            @id @default(cuid())
+  userId           String
+  courseId         String
+  referralUsageId  String?           @unique
+  purchaseDate     DateTime?         @default(now())
+  status           String?           @db.VarChar
+  createdAt        DateTime?         @default(now())
+  updatedAt        DateTime?
+
+  // Relations
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course           ELearningCourse   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  payment          Payment?          @relation("ELearningPurchasePayment")
+  referralUsage    ReferralUsage?    @relation("ReferralUsageELearningPurchase", fields: [referralUsageId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("e_learning_purchases")
+}
+
+model ELearningProgress {
+  id              String             @id @default(cuid())
+  userId          String             @map("user_id")
+  subBabId        String             @map("sub_bab_id")
+  isCompleted     Boolean?           @default(false)
+  lastAccessed    DateTime?
+  timeSpent       Int?               @default(0)
+
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subBab           ELearningSubBab    @relation(fields: [subBabId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, subBabId])
+  @@map("e_learning_progress")
+}
+
+model ELearningReview {
+  id              String             @id @default(cuid())
+  userId          String             @map("user_id")
+  courseId        String             @map("course_id")
+  rating          Int
+  comment         String?
+  createdAt       DateTime?          @default(now())
+
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course          ELearningCourse    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@map("e_learning_reviews")
+}
+
+model ELearningCertificate {
+  id          String   @id @default(cuid())
+  courseId    String   @map("course_id")
+  userId      String   @map("user_id")
+  certificateUrl String @db.VarChar
+  issuedAt    DateTime? @default(now())
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course      ELearningCourse @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@map("e_learning_certificates")
+}
+
+model ELearningDiscussion {
+  id            String   @id @default(cuid())
+  courseId      String   @map("course_id")
+  userId        String   @map("user_id")
+  content       String   @db.Text
+  parentId      String?  @map("parent_id") // untuk reply
+  createdAt     DateTime? @default(now())
+
+  course        ELearningCourse @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent        ELearningDiscussion? @relation("ReplyTo", fields: [parentId], references: [id])
+  replies       ELearningDiscussion[] @relation("ReplyTo")
+
+  @@map("e_learning_discussions")
+}
+
+model ELearningBookmark {
+  id            String @id @default(cuid())
+  userId        String @map("user_id")
+  subBabId      String @map("sub_bab_id")
+  createdAt     DateTime? @default(now())
+
+  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subBab        ELearningSubBab @relation(fields: [subBabId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, subBabId])
+  @@map("e_learning_bookmarks")
+}
+
 model Feedback {
   id               String            @id @default(cuid())
   sessionId        String            @map("session_id")
@@ -133,6 +427,7 @@ model MentorProfile {
   mentoringSessions    MentoringSessionMentor[]
   practices            Practice[]
   reports              MentorReport[]
+  courses              ELearningCourse[]       @relation("MentorCourses")
 
   @@map("mentor_profiles")
 }
@@ -274,6 +569,7 @@ model Payment {
   id                    String              @id @default(cuid())
   bookingId             String?             @unique @map("booking_id")
   practicePurchaseId    String?             @unique @map("practice_purchase_id")
+  eLearningPurchaseId   String?             @unique @map("e_learning_purchase_id")
   amount                Decimal             @db.Decimal
   paymentDate           DateTime?           @db.Timestamp(6) @map("payment_date")
   paymentMethod         String?             @db.VarChar @map("payment_method")
@@ -282,9 +578,10 @@ model Payment {
   createdAt             DateTime?           @default(now()) @db.Timestamp(6) @map("created_at")
   updatedAt             DateTime?           @db.Timestamp(6) @map("updated_at")
 
-  booking               Booking?            @relation("BookingPayment", fields: [bookingId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  practicePurchase      PracticePurchase?   @relation("PracticePurchasePayment", fields: [practicePurchaseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  booking               Booking?             @relation("BookingPayment", fields: [bookingId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  practicePurchase      PracticePurchase?    @relation("PracticePurchasePayment", fields: [practicePurchaseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   bookingParticipants   BookingParticipant[] @relation("ParticipantPayment")
+  eLearningPurchase     ELearningPurchase?   @relation("ELearningPurchasePayment", fields: [eLearningPurchaseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@map("payments")
 }
@@ -545,8 +842,9 @@ model ReferralUsage {
   user             User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   referralCode     ReferralCode       @relation(fields: [referralCodeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   
-  booking          Booking?           @relation("ReferralUsageBooking")
-  practicePurchase PracticePurchase?  @relation("ReferralUsagePracticePurchase")
+  booking               Booking?           @relation("ReferralUsageBooking")
+  practicePurchase      PracticePurchase?  @relation("ReferralUsagePracticePurchase")
+  eLearningPurchase     ELearningPurchase? @relation("ReferralUsageELearningPurchase")
 
   @@unique([userId, referralCodeId])
   @@map("referral_usages")
@@ -663,6 +961,15 @@ model User {
   userRoles                  UserRole[]
   withdrawalMethods          WithdrawalMethod[] 
   shortLinks                 ShortLink[]              @relation("UserShortLinks")
+  eLearningPurchases         ELearningPurchase[]
+  eLearningReviews           ELearningReview[]
+  eLearningProgress          ELearningProgress[]
+  quizAttempts               ELearningQuizAttempt[]
+  eLearningSubmissions         ELearningSubmission[]     @relation("ELearningSubmittedBy")
+  eLearningReviewedSubmissions ELearningSubmission[]     @relation("ELearningReviewedBy") // RENAMED to avoid conflict
+  eLearningCertificates      ELearningCertificate[]
+  eLearningDiscussions       ELearningDiscussion[]
+  eLearningBookmarks         ELearningBookmark[]
 
   @@map("users")
 }

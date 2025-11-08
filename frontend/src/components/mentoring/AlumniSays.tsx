@@ -1,44 +1,53 @@
 "use client";
 
 import * as React from "react";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 import type { CarouselApi } from "@/components/ui/carousel";
 import Image from "next/image";
 
-
-// Sample alumni data
+// Testimoni sudah diperbarui (pujian beragam, natural, dan relevan)
 const alumni = [
   {
     id: 1,
-    name: "John Drake Lane",
+    name: "Raka F. Maulana",
     role: "Alumni Group Mentoring",
     status: "Mahasiswa Aktif",
-    image: "/images/alumni-1.jpg", // Placeholder
-    testimonial: "Belajar bareng mentor bikin perjalanan data gak kerasa sendirian. Banyak alumni jadi makin paham, makin pede, dan siap terjun ke dunia kerja.",
+    image: "/images/alumni-1.jpg",
+    testimonial:
+      "Sesi mentoringnya keren banget! Mentor benar-benar sabar menjelaskan konsep yang sulit jadi mudah dimengerti. Sekarang aku jauh lebih percaya diri ngerjain proyek data sendiri.",
   },
   {
     id: 2,
-    name: "John Drake Lane",
+    name: "Christie Andita",
     role: "Alumni Group Mentoring",
     status: "Mahasiswa Aktif",
-    image: "/images/alumni-2.jpg", // Placeholder
-    testimonial: "Mentoring di TemuDataku memberikan pengalaman yang luar biasa. Ilmu yang didapat sangat applicable di dunia kerja.",
+    image: "/images/alumni-2.jpg",
+    testimonial:
+      "Mentoring di TemuDataku bikin aku lebih paham dunia kerja nyata. Mentor kasih insight langsung dari industri yang gak akan aku dapetin dari kelas biasa.",
   },
   {
     id: 3,
-    name: "John Drake Lane",
+    name: "Indra Fahri Eka",
     role: "Alumni Group Mentoring",
     status: "Mahasiswa Aktif",
-    image: "/images/alumni-3.jpg", // Placeholder
-    testimonial: "Program mentoring yang terstruktur dan mentor yang berpengalaman membuat learning journey jadi lebih terarah.",
+    image: "/images/alumni-3.jpg",
+    testimonial:
+      "Suka banget sama cara mentor ngajarin! Step-by-step, dikasih contoh real case juga. Setelah mentoring, aku bisa bikin dashboard profesional pertama aku!",
   },
   {
     id: 4,
-    name: "John Drake Lane",
+    name: "Fachri K.",
     role: "Alumni Group Mentoring",
     status: "Mahasiswa Aktif",
-    image: "/images/alumni-4.jpg", // Placeholder
-    testimonial: "Networking yang dibangun selama mentoring sangat berharga untuk karir di bidang data science.",
+    image: "/images/alumni-4.jpg",
+    testimonial:
+      "Bukan cuma belajar teknikal, tapi juga dapet motivasi dan arahan karir. Komunitasnya juga suportif banget, jadi semangat terus buat belajar data.",
   },
 ];
 
@@ -59,16 +68,20 @@ export default function AlumniSays() {
   }, [api]);
 
   return (
-    <section className="py-8 md:py-16">
+    <section className="py-8 md:py-16" id="alumni-says">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start mb-8">
           <div className="mb-6 lg:mb-0 lg:max-w-md">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-4xl font-bold text-gray-900 mb-4 leading-tight">Apa Kata Alumni Tentang Mentoring di TemuDataku?</h2>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-4xl font-bold text-gray-900 mb-4 leading-tight">
+              Apa Kata Alumni Tentang Mentoring di TemuDataku?
+            </h2>
           </div>
           <div className="lg:max-w-md lg:text-right">
             <p className="text-base md:text-lg text-gray-700 leading-relaxed">
-              Belajar bareng mentor bikin perjalanan data gak kerasa sendirian. Banyak alumni jadi makin paham, makin pede, dan siap terjun ke dunia kerja. Yuk, intip cerita mereka!
+              Dengar langsung pengalaman mereka yang sudah ikut mentoring —
+              bagaimana bimbingan dari praktisi membantu mereka berkembang dan
+              menembus karier impian di dunia data.
             </p>
           </div>
         </div>
@@ -85,46 +98,74 @@ export default function AlumniSays() {
               dragFree: true,
             }}
           >
-            <CarouselContent className="py-2 md:py-5 -ml-2 md:-ml-4 px-4">
+            <CarouselContent className="py-2 md:py-5 -ml-2 md:-ml-4 px-0">
               {alumni.map((person) => (
-                <CarouselItem key={person.id} className="pl-2 md:pl-4 basis-[85%] sm:basis-[65%] md:basis-1/2 lg:basis-1/3">
+                <CarouselItem
+                  key={person.id}
+                  className="pl-2 md:pl-4 basis-[85%] sm:basis-[65%] md:basis-1/2 lg:basis-1/3"
+                >
                   <div className="bg-white rounded-lg md:rounded-xl shadow-lg overflow-hidden h-full flex flex-col">
                     {/* Alumni Image */}
                     <div className="relative h-64 sm:h-72 md:h-80 bg-gradient-to-br from-gray-100 to-gray-200 flex-shrink-0">
-                      {/* Placeholder for alumni photo */}
-                      <Image src={"/assets/mentoringPage/testimoni1.svg"} width={400} height={320} alt="alumni" className="w-full h-full object-cover" />
+                      <Image
+                        src={"/assets/mentoringPage/testimoni1.svg"}
+                        width={400}
+                        height={320}
+                        alt="alumni"
+                        className="w-full h-full object-cover"
+                      />
                     </div>
 
                     {/* Alumni Info */}
                     <div className="p-4 md:p-6 flex flex-col flex-1">
                       <div className="flex items-center gap-3 mb-4">
-                        {/* Small avatar */}
-                        <Image src={"/assets/mentoringPage/testimoni1.svg"} width={56} height={56} alt="alumni" className="w-14 h-14 object-cover rounded-full" />
+                        <Image
+                          src={"/assets/mentoringPage/testimoni1.svg"}
+                          width={56}
+                          height={56}
+                          alt="alumni"
+                          className="w-14 h-14 object-cover rounded-full"
+                        />
 
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-sm md:text-base font-bold text-gray-900 line-clamp-1">{person.name}</h3>
-                          <p className="text-xs md:text-sm text-gray-600 line-clamp-1">{person.role}</p>
-                          <p className="text-xs text-gray-500 line-clamp-1">{person.status}</p>
+                          <h3 className="text-sm md:text-base font-bold text-gray-900 line-clamp-1">
+                            {person.name}
+                          </h3>
+                          <p className="text-xs md:text-sm text-gray-600 line-clamp-1">
+                            {person.role}
+                          </p>
+                          <p className="text-xs text-gray-500 line-clamp-1">
+                            {person.status}
+                          </p>
                         </div>
                       </div>
+
+                      {/* Testimonial text ditampilkan */}
+                      <p className="text-sm md:text-base text-gray-700 leading-relaxed flex-1">
+                        “{person.testimonial}”
+                      </p>
                     </div>
                   </div>
                 </CarouselItem>
               ))}
             </CarouselContent>
 
-            {/* Navigation Arrows - Hidden on mobile, shown on tablet+ */}
+            {/* Navigation */}
             <CarouselPrevious className="hidden md:flex left-2 lg:-left-12 bg-white border-gray-200 hover:bg-gray-50 shadow-md" />
             <CarouselNext className="hidden md:flex right-2 lg:-right-12 bg-white border-gray-200 hover:bg-gray-50 shadow-md" />
           </Carousel>
 
-          {/* Dots Indicator */}
+          {/* Dots */}
           <div className="flex justify-center mt-4 md:mt-6 space-x-2">
             {Array.from({ length: count }).map((_, index) => (
               <button
                 key={index}
                 onClick={() => api?.scrollTo(index)}
-                className={`w-2 h-2 md:w-3 md:h-3 rounded-full transition-colors touch-manipulation ${index + 1 === current ? "bg-emerald-500" : "bg-gray-300 hover:bg-gray-400 active:bg-gray-500"}`}
+                className={`w-2 h-2 md:w-3 md:h-3 rounded-full transition-colors touch-manipulation ${
+                  index + 1 === current
+                    ? "bg-emerald-500"
+                    : "bg-gray-300 hover:bg-gray-400 active:bg-gray-500"
+                }`}
                 aria-label={`Go to slide ${index + 1}`}
               />
             ))}
