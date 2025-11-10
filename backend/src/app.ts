@@ -26,6 +26,9 @@ import mentorReportRoute from "./routes/mentor_report.route.js";
 import userActivityLog from "./routes/userActivityLog.route.js";
 import practiceSubmissionsRoute from "./routes/practice_submission.route.js";
 import shortLinkRoutes from "./routes/short_link.route.js";
+import elearningCourseRoutes from "./routes/elearning_course.route.js";
+import elearningSubChapterRoutes from "./routes/elearning_subchapter.route.js";
+import elearngingSubBabRoutes from "./routes/elearning_subbab.route.js";
 import { redirectShortCodeController } from "./controllers/short_link.controller.js";
 import "./schedulers/cron.js";
 import { fileURLToPath } from "url";
@@ -79,6 +82,9 @@ app.use("/api/mentorReports", mentorReportRoute);
 app.use("/api/logActivity", userActivityLog);
 app.use("/api/practiceSubmissions", practiceSubmissionsRoute);
 app.use("/api/shortlink", shortLinkRoutes);
+app.use("/api/elearningCourse", elearningCourseRoutes);
+app.use("/api/elearningSubChapter", elearningSubChapterRoutes);
+app.use("/api/elearningSubBab", elearngingSubBabRoutes);
 
 // Path Static untuk Images
 // Perbaikan di sini, mengganti __dirname dengan yang benar menggunakan import.meta.url

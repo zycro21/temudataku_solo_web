@@ -14,6 +14,11 @@ export type Project = {
   ukuranFile: string;
   formatFile: string;
   status: string;
+
+  // Tambahkan field yang digunakan di data-table.tsx
+  mentee?: string;
+  submissionStatus?: string;
+  reviewStatus?: string;
 };
 
 const getStatusBadgeColor = (status: string) => {

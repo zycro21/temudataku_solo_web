@@ -354,3 +354,58 @@ export const handlePracticeSubmissionUpload = (
 
 // Export path final agar bisa dipakai di tempat lain (misal untuk static serve)
 export { finalPracticePath as practiceSubmissionUploadPath };
+
+// === Buat folder penyimpanan untuk thumbnail e-learning ===
+const elearningThumbnailPath = path.join(__dirname, "../../images/elearningThumbnail");
+const normalizedElearningPath = path.normalize(elearningThumbnailPath);
+const correctElearningPath = normalizedElearningPath.replace(/^\\/, "");
+
+if (!fs.existsSync(correctElearningPath)) {
+  fs.mkdirSync(correctElearningPath, { recursive: true });
+}
+
+// === Middleware Upload Thumbnail untuk E-Learning ===
+export const handleElearningThumbnailUpload = (
+  field: string,
+  isMultiple: boolean = true,
+  max: number = 5
+) => {
+  const storage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, correctElearningPath),
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname);
+
+      // Ambil title dari req, fallback ke "untitled"
+      const rawTitle =
+        (req as any).elearningTitle || (req as any).body?.title || "untitled";
+
+      // Sanitasi title agar jadi slug bersih
+      const title = rawTitle
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9\-]/g, "")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
+
+      // Ambil tanggal sekarang (format yyyymmdd)
+      const now = new Date();
+      const dateString = `${now.getFullYear()}${(now.getMonth() + 1)
+        .toString()
+        .padStart(2, "0")}${now.getDate().toString().padStart(2, "0")}`;
+
+      // Generate random string 5 karakter
+      const randomString = Math.random().toString(36).substring(2, 7);
+
+      // Format nama file: thumbnail-elearn-[title]-[date]-[random]
+      const fileName = `thumbnail-elearn-${title}-${dateString}-${randomString}${ext}`;
+
+      cb(null, fileName);
+    },
+  });
+
+  const upload = multer({ storage });
+  return isMultiple ? upload.array(field, max) : upload.single(field);
+};
+
+export { correctElearningPath as elearningThumbnailPath };

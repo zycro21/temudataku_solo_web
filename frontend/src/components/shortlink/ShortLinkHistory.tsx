@@ -100,11 +100,11 @@ export default function ShortLinkHistory() {
                       {/* Short Code */}
                       <td className="py-3 px-4 text-emerald-600 font-medium">
                         <a
-                          href={`${process.env.NEXT_PUBLIC_API_BASE_URL}/s/${link.shortCode}`}
+                          href={`${process.env.NEXT_PUBLIC_SHORTLINK_BASE_URL}/s/${link.shortCode}`}
                           target="_blank"
                           className="underline hover:text-emerald-800"
                         >
-                          {`${process.env.NEXT_PUBLIC_API_BASE_URL}/s/${link.shortCode}`}
+                          {`${process.env.NEXT_PUBLIC_SHORTLINK_BASE_URL}/s/${link.shortCode}`}
                         </a>
                       </td>
 

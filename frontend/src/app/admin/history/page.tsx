@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { FileText, Download, Clock, CheckCircle, Eye, Plus, ChevronDown } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Download, ChevronDown } from "lucide-react";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 import { DataTable as DataTableSertifikatTerbit } from "./history-aktivitas/data-table";
