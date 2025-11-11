@@ -1,107 +1,114 @@
 "use client";
 
-import { useState } from "react";
-import { FileText, Download, Clock, CheckCircle, Eye, Plus } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Download, ChevronDown } from "lucide-react";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-import { DataTable as DataTableSertifikatTerbit } from "./sertifikat-terbit/data-table";
-import { DataTable as DataTableSertifikatMentee } from "./sertifikat-mentee/data-table";
-import { columns as columnsSertifikatTerbit, PublishedCertificate } from "./sertifikat-terbit/columns";
-import { columnsMentee, MenteeCertificate } from "./sertifikat-mentee/columns";
+import { DataTable as DataTableSertifikatTerbit } from "./history-aktivitas/data-table";
+import { DataTable as DataTableSertifikatMentee } from "./login-history/data-table";
+import { columns as columnsSertifikatTerbit, historyAktivitas } from "./history-aktivitas/columns";
+import { columns as columnsMentee, loginHistory } from "./login-history/columns";
 export default function AdminMentorPage() {
-  const publishedCertificates: PublishedCertificate[] = [
+  const historyAktivitas: historyAktivitas[] = [
     {
-      id: "MNTG01",
-      template: "/placeholder.svg?height=40&width=60&text=Template",
-      name: "Sertifikat Kelulusan",
-      program: "Short Class",
+      id: "HA001",
       date: "10-05-2025, 20:00",
+      namaPengguna: "Reza Firmansyah",
+      role: "Admin",
+      aktivitas: "Login ke sistem",
+      ipAddress: "192.168.1.10",
+      status: "berhasil",
     },
     {
-      id: "MNTG02",
-      template: "/placeholder.svg?height=40&width=60&text=Template",
-      name: "Sertifikat Penyelesaian",
-      program: "Live Class",
-      date: "10-05-2025, 20:00",
+      id: "HA002",
+      date: "10-05-2025, 20:05",
+      namaPengguna: "Aulia Rahma",
+      role: "Mentor",
+      aktivitas: "Mengubah data program",
+      ipAddress: "192.168.1.11",
+      status: "berhasil",
+    },
+    {
+      id: "HA003",
+      date: "10-05-2025, 20:10",
+      namaPengguna: "Budi Santoso",
+      role: "Staff",
+      aktivitas: "Gagal menghapus user",
+      ipAddress: "192.168.1.12",
+      status: "gagal",
+    },
+    {
+      id: "HA004",
+      date: "10-05-2025, 20:15",
+      namaPengguna: "Reza Firmansyah",
+      role: "Admin",
+      aktivitas: "Export laporan",
+      ipAddress: "192.168.1.13",
+      status: "berhasil",
     },
   ];
 
-  const menteeCertificates: MenteeCertificate[] = [
+  const loginHistory: loginHistory[] = [
     {
-      id: "MNTG01",
-      mentee: "Jehan Ra",
-      name: "Sertifikat Kelulusan",
-      program: "Short Class",
+      id: "LGN001",
       date: "10-05-2025, 20:00",
+      namaPengguna: "Jehan Ra",
+      role: "Mahasiswa",
+      perangkat: "Chrome / Windows",
+      ipAddress: "192.168.1.10",
+      status: "berhasil",
+      aksi: "Login",
     },
     {
-      id: "MNTG02",
-      mentee: "Galih B",
-      name: "Sertifikat Penyelesaian",
-      program: "Live Class",
-      date: "10-05-2025, 20:00",
+      id: "LGN002",
+      date: "10-05-2025, 20:10",
+      namaPengguna: "Galih B",
+      role: "Mentor",
+      perangkat: "Safari / MacOS",
+      ipAddress: "192.168.1.22",
+      status: "gagal",
+      aksi: "Login",
+    },
+    {
+      id: "LGN003",
+      date: "10-05-2025, 20:15",
+      namaPengguna: "Rahma S",
+      role: "Admin",
+      perangkat: "Firefox / Linux",
+      ipAddress: "192.168.1.55",
+      status: "berhasil",
+      aksi: "Logout",
     },
   ];
-
-  const stats = [{ title: "Jumlah Sertifikat Terbit", value: "5", icon: FileText, color: "text-gray-900" }];
 
   return (
     <>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Project</h1>
-          <p className="text-gray-600">Project</p>
+          <h1 className="text-2xl font-bold text-gray-900">History & Security</h1>
+          <div className="flex items-center space-x-2 text-sm text-gray-600 mt-1">
+            <span>History & Event</span>
+            <ChevronDown className="w-4 h-4 -rotate-90" />
+            <span>History</span>
+          </div>
         </div>
         <div className="flex items-center space-x-3">
           <Button variant="outline" className="flex items-center space-x-2 bg-transparent">
             <Download className="w-4 h-4" />
             <span>Export Data</span>
           </Button>
-          <Button
-            className="bg-[#0CA678] hover:bg-[#08916C] flex items-center space-x-2"
-            onClick={() => {
-              // setAddFormData({
-              //   name: "",
-              //   email: "",
-              //   role: "Mentee",
-              //   status: "Aktif",
-              // });
-              // setShowAddDialog(true);
-            }}
-          >
-            <Plus className="w-4 h-4" />
-            <span>Tambah Sertifikat</span>
-          </Button>
         </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-        {stats.map((stat, index) => (
-          <Card key={index} className="cursor-pointer hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 mb-1">{stat.title}</p>
-                  <p className={`text-3xl font-bold ${stat.color}`}>{stat.value}</p>
-                </div>
-                <stat.icon className="w-8 h-8 text-gray-400" />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
       </div>
 
       {/* DataTable sertifikat terbit */}
       <Card className="p-6">
-        <h2 className="text-lg font-semibold text-gray-900">Jadwal Sesi Mentoring</h2>
-        <DataTableSertifikatTerbit columns={columnsSertifikatTerbit} data={publishedCertificates} />
+        <h2 className="text-lg font-semibold text-gray-900">History Aktivitas</h2>
+        <DataTableSertifikatTerbit columns={columnsSertifikatTerbit} data={historyAktivitas} />
       </Card>
       <Card className="p-6 mt-5">
-        <h2 className="text-lg font-semibold text-gray-900">Jadwal Sesi Mentoring</h2>
-        <DataTableSertifikatMentee columns={columnsMentee} data={menteeCertificates} />
+        <h2 className="text-lg font-semibold text-gray-900">Login History</h2>
+        <DataTableSertifikatMentee columns={columnsMentee} data={loginHistory} />
       </Card>
     </>
   );
