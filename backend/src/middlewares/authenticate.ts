@@ -533,6 +533,113 @@ export interface AuthenticatedRequestSubBab extends Request {
   validatedQuery?: any;
 }
 
+export interface AuthenticatedRequestText extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+  };
+  validatedBody?: {
+    title?: string;
+    textContent?: string;
+    orderNumber?: number;
+    orders?: {
+      id: string;
+      orderNumber: number;
+    }[];
+  };
+  validatedParams?: {
+    subBabId?: string;
+    id?: string;
+  };
+  validatedQuery?: any;
+}
+
+export interface AuthenticatedRequestQuiz extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+  };
+  validatedBody?: {
+    title?: string;
+    description?: string;
+    totalQuestions?: number;
+    timeLimitMinutes?: number;
+  };
+  validatedParams?: {
+    subBabId?: string;
+    id?: string;
+    courseId?: string;
+  };
+  validatedQuery?: any;
+}
+
+export interface AuthenticatedRequestQuestion extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+  };
+  validatedBody?: {
+    questionText?: string;
+    options?: string[];
+    correctAnswer?: string;
+    explanation?: string;
+    orderNumber?: number;
+    targetQuizId?: string;
+  };
+  validatedParams?: {
+    id?: string; // bisa questionId atau quizId tergantung route
+  };
+  validatedQuery?: any;
+}
+
+export interface AuthenticatedRequestQuizAttempt extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+  };
+  validatedBody?: {
+    answers?: Record<string, string>; // questionId -> selectedAnswer
+    score?: number;
+    remarks?: string;
+    isAutoGraded?: boolean;
+  };
+  validatedParams?: {
+    id?: string; // quizId atau attemptId
+  };
+  validatedQuery?: any;
+}
+
+export interface AuthenticatedRequestAssignment extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+  };
+  validatedBody?: {
+    title?: string;
+    description?: string;
+    dueDays?: number;
+  };
+  validatedParams?: {
+    id?: string; // subBabId atau assignmentId tergantung endpoint
+  };
+  validatedQuery?: any;
+}
+
 export const authenticate = (
   req: AuthenticatedRequest,
   res: Response,

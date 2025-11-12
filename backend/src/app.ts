@@ -29,6 +29,10 @@ import shortLinkRoutes from "./routes/short_link.route.js";
 import elearningCourseRoutes from "./routes/elearning_course.route.js";
 import elearningSubChapterRoutes from "./routes/elearning_subchapter.route.js";
 import elearngingSubBabRoutes from "./routes/elearning_subbab.route.js";
+import elearningTextRoutes from "./routes/elearning_text.route.js";
+import elearningQuizRoutes from "./routes/elearning_quiz.route.js";
+import elearningQuestionRoutes from "./routes/elearning_question.route.js";
+import elearningQuizAttempt from "./routes/elearning_quiz_attempt.route.js";
 import { redirectShortCodeController } from "./controllers/short_link.controller.js";
 import "./schedulers/cron.js";
 import { fileURLToPath } from "url";
@@ -85,6 +89,10 @@ app.use("/api/shortlink", shortLinkRoutes);
 app.use("/api/elearningCourse", elearningCourseRoutes);
 app.use("/api/elearningSubChapter", elearningSubChapterRoutes);
 app.use("/api/elearningSubBab", elearngingSubBabRoutes);
+app.use("/api/elearningText", elearningTextRoutes);
+app.use("/api/elearningQuiz", elearningQuizRoutes);
+app.use("/api/elearningQuestion", elearningQuestionRoutes);
+app.use("/api/elearningQuizAttempt", elearningQuizAttempt);
 
 // Path Static untuk Images
 // Perbaikan di sini, mengganti __dirname dengan yang benar menggunakan import.meta.url
