@@ -409,3 +409,63 @@ export const handleElearningThumbnailUpload = (
 };
 
 export { correctElearningPath as elearningThumbnailPath };
+
+// === Untuk Upload File Submission E-Learning ===
+const eLearningSubmissionUploadDir = path.join(__dirname, "../../uploads/elearning/submissions");
+const eLearningSubmissionNormalizedPath = path.normalize(eLearningSubmissionUploadDir);
+const eLearningSubmissionResolvedPath = eLearningSubmissionNormalizedPath.replace(/^\\/, "");
+
+// Pastikan foldernya ada
+if (!fs.existsSync(eLearningSubmissionResolvedPath)) {
+  fs.mkdirSync(eLearningSubmissionResolvedPath, { recursive: true });
+}
+
+// Konfigurasi penyimpanan
+const eLearningSubmissionStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, eLearningSubmissionResolvedPath);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const baseName = path
+      .basename(file.originalname, ext)
+      .replace(/\s+/g, "-")
+      .replace(/[^a-zA-Z0-9-_]/g, "");
+
+    const now = new Date();
+    const formattedTime = `${now.getFullYear()}${(now.getMonth() + 1)
+      .toString()
+      .padStart(2, "0")}${now.getDate().toString().padStart(2, "0")}-${now
+      .getHours()
+      .toString()
+      .padStart(2, "0")}${now.getMinutes().toString().padStart(2, "0")}${now
+      .getSeconds()
+      .toString()
+      .padStart(2, "0")}`;
+
+    const filename = `ELearningSubmission-${baseName}-${formattedTime}${ext}`;
+    cb(null, filename);
+  },
+});
+
+// Inisialisasi multer
+const eLearningSubmissionUploader = multer({
+  storage: eLearningSubmissionStorage,
+  limits: {
+    fileSize: 20 * 1024 * 1024, // 20 MB
+  },
+});
+
+// Middleware helper
+export const handleELearningSubmissionUpload = (
+  field: string,
+  isMultiple: boolean = false,
+  max: number = 5
+) => {
+  return isMultiple
+    ? eLearningSubmissionUploader.array(field, max)
+    : eLearningSubmissionUploader.single(field);
+};
+
+// Export path untuk static serve
+export { eLearningSubmissionResolvedPath as eLearningSubmissionUploadPath };

@@ -13,6 +13,8 @@ uploads/supportDocument/*
 !uploads/supportDocument/.gitkeep
 uploads/practice/submissions/*
 !uploads/practice/submissions/.gitkeep
+uploads/elearning/submissions/*
+!uploads/elearning/submissions/.gitkeep
 
 images/*
 !images/.gitkeep

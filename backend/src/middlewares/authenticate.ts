@@ -635,10 +635,45 @@ export interface AuthenticatedRequestAssignment extends Request {
     dueDays?: number;
   };
   validatedParams?: {
-    id?: string; // subBabId atau assignmentId tergantung endpoint
+    id?: string; // untuk subBabId atau assignmentId
+    courseId?: string; // untuk endpoint ini
   };
-  validatedQuery?: any;
+  validatedQuery?: {
+    includeSubmissions?: boolean;
+    page?: number;
+    limit?: number;
+    sortBy?: "createdAt" | "updatedAt" | "score" | "submittedAt";
+    order?: "asc" | "desc";
+    search?: string;
+    minScore?: number;
+    maxScore?: number;
+    format?: "csv" | "excel";
+  };
 }
+
+export interface AuthenticatedRequestElearningSubmission extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+  };
+  validatedBody?: {
+    notes?: string;
+    files?: string[];
+    feedback?: string;
+    score?: number;
+    gradeBreakdown?: Record<string, number>;
+    isRevisionRequired?: boolean;
+    revisionDeadline?: string;
+  };
+  validatedParams?: any;
+  validatedQuery?: any;
+  file?: Express.Multer.File;
+}
+
+
 
 export const authenticate = (
   req: AuthenticatedRequest,

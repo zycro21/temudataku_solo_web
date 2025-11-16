@@ -33,6 +33,8 @@ import elearningTextRoutes from "./routes/elearning_text.route.js";
 import elearningQuizRoutes from "./routes/elearning_quiz.route.js";
 import elearningQuestionRoutes from "./routes/elearning_question.route.js";
 import elearningQuizAttempt from "./routes/elearning_quiz_attempt.route.js";
+import elearningAssignment from "./routes/elearning_assignment.route.js";
+import elearningSubmission from "./routes/elearning_submission.route.js";
 import { redirectShortCodeController } from "./controllers/short_link.controller.js";
 import "./schedulers/cron.js";
 import { fileURLToPath } from "url";
@@ -93,6 +95,8 @@ app.use("/api/elearningText", elearningTextRoutes);
 app.use("/api/elearningQuiz", elearningQuizRoutes);
 app.use("/api/elearningQuestion", elearningQuestionRoutes);
 app.use("/api/elearningQuizAttempt", elearningQuizAttempt);
+app.use("/api/elearningAssignment", elearningAssignment);
+app.use("/api/elearningSubmission", elearningSubmission);
 
 // Path Static untuk Images
 // Perbaikan di sini, mengganti __dirname dengan yang benar menggunakan import.meta.url
@@ -168,6 +172,24 @@ app.use(
     next();
   },
   express.static(practiceSubmissionsPath)
+);
+
+// === E-Learning Submissions ===
+const elearningSubmissionsPath = path.join(
+  __dirname,
+  "../uploads/elearning/submissions"
+);
+console.log("Serving e-learning submissions from:", elearningSubmissionsPath);
+
+app.use(
+  "/uploads/elearning/submissions",
+  (req, res, next) => {
+    console.log("Accessing e-learning submission path:", req.path);
+    const filePath = path.join(elearningSubmissionsPath, req.path);
+    console.log("Looking for file:", filePath);
+    next();
+  },
+  express.static(elearningSubmissionsPath)
 );
 
 // Swagger Docs
