@@ -92,10 +92,12 @@ export const validate =
     );
 
     if (!result.success) {
-      console.log("Validation Errors:", result.error.errors);
+      const firstError = result.error.errors[0]?.message || "Error Validasi Data";
+
       res.status(400).json({
-        message: "Validation error",
-        errors: result.error.errors.map((e) => e.message),
+        success: false,
+        message: firstError,
+        errors: result.error.errors,
       });
       return;
     }

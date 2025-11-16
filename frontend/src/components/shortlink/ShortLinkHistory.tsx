@@ -10,10 +10,34 @@ export default function ShortLinkHistory() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10; // jumlah baris per halaman
+
+  const itemsPerPage = 10;
+  const [totalPages, setTotalPages] = useState(1);
+
+  const fetchLinks = async () => {
+    try {
+      const res = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/shortlink/shortlinks/my`,
+        {
+          params: {
+            page: currentPage,
+            limit: itemsPerPage,
+          },
+          withCredentials: true,
+        }
+      );
+
+      setLinks(res.data.data || []);
+      setTotalPages(res.data.totalPages || 1);
+    } catch (err: any) {
+      console.error("Gagal memuat riwayat link:", err);
+      setError(err.response?.data?.message || "Gagal memuat data short links");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // interceptor untuk tangkap 401
     const interceptor = axios.interceptors.response.use(
       (response) => response,
       (error) => {
@@ -25,36 +49,10 @@ export default function ShortLinkHistory() {
       }
     );
 
-    const fetchLinks = async () => {
-      try {
-        const res = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/shortlink/shortlinks/my`,
-          { withCredentials: true }
-        );
-        setLinks(res.data.data || []);
-      } catch (err: any) {
-        console.error("Gagal memuat riwayat link:", err);
-        setError(
-          err.response?.data?.message || "Gagal memuat data short links"
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchLinks();
 
-    // cleanup interceptor saat komponen unmount
-    return () => {
-      axios.interceptors.response.eject(interceptor);
-    };
-  }, [router]);
-
-  const totalPages = Math.ceil(links.length / itemsPerPage);
-  const paginatedLinks = links.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+    return () => axios.interceptors.response.eject(interceptor);
+  }, [router, currentPage]); // 🔥 currentPage ditambahkan agar API dipanggil ulang saat pindah halaman
 
   if (loading)
     return <p className="text-gray-500 text-sm">Memuat data short links...</p>;
@@ -82,13 +80,13 @@ export default function ShortLinkHistory() {
                   <th className="py-3 px-4 border-b text-center">Klik</th>
                   <th className="py-3 px-4 border-b text-center">Dibuat</th>
                   <th className="py-3 px-4 border-b text-center">
-                    Kedaluwarsa
+                    Kadaluwarsa
                   </th>
                   <th className="py-3 px-4 border-b text-center">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {paginatedLinks.map((link) => {
+                {links.map((link) => {
                   const isExpired =
                     link.expiresAt && new Date(link.expiresAt) < new Date();
 
@@ -97,7 +95,6 @@ export default function ShortLinkHistory() {
                       key={link.id}
                       className="hover:bg-emerald-50 transition-all duration-200 ease-in-out border-b"
                     >
-                      {/* Short Code */}
                       <td className="py-3 px-4 text-emerald-600 font-medium">
                         <a
                           href={`${process.env.NEXT_PUBLIC_SHORTLINK_BASE_URL}/s/${link.shortCode}`}
@@ -108,7 +105,6 @@ export default function ShortLinkHistory() {
                         </a>
                       </td>
 
-                      {/* Original URL */}
                       <td className="py-3 px-4 truncate max-w-xs">
                         <a
                           href={link.originalUrl}
@@ -119,12 +115,10 @@ export default function ShortLinkHistory() {
                         </a>
                       </td>
 
-                      {/* Klik Count */}
                       <td className="py-3 px-4 text-center">
                         {link.clickCount ?? 0}
                       </td>
 
-                      {/* Created At */}
                       <td className="py-3 px-4 text-center text-gray-600">
                         {link.createdAt
                           ? new Date(link.createdAt).toLocaleDateString(
@@ -138,7 +132,6 @@ export default function ShortLinkHistory() {
                           : "-"}
                       </td>
 
-                      {/* Expired At */}
                       <td className="py-3 px-4 text-center text-gray-600">
                         {link.expiresAt
                           ? new Date(link.expiresAt).toLocaleDateString(
@@ -152,11 +145,10 @@ export default function ShortLinkHistory() {
                           : "—"}
                       </td>
 
-                      {/* Status */}
                       <td className="py-3 px-4 text-center">
                         {isExpired ? (
                           <span className="bg-red-100 text-red-700 text-xs font-semibold px-2 py-1 rounded-full">
-                            Kedaluwarsa
+                            Kadaluwarsa
                           </span>
                         ) : link.isActive ? (
                           <span className="bg-emerald-100 text-emerald-700 text-xs font-semibold px-2 py-1 rounded-full">
@@ -180,6 +172,7 @@ export default function ShortLinkHistory() {
             <p className="text-gray-500">
               Halaman {currentPage} dari {totalPages}
             </p>
+
             <div className="flex gap-2">
               <button
                 onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
@@ -188,6 +181,7 @@ export default function ShortLinkHistory() {
               >
                 ← Sebelumnya
               </button>
+
               <button
                 onClick={() =>
                   setCurrentPage((p) => Math.min(p + 1, totalPages))

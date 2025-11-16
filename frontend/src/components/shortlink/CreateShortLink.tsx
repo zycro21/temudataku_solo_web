@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+
 import {
   Dialog,
   DialogContent,
@@ -19,17 +21,17 @@ export default function CreateShortLink() {
   const [expiresAt, setExpiresAt] = useState("");
   const [shortUrl, setShortUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
-  // Tangani token expired (401) hanya untuk halaman ini
+  // Axios interceptor: handle token expired
   useEffect(() => {
     const interceptor = axios.interceptors.response.use(
       (response) => response,
       (error) => {
         if (error.response?.status === 401) {
           console.warn("Token expired, redirecting...");
+          toast.error("Sesi habis, silakan login ulang.");
           router.push("/shorten-link");
         }
         return Promise.reject(error);
@@ -43,18 +45,19 @@ export default function CreateShortLink() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!originalUrl) return;
+
+    if (!originalUrl) {
+      toast.error("URL asli wajib diisi!");
+      return;
+    }
 
     try {
       setLoading(true);
-      setError("");
       setCopied(false);
 
       const payload: any = { originalUrl };
       if (customCode.trim()) payload.shortCode = customCode.trim();
-      if (expiresAt) {
-        payload.expiresAt = new Date(expiresAt).toISOString();
-      }
+      if (expiresAt) payload.expiresAt = new Date(expiresAt).toISOString();
 
       const res = await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/shortlink/shortlinks`,
@@ -65,14 +68,13 @@ export default function CreateShortLink() {
       const newShortUrl = `${process.env.NEXT_PUBLIC_SHORTLINK_BASE_URL}/s/${res.data.data.shortCode}`;
       setShortUrl(newShortUrl);
 
-      // 📋 Auto copy to clipboard
       await navigator.clipboard.writeText(newShortUrl);
       setCopied(true);
 
-      // 💬 Tampilkan modal sukses
       setShowModal(true);
     } catch (err: any) {
-      setError(err.response?.data?.message || "Gagal membuat short link");
+      const msg = err.response?.data?.message || "Gagal membuat short link";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -103,11 +105,11 @@ export default function CreateShortLink() {
         {/* Custom short code */}
         <div className="flex flex-col gap-2">
           <label className="text-sm font-medium text-gray-700">
-            Nama custom shortlink (opsional)
+            Nama custom shortlink (6-40 Karakter; Karakter yang diperbolehkan: Huruf, Angka, _(Underscore), dan -(Dash))
           </label>
           <input
             type="text"
-            placeholder="Contoh: kelas-ml (6-40 karakter, Char yang diperbolehkan: Huruf, Angka, - (dash), dan _(underscore))"
+            placeholder="Contoh: kelas-ml"
             value={customCode}
             onChange={(e) => setCustomCode(e.target.value)}
             className="border rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
@@ -136,9 +138,7 @@ export default function CreateShortLink() {
         </Button>
       </form>
 
-      {error && <p className="text-red-500 mt-3 text-sm">{error}</p>}
-
-      {/* Modal notifikasi berhasil */}
+      {/* Modal sukses */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -166,6 +166,7 @@ export default function CreateShortLink() {
               </div>
             </DialogDescription>
           </DialogHeader>
+
           <div className="mt-4 flex justify-end">
             <Button
               variant="default"
