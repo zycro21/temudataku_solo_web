@@ -70,7 +70,8 @@ export default function DashboardHeaderAffiliator() {
   };
 
   const displayName = user?.fullName || "Guest Affiliator";
-  const displayRole = user?.userRoles?.[0]?.role?.roleName || "Affiliator"; // fallback role
+  const displayRole =
+    user?.userRoles?.map((ur) => ur.role.roleName).join(", ") || "Affiliator";
   const displayAvatar =
     user?.profilePicture && user.profilePicture !== "default.jpg"
       ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${user.profilePicture}`

@@ -17,16 +17,13 @@ export const register = async (
   next: NextFunction
 ) => {
   try {
-    console.log("Request Body:", req.body);
-    console.log("Request File:", req.file);
-
     const { email, password, fullName, role, phoneNumber, city, province } =
       req.body;
 
-    // Handle default image jika file tidak diupload
     const uploadedFileName = req.file?.filename ?? "default.jpg";
 
-    const { user, token } = await AuthService.registerUser({
+    // Call Service
+    const { user, token, status } = await AuthService.registerUser({
       email,
       password,
       fullName,
@@ -37,7 +34,15 @@ export const register = async (
       profilePicture: uploadedFileName,
     });
 
-    // Rename file dengan fs.promises.rename + try-catch
+    // Ambil role user
+    const userRoles = await prisma.userRole.findMany({
+      where: { userId: user.id },
+      include: { role: true },
+    });
+
+    const roleNames = userRoles.map((r) => r.role.roleName);
+
+    // Rename file jika upload
     if (req.file && user.id) {
       const oldPath = path.join(uploadPath, uploadedFileName);
       const ext = path.extname(uploadedFileName);
@@ -47,31 +52,33 @@ export const register = async (
       try {
         await fs.promises.rename(oldPath, newPath);
 
-        // Update DB setelah rename berhasil
         await prisma.user.update({
           where: { id: user.id },
-          data: {
-            profilePicture: newFileName,
-          },
+          data: { profilePicture: newFileName },
         });
-      } catch (renameError) {
-        console.error("Error renaming profile picture:", renameError);
+      } catch (err) {
+        console.error("Error renaming profile picture:", err);
       }
     }
 
-    // Hide token in production
     const isDev = process.env.NODE_ENV === "development";
 
     res.status(201).json({
-      message: "User registered successfully. Please verify your email.",
+      message:
+        status === "new_user"
+          ? "User registered successfully. Please verify your email."
+          : status === "role_added"
+          ? "Role added successfully."
+          : "Role already exists.",
+      status,
       user: {
         id: user.id,
         email: user.email,
         full_name: user.fullName,
-        role: role ?? "mentee",
+        roles: roleNames,
         profile_picture: user.profilePicture,
       },
-      ...(isDev && { verification_token: token }),
+      ...(isDev && token && { verification_token: token }),
     });
   } catch (err) {
     next(err);

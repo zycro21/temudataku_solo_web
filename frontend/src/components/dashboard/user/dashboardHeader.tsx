@@ -41,10 +41,13 @@ export default function DashboardHeader() {
       : "/assets/dashboard/user/avatar.png";
 
   const fullName = currentUser?.fullName || "Guest";
-  const role =
-    currentUser?.userRoles?.[0]?.role?.roleName?.replace(/^\w/, (c: string) =>
-      c.toUpperCase()
-    ) || "User";
+  const roles =
+    currentUser?.userRoles
+      ?.map(
+        (r: any) =>
+          r.role.roleName.charAt(0).toUpperCase() + r.role.roleName.slice(1)
+      )
+      .join(", ") || "User";
 
   return (
     <>
@@ -95,7 +98,7 @@ export default function DashboardHeader() {
                 <span className="text-sm font-medium text-gray-800">
                   {fullName}
                 </span>
-                <span className="text-xs text-gray-500">{role}</span>
+                <span className="text-xs text-gray-500">{roles}</span>
               </div>
               <ChevronDown
                 size={14}

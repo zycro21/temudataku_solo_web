@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { nanoid } from "nanoid";
 import { hashPassword, comparePassword } from "../utils/hashPassword.js";
 import { generateVerificationToken } from "../utils/tokenRegister.js";
@@ -7,6 +7,47 @@ import { sendEmailVerification } from "../utils/sendEmailVerification.js";
 import jwt from "jsonwebtoken";
 
 const prisma = new PrismaClient();
+
+// Generate referral code unik
+async function generateUniqueReferralCode(email: string): Promise<string> {
+  const username = email.split("@")[0];
+
+  // Ambil hanya huruf A-Z (case-insensitive)
+  const lettersOnly = username.replace(/[^a-zA-Z]/g, "");
+
+  // Convert array huruf
+  let letters = lettersOnly.toUpperCase().split("");
+
+  // Jika huruf kurang dari 4 → tambahkan huruf random sampai 4
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+  while (letters.length < 4) {
+    const randomChar = alphabet[Math.floor(Math.random() * alphabet.length)];
+    letters.push(randomChar);
+  }
+
+  // Acak urutan huruf lalu ambil 4 pertama
+  const picked = letters
+    .sort(() => Math.random() - 0.5)
+    .slice(0, 4)
+    .join("");
+
+  // 3 angka random
+  const numbers = String(Math.floor(Math.random() * 1000)).padStart(3, "0");
+
+  const finalCode = `${picked}-${numbers}`;
+
+  // Cek duplikasi
+  const existing = await prisma.referralCode.findUnique({
+    where: { code: finalCode },
+  });
+
+  if (existing) {
+    return generateUniqueReferralCode(email); // regenerate
+  }
+
+  return finalCode;
+}
 
 export const registerUser = async (data: {
   email: string;
@@ -29,22 +70,92 @@ export const registerUser = async (data: {
     profilePicture,
   } = data;
 
-  // Cek apakah email sudah terdaftar
-  const existingUser = await prisma.user.findUnique({ where: { email } });
+  // ───────────────────────────────────────────────────────────────
+  // 1️⃣ CEK APAKAH USER SUDAH ADA
+  // ───────────────────────────────────────────────────────────────
+
+  const existingUser = await prisma.user.findUnique({
+    where: { email },
+    include: { userRoles: true },
+  });
+
   if (existingUser) {
-    throw new HttpError("Email is already registered", 409);
+    // Cek password untuk user lama
+    const isMatch = await comparePassword(password, existingUser.passwordHash);
+    if (!isMatch) {
+      throw new HttpError("Incorrect password for existing account", 401);
+    }
+
+    // Ambil semua role user
+    const existingRoleNames = await prisma.userRole.findMany({
+      where: { userId: existingUser.id },
+      include: { role: true },
+    });
+
+    const currentRoles = existingRoleNames.map((r) => r.role.roleName);
+
+    // 1️⃣ Jika role SUDAH ADA
+    if (currentRoles.includes(role)) {
+      return {
+        user: existingUser,
+        token: existingUser.verificationToken ?? null,
+        status: "role_exists",
+      };
+    }
+
+    // 2️⃣ Tambahkan role baru
+    const roleData = await prisma.role.findUnique({
+      where: { roleName: role },
+    });
+
+    if (!roleData) throw new HttpError("Role not found", 400);
+
+    await prisma.userRole.create({
+      data: {
+        id: `${role}-${nanoid(10)}`,
+        userId: existingUser.id,
+        roleId: roleData.id,
+      },
+    });
+
+    // ️⃣ Jika role adalah affiliator → buat referral code otomatis (jika belum ada)
+    if (role === "affiliator") {
+      const existingReferral = await prisma.referralCode.findFirst({
+        where: { ownerId: existingUser.id },
+      });
+
+      if (!existingReferral) {
+        const newCode = await generateUniqueReferralCode(email);
+
+        await prisma.referralCode.create({
+          data: {
+            ownerId: existingUser.id,
+            code: newCode,
+            discountPercentage: new Prisma.Decimal(0),
+            commissionPercentage: new Prisma.Decimal(0),
+          },
+        });
+      }
+    }
+
+    return {
+      user: existingUser,
+      token: existingUser.verificationToken ?? null,
+      status: "role_added",
+    };
   }
 
-  // Cek apakah role valid
+  // ───────────────────────────────────────────────────────────────
+  // 2️⃣ USER BARU → BUAT USER BARU
+  // ───────────────────────────────────────────────────────────────
+
   const roleData = await prisma.role.findUnique({
     where: { roleName: role },
   });
 
-  if (!roleData) {
-    throw new HttpError("Role not found", 400);
-  }
+  if (!roleData) throw new HttpError("Role not found", 400);
 
-  // Batas maksimal admin
+  // Limit admin
   if (role === "admin") {
     const totalAdmins = await prisma.userRole.count({
       where: { roleId: roleData.id },
@@ -54,12 +165,24 @@ export const registerUser = async (data: {
     }
   }
 
-  // Hash password
+  // Password hash
   const hashed = await hashPassword(password);
-  const token = generateVerificationToken();
-  const expires = new Date(Date.now() + 1000 * 60 * 60); // 1 jam
 
-  // Generate Custom ID berdasarkan Role
+  const token = generateVerificationToken();
+  const expires = new Date(Date.now() + 60 * 60 * 1000);
+
+  // Generate ID custom
+  const lastUser = await prisma.user.findFirst({
+    orderBy: { id: "desc" },
+  });
+
+  let newIdNumber = 1;
+  if (lastUser && /^\d+$/.test(lastUser.id)) {
+    newIdNumber = parseInt(lastUser.id) + 1;
+  }
+
+  const userId = String(newIdNumber).padStart(6, "0");
+
   const prefix = {
     mentee: "mentee",
     mentor: "mentor",
@@ -67,30 +190,8 @@ export const registerUser = async (data: {
     admin: "admin",
   }[role];
 
-  // Ambil angka terbesar ID yang ada untuk user
-  const lastUser = await prisma.user.findFirst({
-    orderBy: {
-      id: "desc", // Urutkan berdasarkan ID terbesar
-    },
-    select: {
-      id: true,
-    },
-  });
-
-  // Ambil angka terakhir dari ID dan increment
-  let newIdNumber = 1;
-  if (lastUser && /^\d+$/.test(lastUser.id)) {
-    // Mengonversi ID menjadi string dan mengincrement angka terakhir
-    newIdNumber = parseInt(lastUser.id, 10) + 1;
-  }
-
-  // Format ID sesuai dengan format yang diinginkan (6 digit string)
-  const userId = String(newIdNumber).padStart(6, "0");
-
-  // Generate ID untuk user_roles dengan prefix dan angka acak
   const userRoleId = `${prefix}-${nanoid(10)}`;
 
-  // Buat user + assign role
   const user = await prisma.user.create({
     data: {
       id: userId,
@@ -111,16 +212,26 @@ export const registerUser = async (data: {
         },
       },
     },
-    include: {
-      userRoles: true,
-    },
+    include: { userRoles: true },
   });
 
+  // ️⃣ Jika user baru berperan sebagai affiliator → buat referral code otomatis
+  if (role === "affiliator") {
+    const newCode = await generateUniqueReferralCode(email);
+
+    await prisma.referralCode.create({
+      data: {
+        ownerId: user.id,
+        code: newCode,
+        discountPercentage: new Prisma.Decimal(0),
+        commissionPercentage: new Prisma.Decimal(0),
+      },
+    });
+  }
+
   await sendEmailVerification(email, token);
-  return {
-    user,
-    token,
-  } as const;
+
+  return { user, token, status: "new_user" };
 };
 
 export const loginUser = async (email: string, password: string) => {

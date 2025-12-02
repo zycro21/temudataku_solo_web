@@ -43,25 +43,51 @@ export default function RegisterModal({
 
     try {
       setLoading(true);
+
       const formData = new FormData();
       formData.append("email", registerEmail);
       formData.append("password", registerPassword);
       formData.append("fullName", fullName);
-      formData.append("role", "mentee"); // hardcode mentee
+      formData.append("role", "mentee");
 
       const res = await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/register`,
         formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
+        { headers: { "Content-Type": "multipart/form-data" } }
       );
 
-      toast.success("Register berhasil, silakan verifikasi email");
+      const { status, message } = res.data;
+
+      // RESPONS SUCCESS DIBUAT SPESIFIK
+      if (status === "new_user") {
+        toast.success("Akun berhasil dibuat. Silakan verifikasi email Anda.");
+      } else if (status === "role_added") {
+        toast.success("Role mentee berhasil ditambahkan ke akun Anda.");
+      } else if (status === "role_exists") {
+        toast.info("Anda sudah memiliki role mentee pada akun ini.");
+      } else {
+        toast.success(message || "Berhasil.");
+      }
+
       setIsOpen(false);
     } catch (err: any) {
       console.error(err);
-      toast.error(err.response?.data?.message || "Terjadi kesalahan");
+
+      const msg =
+        err.response?.data?.message ??
+        err.message ??
+        "Terjadi kesalahan pada server";
+
+      // HANDLING ERROR LEBIH JELAS
+      if (msg === "Incorrect password for existing account") {
+        toast.error("Password salah. Tidak bisa menambahkan role.");
+      } else if (msg === "Role not found") {
+        toast.error("Role tidak valid.");
+      } else if (msg.includes("validation")) {
+        toast.error("Input tidak valid.");
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setLoading(false);
     }

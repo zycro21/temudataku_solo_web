@@ -24,9 +24,9 @@ const router = Router();
  * @swagger
  * /api/auth/register:
  *   post:
- *     summary: Register user baru
+ *     summary: Register user baru atau menambah role jika user sudah ada
  *     tags: [Auth]
- *     security: []  # Tidak butuh token
+ *     security: []
  *     consumes:
  *       - multipart/form-data
  *     requestBody:
@@ -42,19 +42,20 @@ const router = Router();
  *             properties:
  *               email:
  *                 type: string
- *                 example: makalah@gmail.com
+ *                 example: user@example.com
  *               password:
  *                 type: string
- *                 example: dimas21032004
+ *                 example: Secret123!
  *               fullName:
  *                 type: string
- *                 example: Makalah Bab V
+ *                 example: John Doe
  *               phoneNumber:
  *                 type: string
  *                 example: "081234567890"
  *               role:
  *                 type: string
- *                 example: admin
+ *                 example: mentee
+ *                 description: Role yang ingin ditambahkan. Jika user sudah memiliki role ini maka tidak akan ditambah lagi.
  *               city:
  *                 type: string
  *                 example: Jakarta
@@ -66,32 +67,56 @@ const router = Router();
  *                 format: binary
  *     responses:
  *       201:
- *         description: User berhasil register
+ *         description: Response berhasil (3 kemungkinan: new_user, role_added, role_exists)
  *         content:
  *           application/json:
- *             example:
- *               message: User registered successfully. Please verify your email.
- *               user:
- *                 id: "000123"
- *                 email: makalah@gmail.com
- *                 full_name: Makalah Bab V
- *                 role: admin
- *                 profile_picture: admin-PP-000123.jpg
- *               verification_token: 9fc3ab1a76b44d9c89f15f3cde3d91d5
+ *             examples:
+ *               new_user:
+ *                 summary: User baru berhasil dibuat
+ *                 value:
+ *                   message: User registered successfully. Please verify your email.
+ *                   status: new_user
+ *                   user:
+ *                     id: "000123"
+ *                     email: user@example.com
+ *                     full_name: John Doe
+ *                     roles: [ "mentee" ]
+ *                     profile_picture: mentee-PP-000123.jpg
+ *                   verification_token: abc123xyz
+ *               role_added:
+ *                 summary: Role baru berhasil ditambahkan ke user lama
+ *                 value:
+ *                   message: Role added successfully.
+ *                   status: role_added
+ *                   user:
+ *                     id: "000123"
+ *                     email: user@example.com
+ *                     full_name: John Doe
+ *                     roles: [ "affiliator", "mentee" ]
+ *                     profile_picture: aff-PP-000123.jpg
+ *               role_exists:
+ *                 summary: User lama sudah memiliki role yang diminta
+ *                 value:
+ *                   message: Role already exists.
+ *                   status: role_exists
+ *                   user:
+ *                     id: "000123"
+ *                     email: user@example.com
+ *                     full_name: John Doe
+ *                     roles: [ "mentee", "affiliator" ]
+ *                     profile_picture: mentee-PP-000123.jpg
  *       400:
- *         description: Bad Request (misalnya format field salah)
+ *         description: Bad Request — role tidak ditemukan atau input invalid
  *         content:
  *           application/json:
  *             example:
- *               success: false
- *               message: Invalid input data
- *       409:
- *         description: Email sudah terdaftar
+ *               message: Role not found
+ *       401:
+ *         description: Password salah ketika user lama mencoba tambah role
  *         content:
  *           application/json:
  *             example:
- *               success: false
- *               message: Email is already registered
+ *               message: Incorrect password for existing account
  */
 router.post(
   "/register",

@@ -48,20 +48,32 @@ export default function AffiliatorRegisterPage() {
       const res = await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/register`,
         formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
+        { headers: { "Content-Type": "multipart/form-data" } }
       );
 
-      toast.success("Registrasi berhasil! Silakan verifikasi email anda.");
-      console.log(res.data);
+      const { status, message } = res.data;
+
+      // 🎯 Handle setiap status
+      if (status === "new_user") {
+        toast.success("Registrasi berhasil! Silakan verifikasi email Anda.");
+      } else if (status === "role_added") {
+        toast.success("Akun ditemukan! Role affiliator berhasil ditambahkan.");
+      } else if (status === "role_exists") {
+        toast.info("Akun sudah memiliki role affiliator.");
+      }
 
       router.push("/affiliator/login");
     } catch (err: any) {
       console.error("Register error:", err);
-      toast.error(
-        err.response?.data?.message || "Registrasi gagal, coba lagi."
-      );
+
+      // Error bawaan dari backend
+      if (err.response?.status === 401) {
+        toast.error("Password salah untuk akun yang sudah ada.");
+      } else if (err.response?.status === 400) {
+        toast.error(err.response.data.message || "Input tidak valid.");
+      } else {
+        toast.error("Registrasi gagal, coba lagi.");
+      }
     } finally {
       setLoading(false);
     }
