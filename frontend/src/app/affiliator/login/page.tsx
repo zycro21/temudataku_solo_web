@@ -96,7 +96,7 @@ export default function AffiliatorLoginPage() {
           {/* Left image */}
           <div className="hidden md:block">
             <Image
-              src="/images/image.svg"
+              src="/images/Image.svg"
               alt="Robot AI"
               width={500}
               height={500}
