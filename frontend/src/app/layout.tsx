@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/context/AuthContext";
 import ClientTrackerWrapper from "@/components/ClientTrackerWrapper";
+import MaintenanceGuard from "@/components/MaintenanceGuardFix";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -39,6 +40,7 @@ export default function RootLayout({
       >
         <AuthProvider>
           <ClientTrackerWrapper />
+          <MaintenanceGuard /> 
           {children}
           <Toaster position="top-right" richColors />
         </AuthProvider>
