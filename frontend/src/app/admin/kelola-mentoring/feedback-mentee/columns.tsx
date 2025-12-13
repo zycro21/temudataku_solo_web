@@ -2,15 +2,15 @@
 
 import { ColumnDef } from "@tanstack/react-table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronDown } from "lucide-react";
+import { ArrowUp, ArrowDown } from "lucide-react";
 
-// Tipe data Project
+// tipe
 export type Datas = {
   id: string;
   mentor: string;
   mentee: string;
   program: string;
-  date: string; // Tanggal & Waktu Pengumpulan
+  date: string;
   topic: string;
   evaluasi: {
     kemudahan_materi: number;
@@ -27,73 +27,178 @@ export type Datas = {
 export const columns: ColumnDef<Datas>[] = [
   {
     id: "select",
-    header: ({ table }) => <Checkbox checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")} onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)} aria-label="Select all" />,
-    cell: ({ row }) => <Checkbox checked={row.getIsSelected()} onCheckedChange={(value) => row.toggleSelected(!!value)} aria-label="Select row" />,
     enableSorting: false,
     enableHiding: false,
     size: 40,
+    header: ({ table }) => (
+      <Checkbox
+        checked={
+          table.getIsAllPageRowsSelected() ||
+          (table.getIsSomePageRowsSelected() && "indeterminate")
+        }
+        onCheckedChange={(v) => table.toggleAllPageRowsSelected(!!v)}
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(v) => row.toggleSelected(!!v)}
+      />
+    ),
   },
+
+  /* ==========================
+     SORTING 3-MODE TEMPLATE
+     (ASC → DESC → RESET)
+  =========================== */
   {
     accessorKey: "id",
-    header: () => (
-      <div className="flex items-center space-x-1">
-        <span>ID Project</span>
-        <ChevronDown className="w-4 h-4" />
-      </div>
-    ),
+    header: ({ column }) => {
+      const sort = column.getIsSorted();
+
+      return (
+        <button
+          onClick={() => {
+            if (!sort) column.toggleSorting(false); // ASC
+            else if (sort === "asc") column.toggleSorting(true); // DESC
+            else column.clearSorting(); // RESET
+          }}
+          className={`flex items-center gap-1 w-full cursor-pointer 
+            ${sort ? "bg-emerald-200" : ""}`}
+        >
+          ID
+          {sort === "asc" && <ArrowDown className="w-4 h-4" />}
+          {sort === "desc" && <ArrowUp className="w-4 h-4" />}
+        </button>
+      );
+    },
   },
+
   {
     accessorKey: "date",
-    header: () => (
-      <div className="flex items-center space-x-1">
-        <span>Tanggal & Waktu Sesi</span>
-        <ChevronDown className="w-4 h-4" />
-      </div>
-    ),
+    header: ({ column }) => {
+      const sort = column.getIsSorted();
+      return (
+        <button
+          onClick={() => {
+            if (!sort) column.toggleSorting(false);
+            else if (sort === "asc") column.toggleSorting(true);
+            else column.clearSorting();
+          }}
+          className={`flex items-center gap-1 w-full cursor-pointer  
+            ${sort ? "bg-emerald-200" : ""}`}
+        >
+          Tanggal & Waktu Sesi
+          {sort === "asc" && <ArrowDown className="w-4 h-4" />}
+          {sort === "desc" && <ArrowUp className="w-4 h-4" />}
+        </button>
+      );
+    },
   },
+
   {
     accessorKey: "mentee",
-    header: () => (
-      <div className="flex items-center space-x-1">
-        <span>Mentee</span>
-        <ChevronDown className="w-4 h-4" />
-      </div>
-    ),
+    header: ({ column }) => {
+      const sort = column.getIsSorted();
+      return (
+        <button
+          onClick={() => {
+            if (!sort) column.toggleSorting(false);
+            else if (sort === "asc") column.toggleSorting(true);
+            else column.clearSorting();
+          }}
+          className={`flex items-center gap-1 w-full cursor-pointer 
+            ${sort ? "bg-emerald-200" : ""}`}
+        >
+          Mentee
+          {sort === "asc" && <ArrowDown className="w-4 h-4" />}
+          {sort === "desc" && <ArrowUp className="w-4 h-4" />}
+        </button>
+      );
+    },
   },
+
   {
     accessorKey: "mentor",
-    header: () => (
-      <div className="flex items-center space-x-1">
-        <span>Mentor</span>
-        <ChevronDown className="w-4 h-4" />
-      </div>
-    ),
+    header: ({ column }) => {
+      const sort = column.getIsSorted();
+      return (
+        <button
+          onClick={() => {
+            if (!sort) column.toggleSorting(false);
+            else if (sort === "asc") column.toggleSorting(true);
+            else column.clearSorting();
+          }}
+          className={`flex items-center gap-1 w-full cursor-pointer  
+            ${sort ? "bg-emerald-200" : ""}`}
+        >
+          Mentor
+          {sort === "asc" && <ArrowDown className="w-4 h-4" />}
+          {sort === "desc" && <ArrowUp className="w-4 h-4" />}
+        </button>
+      );
+    },
   },
+
+  /* ==========================
+       FILTER 5-MODE PROGRAM
+     Bootcamp → LC/SC → 1on1 → Group → RESET
+  =========================== */
   {
     accessorKey: "program",
-    header: () => (
-      <div className="flex items-center space-x-1">
-        <span>Program</span>
-        <ChevronDown className="w-4 h-4" />
-      </div>
-    ),
+    header: ({ column }) => {
+      const filter = column.getFilterValue() as string | undefined;
+
+      const cycle = [
+        "Bootcamp",
+        "Live Class",
+        "Short Class",
+        "1 on 1 Mentoring",
+        "Group Mentoring",
+      ];
+
+      const next = () => {
+        if (!filter) return cycle[0];
+        const i = cycle.indexOf(filter);
+        if (i === -1 || i === cycle.length - 1) return undefined;
+        return cycle[i + 1];
+      };
+
+      const isFiltered = !!filter;
+
+      return (
+        <button
+          onClick={() => column.setFilterValue(next())}
+          className={`
+          flex items-center gap-1 w-full cursor-pointer 
+          ${isFiltered ? "bg-emerald-200" : "bg-gray-100"} 
+        `}
+        >
+          {filter ? `Program – ${filter}` : "Program"}
+        </button>
+      );
+    },
   },
-  {
-    accessorKey: "topic",
-    header: () => (
-      <div className="flex items-center space-x-1">
-        <span>Topik</span>
-        <ChevronDown className="w-4 h-4" />
-      </div>
-    ),
-  },
+
   {
     accessorKey: "evaluasi.kemudahan_materi",
-    header: () => (
-      <div className="flex items-center space-x-1">
-        <span>Kepuasan Keterlibatan Mentor</span>
-        <ChevronDown className="w-4 h-4" />
-      </div>
-    ),
+    header: ({ column }) => {
+      const sort = column.getIsSorted();
+      return (
+        <button
+          onClick={() => {
+            if (!sort) column.toggleSorting(false);
+            else if (sort === "asc") column.toggleSorting(true);
+            else column.clearSorting();
+          }}
+          className={`flex items-center gap-1 w-full cursor-pointer 
+            ${sort ? "bg-emerald-200" : ""}`}
+        >
+          Materi Mudah Dimengerti
+          {sort === "asc" && <ArrowDown className="w-4 h-4" />}
+          {sort === "desc" && <ArrowUp className="w-4 h-4" />}
+        </button>
+      );
+    },
   },
 ];

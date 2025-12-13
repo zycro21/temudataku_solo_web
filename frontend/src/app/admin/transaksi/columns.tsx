@@ -2,73 +2,164 @@
 
 import { ColumnDef } from "@tanstack/react-table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronDown } from "lucide-react";
+import { ArrowUp, ArrowDown } from "lucide-react";
 
-// Tipe data Project
 export type Project = {
   id: string;
   mentee: string;
   mentor: string;
   program: string;
   topic: string;
-  date: string; // Tanggal & Waktu Pengumpulan
+  date: string;
   totalHarga: string;
   statusTransaksi: string;
   alasan: string;
 };
 
+function threeModeSort(column: any) {
+  const sort = column.getIsSorted();
+  if (!sort) column.toggleSorting(false); // ASC
+  else if (sort === "asc") column.toggleSorting(true); // DESC
+  else column.clearSorting(); // RESET
+}
+
 export const columns: ColumnDef<Project>[] = [
   {
     id: "select",
-    header: ({ table }) => <Checkbox checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")} onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)} aria-label="Select all" />,
-    cell: ({ row }) => <Checkbox checked={row.getIsSelected()} onCheckedChange={(value) => row.toggleSelected(!!value)} aria-label="Select row" />,
     enableSorting: false,
     enableHiding: false,
-    size: 40, // biar kecil, sama seperti w-12
+    size: 40,
+    header: ({ table }) => (
+      <Checkbox
+        checked={
+          table.getIsAllPageRowsSelected() ||
+          (table.getIsSomePageRowsSelected() && "indeterminate")
+        }
+        onCheckedChange={(v) => table.toggleAllPageRowsSelected(!!v)}
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(v) => row.toggleSelected(!!v)}
+      />
+    ),
   },
+
+  /* ================================
+     SORTING 3 MODE: id, mentee, mentor, topic
+  ================================= */
   {
     accessorKey: "id",
-    header: () => (
-      <div className="flex items-center space-x-1">
-        <span>ID Transaksi</span>
-        <ChevronDown className="w-4 h-4" />
-      </div>
-    ),
+    header: ({ column }) => {
+      const sort = column.getIsSorted();
+      return (
+        <button
+          onClick={() => threeModeSort(column)}
+          className={`flex items-center gap-1 w-full cursor-pointer ${
+            sort ? "bg-emerald-200" : ""
+          }`}
+        >
+          ID Transaksi
+          {sort === "asc" && <ArrowDown className="w-4 h-4" />}
+          {sort === "desc" && <ArrowUp className="w-4 h-4" />}
+        </button>
+      );
+    },
   },
+
   {
     accessorKey: "mentee",
-    header: () => (
-      <div className="flex items-center space-x-1">
-        <span>Mentee</span>
-        <ChevronDown className="w-4 h-4" />
-      </div>
-    ),
+    header: ({ column }) => {
+      const sort = column.getIsSorted();
+      return (
+        <button
+          onClick={() => threeModeSort(column)}
+          className={`flex items-center gap-1 w-full cursor-pointer ${
+            sort ? "bg-emerald-200" : ""
+          }`}
+        >
+          Mentee
+          {sort === "asc" && <ArrowDown className="w-4 h-4" />}
+          {sort === "desc" && <ArrowUp className="w-4 h-4" />}
+        </button>
+      );
+    },
   },
+
   {
     accessorKey: "mentor",
-    header: () => (
-      <div className="flex items-center space-x-1">
-        <span>Mentor</span>
-        <ChevronDown className="w-4 h-4" />
-      </div>
-    ),
+    header: ({ column }) => {
+      const sort = column.getIsSorted();
+      return (
+        <button
+          onClick={() => threeModeSort(column)}
+          className={`flex items-center gap-1 w-full cursor-pointer ${
+            sort ? "bg-emerald-200" : ""
+          }`}
+        >
+          Mentor
+          {sort === "asc" && <ArrowDown className="w-4 h-4" />}
+          {sort === "desc" && <ArrowUp className="w-4 h-4" />}
+        </button>
+      );
+    },
   },
+
+  /* ================================
+      FILTER 8 MODE: PROGRAM
+  ================================= */
   {
     accessorKey: "program",
-    header: () => (
-      <div className="flex items-center space-x-1">
-        <span>Program</span>
-        <ChevronDown className="w-4 h-4" />
-      </div>
-    ),
+    header: ({ column }) => {
+      const filter = column.getFilterValue() as string | undefined;
+
+      const cycle = [
+        "Bootcamp",
+        "Short Class",
+        "Live Class",
+        "1 on 1 Mentoring",
+        "Group Mentoring",
+        "Practice",
+        "E-Learning",
+      ];
+
+      const next = () => {
+        if (!filter) return cycle[0];
+        const index = cycle.indexOf(filter);
+        if (index === -1 || index === cycle.length - 1) return undefined; // reset
+        return cycle[index + 1];
+      };
+
+      return (
+        <button
+          onClick={() => column.setFilterValue(next())}
+          className={`flex items-center gap-1 w-full cursor-pointer bg-transparent ${
+            filter ? "bg-emerald-200" : ""
+          }`}
+        >
+          {filter ? `Program – ${filter}` : "Program"}
+        </button>
+      );
+    },
   },
+
   {
     accessorKey: "topic",
-    header: () => (
-      <div className="flex items-center space-x-1">
-        <span>Topik</span>
-        <ChevronDown className="w-4 h-4" />
-      </div>
-    ),
+    header: ({ column }) => {
+      const sort = column.getIsSorted();
+      return (
+        <button
+          onClick={() => threeModeSort(column)}
+          className={`flex items-center gap-1 w-full cursor-pointer ${
+            sort ? "bg-emerald-200" : ""
+          }`}
+        >
+          Topik/Judul
+          {sort === "asc" && <ArrowDown className="w-4 h-4" />}
+          {sort === "desc" && <ArrowUp className="w-4 h-4" />}
+        </button>
+      );
+    },
   },
 ];

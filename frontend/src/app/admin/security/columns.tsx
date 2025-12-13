@@ -2,24 +2,21 @@
 
 import { ColumnDef } from "@tanstack/react-table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronDown, Download, Edit, RotateCcw, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ArrowUp, ArrowDown, Download, RotateCcw, Edit, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
-// Tipe data Project
 export type Project = {
   id: string;
-  date: string; // Tanggal & Waktu Pengumpulan
-  jenisData: string;
+  date: string;
+  jenisData: string[];
   ukuranFile: string;
-  formatFile: string;
-  status: string;
-
-  // Tambahkan field yang digunakan di data-table.tsx
-  mentee?: string;
-  submissionStatus?: string;
-  reviewStatus?: string;
+  formatFile: "JSON" | "CSV" | "XLSX";
+  status: "berhasil" | "gagal";
 };
+
+const formatCycle = ["JSON", "CSV", "XLSX"] as const;
+const statusCycle = ["berhasil", "gagal"] as const;
 
 const getStatusBadgeColor = (status: string) => {
   switch (status) {
@@ -35,64 +32,167 @@ const getStatusBadgeColor = (status: string) => {
 export const columns: ColumnDef<Project>[] = [
   {
     id: "select",
-    header: ({ table }) => <Checkbox checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")} onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)} aria-label="Select all" />,
-    cell: ({ row }) => <Checkbox checked={row.getIsSelected()} onCheckedChange={(value) => row.toggleSelected(!!value)} aria-label="Select row" />,
-    enableSorting: false,
-    enableHiding: false,
-    size: 40, // biar kecil, sama seperti w-12
-  },
-  {
-    accessorKey: "date",
-    header: () => (
-      <div className="flex items-center space-x-1">
-        <span>Tanggal & Waktu</span>
-        <ChevronDown className="w-4 h-4" />
-      </div>
-    ),
-  },
-  {
-    accessorKey: "jenisData",
-    header: () => (
-      <div className="flex items-center space-x-1">
-        <span>Jenis Data</span>
-        <ChevronDown className="w-4 h-4" />
-      </div>
-    ),
-  },
-  {
-    accessorKey: "ukuranFile",
-    header: () => (
-      <div className="flex items-center space-x-1">
-        <span>Ukuran File</span>
-        <ChevronDown className="w-4 h-4" />
-      </div>
-    ),
-  },
-  {
-    accessorKey: "formatFile",
-    header: () => (
-      <div className="flex items-center space-x-1">
-        <span>Format File</span>
-        <ChevronDown className="w-4 h-4" />
-      </div>
-    ),
-  },
-  {
-    accessorKey: "status",
-    header: () => (
-      <div className="flex items-center space-x-1">
-        <span>Status</span>
-        <ChevronDown className="w-4 h-4" />
-      </div>
+    header: ({ table }) => (
+      <Checkbox
+        checked={
+          table.getIsAllPageRowsSelected() ||
+          (table.getIsSomePageRowsSelected() && "indeterminate")
+        }
+        onCheckedChange={(v) => table.toggleAllPageRowsSelected(!!v)}
+      />
     ),
     cell: ({ row }) => (
-      <div className="flex items-center space-x-2">
-        <Badge className={getStatusBadgeColor(row.original.status)}>
-          <span className="capitalize">{row.original.status}</span>
-        </Badge>
-      </div>
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(v) => row.toggleSelected(!!v)}
+      />
+    ),
+    enableSorting: false,
+  },
+
+  /* ============================
+     SORT 3 MODE – DATE
+  ============================ */
+  {
+    accessorKey: "date",
+    header: ({ column }) => {
+      const sort = column.getIsSorted(); // false | "asc" | "desc"
+
+      return (
+        <button
+          onClick={() => {
+            if (!sort) column.toggleSorting(false); // ASC
+            else if (sort === "asc") column.toggleSorting(true); // DESC
+            else column.clearSorting(); // RESET
+          }}
+          className={`flex items-center gap-1 w-full cursor-pointer  
+            ${sort ? "bg-emerald-200" : ""}`}
+        >
+          Tanggal & Waktu
+          {sort === "asc" && <ArrowDown className="w-4 h-4" />}
+          {sort === "desc" && <ArrowUp className="w-4 h-4" />}
+        </button>
+      );
+    },
+  },
+
+  /* ============================
+     SORT 3 MODE – JENIS DATA
+  ============================ */
+  {
+    accessorKey: "jenisData",
+    header: ({ column }) => {
+      const sort = column.getIsSorted();
+      return (
+        <button
+          onClick={() => {
+            if (!sort) column.toggleSorting(false);
+            else if (sort === "asc") column.toggleSorting(true);
+            else column.clearSorting();
+          }}
+          className={`flex items-center gap-1 w-full cursor-pointer 
+            ${sort ? "bg-emerald-200" : ""}`}
+        >
+          Jenis Data
+          {sort === "asc" && <ArrowDown className="w-4 h-4" />}
+          {sort === "desc" && <ArrowUp className="w-4 h-4" />}
+        </button>
+      );
+    },
+    cell: ({ row }) =>
+      row.original.jenisData.map((v, i) => (
+        <span key={i} className="px-2 py-1 bg-gray-100 rounded mr-1">
+          {v}
+        </span>
+      )),
+  },
+
+  /* ============================
+     SORT 3 MODE – UKURAN FILE
+  ============================ */
+  {
+    accessorKey: "ukuranFile",
+    header: ({ column }) => {
+      const sort = column.getIsSorted();
+      return (
+        <button
+          onClick={() => {
+            if (!sort) column.toggleSorting(false);
+            else if (sort === "asc") column.toggleSorting(true);
+            else column.clearSorting();
+          }}
+          className={`flex items-center gap-1 w-full cursor-pointer 
+            ${sort ? "bg-emerald-200" : ""}`}
+        >
+          Ukuran File
+          {sort === "asc" && <ArrowDown className="w-4 h-4" />}
+          {sort === "desc" && <ArrowUp className="w-4 h-4" />}
+        </button>
+      );
+    },
+  },
+
+  /* ============================
+     FILTER 4 MODE – FORMAT FILE
+     JSON → CSV → XLSX → RESET
+  ============================ */
+  {
+    accessorKey: "formatFile",
+    header: ({ column }) => {
+      const filter = column.getFilterValue() as string | undefined;
+
+      const nextFilter = () => {
+        if (!filter) return formatCycle[0];
+        const idx = formatCycle.indexOf(filter as any);
+        if (idx === -1 || idx === formatCycle.length - 1) return undefined;
+        return formatCycle[idx + 1];
+      };
+
+      return (
+        <button
+          onClick={() => column.setFilterValue(nextFilter())}
+          className={`flex items-center gap-1 w-full cursor-pointer  
+            ${filter ? "bg-emerald-200" : ""}`}
+        >
+          {filter ? `Format File – ${filter}` : "Format File"}
+        </button>
+      );
+    },
+  },
+
+  /* ============================
+     FILTER 3 MODE – STATUS
+     berhasil → gagal → RESET
+  ============================ */
+  {
+    accessorKey: "status",
+    header: ({ column }) => {
+      const filter = column.getFilterValue() as string | undefined;
+
+      const nextFilter = () => {
+        if (!filter) return statusCycle[0];
+        const idx = statusCycle.indexOf(filter as any);
+        if (idx === -1 || idx === statusCycle.length - 1) return undefined;
+        return statusCycle[idx + 1];
+      };
+
+      return (
+        <button
+          onClick={() => column.setFilterValue(nextFilter())}
+          className={`flex items-center gap-1 w-full cursor-pointer  
+            ${filter ? "bg-emerald-200" : ""}`}
+        >
+          {filter ? `Status – ${filter}` : "Status"}
+        </button>
+      );
+    },
+    cell: ({ row }) => (
+      <Badge className={getStatusBadgeColor(row.original.status)}>
+        {row.original.status}
+      </Badge>
     ),
   },
+
   {
     id: "actions",
     header: "Aksi",
@@ -102,20 +202,40 @@ export const columns: ColumnDef<Project>[] = [
       return (
         <div className="flex items-center space-x-2">
           {status === "berhasil" ? (
-            <Button size="sm" variant="outline" className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white border-blue-500" onClick={() => console.log("Unduh:", row.original.id)}>
+            <Button
+              size="sm"
+              variant="outline"
+              className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white border-blue-500"
+              onClick={() => console.log("Unduh:", row.original.id)}
+            >
               <Download className="w-4 h-4" />
             </Button>
           ) : status === "gagal" ? (
-            <Button size="sm" variant="outline" className="px-3 py-1 bg-yellow-500 hover:bg-yellow-600 text-white border-yellow-500" onClick={() => console.log("Ulang:", row.original.id)}>
+            <Button
+              size="sm"
+              variant="outline"
+              className="px-3 py-1 bg-yellow-500 hover:bg-yellow-600 text-white border-yellow-500"
+              onClick={() => console.log("Ulang:", row.original.id)}
+            >
               <RotateCcw className="w-4 h-4" />
             </Button>
           ) : (
-            <Button size="sm" variant="outline" className="w-8 h-8 p-0 bg-[#0CA678] hover:bg-[#08916C] text-white border-[#0CA678]" onClick={() => console.log("Edit:", row.original.id)}>
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-8 h-8 p-0 bg-[#0CA678] hover:bg-[#08916C] text-white border-[#0CA678]"
+              onClick={() => console.log("Edit:", row.original.id)}
+            >
               <Edit className="w-4 h-4" />
             </Button>
           )}
 
-          <Button size="sm" variant="outline" className="w-8 h-8 p-0 bg-red-500 hover:bg-red-600 text-white border-red-500" onClick={() => console.log("Hapus:", row.original.id)}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-8 h-8 p-0 bg-red-500 hover:bg-red-600 text-white border-red-500"
+            onClick={() => console.log("Hapus:", row.original.id)}
+          >
             <Trash2 className="w-4 h-4" />
           </Button>
         </div>

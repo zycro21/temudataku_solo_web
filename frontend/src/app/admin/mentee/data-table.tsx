@@ -1,44 +1,164 @@
 "use client";
 
-import * as React from "react";
-import { ColumnDef, flexRender, getCoreRowModel, getPaginationRowModel, getFilteredRowModel, useReactTable } from "@tanstack/react-table";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import axios from "axios";
+import { toast } from "sonner";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  getPaginationRowModel,
+  getFilteredRowModel,
+  getSortedRowModel,
+  useReactTable,
+  ColumnFiltersState,
+} from "@tanstack/react-table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Upload, User } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { ChevronLeft, ChevronRight, Upload, User, Search } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Mentee } from "./columns";
 import Image from "next/image";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
 }
 
-export function DataTable<TData extends Mentee, TValue>({ columns, data }: DataTableProps<TData, TValue>) {
-  const [globalFilter, setGlobalFilter] = React.useState("");
-  const [selectedMentee, setSelectedMentee] = React.useState<Mentee | null>(null);
-  const [showDetailDialog, setShowDetailDialog] = React.useState(false);
-  const [showEditDialog, setShowEditDialog] = React.useState(false);
+export function DataTable<TData extends Mentee, TValue>({
+  columns,
+  data,
+}: DataTableProps<TData, TValue>) {
+  const router = useRouter();
 
-  const [editFormData, setEditFormData] = React.useState({
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [selectedMentee, setSelectedMentee] = useState<Mentee | null>(null);
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editPhotoPreview, setEditPhotoPreview] = useState("");
+
+  const [sorting, setSorting] = useState<{ id: string; desc: boolean }[]>([]);
+  const [roleCycle, setRoleCycle] = useState(0); // 0 all, 1 mentee, 2 mentor, 3 admin, 4 affiliator
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+
+  const [editFormData, setEditFormData] = useState({
     name: "",
     email: "",
     role: "",
     status: "",
   });
 
+  const handleSaveEdit = async () => {
+    if (!selectedMentee) return;
+
+    try {
+      const formData = new FormData();
+
+      formData.append("fullName", editFormData.name);
+      formData.append("email", editFormData.email);
+
+      if (editFormData.role) {
+        formData.append("role", editFormData.role.toLowerCase());
+      }
+
+      formData.append(
+        "isActive",
+        editFormData.status === "Aktif" ? "true" : "false"
+      );
+
+      const fileInput = document.getElementById(
+        "edit-photo"
+      ) as HTMLInputElement;
+
+      if (fileInput?.files?.[0]) {
+        formData.append("profilePicture", fileInput.files[0]);
+      }
+
+      await axios.put(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/admin/${selectedMentee.id}`,
+        formData,
+        {
+          withCredentials: true,
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      toast.success("Data mentee berhasil diperbarui");
+
+      setShowEditDialog(false);
+
+      router.refresh();
+    } catch (err) {
+      console.error(err);
+      toast.error("Gagal memperbarui data mentee");
+    }
+  };
+
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const handleDeleteMentee = async () => {
+    if (!selectedMentee) return;
+
+    try {
+      await axios.delete(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/${selectedMentee.id}`,
+        { withCredentials: true }
+      );
+
+      toast.success("Akun mentee berhasil dihapus");
+
+      setShowDeleteDialog(false);
+      setSelectedMentee(null);
+
+      router.refresh();
+    } catch (err: any) {
+      console.error(err);
+
+      const message =
+        err?.response?.data?.message || "Gagal menghapus akun mentee";
+
+      toast.error(message);
+    }
+  };
+
   const table = useReactTable({
     data,
     columns,
     state: {
       globalFilter,
+      sorting,
+      columnFilters,
     },
-    onGlobalFilterChange: setGlobalFilter,
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
   });
@@ -52,19 +172,48 @@ export function DataTable<TData extends Mentee, TValue>({ columns, data }: DataT
 
   return (
     <div>
-      {/* 🔍 Search bar */}
-      <div className="flex items-center pb-2">
-        <Input placeholder="Cari data..." value={globalFilter ?? ""} onChange={(e) => setGlobalFilter(e.target.value)} className="max-w-sm border-green-500 focus-visible:ring-green-500" />
+      {/* Search bar */}
+      <div className="flex items-center pb-4">
+        <div className="relative w-full max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+          <Input
+            placeholder="Cari Berdasarkan Nama, Email, atau Status..."
+            value={globalFilter ?? ""}
+            onChange={(e) => setGlobalFilter(e.target.value)}
+            className="pl-10 focus-visible:ring-green-500"
+          />
+        </div>
       </div>
 
-      {/* 📋 Table */}
+      {/* Table */}
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>
+                  <TableHead
+                    key={header.id}
+                    className={`px-4 py-3 text-gray-700 transition
+    ${
+      header.column.getIsSorted() || header.column.getFilterValue()
+        ? "bg-emerald-100 text-emerald-900"
+        : ""
+    }
+    ${
+      typeof header.column.columnDef.header === "function"
+        ? "cursor-pointer"
+        : ""
+    }
+  `}
+                  >
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </TableHead>
                 ))}
               </TableRow>
             ))}
@@ -78,7 +227,9 @@ export function DataTable<TData extends Mentee, TValue>({ columns, data }: DataT
                     return (
                       <TableCell
                         key={cell.id}
-                        className={isSelectColumn ? "" : "cursor-pointer"}
+                        className={`px-4 py-3 ${
+                          isSelectColumn ? "" : "cursor-pointer"
+                        }`}
                         onClick={() => {
                           if (!isSelectColumn) {
                             setSelectedMentee(row.original);
@@ -86,7 +237,10 @@ export function DataTable<TData extends Mentee, TValue>({ columns, data }: DataT
                           }
                         }}
                       >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
                       </TableCell>
                     );
                   })}
@@ -94,7 +248,10 @@ export function DataTable<TData extends Mentee, TValue>({ columns, data }: DataT
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
                   Tidak ada data.
                 </TableCell>
               </TableRow>
@@ -103,7 +260,7 @@ export function DataTable<TData extends Mentee, TValue>({ columns, data }: DataT
         </Table>
       </div>
 
-      {/* 📌 Pagination */}
+      {/* Pagination */}
       <div className="flex items-center justify-between mt-6">
         <div className="text-sm text-gray-600">
           Menampilkan {from}-{to} dari {totalRows} data
@@ -112,7 +269,11 @@ export function DataTable<TData extends Mentee, TValue>({ columns, data }: DataT
           {/* Tampilkan per halaman */}
           <div className="flex items-center space-x-2">
             <span className="text-sm text-gray-600">Tampilkan per halaman</span>
-            <select value={pageSize} onChange={(e) => table.setPageSize(Number(e.target.value))} className="border border-gray-300 rounded px-2 py-1 text-sm">
+            <select
+              value={pageSize}
+              onChange={(e) => table.setPageSize(Number(e.target.value))}
+              className="border border-gray-300 rounded px-2 py-1 text-sm"
+            >
               {[10, 25, 50].map((size) => (
                 <option key={size} value={size}>
                   {size}
@@ -123,41 +284,83 @@ export function DataTable<TData extends Mentee, TValue>({ columns, data }: DataT
 
           {/* Numbered Pagination */}
           <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
               <ChevronLeft className="w-4 h-4" />
             </Button>
 
             {Array.from({ length: totalPages }, (_, i) => i + 1)
-              .slice(Math.max(0, pageIndex - 2), Math.min(totalPages, pageIndex + 3))
+              .slice(
+                Math.max(0, pageIndex - 2),
+                Math.min(totalPages, pageIndex + 3)
+              )
               .map((page) => (
-                <Button key={page} variant={pageIndex + 1 === page ? "default" : "outline"} size="sm" onClick={() => table.setPageIndex(page - 1)} className={pageIndex + 1 === page ? "bg-[#0CA678] hover:bg-[#08916C]" : ""}>
+                <Button
+                  key={page}
+                  variant={pageIndex + 1 === page ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => table.setPageIndex(page - 1)}
+                  className={
+                    pageIndex + 1 === page
+                      ? "bg-[#0CA678] hover:bg-[#08916C]"
+                      : ""
+                  }
+                >
                   {page}
                 </Button>
               ))}
 
-            <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
         </div>
       </div>
 
-      {/* 🟢 Mentee Detail Dialog */}
+      {/* Mentee Detail Dialog */}
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
-        <DialogContent className="sm:max-w-md my-4 p-0">
-          <DialogHeader className="px-6 pt-6">
-            <DialogTitle className="text-xl font-bold">Detail Mentee</DialogTitle>
+        <DialogContent
+          className="sm:max-w-xl my-2 p-0"
+          onInteractOutside={(e) => e.preventDefault()}
+        >
+          {/* Header */}
+          <DialogHeader className="px-6 pt-4 pb-3">
+            <DialogTitle className="text-xl font-bold">
+              Detail Mentee
+            </DialogTitle>
           </DialogHeader>
 
-          {/* Scrollable Area */}
-          <ScrollArea className="max-h-[70vh] px-6">
+          {/* Garis pemisah */}
+          <div className="border-t mx-6 mb-2"></div>
+
+          {/* Scrollable Content */}
+          <ScrollArea className="max-h-[70vh] px-6 py-3">
             {selectedMentee && (
-              <div className="space-y-6 pb-6">
+              <div className="space-y-6">
                 {/* Foto */}
                 <div>
                   <p className="text-sm text-gray-500 mb-2">Foto Mentee</p>
-                  <div className="w-full h-80 bg-gray-100 rounded-md overflow-hidden">
-                    <Image width={400} height={320} src={selectedMentee.photo || "/placeholder.svg?height=320&width=400&text=Profile+Photo"} alt={selectedMentee.name} className="w-full h-full object-cover" />
+
+                  <div className="w-full h-64 bg-gray-100 rounded-md overflow-hidden relative">
+                    <Image
+                      src={
+                        selectedMentee.photo ||
+                        "/assets/dashboard/user/avatar.png"
+                      }
+                      alt={selectedMentee.name}
+                      fill
+                      unoptimized
+                      className="object-cover"
+                    />
                   </div>
                 </div>
 
@@ -165,39 +368,64 @@ export function DataTable<TData extends Mentee, TValue>({ columns, data }: DataT
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div>
                     <p className="text-sm text-gray-500 mb-1">ID Mentee</p>
-                    <p className="text-lg font-semibold break-words whitespace-normal">{selectedMentee.id}</p>
+                    <p className="text-lg font-semibold break-words">
+                      {selectedMentee.id}
+                    </p>
                   </div>
 
                   <div>
                     <p className="text-sm text-gray-500 mb-1">Nama Lengkap</p>
-                    <p className="text-lg font-semibold break-words whitespace-normal">{selectedMentee.name}</p>
-                  </div>
-
-                  <div>
-                    <p className="text-sm text-gray-500 mb-1">Username</p>
-                    <p className="text-lg font-semibold break-words whitespace-normal">{selectedMentee.username}</p>
+                    <p className="text-lg font-semibold break-words">
+                      {selectedMentee.name}
+                    </p>
                   </div>
 
                   <div>
                     <p className="text-sm text-gray-500 mb-1">Email</p>
-                    <p className="text-lg font-semibold break-words whitespace-normal">{selectedMentee.email}</p>
+                    <p className="text-lg font-semibold break-words">
+                      {selectedMentee.email}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-sm text-gray-500 mb-1">
+                      Tanggal Akun Dibuat
+                    </p>
+                    <p className="text-lg font-semibold break-words">
+                      {new Date(selectedMentee.createdAt).toLocaleString(
+                        "id-ID",
+                        {
+                          day: "2-digit",
+                          month: "long",
+                          year: "numeric",
+                        }
+                      )}
+                    </p>
                   </div>
 
                   <div>
                     <p className="text-sm text-gray-500 mb-1">Peran</p>
-                    <Badge className="bg-blue-100 text-blue-800">{selectedMentee.role}</Badge>
+                    <Badge className="bg-blue-100 text-blue-800">
+                      {selectedMentee.role}
+                    </Badge>
                   </div>
 
                   <div>
                     <p className="text-sm text-gray-500 mb-1">Status Akun</p>
-                    <p className="text-lg font-semibold">{selectedMentee.status || "Aktif"}</p>
+                    <p className="text-lg font-semibold">
+                      {selectedMentee.status || "Aktif"}
+                    </p>
                   </div>
                 </div>
               </div>
             )}
           </ScrollArea>
 
-          <DialogFooter className="flex space-x-4 sm:justify-center px-6 pb-6">
+          {/* Garis pemisah sebelum tombol */}
+          <div className="border-t mx-6 mt-2"></div>
+
+          {/* Footer */}
+          <DialogFooter className="flex space-x-4 px-6 py-6 sm:justify-center">
             <Button
               className="flex-1 bg-[#0CA678] hover:bg-[#08916C]"
               onClick={() => {
@@ -205,8 +433,8 @@ export function DataTable<TData extends Mentee, TValue>({ columns, data }: DataT
                   setEditFormData({
                     name: selectedMentee.name,
                     email: selectedMentee.email,
-                    role: selectedMentee.role,
-                    status: selectedMentee.status || "Aktif",
+                    role: selectedMentee.role.toLowerCase(),
+                    status: selectedMentee.status ?? "Aktif",
                   });
                 }
                 setShowDetailDialog(false);
@@ -215,12 +443,13 @@ export function DataTable<TData extends Mentee, TValue>({ columns, data }: DataT
             >
               Edit
             </Button>
+
             <Button
               variant="destructive"
               className="flex-1"
               onClick={() => {
-                console.log("Delete mentee:", selectedMentee);
                 setShowDetailDialog(false);
+                setShowDeleteDialog(true);
               }}
             >
               Hapus
@@ -229,44 +458,151 @@ export function DataTable<TData extends Mentee, TValue>({ columns, data }: DataT
         </DialogContent>
       </Dialog>
 
-      {/* ✏️ Edit Mentee Dialog */}
+      {/* Edit Mentee Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent
+          className="sm:max-w-md"
+          onInteractOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">Edit Mentee</DialogTitle>
           </DialogHeader>
 
+          {/* Garis pemisah setelah Title */}
+          <div className="border-t my-3"></div>
+
           <div className="space-y-6">
+            {/* Photo Section */}
+            <div>
+              <p className="text-sm font-medium text-gray-900 mb-4">
+                Foto Mentee
+              </p>
+
+              <div className="flex items-start space-x-4">
+                {/* Preview Foto */}
+                <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+                  {editPhotoPreview || selectedMentee?.photo ? (
+                    <Image
+                      src={
+                        editPhotoPreview ||
+                        selectedMentee?.photo ||
+                        "/placeholder.svg?height=80&width=80&text=Foto"
+                      }
+                      alt="Preview"
+                      width={80}
+                      height={80}
+                      unoptimized
+                      className="rounded-full object-cover"
+                    />
+                  ) : (
+                    <User className="w-10 h-10 text-gray-400" />
+                  )}
+                </div>
+
+                {/* Bagian kanan */}
+                <div className="flex flex-col">
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="file"
+                      accept="image/png, image/jpeg"
+                      className="hidden"
+                      id="edit-photo"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const url = URL.createObjectURL(file);
+                        setEditPhotoPreview(url);
+                      }}
+                    />
+
+                    <Button
+                      variant="outline"
+                      className="border-[#0CA678] text-[#0CA678] border-dashed hover:bg-[#0CA678] hover:text-white bg-transparent"
+                      onClick={() =>
+                        document.getElementById("edit-photo")?.click()
+                      }
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Ganti foto profil
+                    </Button>
+
+                    <Button
+                      variant="destructive"
+                      onClick={() => setEditPhotoPreview("")}
+                    >
+                      Hapus
+                    </Button>
+                  </div>
+
+                  <p className="text-xs text-gray-500 mt-2">
+                    File png atau jpg maks 4MB
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* Form Fields */}
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">Nama Lengkap</label>
-                <Input value={editFormData.name} onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })} className="w-full" />
+                <label className="block text-sm font-medium text-gray-900 mb-2">
+                  Nama Lengkap
+                </label>
+                <Input
+                  value={editFormData.name}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, name: e.target.value })
+                  }
+                  className="w-full"
+                />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">Email</label>
-                <Input type="email" value={editFormData.email} onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })} className="w-full border-[#0CA678] focus:border-[#0CA678] focus:ring-[#0CA678]" />
+                <label className="block text-sm font-medium text-gray-900 mb-2">
+                  Email
+                </label>
+                <Input
+                  type="email"
+                  value={editFormData.email}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, email: e.target.value })
+                  }
+                  className="w-full"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">Peran</label>
-                  <Select value={editFormData.role} onValueChange={(value) => setEditFormData({ ...editFormData, role: value })}>
+                  <label className="block text-sm font-medium text-gray-900 mb-2">
+                    Peran
+                  </label>
+                  <Select
+                    value={editFormData.role}
+                    onValueChange={(value) =>
+                      setEditFormData({ ...editFormData, role: value })
+                    }
+                  >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Pilih peran" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Mentee">Mentee</SelectItem>
-                      <SelectItem value="Mentor">Mentor</SelectItem>
-                      <SelectItem value="Admin">Admin</SelectItem>
+                      <SelectItem value="mentee">Mentee</SelectItem>
+                      <SelectItem value="mentor">Mentor</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="affiliator">Affiliator</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">Status Akun</label>
-                  <Select value={editFormData.status} onValueChange={(value) => setEditFormData({ ...editFormData, status: value })}>
+                  <label className="block text-sm font-medium text-gray-900 mb-2">
+                    Status Akun
+                  </label>
+                  <Select
+                    value={editFormData.status}
+                    onValueChange={(value) =>
+                      setEditFormData({ ...editFormData, status: value })
+                    }
+                  >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Pilih status" />
                     </SelectTrigger>
@@ -280,18 +616,74 @@ export function DataTable<TData extends Mentee, TValue>({ columns, data }: DataT
             </div>
           </div>
 
+          {/* Garis pemisah sebelum tombol */}
+          <div className="border-t my-4"></div>
+
           <DialogFooter className="flex space-x-4 sm:justify-center">
-            <Button variant="outline" className="flex-1 bg-transparent" onClick={() => setShowEditDialog(false)}>
+            <Button
+              variant="outline"
+              className="flex-1 bg-transparent"
+              onClick={() => setShowEditDialog(false)}
+            >
               Batalkan Perubahan
             </Button>
+
             <Button
               className="flex-1 bg-[#0CA678] hover:bg-[#08916C]"
-              onClick={() => {
-                console.log("Save changes:", editFormData);
-                setShowEditDialog(false);
-              }}
+              onClick={handleSaveEdit}
             >
               Simpan Perubahan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent
+          className="sm:max-w-md"
+          onInteractOutside={(e) => e.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-gray-900">
+              Konfirmasi Hapus Akun
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="mt-4 space-y-3">
+            <p className="text-sm text-gray-600">
+              Apakah kamu yakin ingin menghapus akun mentee berikut?
+            </p>
+
+            <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3">
+              <p className="text-sm font-semibold text-emerald-900">
+                {selectedMentee?.name}
+              </p>
+              <p className="text-xs text-emerald-700">
+                {selectedMentee?.email}
+              </p>
+            </div>
+
+            <p className="text-xs text-red-600">
+              Tindakan ini tidak dapat dibatalkan.
+            </p>
+          </div>
+
+          <DialogFooter className="mt-6 flex space-x-3 sm:justify-end">
+            <Button
+              variant="outline"
+              className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+              onClick={() => setShowDeleteDialog(false)}
+            >
+              Batal
+            </Button>
+
+            <Button
+              variant="destructive"
+              className="bg-emerald-600 hover:bg-emerald-700"
+              onClick={handleDeleteMentee}
+            >
+              Ya, Hapus Akun
             </Button>
           </DialogFooter>
         </DialogContent>
