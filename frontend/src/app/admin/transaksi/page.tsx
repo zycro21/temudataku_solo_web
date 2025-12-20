@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
   FileText,
@@ -25,321 +28,307 @@ import { columns, Project } from "./columns";
 export default function AdminMentorPage() {
   const [exportOpen, setExportOpen] = useState(false);
 
-  const [projects] = useState<Project[]>([
-    {
-      id: "TRX001",
-      mentee: "Jehan Ra",
-      mentor: "Gilang Dirga",
-      program: "Short Class",
-      topic: "Excel Untuk Pemula",
-      date: "10-05-2025, 20:00",
-      totalHarga: "Rp 150.000",
-      statusTransaksi: "Belum Dibayar",
-      alasan: "-",
-    },
-    {
-      id: "TRX002",
-      mentee: "Galih B",
-      mentor: "Gilang Dirga",
-      program: "Bootcamp",
-      topic: "Introduction to Data Science",
-      date: "10-05-2025, 20:00",
-      totalHarga: "Rp 850.000",
-      statusTransaksi: "Belum Dibayar",
-      alasan: "-",
-    },
-    {
-      id: "TRX003",
-      mentee: "Bonda Prakoso",
-      mentor: "Nina Pratiwi",
-      program: "Bootcamp",
-      topic: "Belajar Data Science dari Nol",
-      date: "10-05-2025, 20:00",
-      totalHarga: "Rp 850.000",
-      statusTransaksi: "Belum Dibayar",
-      alasan: "-",
-    },
-    {
-      id: "TRX004",
-      mentee: "Kepa",
-      mentor: "Nina Pratiwi",
-      program: "Bootcamp",
-      topic: "Visualisasi Data dengan Matplotlib",
-      date: "10-05-2025, 20:00",
-      totalHarga: "Rp 850.000",
-      statusTransaksi: "Menunggu Konfirmasi",
-      alasan: "-",
-    },
-    {
-      id: "TRX005",
-      mentee: "Darwin Nunez",
-      mentor: "Laura Ayu",
-      program: "Bootcamp",
-      topic: "Visualisasi Data dengan Matplotlib",
-      date: "10-05-2025, 20:00",
-      totalHarga: "Rp 850.000",
-      statusTransaksi: "Selesai",
-      alasan: "-",
-    },
-    {
-      id: "TRX006",
-      mentee: "Marc Marquez",
-      mentor: "Gilang Dirga",
-      program: "Bootcamp",
-      topic: "Visualisasi Data dengan Matplotlib",
-      date: "10-05-2025, 20:00",
-      totalHarga: "Rp 850.000",
-      statusTransaksi: "Selesai",
-      alasan: "-",
-    },
-    {
-      id: "TRX007",
-      mentee: "Rafael Struick",
-      mentor: "Laura Ayu",
-      program: "Bootcamp",
-      topic: "Visualisasi Data dengan Matplotlib",
-      date: "10-05-2025, 20:00",
-      totalHarga: "Rp 850.000",
-      statusTransaksi: "Selesai",
-      alasan: "-",
-    },
-    {
-      id: "TRX008",
-      mentee: "Marteen Paes",
-      mentor: "Laura Ayu",
-      program: "Bootcamp",
-      topic: "Visualisasi Data dengan Matplotlib",
-      date: "10-05-2025, 20:00",
-      totalHarga: "Rp 850.000",
-      statusTransaksi: "Selesai",
-      alasan: "-",
-    },
-    {
-      id: "TRX009",
-      mentee: "Kevin Mendoza",
-      mentor: "Laura Ayu",
-      program: "Short Class",
-      topic: "Visualisasi Data dengan Matplotlib",
-      date: "10-05-2025, 20:00",
-      totalHarga: "Rp 150.000",
-      statusTransaksi: "Selesai",
-      alasan: "-",
-    },
-    {
-      id: "TRX010",
-      mentee: "Lorenzo",
-      mentor: "Nina Pratiwi",
-      program: "Short Class",
-      topic: "Excel Untuk Pemula",
-      date: "10-05-2025, 20:00",
-      totalHarga: "Rp 150.000",
-      statusTransaksi: "Dibatalkan",
-      alasan: "Pembayaran gagal diverifikasi",
-    },
+  const handleExportPayments = async (format: "csv" | "excel") => {
+    const loadingToastId = toast.loading(
+      `Mengekspor data pembayaran ke ${format.toUpperCase()}...`
+    );
 
-    // -------------------------------------------
-    // 🔽 Tambahan 15 data baru (TRX011–TRX025)
-    // -------------------------------------------
+    try {
+      const res = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/payment/payments-export`,
+        {
+          params: { format }, // bisa ditambah status: 'confirmed' kalau mau filter
+          responseType: "blob", // penting agar file diterima sebagai blob
+          withCredentials: true,
+        }
+      );
 
-    {
-      id: "TRX011",
-      mentee: "Bagas Putra",
-      mentor: "Gilang Dirga",
-      program: "Bootcamp",
-      topic: "Machine Learning Dasar",
-      date: "11-05-2025, 19:00",
-      totalHarga: "Rp 850.000",
-      statusTransaksi: "Belum Dibayar",
-      alasan: "-",
-    },
-    {
-      id: "TRX012",
-      mentee: "Dewi Anggraini",
-      mentor: "Laura Ayu",
-      program: "Short Class",
-      topic: "Excel Untuk Pemula",
-      date: "11-05-2025, 19:00",
-      totalHarga: "Rp 150.000",
-      statusTransaksi: "Menunggu Konfirmasi",
-      alasan: "-",
-    },
-    {
-      id: "TRX013",
-      mentee: "Fadli Hadi",
-      mentor: "Nina Pratiwi",
-      program: "Bootcamp",
-      topic: "Data Cleaning dengan Python",
-      date: "11-05-2025, 20:00",
-      totalHarga: "Rp 850.000",
-      statusTransaksi: "Selesai",
-      alasan: "-",
-    },
-    {
-      id: "TRX014",
-      mentee: "Rio Saputra",
-      mentor: "Laura Ayu",
-      program: "Bootcamp",
-      topic: "Pengenalan SQL untuk Data Analyst",
-      date: "11-05-2025, 20:00",
-      totalHarga: "Rp 850.000",
-      statusTransaksi: "Belum Dibayar",
-      alasan: "-",
-    },
-    {
-      id: "TRX015",
-      mentee: "Anita Lestari",
-      mentor: "Gilang Dirga",
-      program: "Short Class",
-      topic: "Excel Untuk Pemula",
-      date: "11-05-2025, 18:00",
-      totalHarga: "Rp 150.000",
-      statusTransaksi: "Selesai",
-      alasan: "-",
-    },
-    {
-      id: "TRX016",
-      mentee: "Vicky Kurnia",
-      mentor: "Nina Pratiwi",
-      program: "Bootcamp",
-      topic: "Membangun Dashboard dengan Power BI",
-      date: "12-05-2025, 19:00",
-      totalHarga: "Rp 850.000",
-      statusTransaksi: "Selesai",
-      alasan: "-",
-    },
-    {
-      id: "TRX017",
-      mentee: "Samuel Hartono",
-      mentor: "Laura Ayu",
-      program: "Short Class",
-      topic: "Belajar Tableau untuk Visualisasi",
-      date: "12-05-2025, 19:30",
-      totalHarga: "Rp 150.000",
-      statusTransaksi: "Dibatalkan",
-      alasan: "Mentee meminta refund",
-    },
-    {
-      id: "TRX018",
-      mentee: "Rizky Ananda",
-      mentor: "Gilang Dirga",
-      program: "Bootcamp",
-      topic: "Intermediate Machine Learning",
-      date: "12-05-2025, 20:00",
-      totalHarga: "Rp 850.000",
-      statusTransaksi: "Menunggu Konfirmasi",
-      alasan: "-",
-    },
-    {
-      id: "TRX019",
-      mentee: "Siti Maulida",
-      mentor: "Nina Pratiwi",
-      program: "Short Class",
-      topic: "Excel Untuk Pemula",
-      date: "12-05-2025, 18:00",
-      totalHarga: "Rp 150.000",
-      statusTransaksi: "Belum Dibayar",
-      alasan: "-",
-    },
-    {
-      id: "TRX020",
-      mentee: "Yusuf Ramadhan",
-      mentor: "Laura Ayu",
-      program: "Bootcamp",
-      topic: "Data Visualization Advanced",
-      date: "13-05-2025, 20:00",
-      totalHarga: "Rp 850.000",
-      statusTransaksi: "Selesai",
-      alasan: "-",
-    },
-    {
-      id: "TRX021",
-      mentee: "Nadya Melani",
-      mentor: "Gilang Dirga",
-      program: "Short Class",
-      topic: "Analisis Data untuk Pemula",
-      date: "13-05-2025, 17:00",
-      totalHarga: "Rp 150.000",
-      statusTransaksi: "Menunggu Konfirmasi",
-      alasan: "-",
-    },
-    {
-      id: "TRX022",
-      mentee: "Randi Saputro",
-      mentor: "Nina Pratiwi",
-      program: "Bootcamp",
-      topic: "Fundamental Python untuk Data",
-      date: "13-05-2025, 20:30",
-      totalHarga: "Rp 850.000",
-      statusTransaksi: "Belum Dibayar",
-      alasan: "-",
-    },
-    {
-      id: "TRX023",
-      mentee: "Chintia Putri",
-      mentor: "Laura Ayu",
-      program: "Bootcamp",
-      topic: "Statistik untuk Data Analyst",
-      date: "13-05-2025, 19:00",
-      totalHarga: "Rp 850.000",
-      statusTransaksi: "Selesai",
-      alasan: "-",
-    },
-    {
-      id: "TRX024",
-      mentee: "Davin Wijaya",
-      mentor: "Gilang Dirga",
-      program: "Short Class",
-      topic: "Excel Lanjutan",
-      date: "14-05-2025, 18:00",
-      totalHarga: "Rp 150.000",
-      statusTransaksi: "Selesai",
-      alasan: "-",
-    },
-    {
-      id: "TRX025",
-      mentee: "Felicia Wulandari",
-      mentor: "Nina Pratiwi",
-      program: "Bootcamp",
-      topic: "Data Analyst Career Preparation",
-      date: "14-05-2025, 20:00",
-      totalHarga: "Rp 850.000",
-      statusTransaksi: "Belum Dibayar",
-      alasan: "-",
-    },
-  ]);
+      const blob = new Blob([res.data], { type: res.headers["content-type"] });
 
-  const stats = [
+      // Ambil filename dari Content-Disposition
+      const contentDisposition = res.headers["content-disposition"];
+      let filename = "payments-export";
+
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="?(.+)"?/);
+        if (match?.[1]) filename = match[1];
+      } else {
+        const timestamp = new Date()
+          .toLocaleString("sv-SE")
+          .replace(" ", "_")
+          .replace(/:/g, "-");
+        filename = `payments-${timestamp}.${
+          format === "excel" ? "xlsx" : "csv"
+        }`;
+      }
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast.success("Export berhasil", {
+        id: loadingToastId,
+        description: `Data pembayaran berhasil diekspor (${filename})`,
+      });
+    } catch (err: any) {
+      console.error("Export payments error:", err);
+
+      toast.error("Gagal export data pembayaran", {
+        id: loadingToastId,
+        description:
+          err?.response?.data?.message ??
+          "Terjadi kesalahan saat mengekspor data pembayaran",
+      });
+    }
+  };
+
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(true);
+
+  const mapServiceTypeToProgram = (type?: string) => {
+    if (!type) return "-";
+
+    const normalized = type
+      .toLowerCase()
+      .replace(/[_\s]+/g, "-")
+      .replace(/--+/g, "-")
+      .trim();
+
+    switch (normalized) {
+      case "bootcamp":
+        return "Bootcamp";
+
+      case "shortclass":
+        return "Short Class";
+
+      case "live-class":
+      case "liveclass":
+      case "live class":
+        return "Live Class";
+
+      case "one-on-one":
+        return "1 on 1 Mentoring";
+
+      case "group":
+        return "Group Mentoring";
+
+      default:
+        return "-";
+    }
+  };
+
+  useEffect(() => {
+    const fetchPayments = async () => {
+      try {
+        setLoadingProjects(true);
+
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/payment/payments`,
+          {
+            params: {
+              page: 1,
+              limit: 10000, // ambil semua untuk tabel
+            },
+            withCredentials: true,
+          }
+        );
+
+        const payments = res.data.data;
+
+        console.log(res.data);
+
+        // mapping hanya untuk booking
+        const mappedProjects: Project[] = payments.map((p: any) => {
+          const user = p.user;
+
+          // --------------------------
+          // ID Transaksi
+          // --------------------------
+          const paymentId = p.id;
+
+          const displayId = p.transactionId
+            ? p.transactionId
+            : `${p.id} (Bukan Transaction ID)`;
+
+          // --------------------------
+          // TYPE
+          // --------------------------
+          let typeLabel = "-";
+          if (p.bookingId) typeLabel = "Mentoring";
+          else if (p.practicePurchaseId) typeLabel = "Practice";
+          else if (p.eLearningPurchaseId) typeLabel = "E-Learning";
+
+          // --------------------------
+          // PROGRAM
+          // --------------------------
+          const program =
+            typeLabel === "Mentoring"
+              ? mapServiceTypeToProgram(
+                  p.booking?.mentoringService?.serviceType
+                )
+              : "-";
+
+          // --------------------------
+          // TOPIK / NAMA PRODUK
+          // --------------------------
+          let topic = "-";
+          if (typeLabel === "Mentoring")
+            topic = p.booking?.mentoringService?.serviceName ?? "-";
+          else if (typeLabel === "Practice")
+            topic = p.practicePurchase?.practice?.title ?? "-";
+          else if (typeLabel === "E-Learning")
+            topic = p.eLearningPurchase?.course?.title ?? "-";
+
+          // --------------------------
+          // MENTOR (hanya untuk mentoring)
+          // --------------------------
+          const mentorNames =
+            typeLabel === "Mentoring"
+              ? p.booking?.mentoringService?.mentors
+                  ?.map((m: any) => m.mentorProfile.user.fullName)
+                  .join(", ") ?? "-"
+              : "-";
+
+          // --------------------------
+          // DATE
+          // --------------------------
+          const date = p.paymentDate
+            ? new Date(p.paymentDate).toLocaleString("id-ID", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "(Belum ada Tanggal, Kemungkinan Belum Dibayar)";
+
+          return {
+            paymentId, // ⬅️ murni PK
+            displayId,
+            
+            mentee: user?.fullName ?? "-",
+            mentor: mentorNames,
+            program,
+            topic,
+            date,
+            totalHarga: `Rp${Number(p.amount).toLocaleString("id-ID")}`,
+            statusTransaksi:
+              p.status === "pending"
+                ? "Belum Dibayar"
+                : p.status === "confirmed"
+                ? "Lunas"
+                : p.status === "failed"
+                ? "Gagal"
+                : p.status === "refunded"
+                ? "Refunded"
+                : "-",
+            alasan: "-",
+            type: typeLabel,
+          };
+        });
+
+        setProjects(mappedProjects);
+      } catch (error) {
+        console.error("Gagal fetch payments:", error);
+      } finally {
+        setLoadingProjects(false);
+      }
+    };
+
+    fetchPayments();
+  }, []);
+
+  const [stats, setStats] = useState<
     {
-      title: "Total Transaksi",
-      value: "80",
-      image: "/assets/admin/trans.svg",
-      color: "text-gray-900",
-    },
-    {
-      title: "Berhasil",
-      value: "78",
-      image: "/assets/admin/menteeac.svg",
-      color: "text-green-600",
-    },
-    {
-      title: "Proses",
-      value: "2",
-      image: "/assets/admin/penjadwalanulang.svg",
-      color: "text-green-600",
-    },
-    {
-      title: "Gagal",
-      value: "2",
-      image: "/assets/admin/menteenonac.svg",
-      color: "text-orange-600",
-    },
-    {
-      title: "Dikembalikan",
-      value: "2",
-      image: "/assets/admin/transdikembalikan.svg",
-      color: "text-orange-600",
-    },
-  ];
+      title: string;
+      value: string;
+      image: string;
+      color: string;
+    }[]
+  >([]);
+
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  useEffect(() => {
+    const fetchPayments = async () => {
+      try {
+        setLoadingStats(true);
+
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/payment/payments`,
+          {
+            params: {
+              page: 1,
+              limit: 10000,
+            },
+            withCredentials: true,
+          }
+        );
+
+        const statsFromApi = res.data.stats;
+
+        setStats([
+          {
+            title: "Total Transaksi",
+            value: statsFromApi.total.toString(),
+            image: "/assets/admin/trans.svg",
+            color: "text-gray-900",
+          },
+          {
+            title: "Berhasil",
+            value: statsFromApi.success.toString(),
+            image: "/assets/admin/menteeac.svg",
+            color: "text-green-600",
+          },
+          {
+            title: "Proses",
+            value: statsFromApi.process.toString(),
+            image: "/assets/admin/penjadwalanulang.svg",
+            color: "text-blue-600",
+          },
+          {
+            title: "Gagal",
+            value: statsFromApi.failed.toString(),
+            image: "/assets/admin/menteenonac.svg",
+            color: "text-orange-600",
+          },
+          {
+            title: "Dikembalikan",
+            value: statsFromApi.refunded.toString(),
+            image: "/assets/admin/transdikembalikan.svg",
+            color: "text-red-600",
+          },
+        ]);
+      } catch (error) {
+        console.error("Gagal mengambil payment stats:", error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    fetchPayments();
+  }, []);
+
+  const StatCardSkeleton = () => (
+    <Card className="w-full px-0 py-2 rounded-lg bg-white shadow-sm">
+      <CardHeader className="flex items-center justify-between px-5 pt-2 pb-1">
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded bg-gray-200 animate-pulse" />
+          <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
+        </div>
+        <div className="w-4 h-4 bg-gray-200 rounded animate-pulse" />
+      </CardHeader>
+
+      <CardContent className="px-5 pt-0 pb-3">
+        <div className="h-8 w-16 bg-gray-200 rounded animate-pulse" />
+      </CardContent>
+    </Card>
+  );
 
   return (
     <>
@@ -372,53 +361,56 @@ export default function AdminMentorPage() {
           </DropdownMenuTrigger>
 
           <DropdownMenuContent align="end" className="w-40">
-            <DropdownMenuItem onClick={() => console.log("Export CSV")}>
+            <DropdownMenuItem onClick={() => handleExportPayments("csv")}>
               Export ke CSV
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => console.log("Export Excel")}>
+            <DropdownMenuItem onClick={() => handleExportPayments("excel")}>
               Export ke Excel
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
 
-      {/* Stats Cards */}
       <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-6 mb-8">
-        {stats.map((stat, index) => (
-          <Card
-            key={index}
-            className="w-full flex flex-col justify-between px-0 py-2
-      shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200
-      cursor-pointer rounded-lg bg-white"
-          >
-            {/* Header */}
-            <CardHeader className="flex items-center justify-between px-5 pt-2 pb-1">
-              <div className="flex items-center gap-2">
-                <Image
-                  src={stat.image}
-                  alt={stat.title}
-                  width={16} // ukuran kecil
-                  height={16}
-                  className="opacity-90"
-                />
-                <CardTitle className="text-sm font-medium text-gray-600">
-                  {stat.title}
-                </CardTitle>
-              </div>
+        {loadingStats
+          ? Array.from({ length: 5 }).map((_, i) => (
+              <StatCardSkeleton key={i} />
+            ))
+          : stats.map((stat, index) => (
+              <Card
+                key={index}
+                className="w-full flex flex-col justify-between px-0 py-2
+          shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200
+          cursor-pointer rounded-lg bg-white"
+              >
+                {/* Header */}
+                <CardHeader className="flex items-center justify-between px-5 pt-2 pb-1">
+                  <div className="flex items-center gap-2">
+                    <Image
+                      src={stat.image}
+                      alt={stat.title}
+                      width={16}
+                      height={16}
+                      className="opacity-90"
+                    />
+                    <CardTitle className="text-sm font-medium text-gray-600">
+                      {stat.title}
+                    </CardTitle>
+                  </div>
 
-              <ChevronRight className="w-4 h-4 text-gray-500" />
-            </CardHeader>
+                  <ChevronRight className="w-4 h-4 text-gray-500" />
+                </CardHeader>
 
-            {/* Content */}
-            <CardContent className="px-5 pt-0 pb-3">
-              <div className="flex items-center gap-3">
-                <p className={`text-3xl font-bold leading-tight ${stat.color}`}>
-                  {stat.value}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                {/* Content */}
+                <CardContent className="px-5 pt-0 pb-3">
+                  <p
+                    className={`text-3xl font-bold leading-tight ${stat.color}`}
+                  >
+                    {stat.value}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
       </div>
 
       <h2 className="text-2xl font-semibold text-gray-900 mb-3">

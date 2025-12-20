@@ -58,6 +58,7 @@ export const registerUser = async (data: {
   province?: string;
   role?: string;
   profilePicture?: string;
+  createdByAdmin?: boolean;
 }) => {
   const {
     email,
@@ -68,7 +69,10 @@ export const registerUser = async (data: {
     city,
     province,
     profilePicture,
+    createdByAdmin = false,
   } = data;
+
+  const isAdminCreate = createdByAdmin === true;
 
   // ───────────────────────────────────────────────────────────────
   // 1️⃣ CEK APAKAH USER SUDAH ADA
@@ -202,9 +206,9 @@ export const registerUser = async (data: {
       city,
       province,
       profilePicture,
-      verificationToken: token,
-      verificationTokenExpires: expires,
-      isEmailVerified: false,
+      verificationToken: isAdminCreate ? null : token,
+      verificationTokenExpires: isAdminCreate ? null : expires,
+      isEmailVerified: isAdminCreate ? true : false,
       userRoles: {
         create: {
           id: userRoleId,
@@ -229,9 +233,15 @@ export const registerUser = async (data: {
     });
   }
 
-  await sendEmailVerification(email, token);
+  if (!isAdminCreate) {
+    await sendEmailVerification(email, token);
+  }
 
-  return { user, token, status: "new_user" };
+  return {
+    user,
+    token: isAdminCreate ? null : token,
+    status: "new_user",
+  };
 };
 
 export const loginUser = async (email: string, password: string) => {

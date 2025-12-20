@@ -53,7 +53,7 @@ export const deleteUserSchema = z.object({
 export const getAllUsersSchema = z.object({
   query: z.object({
     page: z.string().optional().default("1"),
-    limit: z.string().optional().default("10"),
+    limit: z.string().optional().default("10000"),
     email: z.string().optional(),
     fullName: z.string().optional(),
     city: z.string().optional(),
@@ -94,6 +94,7 @@ export const exportUsersSchema = z.object({
     format: z.string().refine((val) => ["csv", "excel"].includes(val), {
       message: "Format must be 'csv' or 'excel'",
     }),
+    role: z.enum(["mentee", "mentor", "affiliator", "admin"]).optional(),
   }),
 });
 
@@ -101,4 +102,11 @@ export const getUserByIdSchema = z.object({
   params: z.object({
     id: z.string().regex(/^\d{6}$/, { message: "Invalid user ID format" }), // harus 6 digit angka
   }),
+});
+
+export const adminUpdateUserSchema = z.object({
+  email: z.string().email().optional(),
+  fullName: z.string().min(1).optional(),
+  role: z.enum(["admin", "mentor", "mentee", "affiliator"]).optional(),
+  isActive: z.boolean().optional(),
 });

@@ -190,7 +190,7 @@ export const deleteUser = async (adminId: string, targetUserId: string) => {
 export const getAllUsers = async (query: any) => {
   const {
     page = "1",
-    limit = "10",
+    limit = "10000",
     email,
     fullName,
     city,
@@ -280,7 +280,15 @@ export const updateUsersStatus = async () => {
 };
 
 export const exportUsersToFile = async (query: any) => {
-  const { email, fullName, city, province, isActive, format = "csv" } = query;
+  const {
+    email,
+    fullName,
+    city,
+    province,
+    isActive,
+    format = "csv",
+    role,
+  } = query;
 
   const where: any = {};
 
@@ -289,6 +297,16 @@ export const exportUsersToFile = async (query: any) => {
   if (city) where.city = { contains: city, mode: "insensitive" };
   if (province) where.province = { contains: province, mode: "insensitive" };
   if (isActive !== undefined) where.isActive = isActive === "true";
+
+  if (role) {
+    where.userRoles = {
+      some: {
+        role: {
+          roleName: role,
+        },
+      },
+    };
+  }
 
   // Tentukan tipe export berdasarkan ada/tidaknya filter
   const type =
@@ -325,7 +343,7 @@ export const exportUsersToFile = async (query: any) => {
     City: user.city,
     Province: user.province,
     IsEmailVerified: user.isEmailVerified,
-    RegistrationDate: user.registrationDate,
+    RegistrationDate: user.createdAt,
     LastLogin: user.lastLogin,
     IsActive: user.isActive,
     Roles: user.userRoles.map((ur) => ur.role.roleName).join(", "),
@@ -359,4 +377,117 @@ export const exportUsersToFile = async (query: any) => {
       contentType: "text/csv",
     };
   }
+};
+
+type AdminUpdateUserInput = {
+  email?: string;
+  fullName?: string;
+  role?: "admin" | "mentor" | "mentee" | "affiliator";
+  isActive?: boolean;
+  profilePicture?: string;
+};
+
+export const adminUpdateUser = async (
+  userId: string,
+  newData: AdminUpdateUserInput
+): Promise<{ updatedFields: string[]; skippedFields: string[] }> => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      userRoles: {
+        include: {
+          role: true,
+        },
+      },
+    },
+  });
+
+  if (!user) {
+    const error = new Error("User not found");
+    (error as any).status = 404;
+    throw error;
+  }
+
+  const dataToUpdate: Partial<AdminUpdateUserInput> = {};
+  const updatedFields: string[] = [];
+  const skippedFields: string[] = [];
+
+  // ===============================
+  // Update basic user fields
+  // ===============================
+  const fieldsToCompare: (keyof AdminUpdateUserInput)[] = [
+    "email",
+    "fullName",
+    "isActive",
+    "profilePicture",
+  ];
+
+  for (const key of fieldsToCompare) {
+    const newValue = newData[key];
+    const currentValue = user[key as keyof typeof user];
+
+    if (newValue !== undefined && newValue !== currentValue) {
+      (dataToUpdate as any)[key] = newValue;
+      updatedFields.push(key);
+    } else if (newValue !== undefined) {
+      skippedFields.push(key);
+    }
+  }
+
+  // ===============================
+  // Update role (user_roles table)
+  // ===============================
+  if (newData.role) {
+    const currentRole = user.userRoles[0]?.role?.roleName;
+
+    if (currentRole !== newData.role) {
+      const role = await prisma.role.findUnique({
+        where: { roleName: newData.role },
+      });
+
+      if (!role) {
+        const error = new Error("Role not found");
+        (error as any).status = 400;
+        throw error;
+      }
+
+      // hapus role lama
+      await prisma.userRole.deleteMany({
+        where: { userId },
+      });
+
+      // assign role baru
+      await prisma.userRole.create({
+        data: {
+          userId,
+          roleId: role.id,
+        },
+      });
+
+      updatedFields.push("role");
+    } else {
+      skippedFields.push("role");
+    }
+  }
+
+  // ===============================
+  // Apply update user table
+  // ===============================
+  if (Object.keys(dataToUpdate).length > 0) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...dataToUpdate,
+        updatedAt: new Date(),
+      },
+    });
+  }
+
+  if (updatedFields.length === 0) {
+    const error = new Error("No changes detected");
+    (error as any).status = 400;
+    throw error;
+  }
+
+  return { updatedFields, skippedFields };
 };

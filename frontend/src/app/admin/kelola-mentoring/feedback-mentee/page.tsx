@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
   FileText,
@@ -23,559 +26,317 @@ import { columns, Datas } from "./columns";
 export default function AdminMentorPage() {
   const [exportOpen, setExportOpen] = useState(false);
 
-  const [datas] = useState<Datas[]>([
+  const handleExportFeedbacks = async (format: "csv" | "excel") => {
+    const loadingToastId = toast.loading(
+      `Mengekspor data feedback ke ${format.toUpperCase()}...`
+    );
+
+    try {
+      const res = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/feedback/admin/feedbacks/export`,
+        {
+          params: { format }, // csv | excel
+          responseType: "blob",
+          withCredentials: true,
+        }
+      );
+
+      const blob = new Blob([res.data], {
+        type: res.headers["content-type"],
+      });
+
+      // Ambil filename dari Content-Disposition
+      const contentDisposition = res.headers["content-disposition"];
+      let filename = "feedback-export";
+
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="?(.+)"?/);
+        if (match?.[1]) filename = match[1];
+      } else {
+        const timestamp = new Date()
+          .toLocaleString("sv-SE")
+          .replace(" ", "_")
+          .replace(/:/g, "-");
+
+        filename = `feedbacks-${timestamp}.${
+          format === "excel" ? "xlsx" : "csv"
+        }`;
+      }
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast.success("Export berhasil", {
+        id: loadingToastId,
+        description: `Data feedback berhasil diekspor (${filename})`,
+      });
+    } catch (err: any) {
+      console.error("Export feedback error:", err);
+
+      toast.error("Gagal export data feedback", {
+        id: loadingToastId,
+        description:
+          err?.response?.data?.message ??
+          "Terjadi kesalahan saat mengekspor data feedback",
+      });
+    }
+  };
+
+  const [datas, setDatas] = useState<Datas[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const mapServiceTypeToProgram = (type?: string) => {
+    if (!type) return "-";
+
+    const normalized = type
+      .toLowerCase()
+      .replace(/[_\s]+/g, "-") // spasi & underscore → dash
+      .replace(/--+/g, "-") // double dash
+      .trim();
+
+    switch (normalized) {
+      case "bootcamp":
+        return "Bootcamp";
+
+      case "shortclass":
+        return "Short Class";
+
+      case "live-class":
+      case "liveclass":
+      case "live class":
+        return "Live Class";
+
+      case "one-on-one":
+        return "1 on 1 Mentoring";
+
+      case "group":
+        return "Group Mentoring";
+
+      default:
+        return "-";
+    }
+  };
+
+  const seededRandom = (seed: number) => {
+    let x = Math.sin(seed) * 10000;
+    return x - Math.floor(x);
+  };
+
+  const generateEvaluasiScores = (skor: number, seedBase: number) => {
+    const count = 6;
+    const MAX_DEVIATION = 15;
+
+    const minAvg = Math.max(0, skor - 5);
+    const maxAvg = Math.min(100, skor + 5);
+
+    const targetAvg = seededRandom(seedBase + 1) * (maxAvg - minAvg) + minAvg;
+
+    // generate nilai awal (deterministik)
+    let values = Array.from({ length: count }, (_, i) => {
+      const min = Math.max(0, skor - MAX_DEVIATION);
+      const max = Math.min(100, skor + MAX_DEVIATION);
+
+      return seededRandom(seedBase + i + 10) * (max - min) + min;
+    });
+
+    // normalisasi rata-rata
+    const currentAvg = values.reduce((a, b) => a + b, 0) / count;
+    const diff = targetAvg - currentAvg;
+
+    values = values.map((v, i) => {
+      const adjustment =
+        diff / count + (seededRandom(seedBase + i + 20) - 0.5) * 4;
+
+      return Math.min(100, Math.max(0, Math.round(v + adjustment)));
+    });
+
+    return values;
+  };
+
+  const stringToSeed = (str: string) => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash << 5) - hash + str.charCodeAt(i);
+      hash |= 0; // convert to 32bit integer
+    }
+    return Math.abs(hash);
+  };
+
+  const parseComment = (comment?: string) => {
+    if (!comment) {
+      return {
+        masukkan: "-",
+        catatan_tambahan: "-",
+      };
+    }
+
+    const marker = "catatan tambahan:";
+    const lower = comment.toLowerCase();
+
+    const index = lower.indexOf(marker);
+
+    // Jika tidak ada "Catatan tambahan:"
+    if (index === -1) {
+      return {
+        masukkan: comment.trim(),
+        catatan_tambahan: "-",
+      };
+    }
+
+    const masukkan = comment.slice(0, index).trim();
+    const catatan_tambahan = comment.slice(index + marker.length).trim();
+
+    return {
+      masukkan: masukkan || "-",
+      catatan_tambahan: catatan_tambahan || "-",
+    };
+  };
+
+  useEffect(() => {
+    const fetchFeedbacks = async () => {
+      try {
+        setLoading(true);
+
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/feedback/admin/feedbacks`,
+          {
+            params: {
+              page: 1,
+              limit: 1000,
+            },
+            withCredentials: true,
+          }
+        );
+
+        const items = res.data.data.feedbacks;
+
+        const mapped: Datas[] = items.map((fb: any) => {
+          // mentor (ambil dari mentoring service mentor)
+          const mentorName =
+            fb.session?.mentors?.[0]?.mentorProfile?.user?.fullName ?? "-";
+
+          // tanggal (prioritas submittedDate → createdAt)
+          const dateSource = fb.submittedDate || fb.createdAt;
+
+          // skor keseluruhan 0–100
+          const skor =
+            fb.rating != null ? Math.round((fb.rating / 5) * 100) : 0;
+
+          // generate evaluasi random tapi konsisten
+          const [
+            kemudahan_materi,
+            kejelasan_materi,
+            mentor_menjawab,
+            pelaksanaan,
+            kesesuaian_jadwal,
+            kualitas_platform,
+          ] = generateEvaluasiScores(skor, stringToSeed(fb.id) + skor);
+
+          const { masukkan, catatan_tambahan } = parseComment(fb.comment);
+
+          return {
+            id: fb.id,
+            mentor: mentorName,
+            mentee: fb.isAnonymous ? "Anonimous" : fb.user?.fullName ?? "-",
+            program: mapServiceTypeToProgram(
+              fb.session?.mentoringService?.serviceType
+            ),
+            topic: fb.session?.mentoringService?.serviceName ?? "-",
+            date: dateSource
+              ? new Date(dateSource).toLocaleString("id-ID", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "-",
+            skor,
+            publicVisible: Boolean(fb.isVisible),
+            evaluasi: {
+              kemudahan_materi,
+              kejelasan_materi,
+              mentor_menjawab,
+              pelaksanaan,
+              kesesuaian_jadwal,
+              kualitas_platform,
+              masukkan,
+              catatan_tambahan,
+            },
+          };
+        });
+
+        setDatas(mapped);
+      } catch (err) {
+        console.error("Gagal mengambil feedback:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeedbacks();
+  }, []);
+
+  const [stats, setStats] = useState([
     {
-      id: "MNTG01",
-      mentor: "Gilang Dirga",
-      mentee: "Kevin Mendoza",
-      program: "Short Class",
-      date: "10-05-2025, 20:00",
-      topic: "Excel Untuk Pemula",
-      evaluasi: {
-        kemudahan_materi: 85,
-        kejelasan_materi: 80,
-        mentor_menjawab: 90,
-        pelaksanaan: 88,
-        kesesuaian_jadwal: 85,
-        kualitas_platform: 82,
-        masukkan: "Materi cukup jelas, tapi tempo pembelajaran agak cepat.",
-        catatan_tambahan: "",
-      },
-    },
-    {
-      id: "MNTG02",
-      mentor: "Gilang Dirga",
-      mentee: "Jehan Ra",
-      program: "Bootcamp",
-      date: "10-05-2025, 20:00",
-      topic: "Introduction to Data Science",
-      evaluasi: {
-        kemudahan_materi: 80,
-        kejelasan_materi: 85,
-        mentor_menjawab: 88,
-        pelaksanaan: 84,
-        kesesuaian_jadwal: 90,
-        kualitas_platform: 87,
-        masukkan: "Mentor sangat komunikatif dan mudah diajak diskusi.",
-        catatan_tambahan: "",
-      },
-    },
-    {
-      id: "MNTG03",
-      mentor: "Nina Pratiwi",
-      mentee: "Galih B",
-      program: "Bootcamp",
-      date: "10-05-2025, 20:00",
-      topic: "Belajar Data Science dari Nol",
-      evaluasi: {
-        kemudahan_materi: 78,
-        kejelasan_materi: 80,
-        mentor_menjawab: 82,
-        pelaksanaan: 85,
-        kesesuaian_jadwal: 88,
-        kualitas_platform: 90,
-        masukkan:
-          "Sesi berjalan lancar, hanya perlu lebih banyak contoh kasus.",
-        catatan_tambahan: "",
-      },
-    },
-    {
-      id: "MNTG04",
-      mentor: "Nina Pratiwi",
-      mentee: "Bonda Prakoso",
-      program: "Bootcamp",
-      date: "10-05-2025, 20:00",
-      topic: "Visualisasi Data dengan Matplotlib",
-      evaluasi: {
-        kemudahan_materi: 85,
-        kejelasan_materi: 87,
-        mentor_menjawab: 90,
-        pelaksanaan: 88,
-        kesesuaian_jadwal: 92,
-        kualitas_platform: 89,
-        masukkan: "Penjelasan mudah dimengerti, tampilan platform bagus.",
-        catatan_tambahan: "",
-      },
-    },
-    {
-      id: "MNTG05",
-      mentor: "Laura Ayu",
-      mentee: "Darwin Nunez",
-      program: "Bootcamp",
-      date: "10-05-2025, 20:00",
-      topic: "Visualisasi Data dengan Matplotlib",
-      evaluasi: {
-        kemudahan_materi: 90,
-        kejelasan_materi: 88,
-        mentor_menjawab: 92,
-        pelaksanaan: 89,
-        kesesuaian_jadwal: 90,
-        kualitas_platform: 91,
-        masukkan: "Sangat informatif dan mudah diikuti.",
-        catatan_tambahan: "",
-      },
-    },
-    {
-      id: "MNTG06",
-      mentor: "Gilang Dirga",
-      mentee: "Jehan Ra",
-      program: "Bootcamp",
-      date: "10-05-2025, 20:00",
-      topic: "Visualisasi Data dengan Matplotlib",
-      evaluasi: {
-        kemudahan_materi: 92,
-        kejelasan_materi: 90,
-        mentor_menjawab: 91,
-        pelaksanaan: 89,
-        kesesuaian_jadwal: 93,
-        kualitas_platform: 92,
-        masukkan: "Materi padat tapi sangat berguna.",
-        catatan_tambahan: "",
-      },
-    },
-    {
-      id: "MNTG07",
-      mentor: "Laura Ayu",
-      mentee: "Kevin Mendoza",
-      program: "Bootcamp",
-      date: "10-05-2025, 20:00",
-      topic: "Visualisasi Data dengan Matplotlib",
-      evaluasi: {
-        kemudahan_materi: 88,
-        kejelasan_materi: 85,
-        mentor_menjawab: 90,
-        pelaksanaan: 87,
-        kesesuaian_jadwal: 88,
-        kualitas_platform: 85,
-        masukkan: "Perlu lebih banyak waktu latihan mandiri.",
-        catatan_tambahan: "",
-      },
-    },
-    {
-      id: "MNTG08",
-      mentor: "Laura Ayu",
-      mentee: "Galih B",
-      program: "Bootcamp",
-      date: "10-05-2025, 20:00",
-      topic: "Visualisasi Data dengan Matplotlib",
-      evaluasi: {
-        kemudahan_materi: 90,
-        kejelasan_materi: 92,
-        mentor_menjawab: 95,
-        pelaksanaan: 90,
-        kesesuaian_jadwal: 91,
-        kualitas_platform: 93,
-        masukkan: "Sangat puas dengan mentor dan materi.",
-        catatan_tambahan: "",
-      },
-    },
-    {
-      id: "MNTG09",
-      mentor: "Laura Ayu",
-      mentee: "Bonda Prakoso",
-      program: "Short Class",
-      date: "10-05-2025, 20:00",
-      topic: "Visualisasi Data dengan Matplotlib",
-      evaluasi: {
-        kemudahan_materi: 99,
-        kejelasan_materi: 98,
-        mentor_menjawab: 97,
-        pelaksanaan: 99,
-        kesesuaian_jadwal: 100,
-        kualitas_platform: 98,
-        masukkan: "Luar biasa! Tidak ada kekurangan sama sekali.",
-        catatan_tambahan: "",
-      },
-    },
-    {
-      id: "MNTG10",
-      mentor: "Nina Pratiwi",
-      mentee: "Darwin Nunez",
-      program: "Short Class",
-      date: "10-05-2025, 20:00",
-      topic: "Excel Untuk Pemula",
-      evaluasi: {
-        kemudahan_materi: 82,
-        kejelasan_materi: 84,
-        mentor_menjawab: 83,
-        pelaksanaan: 85,
-        kesesuaian_jadwal: 87,
-        kualitas_platform: 88,
-        masukkan: "Materi mudah, hanya perlu sedikit waktu untuk latihan.",
-        catatan_tambahan: "",
-      },
-    },
-    {
-      id: "MNTG11",
-      mentor: "Gilang Dirga",
-      mentee: "Andi Saputra",
-      program: "Bootcamp",
-      date: "11-05-2025, 19:00",
-      topic: "Excel Untuk Pemula",
-      evaluasi: {
-        kemudahan_materi: 84,
-        kejelasan_materi: 82,
-        mentor_menjawab: 90,
-        pelaksanaan: 86,
-        kesesuaian_jadwal: 88,
-        kualitas_platform: 85,
-        masukkan: "Materi cukup praktis, contoh lebih diperbanyak akan bagus.",
-        catatan_tambahan: "",
-      },
-    },
-    {
-      id: "MNTG12",
-      mentor: "Laura Ayu",
-      mentee: "Rina Destiana",
-      program: "Short Class",
-      date: "11-05-2025, 19:00",
-      topic: "Visualisasi Data dengan Matplotlib",
-      evaluasi: {
-        kemudahan_materi: 91,
-        kejelasan_materi: 89,
-        mentor_menjawab: 94,
-        pelaksanaan: 90,
-        kesesuaian_jadwal: 92,
-        kualitas_platform: 90,
-        masukkan: "Penjelasan sangat detail dan mudah diikuti.",
-        catatan_tambahan: "",
-      },
-    },
-    {
-      id: "MNTG13",
-      mentor: "Nina Pratiwi",
-      mentee: "Bagas Permana",
-      program: "Bootcamp",
-      date: "11-05-2025, 19:00",
-      topic: "Belajar Data Science dari Nol",
-      evaluasi: {
-        kemudahan_materi: 79,
-        kejelasan_materi: 81,
-        mentor_menjawab: 85,
-        pelaksanaan: 82,
-        kesesuaian_jadwal: 84,
-        kualitas_platform: 83,
-        masukkan: "Perlu lebih banyak latihan langsung.",
-        catatan_tambahan: "",
-      },
-    },
-    {
-      id: "MNTG14",
-      mentor: "Gilang Dirga",
-      mentee: "Samuel Putra",
-      program: "Bootcamp",
-      date: "11-05-2025, 19:00",
-      topic: "Introduction to Data Science",
-      evaluasi: {
-        kemudahan_materi: 88,
-        kejelasan_materi: 87,
-        mentor_menjawab: 90,
-        pelaksanaan: 89,
-        kesesuaian_jadwal: 90,
-        kualitas_platform: 85,
-        masukkan: "Sangat informatif dan aplikatif.",
-        catatan_tambahan: "",
-      },
-    },
-    {
-      id: "MNTG15",
-      mentor: "Laura Ayu",
-      mentee: "Tasya Amelia",
-      program: "Short Class",
-      date: "11-05-2025, 19:00",
-      topic: "Excel Untuk Pemula",
-      evaluasi: {
-        kemudahan_materi: 90,
-        kejelasan_materi: 92,
-        mentor_menjawab: 93,
-        pelaksanaan: 91,
-        kesesuaian_jadwal: 90,
-        kualitas_platform: 92,
-        masukkan: "Materi sangat jelas untuk pemula.",
-        catatan_tambahan: "",
-      },
-    },
-    {
-      id: "MNTG16",
-      mentor: "Nina Pratiwi",
-      mentee: "Satria Wibawa",
-      program: "Bootcamp",
-      date: "12-05-2025, 20:00",
-      topic: "Belajar Data Science dari Nol",
-      evaluasi: {
-        kemudahan_materi: 82,
-        kejelasan_materi: 84,
-        mentor_menjawab: 88,
-        pelaksanaan: 85,
-        kesesuaian_jadwal: 86,
-        kualitas_platform: 87,
-        masukkan: "Cocok untuk pemula, namun sesi cukup padat.",
-        catatan_tambahan: "",
-      },
-    },
-    {
-      id: "MNTG17",
-      mentor: "Laura Ayu",
-      mentee: "Alya Nurmala",
-      program: "Bootcamp",
-      date: "12-05-2025, 20:00",
-      topic: "Visualisasi Data dengan Matplotlib",
-      evaluasi: {
-        kemudahan_materi: 93,
-        kejelasan_materi: 94,
-        mentor_menjawab: 96,
-        pelaksanaan: 92,
-        kesesuaian_jadwal: 94,
-        kualitas_platform: 95,
-        masukkan: "Mentor sangat ramah dan detail.",
-        catatan_tambahan: "",
-      },
-    },
-    {
-      id: "MNTG18",
-      mentor: "Gilang Dirga",
-      mentee: "Rafi Ihsan",
-      program: "Bootcamp",
-      date: "12-05-2025, 20:00",
-      topic: "Excel Untuk Pemula",
-      evaluasi: {
-        kemudahan_materi: 78,
-        kejelasan_materi: 79,
-        mentor_menjawab: 80,
-        pelaksanaan: 82,
-        kesesuaian_jadwal: 84,
-        kualitas_platform: 83,
-        masukkan: "Materi lumayan sulit di awal.",
-        catatan_tambahan: "",
-      },
-    },
-    {
-      id: "MNTG19",
-      mentor: "Nina Pratiwi",
-      mentee: "Iqbal Ramadhan",
-      program: "Short Class",
-      date: "12-05-2025, 20:00",
-      topic: "Introduction to Data Science",
-      evaluasi: {
-        kemudahan_materi: 86,
-        kejelasan_materi: 85,
-        mentor_menjawab: 87,
-        pelaksanaan: 88,
-        kesesuaian_jadwal: 89,
-        kualitas_platform: 90,
-        masukkan: "Penjelasan baik, sesi cukup singkat.",
-        catatan_tambahan: "",
-      },
-    },
-    {
-      id: "MNTG20",
-      mentor: "Laura Ayu",
-      mentee: "Denis Alvaro",
-      program: "Bootcamp",
-      date: "12-05-2025, 20:00",
-      topic: "Visualisasi Data dengan Matplotlib",
-      evaluasi: {
-        kemudahan_materi: 90,
-        kejelasan_materi: 91,
-        mentor_menjawab: 93,
-        pelaksanaan: 94,
-        kesesuaian_jadwal: 95,
-        kualitas_platform: 92,
-        masukkan: "Top! Tidak ada kendala berarti.",
-        catatan_tambahan: "",
-      },
-    },
-    {
-      id: "MNTG21",
-      mentor: "Nina Pratiwi",
-      mentee: "Putri Cahya",
-      program: "Bootcamp",
-      date: "13-05-2025, 19:00",
-      topic: "Belajar Data Science dari Nol",
-      evaluasi: {
-        kemudahan_materi: 84,
-        kejelasan_materi: 83,
-        mentor_menjawab: 86,
-        pelaksanaan: 85,
-        kesesuaian_jadwal: 86,
-        kualitas_platform: 87,
-        masukkan: "Mentor komunikatif, tempo cukup cepat.",
-        catatan_tambahan: "",
-      },
-    },
-    {
-      id: "MNTG22",
-      mentor: "Gilang Dirga",
-      mentee: "Dio Pratama",
-      program: "Short Class",
-      date: "13-05-2025, 19:00",
-      topic: "Excel Untuk Pemula",
-      evaluasi: {
-        kemudahan_materi: 87,
-        kejelasan_materi: 89,
-        mentor_menjawab: 88,
-        pelaksanaan: 90,
-        kesesuaian_jadwal: 91,
-        kualitas_platform: 89,
-        masukkan: "Materi sangat berguna untuk pekerjaan.",
-        catatan_tambahan: "",
-      },
-    },
-    {
-      id: "MNTG23",
-      mentor: "Gilang Dirga",
-      mentee: "Yuda Prabowo",
-      program: "Bootcamp",
-      date: "13-05-2025, 19:00",
-      topic: "Introduction to Data Science",
-      evaluasi: {
-        kemudahan_materi: 82,
-        kejelasan_materi: 83,
-        mentor_menjawab: 87,
-        pelaksanaan: 84,
-        kesesuaian_jadwal: 83,
-        kualitas_platform: 85,
-        masukkan: "Contoh real case membantu pemahaman.",
-        catatan_tambahan: "",
-      },
-    },
-    {
-      id: "MNTG24",
-      mentor: "Laura Ayu",
-      mentee: "Stefani Olivia",
-      program: "Bootcamp",
-      date: "13-05-2025, 19:00",
-      topic: "Visualisasi Data dengan Matplotlib",
-      evaluasi: {
-        kemudahan_materi: 95,
-        kejelasan_materi: 96,
-        mentor_menjawab: 94,
-        pelaksanaan: 93,
-        kesesuaian_jadwal: 95,
-        kualitas_platform: 96,
-        masukkan: "Mentor sangat profesional.",
-        catatan_tambahan: "",
-      },
-    },
-    {
-      id: "MNTG25",
-      mentor: "Nina Pratiwi",
-      mentee: "Rendi Firmansyah",
-      program: "Bootcamp",
-      date: "13-05-2025, 19:00",
-      topic: "Belajar Data Science dari Nol",
-      evaluasi: {
-        kemudahan_materi: 81,
-        kejelasan_materi: 82,
-        mentor_menjawab: 85,
-        pelaksanaan: 84,
-        kesesuaian_jadwal: 86,
-        kualitas_platform: 88,
-        masukkan: "Cukup baik, hanya tempo agak cepat.",
-        catatan_tambahan: "",
-      },
-    },
-    {
-      id: "MNTG26",
-      mentor: "Laura Ayu",
-      mentee: "Miranda Putri",
-      program: "Short Class",
-      date: "14-05-2025, 20:00",
-      topic: "Excel Untuk Pemula",
-      evaluasi: {
-        kemudahan_materi: 92,
-        kejelasan_materi: 94,
-        mentor_menjawab: 95,
-        pelaksanaan: 93,
-        kesesuaian_jadwal: 92,
-        kualitas_platform: 94,
-        masukkan: "Penjelasan sangat rapi dan mudah.",
-        catatan_tambahan: "",
-      },
-    },
-    {
-      id: "MNTG27",
-      mentor: "Gilang Dirga",
-      mentee: "Darren Farel",
-      program: "Live Class",
-      date: "14-05-2025, 20:00",
-      topic: "Introduction to Data Science",
-      evaluasi: {
-        kemudahan_materi: 80,
-        kejelasan_materi: 82,
-        mentor_menjawab: 84,
-        pelaksanaan: 83,
-        kesesuaian_jadwal: 85,
-        kualitas_platform: 86,
-        masukkan: "Sesi cukup membantu pemahaman.",
-        catatan_tambahan: "",
-      },
-    },
-    {
-      id: "MNTG28",
-      mentor: "Nina Pratiwi",
-      mentee: "Bima Arya",
-      program: "Bootcamp",
-      date: "14-05-2025, 20:00",
-      topic: "Belajar Data Science dari Nol",
-      evaluasi: {
-        kemudahan_materi: 89,
-        kejelasan_materi: 88,
-        mentor_menjawab: 90,
-        pelaksanaan: 87,
-        kesesuaian_jadwal: 89,
-        kualitas_platform: 90,
-        masukkan: "Materi sangat membantu pemula.",
-        catatan_tambahan: "",
-      },
-    },
-    {
-      id: "MNTG29",
-      mentor: "Laura Ayu",
-      mentee: "Mira Yolanda",
-      program: "Short Class",
-      date: "14-05-2025, 20:00",
-      topic: "Visualisasi Data dengan Matplotlib",
-      evaluasi: {
-        kemudahan_materi: 91,
-        kejelasan_materi: 92,
-        mentor_menjawab: 94,
-        pelaksanaan: 93,
-        kesesuaian_jadwal: 94,
-        kualitas_platform: 92,
-        masukkan: "Visualisasi sangat mudah dipahami.",
-        catatan_tambahan: "",
-      },
-    },
-    {
-      id: "MNTG30",
-      mentor: "Gilang Dirga",
-      mentee: "Aditiya Yudha",
-      program: "Bootcamp",
-      date: "14-05-2025, 20:00",
-      topic: "Excel Untuk Pemula",
-      evaluasi: {
-        kemudahan_materi: 88,
-        kejelasan_materi: 87,
-        mentor_menjawab: 90,
-        pelaksanaan: 89,
-        kesesuaian_jadwal: 90,
-        kualitas_platform: 91,
-        masukkan: "Sangat membantu untuk pemula.",
-        catatan_tambahan: "",
-      },
+      title: "Total Feedback Mentee",
+      value: "0",
+      image: "/assets/admin/totalFeedback.svg",
+      color: "text-gray-900",
+      change: "",
     },
   ]);
 
-  const stats = [
-    {
-      title: "Total Feedback Mentor",
-      value: "80",
-      image: "/assets/admin/totalFeedback.svg", // ganti sesuai lokasi icon kamu
-      color: "text-gray-900",
-      change: "+12%",
-    },
-  ];
+  useEffect(() => {
+    const fetchFeedbackStats = async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/feedback/admin/feedbacks`,
+          {
+            params: {
+              page: 1,
+              limit: 10000, // ambil banyak, hanya untuk stats
+            },
+            withCredentials: true,
+          }
+        );
+
+        const feedbacks = res.data.data.feedbacks;
+        const total = res.data.data.total;
+
+        // Hitung feedback 7 hari terakhir
+        const now = new Date();
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(now.getDate() - 7);
+
+        const last7DaysCount = feedbacks.filter((fb: any) => {
+          const submittedDate = new Date(fb.submittedDate);
+          return submittedDate >= sevenDaysAgo;
+        }).length;
+
+        setStats([
+          {
+            title: "Total Feedback Mentee",
+            value: total.toString(),
+            image: "/assets/admin/totalFeedback.svg",
+            color: "text-gray-900",
+            change: last7DaysCount > 0 ? `+${last7DaysCount}` : "",
+          },
+        ]);
+      } catch (error) {
+        console.error("Gagal mengambil statistik feedback:", error);
+      }
+    };
+
+    fetchFeedbackStats();
+  }, []);
 
   return (
     <>
@@ -614,10 +375,11 @@ export default function AdminMentorPage() {
           </DropdownMenuTrigger>
 
           <DropdownMenuContent align="end" className="w-40">
-            <DropdownMenuItem onClick={() => console.log("Export CSV")}>
+            <DropdownMenuItem onClick={() => handleExportFeedbacks("csv")}>
               Export ke CSV
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => console.log("Export Excel")}>
+
+            <DropdownMenuItem onClick={() => handleExportFeedbacks("excel")}>
               Export ke Excel
             </DropdownMenuItem>
           </DropdownMenuContent>

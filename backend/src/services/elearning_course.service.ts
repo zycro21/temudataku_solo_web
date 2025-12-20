@@ -540,4 +540,136 @@ export const ELearningCourseService = {
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     };
   },
+
+  async exportProductEventToFile(
+    format: "csv" | "excel"
+  ): Promise<{ buffer: Buffer; filename: string; mimetype: string }> {
+    // =========================
+    // FETCH MENTORING
+    // =========================
+    const mentoringServices = await prisma.mentoringService.findMany({
+      include: {
+        mentors: {
+          include: {
+            mentorProfile: {
+              include: {
+                user: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const mentoringRows = mentoringServices.map((m) => ({
+      TYPE: "MENTORING",
+      ID: m.id,
+      Name: m.serviceName,
+      Description: m.description || "-",
+      ServiceType: m.serviceType || "-",
+      Price: m.price.toString(),
+      MaxParticipants: m.maxParticipants ?? "-",
+      DurationDays: m.durationDays,
+      Benefits: m.benefits || "-",
+      ToolsUsed: m.toolsUsed || "-",
+      TargetAudience: m.targetAudience || "-",
+      IsActive: m.isActive ? "Yes" : "No",
+      Mentors: m.mentors
+        .map((x) => x.mentorProfile.user.fullName)
+        .join(", "),
+      CreatedAt: formatDate(
+        m.createdAt ?? new Date(),
+        "yyyy-MM-dd HH:mm:ss"
+      ),
+      UpdatedAt: formatDate(
+        m.updatedAt ?? new Date(),
+        "yyyy-MM-dd HH:mm:ss"
+      ),
+    }));
+
+    // =========================
+    // FETCH E-LEARNING
+    // =========================
+    const courses = await prisma.eLearningCourse.findMany({
+      include: {
+        mentorProfile: {
+          include: {
+            user: true,
+          },
+        },
+        purchases: true,
+        reviews: true,
+      },
+    });
+
+    const elearningRows = courses.map((c) => ({
+      TYPE: "E-LEARNING",
+      ID: c.id,
+      Name: c.title,
+      Description: c.description || "-",
+      ServiceType: "course",
+      Price: c.price.toString(),
+      MaxParticipants: "-",
+      DurationDays: c.estimatedDuration || "-",
+      Benefits: c.benefits || "-",
+      ToolsUsed: c.toolsUsed || "-",
+      TargetAudience: c.targetAudience || "-",
+      IsActive: c.isActive ? "Yes" : "No",
+      Mentors: c.mentorProfile.user.fullName,
+      TotalPurchases: c.purchases.length,
+      AverageRating:
+        c.reviews.length > 0
+          ? (
+              c.reviews.reduce((s, r) => s + r.rating, 0) /
+              c.reviews.length
+            ).toFixed(2)
+          : "0",
+      CreatedAt: formatDate(
+        c.createdAt ?? new Date(),
+        "yyyy-MM-dd HH:mm:ss"
+      ),
+      UpdatedAt: formatDate(
+        c.updatedAt ?? new Date(),
+        "yyyy-MM-dd HH:mm:ss"
+      ),
+    }));
+
+    // =========================
+    // GABUNG DATA
+    // =========================
+    const rows = [...mentoringRows, ...elearningRows];
+
+    // =========================
+    // EXPORT
+    // =========================
+    const random = () => Math.random().toString(36).substring(2, 8);
+
+    if (format === "csv") {
+      const csv = await parseAsync(rows);
+      return {
+        buffer: Buffer.from(csv),
+        filename: `product-event_${Date.now()}_${random()}.csv`,
+        mimetype: "text/csv",
+      };
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Product & Event");
+
+    worksheet.columns = Object.keys(rows[0]).map((key) => ({
+      header: key,
+      key,
+      width: 30,
+    }));
+
+    rows.forEach((row) => worksheet.addRow(row));
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    return {
+      buffer: Buffer.from(buffer),
+      filename: `product-event_${Date.now()}_${random()}.xlsx`,
+      mimetype:
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    };
+  },
 };

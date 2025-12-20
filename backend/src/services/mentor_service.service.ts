@@ -349,6 +349,12 @@ export const updateMentoringServiceById = async (
     durationDays?: number;
     isActive?: boolean;
     mentorProfileIds?: string[];
+    serviceType?: 
+      | "one-on-one"
+      | "group"
+      | "bootcamp"
+      | "shortclass"
+      | "live class";
     benefits?: string | null;
     mechanism?: string | null;
     syllabusPath?: string | null;
@@ -366,6 +372,7 @@ export const updateMentoringServiceById = async (
     durationDays,
     isActive,
     mentorProfileIds,
+    serviceType,
     benefits,
     mechanism,
     syllabusPath,
@@ -395,6 +402,7 @@ export const updateMentoringServiceById = async (
     maxParticipants,
     durationDays,
     isActive,
+    serviceType,
     benefits,
     mechanism,
     syllabusPath,

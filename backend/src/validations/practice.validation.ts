@@ -281,7 +281,7 @@ export const getAdminPracticePurchasesSchema = z.object({
     startDate: z.string().optional(), // yyyy-mm-dd
     endDate: z.string().optional(), // yyyy-mm-dd
     page: z.coerce.number().min(1).default(1),
-    limit: z.coerce.number().min(1).max(100).default(10),
+    limit: z.coerce.number().min(1).max(10000).default(10000),
     sortBy: z.string().optional(), // createdAt, purchaseDate, etc
     sortOrder: z.enum(["asc", "desc"]).optional(),
   }),

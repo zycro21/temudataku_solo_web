@@ -12,6 +12,11 @@ export type Datas = {
   program: string;
   date: string;
   topic: string;
+
+  // TAMBAHAN
+  skor: number;
+  publicVisible: boolean;
+
   evaluasi: {
     kemudahan_materi: number;
     kejelasan_materi: number;
@@ -119,7 +124,7 @@ export const columns: ColumnDef<Datas>[] = [
   },
 
   {
-    accessorKey: "mentor",
+    accessorKey: "topic",
     header: ({ column }) => {
       const sort = column.getIsSorted();
       return (
@@ -130,9 +135,9 @@ export const columns: ColumnDef<Datas>[] = [
             else column.clearSorting();
           }}
           className={`flex items-center gap-1 w-full cursor-pointer  
-            ${sort ? "bg-emerald-200" : ""}`}
+          ${sort ? "bg-emerald-200" : ""}`}
         >
-          Mentor
+          Nama Program
           {sort === "asc" && <ArrowDown className="w-4 h-4" />}
           {sort === "desc" && <ArrowUp className="w-4 h-4" />}
         </button>
@@ -181,9 +186,40 @@ export const columns: ColumnDef<Datas>[] = [
   },
 
   {
-    accessorKey: "evaluasi.kemudahan_materi",
+    accessorKey: "publicVisible",
+    enableSorting: false,
+    header: () => (
+      <div className="text-center">
+        Tampil
+        <br />
+        Publik
+      </div>
+    ),
+    cell: ({ getValue }) => {
+      const visible = getValue<boolean>();
+
+      return (
+        <div className="flex justify-center">
+          <span
+            className={`px-3 py-1 rounded-full text-xs font-semibold
+            ${
+              visible
+                ? "bg-emerald-100 text-emerald-700"
+                : "bg-gray-200 text-gray-600"
+            }`}
+          >
+            {visible ? "Ya" : "Tidak"}
+          </span>
+        </div>
+      );
+    },
+  },
+
+  {
+    accessorKey: "skor",
     header: ({ column }) => {
       const sort = column.getIsSorted();
+
       return (
         <button
           onClick={() => {
@@ -191,13 +227,33 @@ export const columns: ColumnDef<Datas>[] = [
             else if (sort === "asc") column.toggleSorting(true);
             else column.clearSorting();
           }}
-          className={`flex items-center gap-1 w-full cursor-pointer 
-            ${sort ? "bg-emerald-200" : ""}`}
+          className={`flex items-center justify-center gap-1 w-full cursor-pointer
+        ${sort ? "bg-emerald-200" : ""}`}
         >
-          Materi Mudah Dimengerti
+          Skor Keseluruhan
           {sort === "asc" && <ArrowDown className="w-4 h-4" />}
           {sort === "desc" && <ArrowUp className="w-4 h-4" />}
         </button>
+      );
+    },
+
+    // INI PENTING: center-in value
+    cell: ({ getValue }) => {
+      const value = getValue<number>();
+
+      return (
+        <div
+          className={`flex justify-center font-semibold
+        ${
+          value >= 90
+            ? "text-emerald-600"
+            : value >= 75
+            ? "text-yellow-600"
+            : "text-red-600"
+        }`}
+        >
+          {value}
+        </div>
       );
     },
   },

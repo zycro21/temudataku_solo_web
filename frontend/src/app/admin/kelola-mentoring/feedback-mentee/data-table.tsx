@@ -1,5 +1,9 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import * as React from "react";
 import {
   ColumnDef,
@@ -37,7 +41,6 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@radix-ui/react-select";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -56,6 +59,8 @@ export function DataTable<TData extends Datas, TValue>({
     program: "",
     date: "",
     topic: "",
+    skor: 0,
+    publicVisible: true,
     evaluasi: {
       kemudahan_materi: 0,
       kejelasan_materi: 0,
@@ -80,6 +85,8 @@ export function DataTable<TData extends Datas, TValue>({
     program: "",
     date: "",
     topic: "",
+    skor: 0,
+    publicVisible: true,
     evaluasi: {
       kemudahan_materi: 0,
       kejelasan_materi: 0,
@@ -111,6 +118,107 @@ export function DataTable<TData extends Datas, TValue>({
   const from = pageIndex * pageSize + 1;
   const to = Math.min((pageIndex + 1) * pageSize, totalRows);
   const totalPages = table.getPageCount();
+
+  const calculateRatingFromEvaluasi = (evaluasi: any) => {
+    // ambil hanya value numeric (6 skor)
+    const values = Object.values(evaluasi).filter(
+      (v) => typeof v === "number"
+    ) as number[];
+
+    if (values.length === 0) return 0;
+
+    // rata-rata 0–100
+    const avg100 = values.reduce((sum, v) => sum + (v || 0), 0) / values.length;
+
+    // konversi ke 0–5
+    return Number(((avg100 / 100) * 5).toFixed(1));
+  };
+
+  const buildFinalComment = (
+    masukkan: string,
+    catatanTambahan: string
+  ): string | null => {
+    let baseComment = masukkan?.trim() || "";
+
+    if (catatanTambahan?.trim()) {
+      baseComment +=
+        (baseComment ? "\n" : "") +
+        "Catatan Tambahan: " +
+        catatanTambahan.trim();
+    }
+
+    return baseComment || null;
+  };
+
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  const handleSubmitEdit = async () => {
+    try {
+      setIsSubmitting(true);
+
+      // Hitung rating (0–5, boleh desimal)
+      const rating = calculateRatingFromEvaluasi(editFormData.evaluasi);
+
+      // Bangun comment final (Masukkan + Catatan Tambahan)
+      const comment = buildFinalComment(
+        editFormData.evaluasi.masukkan,
+        editFormData.evaluasi.catatan_tambahan
+      );
+
+      // Call API (PUT)
+      await axios.put(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/feedback/adminFeedbacks/${editFormData.id}`,
+        {
+          isVisible: editFormData.publicVisible,
+          rating,
+          comment,
+        },
+        {
+          withCredentials: true,
+        }
+      );
+
+      toast.success("Feedback berhasil diperbarui");
+
+      // Reset UI
+      setShowEditDialog(false);
+      setEditStep(1);
+    } catch (error: any) {
+      console.error(error);
+      toast.error(
+        error?.response?.data?.message || "Gagal memperbarui feedback"
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+
+  const handleDeleteFeedback = async () => {
+    if (!selectedProject?.id) return;
+
+    try {
+      setIsDeleting(true);
+
+      await axios.delete(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/feedback/feedbacks/${selectedProject.id}`,
+        {
+          withCredentials: true,
+        }
+      );
+
+      toast.success("Feedback berhasil dihapus");
+
+      setShowDeleteDialog(false);
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error?.response?.data?.message || "Gagal menghapus feedback");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <div>
@@ -284,7 +392,7 @@ export function DataTable<TData extends Datas, TValue>({
       {/* Detail Feedback Mentee Dialog */}
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
         <DialogContent
-          className="max-w-3xl"
+          className="max-w-5xl"
           onInteractOutside={(e) => e.preventDefault()}
         >
           <DialogHeader className="flex flex-row items-center justify-between pb-4 border-b">
@@ -293,21 +401,21 @@ export function DataTable<TData extends Datas, TValue>({
             </DialogTitle>
           </DialogHeader>
 
-          {/*  Default tab sekarang Informasi */}
+          {/* Tabs */}
           <Tabs defaultValue="informasi" className="w-full mt-4">
-            <TabsList className="grid grid-cols-2 w-full mb-6">
+            <TabsList className="grid grid-cols-2 w-full mb-4">
               <TabsTrigger value="informasi">Informasi Dasar</TabsTrigger>
               <TabsTrigger value="evaluasi">Evaluasi & Catatan</TabsTrigger>
             </TabsList>
 
-            {/* Konten dibuat scrollable */}
-            <div className="max-h-[450px] overflow-y-auto pr-2">
+            {/* Konten scrollable */}
+            <div className="max-h-[70vh] overflow-y-auto pr-3">
               {/* INFORMASI DASAR */}
               <TabsContent value="informasi" className="space-y-6">
                 <div className="grid grid-cols-2 gap-8">
                   <div>
                     <p className="text-sm text-gray-600 mb-1">ID Feedback</p>
-                    <p className="text-lg font-semibold text-gray-900">
+                    <p className="text-lg font-semibold text-gray-900 break-words">
                       {selectedProject?.id}
                     </p>
                   </div>
@@ -316,7 +424,7 @@ export function DataTable<TData extends Datas, TValue>({
                     <p className="text-sm text-gray-600 mb-1">
                       Tanggal & Waktu Pengumpulan
                     </p>
-                    <p className="text-lg font-semibold text-gray-900">
+                    <p className="text-lg font-semibold text-gray-900 break-words">
                       {selectedProject?.date}
                     </p>
                   </div>
@@ -325,14 +433,14 @@ export function DataTable<TData extends Datas, TValue>({
                 <div className="grid grid-cols-2 gap-8">
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Mentor</p>
-                    <p className="text-lg font-semibold text-gray-900">
+                    <p className="text-lg font-semibold text-gray-900 break-words">
                       {selectedProject?.mentor}
                     </p>
                   </div>
 
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Mentee</p>
-                    <p className="text-lg font-semibold text-gray-900">
+                    <p className="text-lg font-semibold text-gray-900 break-words">
                       {selectedProject?.mentee}
                     </p>
                   </div>
@@ -341,8 +449,15 @@ export function DataTable<TData extends Datas, TValue>({
                 <div className="grid grid-cols-2 gap-8">
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Program</p>
-                    <p className="text-lg font-semibold text-gray-900">
+                    <p className="text-lg font-semibold text-gray-900 break-words">
                       {selectedProject?.program}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Topik</p>
+                    <p className="text-lg font-semibold text-gray-900 break-words">
+                      {selectedProject?.topic}
                     </p>
                   </div>
                 </div>
@@ -412,26 +527,26 @@ export function DataTable<TData extends Datas, TValue>({
 
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Masukkan</p>
-                  <p className="text-lg font-semibold text-gray-900">
-                    {selectedProject?.evaluasi.masukkan || "Tidak ada"}
+                  <p className="text-lg font-semibold text-gray-900 whitespace-pre-wrap break-words">
+                    {selectedProject?.evaluasi.masukkan || "-"}
                   </p>
                 </div>
 
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Catatan Tambahan</p>
-                  <p className="text-lg font-semibold text-gray-900">
-                    {selectedProject?.evaluasi.catatan_tambahan || "Tidak ada"}
+                  <p className="text-lg font-semibold text-gray-900 whitespace-pre-wrap break-words">
+                    {selectedProject?.evaluasi.catatan_tambahan || "-"}
                   </p>
                 </div>
               </TabsContent>
             </div>
           </Tabs>
 
-          {/* Garis pemisah sebelum tombol CTA */}
-          <div className="border-t pt-1 mt-4" />
+          {/* Divider */}
+          <div className="border-t pt-2 mt-4" />
 
           {/* Action Buttons */}
-          <div className="flex space-x-4 pt-2">
+          <div className="flex space-x-4">
             <Button
               className="flex-1 bg-[#0CA678] hover:bg-[#08916C] text-white"
               onClick={() => {
@@ -449,8 +564,8 @@ export function DataTable<TData extends Datas, TValue>({
               variant="destructive"
               className="flex-1 bg-red-500 hover:bg-red-600"
               onClick={() => {
-                console.log("Delete feedback:", selectedProject);
                 setShowDetailDialog(false);
+                setShowDeleteDialog(true);
               }}
             >
               Hapus
@@ -465,6 +580,14 @@ export function DataTable<TData extends Datas, TValue>({
           className="max-w-3xl"
           onInteractOutside={(e) => e.preventDefault()}
         >
+          {isSubmitting && (
+            <div className="absolute inset-0 bg-white/70 flex flex-col items-center justify-center z-50">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0CA678]" />
+              <p className="mt-2 text-sm text-gray-600">
+                Sedang memproses feedback...
+              </p>
+            </div>
+          )}
           <DialogHeader className="flex flex-row items-center justify-between space-y-0">
             <DialogTitle className="text-xl font-semibold">
               Edit Feedback Mentor
@@ -513,261 +636,205 @@ export function DataTable<TData extends Datas, TValue>({
           {/* Garis pemisah dipindah ke SINI */}
           <div className="border-b pb-2"></div>
 
-          <div className="space-y-6 py-4">
-            {/* Step 1: Informasi Mentoring */}
-            {editStep === 1 && (
-              <>
-                {/* ID Mentoring */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    ID Mentoring
-                  </label>
-                  <Input
-                    value={editFormData.id}
-                    readOnly
-                    className="bg-green-50 border-green-200 text-green-800 font-medium"
-                  />
-                </div>
-
-                {/* Baris 2: Mentee & Mentor */}
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Mentee */}
+          {/* ===== SCROLLABLE CONTENT ===== */}
+          <div className="flex-1 overflow-y-auto pr-2">
+            <div className="space-y-6 py-4">
+              {/* ================= STEP 1 ================= */}
+              {editStep === 1 && (
+                <>
+                  {/* ID Mentoring */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Mentee
+                      ID Mentoring
                     </label>
                     <Input
-                      value={editFormData.mentee}
-                      onChange={(e) =>
-                        setEditFormData({
-                          ...editFormData,
-                          mentee: e.target.value,
-                        })
-                      }
-                      placeholder="Nama Mentee"
-                      className="w-full"
+                      value={editFormData.id}
+                      readOnly
+                      className="bg-gray-100"
                     />
                   </div>
 
-                  {/* Mentor */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Mentor
-                    </label>
-                    <Select
-                      value={editFormData.mentor}
-                      onValueChange={(value) =>
-                        setEditFormData({ ...editFormData, mentor: value })
-                      }
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Pilih Mentor" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Laura Ayu">Laura Ayu</SelectItem>
-                        <SelectItem value="Gilang Dirga">
-                          Gilang Dirga
-                        </SelectItem>
-                        <SelectItem value="Nina Pratiwi">
-                          Nina Pratiwi
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
+                  {/* Mentee & Mentor */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Mentee
+                      </label>
+                      <Input
+                        value={editFormData.mentee}
+                        readOnly
+                        className="bg-gray-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Mentor
+                      </label>
+                      <Input
+                        value={editFormData.mentor}
+                        readOnly
+                        className="bg-gray-100"
+                      />
+                    </div>
                   </div>
-                </div>
 
-                {/* Baris 3: Program (full width) */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Program
-                  </label>
-                  <Select
-                    value={editFormData.program}
-                    onValueChange={(value) =>
-                      setEditFormData({ ...editFormData, program: value })
-                    }
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Pilih Program" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Bootcamp">Bootcamp</SelectItem>
-                      <SelectItem value="Short Class">Short Class</SelectItem>
-                      <SelectItem value="Live Class">Live Class</SelectItem>
-                      <SelectItem value="1 on 1 Mentoring">
-                        1 on 1 Mentoring
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </>
-            )}
+                  {/* Program & Public Visible */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Program */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Program
+                      </label>
+                      <Input
+                        value={editFormData.program}
+                        readOnly
+                        className="bg-gray-100"
+                      />
+                    </div>
 
-            {/* Step 2: Evaluasi Mentor */}
-            {editStep === 2 && (
-              <div className="space-y-6">
-                {/* Input Nilai (1-5) */}
-                <div className="grid grid-cols-2 gap-4">
+                    {/* Public Visible */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Public Visible
+                      </label>
+                      <Select
+                        value={editFormData.publicVisible ? "true" : "false"}
+                        onValueChange={(value) =>
+                          setEditFormData({
+                            ...editFormData,
+                            publicVisible: value === "true",
+                          })
+                        }
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Pilih" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="true">Ya</SelectItem>
+                          <SelectItem value="false">Tidak</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* ================= STEP 2 ================= */}
+              {editStep === 2 && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    {[
+                      ["Materi Mudah Dimengerti", "kemudahan_materi"],
+                      ["Materi Jelas & Interaktif", "kejelasan_materi"],
+                      ["Mentor Menjawab Dengan Baik", "mentor_menjawab"],
+                      ["Pelaksanaan Tepat Waktu", "pelaksanaan"],
+                      ["Jadwal Sesuai", "kesesuaian_jadwal"],
+                      ["Platform Pembelajaran Baik", "kualitas_platform"],
+                    ].map(([label, key]) => (
+                      <div key={key}>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          {label}
+                        </label>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={
+                            editFormData.evaluasi[
+                              key as keyof typeof editFormData.evaluasi
+                            ] === 0
+                              ? ""
+                              : editFormData.evaluasi[
+                                  key as keyof typeof editFormData.evaluasi
+                                ]
+                          }
+                          onChange={(e) => {
+                            const value = e.target.value;
+
+                            // boleh kosong
+                            if (value === "") {
+                              setEditFormData({
+                                ...editFormData,
+                                evaluasi: {
+                                  ...editFormData.evaluasi,
+                                  [key]: 0,
+                                },
+                              });
+                              return;
+                            }
+
+                            let num = Number(value);
+
+                            if (isNaN(num)) return;
+
+                            // batas maksimal 100
+                            if (num > 100) num = 100;
+                            if (num < 0) num = 0;
+
+                            setEditFormData({
+                              ...editFormData,
+                              evaluasi: {
+                                ...editFormData.evaluasi,
+                                [key]: num,
+                              },
+                            });
+                          }}
+                        />
+
+                        <p className="text-xs text-gray-500 mt-1">
+                          Skala 0–100
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Masukkan */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Materi Mudah Dimengerti
+                      Masukkan / Saran
                     </label>
-                    <Input
-                      type="number"
-                      value={editFormData.evaluasi.kemudahan_materi}
+                    <Textarea
+                      rows={3}
+                      value={editFormData.evaluasi.masukkan}
                       onChange={(e) =>
                         setEditFormData({
                           ...editFormData,
                           evaluasi: {
                             ...editFormData.evaluasi,
-                            kemudahan_materi: Number(e.target.value),
+                            masukkan: e.target.value,
                           },
                         })
                       }
                     />
                   </div>
 
+                  {/* Catatan Tambahan */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Materi Jelas & Interaktif
+                      Catatan Tambahan
                     </label>
-                    <Input
-                      type="number"
-                      value={editFormData.evaluasi.kejelasan_materi}
+                    <Textarea
+                      rows={3}
+                      value={editFormData.evaluasi.catatan_tambahan}
                       onChange={(e) =>
                         setEditFormData({
                           ...editFormData,
                           evaluasi: {
                             ...editFormData.evaluasi,
-                            kejelasan_materi: Number(e.target.value),
-                          },
-                        })
-                      }
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Mentor Menjawab Dengan Baik
-                    </label>
-                    <Input
-                      type="number"
-                      value={editFormData.evaluasi.mentor_menjawab}
-                      onChange={(e) =>
-                        setEditFormData({
-                          ...editFormData,
-                          evaluasi: {
-                            ...editFormData.evaluasi,
-                            mentor_menjawab: Number(e.target.value),
-                          },
-                        })
-                      }
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Pelaksanaan Tepat Waktu
-                    </label>
-                    <Input
-                      type="number"
-                      value={editFormData.evaluasi.pelaksanaan}
-                      onChange={(e) =>
-                        setEditFormData({
-                          ...editFormData,
-                          evaluasi: {
-                            ...editFormData.evaluasi,
-                            pelaksanaan: Number(e.target.value),
-                          },
-                        })
-                      }
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Jadwal Sesuai
-                    </label>
-                    <Input
-                      type="number"
-                      value={editFormData.evaluasi.kesesuaian_jadwal}
-                      onChange={(e) =>
-                        setEditFormData({
-                          ...editFormData,
-                          evaluasi: {
-                            ...editFormData.evaluasi,
-                            kesesuaian_jadwal: Number(e.target.value),
-                          },
-                        })
-                      }
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Platform Pembelajaran Baik
-                    </label>
-                    <Input
-                      type="number"
-                      value={editFormData.evaluasi.kualitas_platform}
-                      onChange={(e) =>
-                        setEditFormData({
-                          ...editFormData,
-                          evaluasi: {
-                            ...editFormData.evaluasi,
-                            kualitas_platform: Number(e.target.value),
+                            catatan_tambahan: e.target.value,
                           },
                         })
                       }
                     />
                   </div>
                 </div>
-
-                {/* Masukkan/Saran */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Masukkan / Saran untuk meningkatkan pembelajaran
-                  </label>
-                  <Textarea
-                    rows={3}
-                    value={editFormData.evaluasi.masukkan}
-                    onChange={(e) =>
-                      setEditFormData({
-                        ...editFormData,
-                        evaluasi: {
-                          ...editFormData.evaluasi,
-                          masukkan: e.target.value,
-                        },
-                      })
-                    }
-                  />
-                </div>
-
-                {/* Catatan Tambahan */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Catatan Tambahan
-                  </label>
-                  <Textarea
-                    rows={3}
-                    value={editFormData.evaluasi.catatan_tambahan}
-                    onChange={(e) =>
-                      setEditFormData({
-                        ...editFormData,
-                        evaluasi: {
-                          ...editFormData.evaluasi,
-                          catatan_tambahan: e.target.value,
-                        },
-                      })
-                    }
-                  />
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* Navigation */}
-          <div className="flex pt-6 border-t gap-3">
+          <div className="flex pt-4 border-t gap-3">
             <Button
               variant="outline"
               className="w-1/2"
@@ -785,17 +852,62 @@ export function DataTable<TData extends Datas, TValue>({
 
             <Button
               className="w-1/2 bg-[#0CA678] hover:bg-[#08916C] text-white"
+              disabled={isSubmitting}
               onClick={() => {
                 if (editStep === 2) {
-                  console.log("✅ Save Feedback:", editFormData);
-                  setShowEditDialog(false);
-                  setEditStep(1);
+                  handleSubmitEdit();
                 } else {
                   setEditStep(editStep + 1);
                 }
               }}
             >
-              {editStep === 2 ? "Simpan Perubahan" : "Selanjutnya"}
+              {isSubmitting
+                ? "Menyimpan..."
+                : editStep === 2
+                ? "Simpan Perubahan"
+                : "Selanjutnya"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ===== Delete Confirmation Dialog ===== */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent
+          className="max-w-md border border-emerald-100"
+          onInteractOutside={(e) => e.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold text-emerald-700">
+              Konfirmasi Hapus Feedback
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="mt-3 space-y-2 text-sm text-gray-700">
+            <p>Apakah kamu yakin ingin menghapus feedback ini?</p>
+            <p className="text-gray-500">
+              Feedback yang dihapus{" "}
+              <span className="font-medium">tidak dapat dikembalikan</span>.
+            </p>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 mt-6">
+            <Button
+              variant="outline"
+              className="flex-1 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+              disabled={isDeleting}
+              onClick={() => setShowDeleteDialog(false)}
+            >
+              Batal
+            </Button>
+
+            <Button
+              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+              disabled={isDeleting}
+              onClick={handleDeleteFeedback}
+            >
+              {isDeleting ? "Menghapus..." : "Hapus"}
             </Button>
           </div>
         </DialogContent>

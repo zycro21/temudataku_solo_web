@@ -1,5 +1,9 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import * as React from "react";
 import {
   ColumnDef,
@@ -33,6 +37,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Project } from "./columns";
 import {
@@ -72,6 +77,7 @@ export function DataTable<TData extends Project, TValue>({
     statusDetail: "",
     score: "",
     projectFile: "",
+    document: "",
   });
 
   const table = useReactTable({
@@ -93,6 +99,78 @@ export function DataTable<TData extends Project, TValue>({
   const from = pageIndex * pageSize + 1;
   const to = Math.min((pageIndex + 1) * pageSize, totalRows);
   const totalPages = table.getPageCount();
+
+  const [formattedDate, setFormattedDate] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    if (selectedProject?.date) {
+      setFormattedDate(
+        new Date(selectedProject.date).toLocaleString("id-ID", {
+          dateStyle: "medium",
+          timeStyle: "short",
+        })
+      );
+    }
+  }, [selectedProject?.date]);
+
+  const handleSaveScore = async () => {
+    if (!editFormData.id) return;
+
+    try {
+      await axios.patch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/project/mentors/submissions/${editFormData.id}`,
+        {
+          // backend terima number, bukan string
+          score: editFormData.score === "" ? 0 : Number(editFormData.score),
+        },
+        {
+          withCredentials: true, // ⬅️ TOKEN DARI COOKIE
+        }
+      );
+
+      toast.success("Score berhasil diperbarui");
+
+      // OPTIONAL: refresh table
+      // await refetch();
+
+      setShowEditDialog(false);
+      setEditStep(1);
+    } catch (error: any) {
+      console.error(error);
+
+      const message =
+        error?.response?.data?.message || "Gagal memperbarui score";
+
+      toast.error(message);
+    }
+  };
+
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const handleDeleteSubmission = async () => {
+    if (!selectedProject?.id) return;
+
+    try {
+      await axios.delete(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/project/mentors/submissions/${selectedProject.id}`,
+        {
+          withCredentials: true,
+        }
+      );
+
+      toast.success("Submission berhasil dihapus");
+
+      setShowDeleteDialog(false);
+      setSelectedProject(null);
+
+      // OPTIONAL
+      // await refetch();
+    } catch (error: any) {
+      console.error(error);
+      toast.error(
+        error?.response?.data?.message || "Gagal menghapus submission"
+      );
+    }
+  };
 
   return (
     <div>
@@ -160,14 +238,19 @@ export function DataTable<TData extends Project, TValue>({
                 >
                   {row.getVisibleCells().map((cell) => {
                     const isSelectColumn = cell.column.id === "select";
+                    const wrapColumns = ["id", "program", "mentee", "mentor"]; // kolom yang wrap
                     return (
                       <TableCell
                         key={cell.id}
-                        className={`${
-                          isSelectColumn
-                            ? "px-3 py-2"
-                            : "cursor-pointer px-4 py-3"
-                        }`}
+                        className={`
+          px-4 py-3 text-sm
+          ${isSelectColumn ? "" : "cursor-pointer"}
+          ${
+            wrapColumns.includes(cell.column.id)
+              ? "whitespace-normal break-words"
+              : ""
+          }
+        `}
                         onClick={() => {
                           if (!isSelectColumn) {
                             setSelectedProject(row.original);
@@ -267,17 +350,19 @@ export function DataTable<TData extends Project, TValue>({
       {/* Detail Project Dialog */}
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
         <DialogContent
-          className="max-w-2xl"
+          className="max-w-4xl"
           onInteractOutside={(e) => e.preventDefault()}
         >
+          {/* Header tetap fix */}
           <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b">
             <DialogTitle className="text-xl font-semibold">
               Detail Project
             </DialogTitle>
           </DialogHeader>
 
+          {/* Konten scrollable */}
           {selectedProject && (
-            <div className="space-y-6 py-4">
+            <div className="space-y-6 py-4 max-h-[500px] overflow-y-auto">
               {/* First Row */}
               <div className="grid grid-cols-2 gap-8">
                 <div>
@@ -290,9 +375,8 @@ export function DataTable<TData extends Project, TValue>({
                   <p className="text-sm text-gray-600 mb-1">
                     Tanggal & Waktu Pengumpulan
                   </p>
-
                   <p className="text-lg font-semibold text-gray-900">
-                    {selectedProject.date}
+                    {formattedDate || "-"}
                   </p>
                 </div>
               </div>
@@ -346,71 +430,115 @@ export function DataTable<TData extends Project, TValue>({
               </div>
 
               {/* Document Section */}
-              {selectedProject.projectFile &&
-                selectedProject.projectFile !== "-" && (
-                  <div className="pt-3">
-                    <p className="text-sm text-gray-600 mb-3">
-                      Project Dikirim
-                    </p>
-                    <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                      <FileText className="w-6 h-6 text-gray-400" />
+              {(Array.isArray(selectedProject.projectFile) &&
+                selectedProject.projectFile.length > 0) ||
+              (typeof selectedProject.projectFile === "string" &&
+                selectedProject.projectFile !== "-") ? (
+                <div className="pt-3">
+                  <p className="text-sm text-gray-600 mb-3">Project Dikirim</p>
+                  <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                    <FileText className="w-6 h-6 text-gray-400" />
 
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-900">
-                          {selectedProject.projectFile}
-                        </p>
-
-                        <p className="text-sm text-gray-500">2MB</p>
-
-                        <Button
-                          variant="link"
-                          className="text-[#0CA678] hover:text-[#08916C] p-0"
-                        >
-                          Lihat Dokumen
-                        </Button>
-                      </div>
+                    <div className="flex-1">
+                      {Array.isArray(selectedProject.projectFile)
+                        ? selectedProject.projectFile.map(
+                            (file: string, idx) => {
+                              const filename = file.split("/").pop();
+                              return (
+                                <div key={idx}>
+                                  <p className="font-medium text-gray-900">
+                                    {filename}
+                                  </p>
+                                  <a
+                                    href={`${process.env.NEXT_PUBLIC_API_BASE_URL}/uploads/submissions/${filename}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-[#0CA678] hover:text-[#08916C] text-sm font-medium"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    Lihat Dokumen
+                                  </a>
+                                </div>
+                              );
+                            }
+                          )
+                        : (() => {
+                            const filename = selectedProject.projectFile
+                              .split("/")
+                              .pop();
+                            return (
+                              <>
+                                <p className="font-medium text-gray-900">
+                                  {filename}
+                                </p>
+                                <a
+                                  href={`${process.env.NEXT_PUBLIC_API_BASE_URL}/uploads/submissions/${filename}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[#0CA678] hover:text-[#08916C] text-sm font-medium"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  Lihat Dokumen
+                                </a>
+                              </>
+                            );
+                          })()}
                     </div>
                   </div>
-                )}
+                </div>
+              ) : (
+                <div className="pt-3">
+                  <p className="text-sm text-gray-600 mb-3">Project Dikirim</p>
+                  <div className="p-3 bg-green-100 rounded-lg text-green-900 font-medium">
+                    MENTEE TIDAK MENGIRIMKAN FILE, MUNGKIN DALAM BENTUK LINK,
+                    CEK DI TABEL DAN KLIK{" "}
+                    <span className="uppercase text-[#0CA678] font-bold">
+                      LIHAT
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
-              {/* Action Buttons */}
-              <div className="flex space-x-4 pt-6 border-t">
-                <Button
-                  className="flex-1 bg-[#0CA678] hover:bg-[#08916C] text-white"
-                  onClick={() => {
-                    if (!selectedProject) return;
+          {/* Action Buttons tetap di bawah */}
+          {selectedProject && (
+            <div className="flex space-x-4 pt-6 border-t">
+              <Button
+                className="flex-1 bg-[#0CA678] hover:bg-[#08916C] text-white"
+                onClick={() => {
+                  if (!selectedProject) return;
 
-                    setEditFormData({
-                      id: selectedProject.id || "",
-                      mentee: selectedProject.mentee || "",
-                      mentor: selectedProject.mentor || "",
-                      program: selectedProject.program || "",
-                      topic: selectedProject.topic || "",
-                      date: selectedProject.deadline || "",
-                      statusDetail: selectedProject.statusDetail || "",
-                      score: selectedProject.score || "",
-                      projectFile: selectedProject.projectFile || "",
-                    });
+                  setEditFormData({
+                    id: selectedProject.id || "",
+                    mentee: selectedProject.mentee || "",
+                    mentor: selectedProject.mentor || "",
+                    program: selectedProject.program || "",
+                    topic: selectedProject.topic || "",
+                    date: selectedProject.deadline || "",
+                    statusDetail: selectedProject.statusDetail || "",
+                    score: selectedProject.score || "",
+                    projectFile: selectedProject.projectFile || "",
+                    document: selectedProject.document || "",
+                  });
 
-                    // kalau ada modal edit, panggil disini
-                    setEditStep(1);
-                    setShowDetailDialog(false);
-                    setShowEditDialog(true);
-                  }}
-                >
-                  Edit
-                </Button>
-                <Button
-                  variant="destructive"
-                  className="flex-1 bg-red-500 hover:bg-red-600"
-                  onClick={() => {
-                    console.log("Delete project:", selectedProject);
-                    setShowDetailDialog(false);
-                  }}
-                >
-                  Hapus
-                </Button>
-              </div>
+                  setEditStep(1);
+                  setShowDetailDialog(false);
+                  setShowEditDialog(true);
+                }}
+              >
+                Edit
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-1 bg-red-500 hover:bg-red-600"
+                onClick={() => {
+                  setShowDetailDialog(false);
+                  setShowDeleteDialog(true);
+                }}
+              >
+                Hapus
+              </Button>
             </div>
           )}
         </DialogContent>
@@ -418,7 +546,10 @@ export function DataTable<TData extends Project, TValue>({
 
       {/* Edit Project Mentee Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent
+          className="max-w-2xl"
+          onInteractOutside={(e) => e.preventDefault()}
+        >
           {/* HEADER */}
           <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <DialogTitle className="text-xl font-semibold">
@@ -469,7 +600,7 @@ export function DataTable<TData extends Project, TValue>({
           <div className="border-b" />
 
           {/* CONTENT */}
-          <div className="space-y-6 py-4">
+          <div className="space-y-6 py-4 max-h-[60vh] overflow-y-auto">
             {/* STEP 1 */}
             {editStep === 1 && (
               <>
@@ -492,28 +623,14 @@ export function DataTable<TData extends Project, TValue>({
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Mentor
                     </label>
-                    <Select
+                    <Input
                       value={editFormData.mentor}
-                      onValueChange={(value) =>
-                        setEditFormData({ ...editFormData, mentor: value })
-                      }
-                    >
-                      <SelectTrigger className="w-full bg-gray-100">
-                        <SelectValue placeholder="Pilih Mentor" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Laura Ayu">Laura Ayu</SelectItem>
-                        <SelectItem value="Gilang Dirga">
-                          Gilang Dirga
-                        </SelectItem>
-                        <SelectItem value="Nina Pratiwi">
-                          Nina Pratiwi
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
+                      readOnly
+                      className="bg-gray-100 border border-gray-300"
+                    />
                   </div>
 
-                  {/* Mentee: READONLY */}
+                  {/* Mentee */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Mentee
@@ -531,21 +648,11 @@ export function DataTable<TData extends Project, TValue>({
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Program
                   </label>
-
-                  <Select
+                  <Input
                     value={editFormData.program}
-                    onValueChange={(value) =>
-                      setEditFormData({ ...editFormData, program: value })
-                    }
-                  >
-                    <SelectTrigger className="w-full bg-gray-100">
-                      <SelectValue placeholder="Pilih Program" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Bootcamp">Bootcamp</SelectItem>
-                      <SelectItem value="Short Class">Short Class</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    readOnly
+                    className="bg-gray-100 border border-gray-300"
+                  />
                 </div>
 
                 {/* Topik */}
@@ -555,14 +662,9 @@ export function DataTable<TData extends Project, TValue>({
                   </label>
                   <Textarea
                     rows={4}
-                    className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md"
                     value={editFormData.topic}
-                    onChange={(e) =>
-                      setEditFormData({
-                        ...editFormData,
-                        topic: e.target.value,
-                      })
-                    }
+                    readOnly
+                    className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md"
                   />
                 </div>
               </>
@@ -570,63 +672,117 @@ export function DataTable<TData extends Project, TValue>({
 
             {/* STEP 2 */}
             {editStep === 2 && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-4">
-                  Project Dikirim
-                </label>
+              <div className="space-y-4">
+                {/* Score */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Score
+                  </label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={editFormData.score || ""}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      // Biarkan kosong saat user hapus input
+                      if (val === "") {
+                        setEditFormData({ ...editFormData, score: "" });
+                        return;
+                      }
+                      // Pastikan angka di antara 0-100
+                      const num = Math.max(0, Math.min(100, Number(val)));
+                      setEditFormData({ ...editFormData, score: String(num) });
+                    }}
+                    placeholder="0"
+                    className="w-32 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  />
+                </div>
 
-                {editFormData.projectFile && (
-                  <div className="p-4 bg-gray-50 rounded-lg border">
-                    <div className="flex items-center justify-between">
-                      {/* LEFT CONTENT */}
-                      <div className="flex items-center space-x-3">
-                        <FileText className="w-8 h-8 text-gray-400" />
+                {/* Project Dikirim */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Project Dikirim
+                  </label>
 
-                        <div>
-                          <p className="font-medium text-gray-900">
-                            {editFormData.projectFile}
-                          </p>
-                          <p className="text-sm text-gray-500">2MB</p>
-
-                          <Button
-                            variant="link"
-                            className="text-[#0CA678] hover:text-[#08916C] p-0"
-                          >
-                            Lihat Dokumen
-                          </Button>
-                        </div>
-                      </div>
-
-                      {/* RIGHT ACTION BUTTONS */}
-                      <div className="flex items-center space-x-2 ml-4">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-[#0CA678]"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-600"
-                          onClick={() => {
-                            // konfirmasi dulu
-                            if (confirm("Hapus file project ini?")) {
-                              setEditFormData({
-                                ...editFormData,
-                                projectFile: "", // hapus file
-                              });
+                  {(Array.isArray(editFormData.projectFile) &&
+                    editFormData.projectFile.length > 0) ||
+                  (typeof editFormData.projectFile === "string" &&
+                    editFormData.projectFile !== "-") ? (
+                    <div className="p-4 bg-gray-50 rounded-lg border">
+                      {Array.isArray(editFormData.projectFile)
+                        ? editFormData.projectFile.map(
+                            (file: string, idx: number) => {
+                              const filename = file.split("/").pop();
+                              return (
+                                <div key={idx} className="mb-2">
+                                  <p className="font-medium text-gray-900">
+                                    {filename}
+                                  </p>
+                                  <a
+                                    href={`${process.env.NEXT_PUBLIC_API_BASE_URL}/uploads/submissions/${filename}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-[#0CA678] hover:text-[#08916C] text-sm font-medium"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    Lihat Dokumen
+                                  </a>
+                                </div>
+                              );
                             }
-                          }}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+                          )
+                        : (() => {
+                            const filename = (
+                              editFormData.projectFile as string
+                            )
+                              .split("/")
+                              .pop();
+                            return (
+                              <>
+                                <p className="font-medium text-gray-900">
+                                  {filename}
+                                </p>
+                                <a
+                                  href={`${process.env.NEXT_PUBLIC_API_BASE_URL}/uploads/submissions/${filename}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[#0CA678] hover:text-[#08916C] text-sm font-medium"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  Lihat Dokumen
+                                </a>
+                              </>
+                            );
+                          })()}
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <div className="p-3 bg-green-100 rounded-lg text-green-900 font-medium">
+                      MENTEE TIDAK MENGIRIMKAN FILE, MUNGKIN DALAM BENTUK LINK,
+                      CEK DI TABEL DAN KLIK{" "}
+                      <span className="uppercase text-[#0CA678] font-bold">
+                        LIHAT
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Link Pengumpulan (Opsional) */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Link Pengumpulan (Opsional)
+                  </label>
+                  <Input
+                    type="text"
+                    value={
+                      !editFormData.document || editFormData.document === "-"
+                        ? "-"
+                        : editFormData.document
+                    }
+                    readOnly
+                    className="w-full bg-white border border-gray-300"
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -653,9 +809,7 @@ export function DataTable<TData extends Project, TValue>({
                 className="flex-1 bg-[#0CA678] hover:bg-[#08916C] text-white"
                 onClick={() => {
                   if (editStep === 2) {
-                    console.log("Save changes:", editFormData);
-                    setShowEditDialog(false);
-                    setEditStep(1);
+                    handleSaveScore();
                   } else {
                     setEditStep(editStep + 1);
                   }
@@ -664,6 +818,37 @@ export function DataTable<TData extends Project, TValue>({
                 {editStep === 2 ? "Simpan Perubahan" : "Selanjutnya"}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent
+          className="max-w-md"
+          onInteractOutside={(e) => e.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle>Hapus Submission</DialogTitle>
+            <DialogDescription>
+              Apakah kamu yakin ingin menghapus submission ini?
+              <br />
+              <span className="text-red-500 font-medium">
+                Tindakan ini tidak bisa dibatalkan.
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteDialog(false)}
+            >
+              Batal
+            </Button>
+
+            <Button variant="destructive" onClick={handleDeleteSubmission}>
+              Ya, Hapus
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

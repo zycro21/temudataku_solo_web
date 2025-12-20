@@ -310,10 +310,11 @@ export const getPublicFeedbacksByService = async ({
 
   // 3. Hitung rata-rata rating service = rata-rata dari semua avg session
   const totalAvg =
-    averagePerSession.reduce(
-      (sum, session) => sum + (session._avg.rating ?? 0),
-      0
-    ) / (averagePerSession.length || 1);
+    averagePerSession.reduce((sum, session) => {
+      const ratingDecimal = session._avg.rating;
+
+      return sum + (ratingDecimal ? ratingDecimal.toNumber() : 0);
+    }, 0) / (averagePerSession.length || 1);
 
   return {
     averageRating: parseFloat(totalAvg.toFixed(2)),
@@ -455,6 +456,7 @@ export const getAllFeedbacksForAdmin = async ({
     skip: (safePage - 1) * safeLimit,
     select: {
       id: true,
+      sessionId: true, // 🔥 PASTI ADA
       rating: true,
       comment: true,
       submittedDate: true,
@@ -462,18 +464,40 @@ export const getAllFeedbacksForAdmin = async ({
       isAnonymous: true,
       createdAt: true,
       updatedAt: true,
+
       session: {
         select: {
-          id: true,
+          id: true, // session id
           date: true,
+
+          // MENTOR YANG MENANGANI SESI
+          mentors: {
+            select: {
+              mentorProfile: {
+                select: {
+                  id: true,
+                  user: {
+                    select: {
+                      id: true,
+                      fullName: true,
+                      email: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+
           mentoringService: {
             select: {
               id: true,
               serviceName: true,
+              serviceType: true,
             },
           },
         },
       },
+
       user: {
         select: {
           id: true,
@@ -665,7 +689,9 @@ export const getFeedbackStatistics = async (params: {
   });
 
   const ratingDistribution = Array.from({ length: 5 }, (_, i) => {
-    const found = ratingDistributionRaw.find((r) => r.rating === i + 1);
+    const found = ratingDistributionRaw.find(
+      (r) => r.rating.toNumber() === i + 1
+    );
     return { rating: i + 1, count: found?._count ?? 0 };
   });
 
@@ -728,7 +754,7 @@ export const getFeedbackStatistics = async (params: {
     return {
       serviceId: session?.mentoringService.id ?? null,
       serviceName: session?.mentoringService.serviceName ?? "Unknown",
-      avgRating: stat._avg.rating ?? 0,
+      avgRating: stat._avg.rating ? stat._avg.rating.toNumber() : 0,
     };
   });
 
@@ -744,4 +770,43 @@ export const getFeedbackStatistics = async (params: {
     startDate: start.toISOString(),
     endDate: end.toISOString(),
   };
+};
+
+export const updateFeedbackByAdmin = async ({
+  id,
+  isVisible,
+  rating,
+  comment,
+}: {
+  id: string;
+  isVisible: boolean;
+  rating: number;
+  comment: string | null;
+}) => {
+  const existing = await prisma.feedback.findUnique({
+    where: { id },
+  });
+
+  if (!existing) {
+    throw new Error("Feedback tidak ditemukan");
+  }
+
+  const updated = await prisma.feedback.update({
+    where: { id },
+    data: {
+      isVisible,
+      rating: Math.round(rating * 10) / 10, // simpan 1 desimal (opsional)
+      comment,
+      updatedAt: new Date(),
+    },
+    select: {
+      id: true,
+      rating: true,
+      comment: true,
+      isVisible: true,
+      updatedAt: true,
+    },
+  });
+
+  return updated;
 };

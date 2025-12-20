@@ -10,7 +10,7 @@ export type Mentor = {
   id: string;
   photo: string;
   name: string;
-  username: string;
+  registeredAt: string;
   email: string;
   role: string;
   status: string;
@@ -76,6 +76,7 @@ export const columns: ColumnDef<Mentor>[] = [
           alt={row.original.name}
           width={15}
           height={15}
+          unoptimized
           className="object-cover w-full h-full"
         />
       </div>
@@ -104,9 +105,9 @@ export const columns: ColumnDef<Mentor>[] = [
     },
   },
 
-  // USERNAME (sortable)
+  // REGISTERED AT (sortable)
   {
-    accessorKey: "username",
+    accessorKey: "registeredAt",
     header: ({ column }) => {
       const sorted = column.getIsSorted();
       return (
@@ -118,10 +119,22 @@ export const columns: ColumnDef<Mentor>[] = [
             else column.clearSorting();
           }}
         >
-          Username
+          Tanggal Registrasi
           {sorted === "asc" && <ChevronDown className="w-4 h-4" />}
           {sorted === "desc" && <ChevronUp className="w-4 h-4" />}
         </button>
+      );
+    },
+    cell: ({ row }) => {
+      const date = new Date(row.getValue("registeredAt"));
+      return (
+        <span className="text-sm text-gray-600">
+          {date.toLocaleDateString("id-ID", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          })}
+        </span>
       );
     },
   },

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import * as UserActivityService from "../services/userActivityLog.service.js";
 import { AuthenticatedRequestLog } from "../middlewares/authenticate.js";
+import { logActivity } from "../utils/logActivtiy.js";
 
 export const createUserActivity = async (
   req: AuthenticatedRequestLog,

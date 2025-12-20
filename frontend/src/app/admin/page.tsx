@@ -73,41 +73,26 @@ export default function AdminPage() {
           return regDate >= sevenDaysAgo;
         }).length;
 
-        // === FETCH TOTAL TRANSAKSI MENTORING ===
-        const mentorRes = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/booking/admin/bookings?limit=10000`,
-          { withCredentials: true }
+        // ================= PAYMENTS =================
+        const paymentRes = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/payment/payments`,
+          {
+            params: {
+              page: 1,
+              limit: 10000,
+            },
+            withCredentials: true,
+          }
         );
 
-        const allMentorBookings =
-          mentorRes.data.data.data || mentorRes.data.data; // jaga struktur
-
-        const mentorTransactions = allMentorBookings.filter(
-          (b: any) => b.status !== "cancelled"
-        ).length;
-
-        // === FETCH TOTAL TRANSAKSI PRACTICE ===
-        const practiceRes = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/practice/admin/practice-purchases?limit=10000`,
-          { withCredentials: true }
-        );
-
-        const allPracticePurchases =
-          practiceRes.data.data.data || practiceRes.data.data; // jaga struktur
-
-        const practiceTransactions = allPracticePurchases.filter(
-          (p: any) => p.status !== "cancelled"
-        ).length;
-
-        // === TOTAL TRANSAKSI AKHIR ===
-        const totalTransactions = mentorTransactions + practiceTransactions;
+        const statsFromApi = paymentRes.data.stats;
 
         // === SET SEMUA DATA ===
         setStatData({
           totalUsers,
           totalMentors,
           growthUsers,
-          totalTransactions,
+          totalTransactions: statsFromApi?.total ?? 0,
         });
       } catch (err) {
         console.error("Gagal fetch stats:", err);
@@ -140,6 +125,7 @@ export default function AdminPage() {
     { status: "pending", total: 0 },
     { status: "confirmed", total: 0 },
     { status: "failed", total: 0 },
+    { status: "refunded", total: 0 },
   ]);
 
   useEffect(() => {
@@ -154,12 +140,13 @@ export default function AdminPage() {
         const payments = res.data.data || [];
 
         // Status yang diizinkan
-        type AllowedStatus = "pending" | "confirmed" | "failed";
+        type AllowedStatus = "pending" | "confirmed" | "failed" | "refunded";
 
         const allowedStatuses: AllowedStatus[] = [
           "pending",
           "confirmed",
           "failed",
+          "refunded",
         ];
 
         // Counter awal
@@ -167,6 +154,7 @@ export default function AdminPage() {
           pending: 0,
           confirmed: 0,
           failed: 0,
+          refunded: 0,
         };
 
         // Hitung status dari payment.status
@@ -183,6 +171,7 @@ export default function AdminPage() {
           { status: "pending", total: statusCount.pending },
           { status: "confirmed", total: statusCount.confirmed },
           { status: "failed", total: statusCount.failed },
+          { status: "refunded", total: statusCount.refunded },
         ]);
       } catch (err) {
         console.error("Error loading payment status:", err);
@@ -196,6 +185,7 @@ export default function AdminPage() {
     pending: "#F59F00", // oranye
     confirmed: "#0CA678", // hijau
     failed: "#E03131", // merah
+    refunded: "#000080",
   };
 
   const capitalize = (v: unknown) => {
@@ -307,16 +297,16 @@ export default function AdminPage() {
   };
 
   // E-Learning masih pakai dummy karena API belum selesai
-  const generateELearningDummy = (months: RevenueItem[]) => {
-    months.forEach((m) => {
-      // Dummy pendapatan 50rb – 300rb
-      const randomValue =
-        Math.floor(Math.random() * (300000 - 50000 + 1)) + 50000;
-      m.e_learning = randomValue;
-    });
+  // const generateELearningDummy = (months: RevenueItem[]) => {
+  //   months.forEach((m) => {
+  //     // Dummy pendapatan 50rb – 300rb
+  //     const randomValue =
+  //       Math.floor(Math.random() * (300000 - 50000 + 1)) + 50000;
+  //     m.e_learning = randomValue;
+  //   });
 
-    return months;
-  };
+  //   return months;
+  // };
 
   // --- 6. Load data ---
   useEffect(() => {
@@ -329,7 +319,7 @@ export default function AdminPage() {
         months = calculatePracticeRevenue(practicePurchases, months);
 
         // Tambahkan dummy e-learning
-        months = generateELearningDummy(months);
+        // months = generateELearningDummy(months);
 
         setRevenueData(months);
       } catch (err) {
@@ -590,10 +580,10 @@ export default function AdminPage() {
         const items = response.data.data.data;
 
         const formatted = items.map((log: any) => ({
-          title: (log.action || "Aktivitas")?.replace(/_/g, " "), 
+          title: (log.action || "Aktivitas")?.replace(/_/g, " "),
           description: (
             log.description || `Admin melakukan aksi: ${log.action}`
-          )?.replace(/\bundefined\b/g, "-"), // 
+          )?.replace(/\bundefined\b/g, "-"), //
           time: formatTimeAgo(log.createdAt),
           type: log.type?.toUpperCase() || "OTHER",
         }));

@@ -797,6 +797,8 @@ export const getAdminBookings = async (params: {
   usedReferral?: boolean;
   startDate?: string;
   endDate?: string;
+  isRescheduled?: boolean;
+  hasSession?: boolean; // ⬅️ BARU
   page: number;
   limit: number;
   sortBy: string;
@@ -809,6 +811,8 @@ export const getAdminBookings = async (params: {
     usedReferral,
     startDate,
     endDate,
+    isRescheduled,
+    hasSession, // ⬅️ BARU
     page,
     limit,
     sortBy,
@@ -818,17 +822,64 @@ export const getAdminBookings = async (params: {
   const whereClause: any = {};
 
   if (status) whereClause.status = status;
+
   if (usedReferral !== undefined) {
     whereClause.referralUsageId = usedReferral
       ? { not: null }
       : { equals: null };
   }
+
   if (startDate || endDate) {
     whereClause.bookingDate = {};
-    if (startDate) whereClause.bookingDate.gte = new Date(startDate);
-    if (endDate) whereClause.bookingDate.lte = new Date(endDate);
+
+    if (startDate) {
+      whereClause.bookingDate.gte = new Date(startDate);
+    }
+
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setUTCHours(23, 59, 59, 999);
+      whereClause.bookingDate.lte = end;
+    }
   }
 
+  /**
+   * ===============================
+   * STEP A — mentoringService filter
+   * ===============================
+   */
+  const mentoringServiceFilter: any = serviceName
+    ? {
+        serviceName: {
+          contains: serviceName,
+          mode: "insensitive",
+        },
+      }
+    : {};
+
+  // 🔹 FILTER PUNYA SESSION (UNTUK TERJADWAL)
+  if (hasSession) {
+    mentoringServiceFilter.mentoringSessions = {
+      some: {}, // minimal 1 session
+    };
+  }
+
+  // 🔹 FILTER RESCHEDULE (KHUSUS)
+  if (isRescheduled) {
+    mentoringServiceFilter.serviceType = {
+      in: ["one-on-one", "group"],
+    };
+
+    mentoringServiceFilter.mentoringSessions = {
+      some: {}, // wajib punya session
+    };
+  }
+
+  /**
+   * ===============================
+   * STEP B — QUERY PRISMA
+   * ===============================
+   */
   const bookings = await prisma.booking.findMany({
     where: {
       ...whereClause,
@@ -840,61 +891,108 @@ export const getAdminBookings = async (params: {
             },
           }
         : undefined,
-      mentoringService: serviceName
-        ? {
-            serviceName: {
-              contains: serviceName,
-              mode: "insensitive",
-            },
-          }
-        : undefined,
+      mentoringService:
+        Object.keys(mentoringServiceFilter).length > 0
+          ? mentoringServiceFilter
+          : undefined,
     },
     include: {
       mentee: true,
-      mentoringService: true,
-      referralUsage: {
+      mentoringService: {
         include: {
-          referralCode: true,
+          mentors: {
+            include: {
+              mentorProfile: {
+                include: {
+                  user: true,
+                },
+              },
+            },
+          },
+          mentoringSessions: true, // ⬅️ WAJIB
         },
       },
+      referralUsage: { include: { referralCode: true } },
       payment: true,
     },
     skip: (page - 1) * limit,
     take: limit,
-    orderBy: {
-      [sortBy]: sortOrder,
-    },
+    orderBy: { [sortBy]: sortOrder },
   });
 
-  const total = await prisma.booking.count({
-    where: {
-      ...whereClause,
-      mentee: menteeName
-        ? {
-            fullName: {
-              contains: menteeName,
-              mode: "insensitive",
-            },
+  /**
+   * ===============================
+   * STEP C — FILTER RESCHEDULE (JS)
+   * ===============================
+   */
+  let filteredBookings = bookings;
+
+  if (isRescheduled) {
+    filteredBookings = bookings.filter((booking) => {
+      const sessions = booking.mentoringService?.mentoringSessions ?? [];
+
+      return sessions.some(
+        (s) =>
+          s.updatedAt &&
+          s.createdAt &&
+          new Date(s.updatedAt).getTime() > new Date(s.createdAt).getTime()
+      );
+    });
+  }
+
+  /**
+   * ===============================
+   * STEP D — FILE SIZE (TETAP)
+   * ===============================
+   */
+  const bookingsWithSize = filteredBookings.map((b) => {
+    let fileSizes: Array<number | null> = [];
+
+    if (b.supportDocument) {
+      let files: string[] = [];
+
+      try {
+        files = JSON.parse(b.supportDocument);
+      } catch {
+        files = [];
+      }
+
+      if (files.length > 0) {
+        fileSizes = files.map((rawPath) => {
+          try {
+            const fixedPath = rawPath.replace(
+              "supportDocuments",
+              "supportDocument"
+            );
+
+            const filePath = path.join(uploadsRoot, fixedPath);
+            const stats = fs.statSync(filePath);
+            return stats.size;
+          } catch {
+            return null;
           }
-        : undefined,
-      mentoringService: serviceName
-        ? {
-            serviceName: {
-              contains: serviceName,
-              mode: "insensitive",
-            },
-          }
-        : undefined,
-    },
+        });
+      }
+    }
+
+    return {
+      ...b,
+      fileSizes,
+    };
   });
 
+  /**
+   * ===============================
+   * STEP E — RETURN
+   * ===============================
+   */
   return {
-    data: bookings,
+    data: bookingsWithSize,
     meta: {
       page,
       limit,
-      total,
-      totalPages: Math.ceil(total / limit),
+      total: bookingsWithSize.length,
+      totalPages: Math.ceil(bookingsWithSize.length / limit),
     },
   };
 };

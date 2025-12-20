@@ -251,6 +251,15 @@ export const getAllUserActivitiesService = async ({
             id: true,
             fullName: true,
             email: true,
+            userRoles: {
+              select: {
+                role: {
+                  select: {
+                    roleName: true,
+                  },
+                },
+              },
+            },
           },
         },
       },

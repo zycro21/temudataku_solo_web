@@ -5,6 +5,7 @@ import { HttpError } from "../utils/httpError";
 import * as ProjectService from "../services/project.service.js";
 import { PrismaClient } from "@prisma/client";
 import path from "path";
+import { logActivity } from "../utils/logActivtiy.js";
 
 const prisma = new PrismaClient();
 
@@ -14,6 +15,13 @@ export const createProjectHandler = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     const { serviceId, title, description } = req.validatedBody;
     const user = req.user!;
 
@@ -24,6 +32,16 @@ export const createProjectHandler = async (
       userId: user.userId,
       roles: user.roles,
     });
+
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: user.userId,
+        action: "CREATE_PROJECT",
+        type: "CREATE",
+        description: `Membuat project baru: ${title}`,
+        req,
+      });
+    }
 
     res.status(201).json({
       message: "Project berhasil dibuat",
@@ -40,6 +58,13 @@ export const updateProjectHandler = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     const { id } = req.validatedParams;
     const { title, description } = req.validatedBody;
     const user = req.user!;
@@ -53,11 +78,31 @@ export const updateProjectHandler = async (
     });
 
     if (noChange) {
+      if (rolesLog.includes("admin") && adminId) {
+        await logActivity({
+          userId: user.userId,
+          action: "UPDATE_PROJECT_NOCHANGE",
+          type: "UPDATE ATTEMPT",
+          description: `Percobaan update tanpa perubahan pada project ID: ${id}`,
+          req,
+        });
+      }
+
       res.status(200).json({
         message: "Tidak ada perubahan dilakukan",
         data: project,
       });
       return;
+    }
+
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: user.userId,
+        action: "UPDATE_PROJECT",
+        type: "UPDATE",
+        description: `Mengupdate project ID: ${id}`,
+        req,
+      });
     }
 
     res.status(200).json({
@@ -75,9 +120,26 @@ export const deleteProjectHandler = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     const { id } = req.validatedParams;
 
     await ProjectService.deleteProject(id);
+
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: adminId,
+        action: "DELETE_PROJECT",
+        type: "DELETE",
+        description: `Menghapus project ID: ${id}`,
+        req,
+      });
+    }
 
     res.status(200).json({
       message: "Project berhasil dihapus",
@@ -272,10 +334,27 @@ export const exportProjects = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     const { format } = req.query as { format: "csv" | "excel" };
 
     const { buffer, fileName, contentType } =
       await ProjectService.exportProjects({ format });
+
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: adminId,
+        action: "EXPORT_PROJECTS",
+        type: "EXPORT",
+        description: `Export data projects dalam format: ${format}`,
+        req,
+      });
+    }
 
     res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
     res.setHeader("Content-Type", contentType);
@@ -371,6 +450,13 @@ export const reviewSubmission = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     const submission = await ProjectService.reviewSubmission({
       submissionId: req.params.id,
       mentorId: req.user?.mentorProfileId, // untuk validasi
@@ -378,6 +464,16 @@ export const reviewSubmission = async (
       role: req.user?.roles,
       ...req.validatedBody,
     });
+
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: adminId,
+        action: "REVIEW_SUBMISSION",
+        type: "UPDATE",
+        description: `Memberikan review untuk submission ID: ${req.params.id}`,
+        req,
+      });
+    }
 
     res.status(200).json({
       message: "Penilaian berhasil diberikan",
@@ -476,10 +572,27 @@ export const exportAdminSubmissions = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     const { format } = req.validatedQuery;
 
     const { fileBuffer, filename, contentType } =
       await ProjectService.exportAdminSubmissions({ format });
+
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: adminId,
+        action: "EXPORT_ADMIN_SUBMISSIONS",
+        type: "EXPORT",
+        description: `Admin mengekspor submissions format: ${format}`,
+        req,
+      });
+    }
 
     res.setHeader("Content-Type", contentType);
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
@@ -597,5 +710,59 @@ export const getMenteeSubmissionDetail = async (
     res.status(200).json({ success: true, data: result });
   } catch (err) {
     next(err);
+  }
+};
+
+export const getProjectStatsHandler = async (
+  req: AuthenticatedRequestProject,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const stats = await ProjectService.getProjectStats();
+
+    res.status(200).json({
+      message: "Statistik proyek berhasil diambil",
+      data: stats,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const deleteSubmission = async (
+  req: AuthenticatedRequestProject,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+
+    const rolesLog = req.user.roles || [];
+
+    await ProjectService.deleteSubmission({
+      submissionId: req.params.id,
+      mentorId: req.user.mentorProfileId,
+      role: req.user.roles,
+    });
+
+    if (rolesLog.includes("admin")) {
+      await logActivity({
+        userId: req.user.userId,
+        action: "DELETE_SUBMISSION",
+        type: "DELETE",
+        description: `Menghapus submission ID: ${req.params.id}`,
+        req,
+      });
+    }
+
+    res.status(200).json({
+      message: "Submission berhasil dihapus",
+    });
+  } catch (error) {
+    next(error);
   }
 };

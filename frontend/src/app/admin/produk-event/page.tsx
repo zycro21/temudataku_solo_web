@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import axios from "axios";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
   FileText,
@@ -36,403 +39,340 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import { MentorOption } from "@/types/mentor";
+
+type EditFieldProps = {
+  label: string;
+  children: React.ReactNode;
+};
+
+const EditField = ({ label, children }: EditFieldProps) => (
+  <div className="space-y-2">
+    <label className="text-sm font-semibold text-gray-600 block">{label}</label>
+    {children}
+  </div>
+);
 
 export default function AdminMentorPage() {
   const [exportOpen, setExportOpen] = useState(false);
 
-  const [projects, setProjects] = useState<Project[]>([
-    {
-      id: "P001",
-      foto: "/images/Navbar_logo.png",
-      nama: "Excel Untuk Pemula",
-      kategori: "Practice",
-      harga: "Rp 150.000",
-      deskripsi: "Kelas belajar excel dasar",
-      status: "Aktif",
-      diskonTipe: "persentase",
-      diskon: 20,
-      hargaDiskon: "Rp 120.000",
-      tanggalDitambahkan: "2025-01-05",
-    },
-    {
-      id: "P002",
-      foto: "/images/Navbar_logo.png",
-      nama: "Introduction to Data Science",
-      kategori: "E-Learning",
-      harga: "Rp 850.000",
-      deskripsi: "Pengenalan awal data science",
-      status: "Aktif",
-      diskonTipe: "angka",
-      diskon: 150000,
-      hargaDiskon: "Rp 700.000",
-      tanggalDitambahkan: "2025-01-08",
-    },
+  const handleExportProductEvent = async (format: "csv" | "excel") => {
+    const loadingToastId = toast.loading(
+      `Mengekspor produk & event ke ${format.toUpperCase()}...`
+    );
 
-    // ================= Tambahan 27 data baru =================
+    try {
+      const res = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/elearningCourse/exportProductEvent`,
+        {
+          params: { format },
+          responseType: "blob",
+          withCredentials: true,
+        }
+      );
 
-    {
-      id: "P003",
+      const blob = new Blob([res.data], {
+        type: res.headers["content-type"],
+      });
+
+      // Ambil filename dari Content-Disposition
+      const contentDisposition = res.headers["content-disposition"];
+      let filename = "product-event";
+
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="?(.+)"?/);
+        if (match?.[1]) filename = match[1];
+      } else {
+        const timestamp = new Date()
+          .toLocaleString("sv-SE")
+          .replace(" ", "_")
+          .replace(/:/g, "-");
+
+        filename = `product-event-${timestamp}.${
+          format === "excel" ? "xlsx" : "csv"
+        }`;
+      }
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast.success("Export berhasil", {
+        id: loadingToastId,
+        description: `Produk & event berhasil diekspor (${filename})`,
+      });
+    } catch (err: any) {
+      console.error("Export product event error:", err);
+
+      toast.error("Gagal export produk & event", {
+        id: loadingToastId,
+        description:
+          err?.response?.data?.message ??
+          "Terjadi kesalahan saat mengekspor data",
+      });
+    }
+  };
+
+  const [mentorOptions, setMentorOptions] = useState<MentorOption[]>([]);
+  const [mentorLoading, setMentorLoading] = useState(false);
+
+  // 🟢 mentoring (multi)
+  const [selectedMentorIds, setSelectedMentorIds] = useState<string[]>([]);
+  // 🔵 e-learning (single)
+  const [selectedMentorId, setSelectedMentorId] = useState<string>("");
+
+  useEffect(() => {
+    const fetchMentors = async () => {
+      try {
+        setMentorLoading(true);
+
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentor/admin/mentor-profiles`,
+          {
+            withCredentials: true,
+            params: {
+              page: 1,
+              limit: 10000,
+              isVerified: true,
+            },
+          }
+        );
+
+        const options: MentorOption[] = res.data.data.map((item: any) => ({
+          id: item.id,
+          name: item.user?.fullName ?? "Tanpa Nama",
+        }));
+
+        setMentorOptions(options);
+      } catch (err) {
+        console.error("Gagal fetch mentor:", err);
+      } finally {
+        setMentorLoading(false);
+      }
+    };
+
+    fetchMentors();
+  }, []);
+
+  const formatRupiah = (value: number) => {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    }).format(value);
+  };
+
+  const formatDate = (date?: string | Date) => {
+    if (!date) return "-";
+    return new Date(date).toISOString().split("T")[0];
+  };
+
+  const mapServiceTypeToProgram = (type?: string): Project["tipeMentoring"] => {
+    if (!type) return undefined;
+
+    const normalized = type
+      .toLowerCase()
+      .replace(/[_\s]+/g, "-")
+      .replace(/--+/g, "-")
+      .trim();
+
+    switch (normalized) {
+      case "bootcamp":
+        return "Bootcamp";
+
+      case "shortclass":
+        return "Short Class";
+
+      case "live-class":
+      case "liveclass":
+      case "live class":
+        return "Live Class";
+
+      case "one-on-one":
+      case "one-on-1":
+      case "oneonone":
+        return "1 on 1 Mentoring";
+
+      case "group":
+      case "group-mentoring":
+        return "Group Mentoring";
+
+      default:
+        return undefined;
+    }
+  };
+
+  const mapMentoringToProject = (item: any): Project => {
+    const mentors = item.mentors ?? [];
+
+    return {
+      id: item.id,
       foto: "/images/Navbar_logo.png",
-      nama: "Frontend Developer Roadmap",
+      nama: item.serviceName,
       kategori: "Mentoring",
-      tipeMentoring: "Bootcamp",
-      harga: "Rp 1.500.000",
-      deskripsi: "Belajar frontend dari dasar hingga mahir",
-      status: "Aktif",
-      diskonTipe: "persentase",
-      diskon: 15,
-      hargaDiskon: "Rp 1.275.000",
-      tanggalDitambahkan: "2025-01-10",
-    },
-    {
-      id: "P004",
-      foto: "/images/Navbar_logo.png",
-      nama: "Backend Developer With Node.js",
-      kategori: "Practice",
-      harga: "Rp 1.600.000",
-      deskripsi: "Belajar backend menggunakan Node.js",
-      status: "Aktif",
-      diskonTipe: "angka",
-      diskon: 200000,
-      hargaDiskon: "Rp 1.400.000",
-      tanggalDitambahkan: "2025-01-12",
-    },
-    {
-      id: "P005",
-      foto: "/images/Navbar_logo.png",
-      nama: "UI/UX Design for Beginner",
+      tipeMentoring: mapServiceTypeToProgram(item.serviceType),
+
+      mentorIds: mentors.map((m: any) => m.mentorProfileId),
+      mentorNames: mentors.map((m: any) => m.fullName),
+
+      // 🟢 duration & participants
+      maxParticipants: item.maxParticipants ?? undefined,
+      durationDays: item.durationDays ?? undefined,
+
+      harga: Number(item.price),
+      hargaDisplay: formatRupiah(Number(item.price)),
+      hargaDiskon: formatRupiah(Number(item.price)),
+      deskripsi: item.description ?? "-",
+      status: item.isActive ? "Aktif" : "Nonaktif",
+
+      diskonTipe: "-",
+      diskon: 0,
+
+      // 🔹 mentoring fields
+      benefits: item.benefits ?? "-",
+      mechanism: item.mechanism ?? "-",
+      syllabusPath: item.syllabusPath ?? "-",
+      toolsUsed: item.toolsUsed ?? "-",
+      targetAudience: item.targetAudience ?? "-",
+      schedule: item.schedule ?? "-",
+      alumniPortfolio: item.alumniPortfolio ?? "-",
+
+      tanggalDitambahkan: formatDate(item.createdAt),
+    };
+  };
+
+  const mapELearningToProject = (item: any): Project => {
+    const rawPath = item.thumbnailImages?.[0];
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+    const normalizedPath = rawPath
+      ? rawPath.replace(/^\/?images\/?/, "") // 🔥 buang images di depan
+      : null;
+
+    return {
+      id: item.id,
+      foto: normalizedPath
+        ? `${baseUrl}/images/${normalizedPath}`
+        : "/images/Navbar_logo.png",
+
+      nama: item.title,
       kategori: "E-Learning",
-      harga: "Rp 250.000",
-      deskripsi: "Pengenalan UI/UX dari dasar",
-      status: "Aktif",
-      diskonTipe: "persentase",
-      diskon: 10,
-      hargaDiskon: "Rp 225.000",
-      tanggalDitambahkan: "2025-01-14",
-    },
-    {
-      id: "P006",
-      foto: "/images/Navbar_logo.png",
-      nama: "Python Dasar Untuk Pemula",
-      kategori: "Practice",
-      harga: "Rp 180.000",
-      deskripsi: "Belajar python level pemula",
-      status: "Aktif",
-      diskonTipe: "angka",
-      diskon: 30000,
-      hargaDiskon: "Rp 150.000",
-      tanggalDitambahkan: "2025-01-16",
-    },
-    {
-      id: "P007",
-      foto: "/images/Navbar_logo.png",
-      nama: "Flutter Mobile Development",
-      kategori: "Mentoring",
-      tipeMentoring: "Live Class",
-      harga: "Rp 1.400.000",
-      deskripsi: "Belajar membuat aplikasi mobile dengan Flutter",
-      status: "Aktif",
-      diskonTipe: "persentase",
-      diskon: 25,
-      hargaDiskon: "Rp 1.050.000",
-      tanggalDitambahkan: "2025-01-18",
-    },
-    {
-      id: "P008",
-      foto: "/images/Navbar_logo.png",
-      nama: "Machine Learning Dasar",
-      kategori: "Practice",
-      harga: "Rp 1.700.000",
-      deskripsi: "Belajar konsep dasar machine learning",
-      status: "Aktif",
-      diskonTipe: "persentase",
-      diskon: 30,
-      hargaDiskon: "Rp 1.190.000",
-      tanggalDitambahkan: "2025-01-19",
-    },
-    {
-      id: "P009",
-      foto: "/images/Navbar_logo.png",
-      nama: "Excel Advanced",
-      kategori: "E-Learning",
-      harga: "Rp 200.000",
-      deskripsi: "Kelas excel lanjutan untuk pekerjaan",
-      status: "Aktif",
-      diskonTipe: "angka",
-      diskon: 50000,
-      hargaDiskon: "Rp 150.000",
-      tanggalDitambahkan: "2025-01-21",
-    },
-    {
-      id: "P010",
-      foto: "/images/Navbar_logo.png",
-      nama: "JavaScript Fundamental",
-      kategori: "Practice",
-      harga: "Rp 190.000",
-      deskripsi: "Belajar fundamental JavaScript",
-      status: "Aktif",
-      diskonTipe: "persentase",
-      diskon: 15,
-      hargaDiskon: "Rp 161.500",
-      tanggalDitambahkan: "2025-01-22",
-    },
-    {
-      id: "P011",
-      foto: "/images/Navbar_logo.png",
-      nama: "Social Media Marketing",
-      kategori: "E-Learning",
-      harga: "Rp 220.000",
-      deskripsi: "Belajar mengelola sosial media secara profesional",
-      status: "Aktif",
-      diskonTipe: "angka",
-      diskon: 30000,
-      hargaDiskon: "Rp 190.000",
-      tanggalDitambahkan: "2025-01-23",
-    },
-    {
-      id: "P012",
-      foto: "/images/Navbar_logo.png",
-      nama: "SEO Mastery",
-      kategori: "Practice",
-      harga: "Rp 300.000",
-      deskripsi: "Belajar optimasi SEO untuk website",
-      status: "Aktif",
-      diskonTipe: "persentase",
-      diskon: 20,
-      hargaDiskon: "Rp 240.000",
-      tanggalDitambahkan: "2025-01-24",
-    },
-    {
-      id: "P013",
-      foto: "/images/Navbar_logo.png",
-      nama: "SQL & Database",
-      kategori: "E-Learning",
-      harga: "Rp 210.000",
-      deskripsi: "Belajar dasar database dan SQL",
-      status: "Aktif",
-      diskonTipe: "angka",
-      diskon: 20000,
-      hargaDiskon: "Rp 190.000",
-      tanggalDitambahkan: "2025-01-25",
-    },
-    {
-      id: "P014",
-      foto: "/images/Navbar_logo.png",
-      nama: "Google Ads for Beginner",
-      kategori: "Practice",
-      harga: "Rp 260.000",
-      deskripsi: "Belajar menjalankan campaign Google Ads",
-      status: "Aktif",
-      diskonTipe: "persentase",
-      diskon: 10,
-      hargaDiskon: "Rp 234.000",
-      tanggalDitambahkan: "2025-01-26",
-    },
-    {
-      id: "P015",
-      foto: "/images/Navbar_logo.png",
-      nama: "TikTok Ads Optimization",
-      kategori: "Practice",
-      harga: "Rp 240.000",
-      deskripsi: "Belajar optimasi iklan di TikTok",
-      status: "Aktif",
-      diskonTipe: "angka",
-      diskon: 40000,
-      hargaDiskon: "Rp 200.000",
-      tanggalDitambahkan: "2025-01-27",
-    },
-    {
-      id: "P016",
-      foto: "/images/Navbar_logo.png",
-      nama: "React JS Masterclass",
-      kategori: "Mentoring",
-      tipeMentoring: "1 on 1 Mentoring",
-      harga: "Rp 1.500.000",
-      deskripsi: "Belajar React dari dasar sampai mahir",
-      status: "Aktif",
-      diskonTipe: "persentase",
-      diskon: 20,
-      hargaDiskon: "Rp 1.200.000",
-      tanggalDitambahkan: "2025-01-28",
-    },
-    {
-      id: "P017",
-      foto: "/images/Navbar_logo.png",
-      nama: "Docker for Developer",
-      kategori: "Practice",
-      harga: "Rp 230.000",
-      deskripsi: "Belajar Docker untuk developer",
-      status: "Aktif",
-      diskonTipe: "angka",
-      diskon: 20000,
-      hargaDiskon: "Rp 210.000",
-      tanggalDitambahkan: "2025-01-29",
-    },
-    {
-      id: "P018",
-      foto: "/images/Navbar_logo.png",
-      nama: "Kotlin Android Development",
-      kategori: "E-Learning",
-      harga: "Rp 1.550.000",
-      deskripsi: "Belajar membuat aplikasi Android dengan Kotlin",
-      status: "Aktif",
-      diskonTipe: "persentase",
-      diskon: 25,
-      hargaDiskon: "Rp 1.162.500",
-      tanggalDitambahkan: "2025-01-30",
-    },
-    {
-      id: "P019",
-      foto: "/images/Navbar_logo.png",
-      nama: "Figma for UI Designer",
-      kategori: "Practice",
-      harga: "Rp 200.000",
-      deskripsi: "Belajar mendesain UI menggunakan Figma",
-      status: "Aktif",
-      diskonTipe: "angka",
-      diskon: 30000,
-      hargaDiskon: "Rp 170.000",
-      tanggalDitambahkan: "2025-02-01",
-    },
-    {
-      id: "P020",
-      foto: "/images/Navbar_logo.png",
-      nama: "PHP Programming",
-      kategori: "E-Learning",
-      harga: "Rp 190.000",
-      deskripsi: "Belajar dasar pemrograman PHP",
-      status: "Aktif",
-      diskonTipe: "persentase",
-      diskon: 10,
-      hargaDiskon: "Rp 171.000",
-      tanggalDitambahkan: "2025-02-02",
-    },
-    {
-      id: "P021",
-      foto: "/images/Navbar_logo.png",
-      nama: "Fullstack Web Developer",
-      kategori: "Mentoring",
-      tipeMentoring: "Group Mentoring",
-      harga: "Rp 1.900.000",
-      deskripsi: "Belajar fullstack web development",
-      status: "Aktif",
-      diskonTipe: "persentase",
-      diskon: 15,
-      hargaDiskon: "Rp 1.615.000",
-      tanggalDitambahkan: "2025-02-03",
-    },
-    {
-      id: "P022",
-      foto: "/images/Navbar_logo.png",
-      nama: "Cyber Security Basic",
-      kategori: "Practice",
-      harga: "Rp 250.000",
-      deskripsi: "Pengenalan cyber security untuk pemula",
-      status: "Aktif",
-      diskonTipe: "angka",
-      diskon: 40000,
-      hargaDiskon: "Rp 210.000",
-      tanggalDitambahkan: "2025-02-04",
-    },
-    {
-      id: "P023",
-      foto: "/images/Navbar_logo.png",
-      nama: "English for Professional",
-      kategori: "E-Learning",
-      harga: "Rp 180.000",
-      deskripsi: "Belajar English Profesional",
-      status: "Aktif",
-      diskonTipe: "persentase",
-      diskon: 20,
-      hargaDiskon: "Rp 144.000",
-      tanggalDitambahkan: "2025-02-05",
-    },
-    {
-      id: "P024",
-      foto: "/images/Navbar_logo.png",
-      nama: "Project Management Basic",
-      kategori: "Practice",
-      harga: "Rp 260.000",
-      deskripsi: "Belajar dasar project management",
-      status: "Aktif",
-      diskonTipe: "angka",
-      diskon: 30000,
-      hargaDiskon: "Rp 230.000",
-      tanggalDitambahkan: "2025-02-06",
-    },
-    {
-      id: "P025",
-      foto: "/images/Navbar_logo.png",
-      nama: "Java Programming Bootcamp",
-      kategori: "Mentoring",
-      tipeMentoring: "Bootcamp",
-      harga: "Rp 1.700.000",
-      deskripsi: "Belajar Java lengkap",
-      status: "Aktif",
-      diskonTipe: "persentase",
-      diskon: 10,
-      hargaDiskon: "Rp 1.530.000",
-      tanggalDitambahkan: "2025-02-07",
-    },
-    {
-      id: "P026",
-      foto: "/images/Navbar_logo.png",
-      nama: "Artificial Intelligence Introduction",
-      kategori: "Practice",
-      harga: "Rp 1.800.000",
-      deskripsi: "Belajar konsep AI modern",
-      status: "Aktif",
-      diskonTipe: "angka",
-      diskon: 250000,
-      hargaDiskon: "Rp 1.550.000",
-      tanggalDitambahkan: "2025-02-08",
-    },
-    {
-      id: "P027",
-      foto: "/images/Navbar_logo.png",
-      nama: "Vue.js Complete Guide",
-      kategori: "E-Learning",
-      harga: "Rp 240.000",
-      deskripsi: "Belajar Vue.js dari dasar",
-      status: "Aktif",
-      diskonTipe: "persentase",
-      diskon: 15,
-      hargaDiskon: "Rp 204.000",
-      tanggalDitambahkan: "2025-02-09",
-    },
-    {
-      id: "P028",
-      foto: "/images/Navbar_logo.png",
-      nama: "Golang Backend Developer",
-      kategori: "Mentoring",
-      tipeMentoring: "Live Class",
-      harga: "Rp 1.750.000",
-      deskripsi: "Belajar backend dengan Golang",
-      status: "Aktif",
-      diskonTipe: "angka",
-      diskon: 300000,
-      hargaDiskon: "Rp 1.450.000",
-      tanggalDitambahkan: "2025-02-10",
-    },
-    {
-      id: "P029",
-      foto: "/images/Navbar_logo.png",
-      nama: "Business Strategy Fundamentals",
-      kategori: "Practice",
-      harga: "Rp 220.000",
-      deskripsi: "Belajar dasar strategi bisnis",
-      status: "Aktif",
-      diskonTipe: "persentase",
-      diskon: 25,
-      hargaDiskon: "Rp 165.000",
-      tanggalDitambahkan: "2025-02-11",
-    },
-  ]);
+
+      mentorId: item.mentorId,
+      mentorName: item.mentorProfile?.user?.fullName ?? "-",
+
+      // 🔵 duration & participants
+      // E-learning tidak punya maxParticipants → undefined
+      maxParticipants: undefined,
+      durationDays: undefined,
+
+      harga: Number(item.price),
+      hargaDisplay: formatRupiah(Number(item.price)),
+      hargaDiskon: formatRupiah(Number(item.price)),
+      deskripsi: item.description ?? "-",
+      status: item.isActive ? "Aktif" : "Nonaktif",
+
+      diskonTipe: "-",
+      diskon: 0,
+
+      category: item.category ?? "-",
+      tags: item.tags ?? [],
+      targetAudience: item.targetAudience ?? "-",
+      level: item.level ?? "-",
+      estimatedDuration: item.estimatedDuration ?? "-",
+      benefits: item.benefits ?? "-",
+      toolsUsed: item.toolsUsed ?? "-",
+
+      tanggalDitambahkan: formatDate(item.createdAt),
+    };
+  };
+
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        setLoading(true);
+
+        const [mentoringRes, elearningRes] = await Promise.all([
+          axios.get(
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentorService/admin/mentoring-services`,
+            {
+              withCredentials: true,
+              params: {
+                page: 1,
+                limit: 10000,
+              },
+            }
+          ),
+          axios.get(
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/elearningCourse/courses`,
+            {
+              withCredentials: true,
+              params: {
+                page: 1,
+                limit: 10000,
+              },
+            }
+          ),
+        ]);
+
+        const mentoringProjects = mentoringRes.data.data.map(
+          mapMentoringToProject
+        );
+
+        const elearningProjects = elearningRes.data.data.map(
+          mapELearningToProject
+        );
+
+        console.log(elearningProjects.map((p: any) => p.foto));
+
+        setProjects([...mentoringProjects, ...elearningProjects]);
+      } catch (error) {
+        console.error("Gagal fetch products:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, []);
 
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [addStep, setAddStep] = useState(1);
 
-  type Kategori = "Mentoring" | "Practice" | "E-Learning";
+  const mapServiceType = (type?: TipeMentoring): string | undefined => {
+    if (!type) return undefined;
+
+    switch (type) {
+      case "Bootcamp":
+        return "bootcamp";
+
+      case "Short Class":
+        return "shortclass";
+
+      case "Live Class":
+        return "liveclass";
+
+      case "1 on 1 Mentoring":
+        return "one-on-one";
+
+      case "Group Mentoring":
+        return "groupF";
+
+      default:
+        return undefined;
+    }
+  };
+
+  type Kategori = "Mentoring" | "E-Learning";
   type TipeMentoring =
     | "Bootcamp"
     | "Short Class"
@@ -441,75 +381,323 @@ export default function AdminMentorPage() {
     | "Group Mentoring"
     | undefined;
 
-  const [addFormData, setAddFormData] = useState({
+  type AddFormData = {
+    nama: string;
+    kategori: Kategori;
+    tipeMentoring?: TipeMentoring;
+    foto: File | null;
+
+    deskripsi: string;
+    harga: string;
+    status: string;
+
+    // 🆕 mentor
+    mentorIds?: string[]; // mentoring
+    mentorId?: string; // e-learning
+
+    diskonTipe: "persentase" | "angka";
+    diskon: number;
+    hargaDiskon: string;
+
+    maxParticipants?: string; // 🆕 string (biar aman input)
+    durationDays?: string; // 🆕
+
+    // 🟢 MENTORING
+    benefits?: string;
+    mechanism?: string;
+    toolsUsed?: string;
+    targetAudience?: string;
+    schedule?: string;
+    alumniPortfolio?: string;
+    syllabusPath?: string;
+
+    // 🔵 E-LEARNING
+    category?: string;
+    level?: string;
+    estimatedDuration?: string;
+    tags?: string[];
+  };
+
+  const initialAddFormData: AddFormData = {
     nama: "",
-    kategori: "Mentoring" as Kategori,
-    tipeMentoring: undefined as TipeMentoring,
-    foto: null as File | null,
+    kategori: "Mentoring",
+    tipeMentoring: undefined,
+    foto: null,
+
     deskripsi: "",
     harga: "",
     status: "Aktif",
+
+    mentorIds: [],
+    mentorId: "",
+
     diskonTipe: "persentase",
     diskon: 0,
     hargaDiskon: "",
-  });
+
+    maxParticipants: "",
+    durationDays: "",
+
+    // mentoring
+    benefits: "",
+    mechanism: "",
+    toolsUsed: "",
+    targetAudience: "",
+    schedule: "",
+    alumniPortfolio: "",
+    syllabusPath: "",
+
+    // e-learning
+    category: "",
+    level: "",
+    estimatedDuration: "",
+    tags: [],
+  };
+
+  const [addFormData, setAddFormData] =
+    useState<AddFormData>(initialAddFormData);
+
+  const resetAddModal = () => {
+    setAddFormData(initialAddFormData);
+    setSelectedMentorIds([]); // mentoring
+    setSelectedMentorId(""); // e-learning
+    setAddStep(1);
+  };
 
   const handleCloseAddDialog = () => {
     setShowAddDialog(false);
-    setAddStep(1);
+    resetAddModal();
   };
 
   const handleNextStep = () => setAddStep(2);
   const handlePrevStep = () => setAddStep(1);
 
-  const handleSave = () => {
-    const newItem: Project = {
-      id: "P" + String(projects.length + 1).padStart(3, "0"),
-      foto: "/images/default.png",
-      nama: addFormData.nama,
-      kategori: addFormData.kategori,
-      tipeMentoring:
-        addFormData.kategori === "Mentoring"
-          ? addFormData.tipeMentoring
-          : undefined,
-      harga: "Rp " + addFormData.harga,
-      deskripsi: addFormData.deskripsi,
-      status: addFormData.status,
-      diskonTipe: addFormData.diskonTipe,
-      diskon: addFormData.diskon ?? 0, // ← tambahkan ini, default 0 kalau kosong
-      hargaDiskon: "Rp " + addFormData.hargaDiskon,
-    };
+  const handleSave = async () => {
+    // =====================
+    // ✅ VALIDASI WAJIB
+    // =====================
+    if (!addFormData.nama || !addFormData.harga) {
+      toast.error("Nama dan harga wajib diisi");
+      return;
+    }
 
-    setProjects([...projects, newItem]);
-    handleCloseAddDialog();
+    if (addFormData.kategori === "Mentoring" && !addFormData.tipeMentoring) {
+      toast.error("Tipe mentoring wajib dipilih");
+      return;
+    }
+
+    if (addFormData.kategori === "Mentoring") {
+      if (!addFormData.maxParticipants || !addFormData.durationDays) {
+        toast.error("Max participants dan duration wajib diisi");
+        return;
+      }
+    }
+
+    try {
+      if (addFormData.kategori === "Mentoring") {
+        // =====================
+        // 🟢 MENTORING (JSON)
+        // =====================
+        const payload = {
+          serviceName: addFormData.nama,
+          description: addFormData.deskripsi || undefined,
+          price: Number(addFormData.harga),
+          serviceType: mapServiceType(addFormData.tipeMentoring),
+
+          maxParticipants: Number(addFormData.maxParticipants),
+          durationDays: Number(addFormData.durationDays),
+
+          mentorProfileIds: selectedMentorIds, // ⚠️ WAJIB ARRAY
+          benefits: addFormData.benefits || undefined,
+          mechanism: addFormData.mechanism || undefined,
+          syllabusPath: addFormData.syllabusPath || undefined,
+          toolsUsed: addFormData.toolsUsed || undefined,
+          targetAudience: addFormData.targetAudience || undefined,
+          schedule: addFormData.schedule || undefined,
+          alumniPortfolio: addFormData.alumniPortfolio || undefined,
+        };
+
+        await axios.post(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentorService/mentoring-services`,
+          payload,
+          {
+            withCredentials: true,
+          }
+        );
+
+        toast.success("Produk mentoring berhasil ditambahkan");
+      } else {
+        // =====================
+        // 🔵 E-LEARNING (FORMDATA)
+        // =====================
+        const formData = new FormData();
+
+        formData.append("mentorId", selectedMentorId);
+        formData.append("title", addFormData.nama);
+        formData.append("description", addFormData.deskripsi);
+        formData.append("price", addFormData.harga);
+        if (addFormData.category)
+          formData.append("category", addFormData.category);
+
+        if (addFormData.targetAudience)
+          formData.append("targetAudience", addFormData.targetAudience);
+
+        if (addFormData.level) formData.append("level", addFormData.level);
+
+        if (addFormData.estimatedDuration)
+          formData.append("estimatedDuration", addFormData.estimatedDuration);
+
+        if (addFormData.benefits)
+          formData.append("benefits", addFormData.benefits);
+
+        if (addFormData.toolsUsed)
+          formData.append("toolsUsed", addFormData.toolsUsed);
+
+        formData.append(
+          "isActive",
+          addFormData.status === "Aktif" ? "true" : "false"
+        );
+
+        (addFormData.tags ?? []).forEach((tag) =>
+          formData.append("tags[]", tag)
+        );
+
+        if (addFormData.foto) {
+          formData.append("thumbnailImages", addFormData.foto);
+        }
+
+        await axios.post(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/elearningCourse/courses`,
+          formData,
+          {
+            withCredentials: true,
+          }
+        );
+
+        toast.success("E-learning berhasil ditambahkan");
+      }
+
+      // =====================
+      // ✅ SUCCESS
+      // =====================
+      handleCloseAddDialog();
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err?.response?.data?.message || "Gagal menyimpan data");
+    }
   };
 
-  const stats = [
+  const [stats, setStats] = useState<
     {
-      title: "Total Produk & Event",
-      value: "10",
-      image: "/assets/admin/pro.svg",
-      color: "text-gray-900",
-    },
-    {
-      title: "Mentoring",
-      value: "2",
-      image: "/assets/admin/produkmentoring.svg",
-      color: "text-green-600",
-    },
-    {
-      title: "Practice",
-      value: "10",
-      image: "/assets/admin/produkpractice.svg",
-      color: "text-green-600",
-    },
-    {
-      title: "E-Learning",
-      value: "10",
-      image: "/assets/admin/tugas.svg",
-      color: "text-green-600",
-    },
-  ];
+      title: string;
+      value: string;
+      image: string;
+      color: string;
+    }[]
+  >([]);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        // =====================
+        // FETCH MENTORING
+        // =====================
+        const mentoringRes = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentorService/admin/mentoring-services`,
+          {
+            params: {
+              page: "1",
+              limit: "10000",
+            },
+            withCredentials: true,
+          }
+        );
+
+        const mentoringData = mentoringRes.data.data || [];
+
+        // === TIPE KHUSUS ===
+        const ONE_ON_ONE_TYPES = ["one-on-one", "1-on-1", "one on one"];
+        const GROUP_TYPES = ["group", "group mentoring"];
+
+        // flag untuk cek keberadaan
+        let hasOneOnOne = false;
+        let hasGroup = false;
+
+        // counter untuk tipe lain
+        let otherTypesCount = 0;
+
+        mentoringData.forEach((item: any) => {
+          const type = item.serviceType?.toLowerCase();
+
+          if (!type) return;
+
+          if (ONE_ON_ONE_TYPES.includes(type)) {
+            hasOneOnOne = true;
+          } else if (GROUP_TYPES.includes(type)) {
+            hasGroup = true;
+          } else {
+            // tipe lain dihitung semua
+            otherTypesCount += 1;
+          }
+        });
+
+        // one-on-one + group masing-masing max 1
+        const totalMentoring =
+          (hasOneOnOne ? 1 : 0) + (hasGroup ? 1 : 0) + otherTypesCount;
+
+        // =====================
+        // FETCH E-LEARNING
+        // =====================
+        const elearningRes = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/elearningCourse/courses`,
+          {
+            params: {
+              page: 1,
+              limit: 10000, // cukup ambil total
+            },
+            withCredentials: true,
+          }
+        );
+
+        const totalELearning = elearningRes.data.total || 0;
+
+        // =====================
+        // TOTAL PRODUK & EVENT
+        // =====================
+        const totalProdukEvent = totalMentoring + totalELearning;
+
+        // =====================
+        // SET STATS
+        // =====================
+        setStats([
+          {
+            title: "Total Produk & Event",
+            value: totalProdukEvent.toString(),
+            image: "/assets/admin/pro.svg",
+            color: "text-gray-900",
+          },
+          {
+            title: "Mentoring",
+            value: totalMentoring.toString(),
+            image: "/assets/admin/produkmentoring.svg",
+            color: "text-green-600",
+          },
+          {
+            title: "E-Learning",
+            value: totalELearning.toString(),
+            image: "/assets/admin/tugas.svg",
+            color: "text-green-600",
+          },
+        ]);
+      } catch (err) {
+        console.error("Gagal fetch stats produk & event:", err);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   return (
     <>
@@ -533,7 +721,6 @@ export default function AdminMentorPage() {
                 <Download className="w-4 h-4" />
                 <span>Export Data</span>
 
-                {/* Chevron toggle */}
                 {exportOpen ? (
                   <ChevronUp className="w-4 h-4 text-gray-500" />
                 ) : (
@@ -543,10 +730,13 @@ export default function AdminMentorPage() {
             </DropdownMenuTrigger>
 
             <DropdownMenuContent align="end" className="w-40">
-              <DropdownMenuItem onClick={() => console.log("Export CSV")}>
+              <DropdownMenuItem onClick={() => handleExportProductEvent("csv")}>
                 Export ke CSV
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => console.log("Export Excel")}>
+
+              <DropdownMenuItem
+                onClick={() => handleExportProductEvent("excel")}
+              >
                 Export ke Excel
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -561,14 +751,32 @@ export default function AdminMentorPage() {
                 kategori: "Mentoring",
                 tipeMentoring: "Bootcamp",
                 foto: null,
+
                 deskripsi: "",
                 harga: "",
                 status: "Aktif",
+
                 diskonTipe: "persentase",
                 diskon: 0,
                 hargaDiskon: "",
+
+                // 🟢 mentoring
+                benefits: "",
+                mechanism: "",
+                toolsUsed: "",
+                targetAudience: "",
+                schedule: "",
+                alumniPortfolio: "",
+                syllabusPath: "",
+
+                // 🔵 e-learning
+                category: "",
+                level: "",
+                estimatedDuration: "",
+                tags: [],
               });
 
+              setAddStep(1);
               setShowAddDialog(true);
             }}
           >
@@ -623,14 +831,20 @@ export default function AdminMentorPage() {
 
       {/* DataTable */}
       <Card className="p-6">
-        <DataTable columns={columns} data={projects} />
+        <DataTable
+          columns={columns}
+          data={projects}
+          mentorOptions={mentorOptions}
+        />
       </Card>
 
       {/* Add Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent
-          className="max-w-2xl"
+          className="max-w-3xl max-h-[85vh] flex flex-col"
           onInteractOutside={(e) => e.preventDefault()}
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          onCloseAutoFocus={(e) => e.preventDefault()}
         >
           <DialogHeader>
             <div className="flex items-center justify-between">
@@ -639,7 +853,7 @@ export default function AdminMentorPage() {
           </DialogHeader>
 
           {/* Step Indicator */}
-          <div className="my-6">
+          <div className="my-6 mb-2">
             <div className="flex items-center space-x-6">
               {/* Step 1 */}
               <div className="flex items-center space-x-2">
@@ -687,7 +901,10 @@ export default function AdminMentorPage() {
           </div>
 
           {/* Form Content (scrollable) */}
-          <div className="space-y-6 max-h-[450px] overflow-y-auto pr-2">
+          <div
+            ref={scrollRef}
+            className="space-y-6 max-h-[420px] overflow-y-auto pr-2 py-3"
+          >
             {addStep === 1 ? (
               <>
                 {/* Foto */}
@@ -760,19 +977,27 @@ export default function AdminMentorPage() {
                   </label>
                   <Select
                     value={addFormData.kategori}
-                    onValueChange={(value) =>
-                      setAddFormData({
-                        ...addFormData,
+                    onValueChange={(value) => {
+                      // update kategori & tipe mentoring
+                      setAddFormData((prev) => ({
+                        ...prev,
                         kategori: value as Kategori,
-                      })
-                    }
+                        tipeMentoring:
+                          value === "Mentoring"
+                            ? prev.tipeMentoring
+                            : undefined,
+                      }));
+
+                      // reset mentor biar tidak nyangkut
+                      setSelectedMentorIds([]);
+                      setSelectedMentorId("");
+                    }}
                   >
                     <SelectTrigger className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
                       <SelectValue placeholder="Pilih kategori" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Mentoring">Mentoring</SelectItem>
-                      <SelectItem value="Practice">Practice</SelectItem>
                       <SelectItem value="E-Learning">E-Learning</SelectItem>
                     </SelectContent>
                   </Select>
@@ -812,6 +1037,70 @@ export default function AdminMentorPage() {
                     </Select>
                   </div>
                 )}
+
+                {addFormData.kategori === "Mentoring" && (
+                  <div>
+                    <label className="text-sm font-bold text-gray-900 block mb-2">
+                      Pilih Mentor (bisa lebih dari 1)
+                    </label>
+
+                    <div
+                      className={`
+    border rounded-lg p-3 space-y-2
+    ${mentorOptions.length > 6 ? "max-h-[192px] overflow-y-auto" : ""}
+  `}
+                    >
+                      {mentorOptions.map((mentor) => {
+                        const checked = selectedMentorIds.includes(mentor.id);
+
+                        return (
+                          <label
+                            key={mentor.id}
+                            className="flex items-center gap-2 text-sm cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => {
+                                setSelectedMentorIds((prev) =>
+                                  checked
+                                    ? prev.filter((id) => id !== mentor.id)
+                                    : [...prev, mentor.id]
+                                );
+                              }}
+                            />
+                            {mentor.name}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {addFormData.kategori === "E-Learning" && (
+                  <div>
+                    <label className="text-sm font-bold text-gray-900 block mb-2">
+                      Pilih Mentor
+                    </label>
+
+                    <Select
+                      value={selectedMentorId}
+                      onValueChange={(value) => setSelectedMentorId(value)}
+                    >
+                      <SelectTrigger className="w-full border rounded-lg">
+                        <SelectValue placeholder="Pilih mentor" />
+                      </SelectTrigger>
+
+                      <SelectContent>
+                        {mentorOptions.map((mentor) => (
+                          <SelectItem key={mentor.id} value={mentor.id}>
+                            {mentor.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </>
             ) : (
               <>
@@ -830,9 +1119,62 @@ export default function AdminMentorPage() {
                       })
                     }
                     rows={4}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                    className="
+    w-full
+    border border-gray-300
+    rounded-lg
+    px-3 py-2
+    text-sm
+    outline-none
+    focus:border-emerald-400
+    focus:ring-1
+    focus:ring-emerald-400
+    transition
+  "
                   />
                 </div>
+
+                {addFormData.kategori === "Mentoring" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Max Participants */}
+                    <div>
+                      <label className="text-sm font-bold text-gray-900 block mb-2">
+                        Max Participants
+                      </label>
+                      <Input
+                        type="number"
+                        min={1}
+                        placeholder="Contoh: 20"
+                        value={addFormData.maxParticipants}
+                        onChange={(e) =>
+                          setAddFormData((prev) => ({
+                            ...prev,
+                            maxParticipants: e.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+
+                    {/* Duration Days */}
+                    <div>
+                      <label className="text-sm font-bold text-gray-900 block mb-2">
+                        Duration (Days)
+                      </label>
+                      <Input
+                        type="number"
+                        min={1}
+                        placeholder="Contoh: 14"
+                        value={addFormData.durationDays}
+                        onChange={(e) =>
+                          setAddFormData((prev) => ({
+                            ...prev,
+                            durationDays: e.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {/* Harga */}
                 <div>
@@ -870,13 +1212,13 @@ export default function AdminMentorPage() {
                 </div>
 
                 {/* Diskon */}
-                <div>
+                {/* <div>
                   <label className="text-sm font-bold text-gray-900 block mb-2">
                     Diskon
-                  </label>
+                  </label> */}
 
-                  {/* Pilihan diskon horizontal */}
-                  <div className="flex flex-row items-center gap-6 mb-3">
+                {/* Pilihan diskon horizontal */}
+                {/* <div className="flex flex-row items-center gap-6 mb-3">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="radio"
@@ -912,10 +1254,10 @@ export default function AdminMentorPage() {
                         Nominal (Rp)
                       </span>
                     </label>
-                  </div>
+                  </div> */}
 
-                  {/* Input muncul jika radio dipilih */}
-                  {addFormData.diskonTipe && (
+                {/* Input muncul jika radio dipilih */}
+                {/* {addFormData.diskonTipe && (
                     <Input
                       className="mt-2"
                       placeholder={
@@ -945,12 +1287,406 @@ export default function AdminMentorPage() {
                       }}
                     />
                   )}
-                </div>
+                </div> */}
 
                 {/* Harga Setelah Diskon */}
-                {addFormData.hargaDiskon && (
+                {/* {addFormData.hargaDiskon && (
                   <div className="bg-green-50 p-2 rounded-lg text-sm font-medium text-green-700">
                     Harga Setelah Diskon: Rp{addFormData.hargaDiskon}
+                  </div>
+                )} */}
+
+                {addFormData.kategori === "Mentoring" && (
+                  <div className="space-y-4 pt-4 border-t">
+                    <h3 className="text-base font-bold text-emerald-700">
+                      Detail Mentoring
+                    </h3>
+
+                    <EditField label="Benefits">
+                      <textarea
+                        rows={3}
+                        placeholder="Tuliskan manfaat utama yang akan didapatkan peserta"
+                        className="
+    w-full
+    border border-gray-300
+    rounded-lg
+    px-3 py-2
+    text-sm
+    outline-none
+    focus:border-emerald-400
+    focus:ring-1
+    focus:ring-emerald-400
+    transition
+  "
+                        value={addFormData.benefits}
+                        onChange={(e) =>
+                          setAddFormData((prev) => ({
+                            ...prev,
+                            benefits: e.target.value,
+                          }))
+                        }
+                      />
+                    </EditField>
+
+                    <EditField label="Mechanism">
+                      <textarea
+                        rows={3}
+                        placeholder="Jelaskan mekanisme pelaksanaan mentoring"
+                        className="
+    w-full
+    border border-gray-300
+    rounded-lg
+    px-3 py-2
+    text-sm
+    outline-none
+    focus:border-emerald-400
+    focus:ring-1
+    focus:ring-emerald-400
+    transition
+  "
+                        value={addFormData.mechanism}
+                        onChange={(e) =>
+                          setAddFormData((prev) => ({
+                            ...prev,
+                            mechanism: e.target.value,
+                          }))
+                        }
+                      />
+                    </EditField>
+
+                    <EditField label="Syllabus Path">
+                      <textarea
+                        rows={2}
+                        placeholder="Masukkan alur atau path silabus mentoring"
+                        className="
+    w-full
+    border border-gray-300
+    rounded-lg
+    px-3 py-2
+    text-sm
+    outline-none
+    focus:border-emerald-400
+    focus:ring-1
+    focus:ring-emerald-400
+    transition
+  "
+                        value={addFormData.syllabusPath}
+                        onChange={(e) =>
+                          setAddFormData((prev) => ({
+                            ...prev,
+                            syllabusPath: e.target.value,
+                          }))
+                        }
+                      />
+                    </EditField>
+
+                    <EditField label="Tools Used">
+                      <textarea
+                        rows={2}
+                        placeholder="Sebutkan tools atau teknologi yang digunakan"
+                        className="
+    w-full
+    border border-gray-300
+    rounded-lg
+    px-3 py-2
+    text-sm
+    outline-none
+    focus:border-emerald-400
+    focus:ring-1
+    focus:ring-emerald-400
+    transition
+  "
+                        value={addFormData.toolsUsed}
+                        onChange={(e) =>
+                          setAddFormData((prev) => ({
+                            ...prev,
+                            toolsUsed: e.target.value,
+                          }))
+                        }
+                      />
+                    </EditField>
+
+                    <EditField label="Target Audience">
+                      <textarea
+                        rows={2}
+                        placeholder="Jelaskan target peserta mentoring"
+                        className="
+    w-full
+    border border-gray-300
+    rounded-lg
+    px-3 py-2
+    text-sm
+    outline-none
+    focus:border-emerald-400
+    focus:ring-1
+    focus:ring-emerald-400
+    transition
+  "
+                        value={addFormData.targetAudience}
+                        onChange={(e) =>
+                          setAddFormData((prev) => ({
+                            ...prev,
+                            targetAudience: e.target.value,
+                          }))
+                        }
+                      />
+                    </EditField>
+
+                    <EditField label="Schedule">
+                      <textarea
+                        rows={2}
+                        placeholder="Tuliskan jadwal pelaksanaan mentoring"
+                        className="
+    w-full
+    border border-gray-300
+    rounded-lg
+    px-3 py-2
+    text-sm
+    outline-none
+    focus:border-emerald-400
+    focus:ring-1
+    focus:ring-emerald-400
+    transition
+  "
+                        value={addFormData.schedule}
+                        onChange={(e) =>
+                          setAddFormData((prev) => ({
+                            ...prev,
+                            schedule: e.target.value,
+                          }))
+                        }
+                      />
+                    </EditField>
+
+                    <EditField label="Alumni Portfolio">
+                      <textarea
+                        rows={2}
+                        placeholder="Contoh portfolio atau hasil karya alumni"
+                        className="
+    w-full
+    border border-gray-300
+    rounded-lg
+    px-3 py-2
+    text-sm
+    outline-none
+    focus:border-emerald-400
+    focus:ring-1
+    focus:ring-emerald-400
+    transition
+  "
+                        value={addFormData.alumniPortfolio}
+                        onChange={(e) =>
+                          setAddFormData((prev) => ({
+                            ...prev,
+                            alumniPortfolio: e.target.value,
+                          }))
+                        }
+                      />
+                    </EditField>
+                  </div>
+                )}
+
+                {addFormData.kategori === "E-Learning" && (
+                  <div className="space-y-4 pt-4 border-t">
+                    <h3 className="text-base font-bold text-emerald-700">
+                      Detail E-Learning
+                    </h3>
+
+                    <EditField label="Category">
+                      <textarea
+                        rows={2}
+                        placeholder="Masukkan kategori e-learning"
+                        className="
+    w-full
+    border border-gray-300
+    rounded-lg
+    px-3 py-2
+    text-sm
+    outline-none
+    focus:border-emerald-400
+    focus:ring-1
+    focus:ring-emerald-400
+    transition
+  "
+                        value={addFormData.category}
+                        onChange={(e) =>
+                          setAddFormData((prev) => ({
+                            ...prev,
+                            category: e.target.value,
+                          }))
+                        }
+                      />
+                    </EditField>
+
+                    <EditField label="Level">
+                      <textarea
+                        rows={2}
+                        placeholder="Tentukan level e-learning (Beginner, Intermediate, Advanced)"
+                        className="
+    w-full
+    border border-gray-300
+    rounded-lg
+    px-3 py-2
+    text-sm
+    outline-none
+    focus:border-emerald-400
+    focus:ring-1
+    focus:ring-emerald-400
+    transition
+  "
+                        value={addFormData.level}
+                        onChange={(e) =>
+                          setAddFormData((prev) => ({
+                            ...prev,
+                            level: e.target.value,
+                          }))
+                        }
+                      />
+                    </EditField>
+
+                    <EditField label="Estimated Duration">
+                      <textarea
+                        rows={2}
+                        placeholder="Perkiraan durasi pembelajaran"
+                        className="
+    w-full
+    border border-gray-300
+    rounded-lg
+    px-3 py-2
+    text-sm
+    outline-none
+    focus:border-emerald-400
+    focus:ring-1
+    focus:ring-emerald-400
+    transition
+  "
+                        value={addFormData.estimatedDuration}
+                        onChange={(e) =>
+                          setAddFormData((prev) => ({
+                            ...prev,
+                            estimatedDuration: e.target.value,
+                          }))
+                        }
+                      />
+                    </EditField>
+
+                    <EditField label="Benefits">
+                      <textarea
+                        rows={3}
+                        placeholder="Manfaat yang akan diperoleh peserta e-learning"
+                        className="
+    w-full
+    border border-gray-300
+    rounded-lg
+    px-3 py-2
+    text-sm
+    outline-none
+    focus:border-emerald-400
+    focus:ring-1
+    focus:ring-emerald-400
+    transition
+  "
+                        value={addFormData.benefits}
+                        onChange={(e) =>
+                          setAddFormData((prev) => ({
+                            ...prev,
+                            benefits: e.target.value,
+                          }))
+                        }
+                      />
+                    </EditField>
+
+                    <EditField label="Tools Used">
+                      <textarea
+                        rows={2}
+                        placeholder="Tools atau platform yang digunakan dalam e-learning"
+                        className="
+    w-full
+    border border-gray-300
+    rounded-lg
+    px-3 py-2
+    text-sm
+    outline-none
+    focus:border-emerald-400
+    focus:ring-1
+    focus:ring-emerald-400
+    transition
+  "
+                        value={addFormData.toolsUsed}
+                        onChange={(e) =>
+                          setAddFormData((prev) => ({
+                            ...prev,
+                            toolsUsed: e.target.value,
+                          }))
+                        }
+                      />
+                    </EditField>
+
+                    {/* TAGS – TETAP INPUT */}
+                    <EditField label="Tags">
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {(addFormData.tags ?? []).map((tag, idx) => (
+                          <span
+                            key={idx}
+                            className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-emerald-100 text-emerald-700"
+                          >
+                            {tag}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const scrollTop =
+                                  scrollRef.current?.scrollTop ?? 0;
+
+                                setAddFormData((prev) => ({
+                                  ...prev,
+                                  tags: prev.tags?.filter((_, i) => i !== idx),
+                                }));
+
+                                requestAnimationFrame(() => {
+                                  if (scrollRef.current) {
+                                    scrollRef.current.scrollTop = scrollTop;
+                                  }
+                                });
+                              }}
+                              className="text-emerald-700 hover:text-red-600 font-bold"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+
+                      <Input
+                        placeholder="Tekan Enter untuk menambahkan tag"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            e.stopPropagation();
+
+                            const scrollTop = scrollRef.current?.scrollTop ?? 0;
+                            const value = (
+                              e.target as HTMLInputElement
+                            ).value.trim();
+                            if (!value) return;
+
+                            if (!(addFormData.tags ?? []).includes(value)) {
+                              setAddFormData((prev) => ({
+                                ...prev,
+                                tags: [...(prev.tags ?? []), value],
+                              }));
+                            }
+
+                            (e.target as HTMLInputElement).value = "";
+
+                            requestAnimationFrame(() => {
+                              if (scrollRef.current) {
+                                scrollRef.current.scrollTop = scrollTop;
+                              }
+                            });
+                          }
+                        }}
+                      />
+                    </EditField>
                   </div>
                 )}
               </>

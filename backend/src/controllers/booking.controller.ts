@@ -5,6 +5,7 @@ import { HttpError } from "../utils/httpError";
 import * as BookingService from "../services/booking.service.js";
 import { PrismaClient } from "@prisma/client";
 import path from "path";
+import { logActivity } from "../utils/logActivtiy.js";
 
 const prisma = new PrismaClient();
 
@@ -218,10 +219,12 @@ export const getAdminBookingsController = async (
       usedReferral,
       startDate,
       endDate,
+      isRescheduled,
+      hasSession,
       page,
       limit,
-      sortBy = "createdAt", // Default sortBy
-      sortOrder = "desc", // Default sortOrder
+      sortBy = "createdAt",
+      sortOrder = "desc",
     } = req.validatedQuery;
 
     const result = await BookingService.getAdminBookings({
@@ -231,6 +234,8 @@ export const getAdminBookingsController = async (
       usedReferral,
       startDate,
       endDate,
+      isRescheduled,
+      hasSession,
       page,
       limit,
       sortBy,
@@ -287,6 +292,13 @@ export const updateAdminBookingStatusController = async (
       throw new Error("Parameter atau body belum divalidasi.");
     }
 
+    // safety check untuk user (admin)
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+
     const { id } = req.validatedParams;
     const { status } = req.validatedBody as unknown as {
       status: "pending" | "confirmed" | "completed" | "cancelled";
@@ -300,6 +312,14 @@ export const updateAdminBookingStatusController = async (
       });
       return;
     }
+
+    await logActivity({
+      userId: adminId,
+      action: "ADMIN_UPDATE_BOOKING_STATUS",
+      type: "UPDATE",
+      description: `Admin mengubah status booking ${id} menjadi '${status}'.`,
+      req,
+    });
 
     res.status(200).json({
       message: `Status booking berhasil diperbarui menjadi ${status}.`,
@@ -317,10 +337,26 @@ export const exportAdminBookings = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.roles?.includes("admin")) {
+      res.status(403).json({
+        message: "Hanya admin yang boleh mengekspor data booking.",
+      });
+      return;
+    }
+    const adminId = req.user.userId;
+
     const { format } = req.validatedQuery as { format: "csv" | "excel" };
 
     const { fileBuffer, fileName, mimeType } =
       await BookingService.exportAdminBookings(format);
+
+    await logActivity({
+      userId: adminId,
+      action: "ADMIN_EXPORT_BOOKINGS",
+      type: "EXPORT",
+      description: `Admin mengekspor data booking dalam format ${format}.`,
+      req,
+    });
 
     res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
     res.setHeader("Content-Type", mimeType);

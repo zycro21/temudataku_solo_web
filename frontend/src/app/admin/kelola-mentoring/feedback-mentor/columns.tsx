@@ -12,9 +12,8 @@ export type Datas = {
   date: string; // Tanggal & Waktu Pengumpulan
   topic: string;
   evaluasi: {
-    kepuasan: number;
-    keaktifan: number;
-    perkembangan: number;
+    understanding: string;
+    common_question: string;
     kendala: string;
     tantangan: string;
     catatan_mentor: string;
@@ -159,28 +158,6 @@ export const columns: ColumnDef<Datas>[] = [
             ${sort ? "bg-emerald-200" : ""}`}
         >
           Topik
-          {sort === "asc" && <ArrowDown className="w-4 h-4" />}
-          {sort === "desc" && <ArrowUp className="w-4 h-4" />}
-        </button>
-      );
-    },
-  },
-
-  {
-    accessorKey: "evaluasi.kepuasan",
-    header: ({ column }) => {
-      const sort = column.getIsSorted();
-      return (
-        <button
-          onClick={() => {
-            if (!sort) column.toggleSorting(false);
-            else if (sort === "asc") column.toggleSorting(true);
-            else column.clearSorting();
-          }}
-          className={`flex items-center gap-1 w-full cursor-pointer 
-            ${sort ? "bg-emerald-200" : ""}`}
-        >
-          Kepuasan Keterlibatan Mentor
           {sort === "asc" && <ArrowDown className="w-4 h-4" />}
           {sort === "desc" && <ArrowUp className="w-4 h-4" />}
         </button>

@@ -112,7 +112,6 @@ export const updateSubmissionSchema = z.object({
   }),
 });
 
-
 export const reviewSubmissionSchema = z.object({
   params: z.object({
     id: z.string().min(1),
@@ -124,7 +123,7 @@ export const reviewSubmissionSchema = z.object({
       technicalScore: z.string().optional(),
       creativityScore: z.string().optional(),
       completenessScore: z.string().optional(),
-      mentorFeedback: z.string().min(1, "Komentar Mentor wajib diisi"),
+      mentorFeedback: z.string().optional(),
       mentorSuggestion: z.string().optional(),
       isRevisedRequired: z.boolean().optional(),
       revisionDeadline: z.string().datetime().nullable().optional(),
@@ -211,5 +210,15 @@ export const getMenteeSubmissionsSchema = z.object({
 export const getMenteeSubmissionDetailSchema = z.object({
   params: z.object({
     id: z.string().min(1, "Submission ID is required"),
+  }),
+});
+
+export const getProjectStatsSchema = z.object({
+  query: z.object({}).optional(),
+});
+
+export const deleteSubmissionSchema = z.object({
+  params: z.object({
+    id: z.string().min(1),
   }),
 });

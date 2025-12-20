@@ -1,6 +1,5 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 
-
 const prisma = new PrismaClient();
 
 export const createMentorProfile = async (data: {
@@ -568,4 +567,38 @@ export const deleteMentorProfile = async (id: string) => {
   });
 
   return true;
+};
+
+export const getMentorsByService = async ({
+  serviceId,
+}: {
+  serviceId: string;
+}) => {
+  const data = await prisma.mentorProfile.findMany({
+    where: {
+      isVerified: true,
+      mentoringServices: {
+        some: {
+          mentoringServiceId: serviceId,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "asc",
+    },
+    include: {
+      user: {
+        select: {
+          fullName: true,
+        },
+      },
+    },
+  });
+
+  return {
+    data: data.map((mentor) => ({
+      id: mentor.id, // mentorProfileId
+      fullName: mentor.user.fullName,
+    })),
+  };
 };

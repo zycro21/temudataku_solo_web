@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import {
   ColumnDef,
   flexRender,
@@ -51,6 +54,8 @@ export function DataTable<TData extends Mentor, TValue>({
   columns,
   data,
 }: DataTableProps<TData, TValue>) {
+  const router = useRouter();
+
   const [globalFilter, setGlobalFilter] = useState("");
   const [selectedMentee, setSelectedMentee] = useState<Mentor | null>(null);
 
@@ -61,9 +66,7 @@ export function DataTable<TData extends Mentor, TValue>({
   const [showEditDialog, setShowEditDialog] = useState(false);
 
   const [editPhotoPreview, setEditPhotoPreview] = useState("");
-
   const [editStep, setEditStep] = useState(1);
-
   const [editFormData, setEditFormData] = useState({
     name: "",
     email: "",
@@ -85,6 +88,72 @@ export function DataTable<TData extends Mentor, TValue>({
     "AI Researcher",
     "Fullstack Developer",
   ];
+
+  const handleSaveEditMentor = async () => {
+    if (!selectedMentee?.id) return;
+
+    const loadingToastId = toast.loading("Menyimpan perubahan data mentor...");
+
+    try {
+      // UPDATE DATA DASAR USER
+      const formData = new FormData();
+      formData.append("fullName", editFormData.name);
+      formData.append("email", editFormData.email);
+
+      const photoInput = document.getElementById(
+        "upload-edit-photo"
+      ) as HTMLInputElement;
+
+      if (photoInput?.files?.[0]) {
+        formData.append("profilePicture", photoInput.files[0]);
+      }
+
+      await axios.put(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/update`,
+        formData,
+        {
+          params: {
+            user_id: selectedMentee.id, // admin update mentor lain
+          },
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+          withCredentials: true,
+        }
+      );
+
+      // UPDATE PROFIL MENTOR
+      await axios.patch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentor/profile`,
+        {
+          expertise: editFormData.expertise,
+          bio: editFormData.bio,
+        },
+        {
+          params: {
+            userId: selectedMentee.id,
+          },
+          withCredentials: true,
+        }
+      );
+
+      toast.success("Perubahan mentor berhasil disimpan", {
+        id: loadingToastId,
+      });
+
+      setShowEditDialog(false);
+      setEditStep(1);
+    } catch (err: any) {
+      console.error("Update mentor error:", err);
+
+      toast.error("Gagal menyimpan perubahan mentor", {
+        id: loadingToastId,
+        description:
+          err?.response?.data?.message ??
+          "Terjadi kesalahan saat menyimpan data mentor",
+      });
+    }
+  };
 
   const table = useReactTable({
     data,
@@ -110,6 +179,21 @@ export function DataTable<TData extends Mentor, TValue>({
   const from = pageIndex * pageSize + 1;
   const to = Math.min((pageIndex + 1) * pageSize, totalRows);
   const totalPages = table.getPageCount();
+
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+
+    return date.toLocaleDateString("id-ID", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   return (
     <div>
@@ -297,6 +381,7 @@ export function DataTable<TData extends Mentor, TValue>({
                       }
                       alt={selectedMentee.name}
                       fill
+                      unoptimized
                       className="object-cover"
                     />
                   </div>
@@ -319,9 +404,11 @@ export function DataTable<TData extends Mentor, TValue>({
                   </div>
 
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Username</p>
+                    <p className="text-sm text-gray-500 mb-1">
+                      Tanggal Registrasi
+                    </p>
                     <p className="text-lg font-semibold break-words">
-                      {selectedMentee.username}
+                      {formatDateTime(selectedMentee.registeredAt)}
                     </p>
                   </div>
 
@@ -366,11 +453,19 @@ export function DataTable<TData extends Mentor, TValue>({
                     name: selectedMentee.name,
                     email: selectedMentee.email,
                     role: selectedMentee.role,
-                    status: selectedMentee.status || "Aktif",
+                    status:
+                      selectedMentee.status === "inaktif"
+                        ? "Tidak Aktif"
+                        : "Aktif",
                     bio: selectedMentee.bio || "",
                     expertise: selectedMentee.expertise || "",
                   });
+
+                  // INI YANG KAMU LUPA
+                  setEditPhotoPreview(selectedMentee.photo || "");
                 }
+
+                setEditStep(1); // reset step juga (best practice)
                 setShowDetailDialog(false);
                 setShowEditDialog(true);
               }}
@@ -382,8 +477,8 @@ export function DataTable<TData extends Mentor, TValue>({
               variant="destructive"
               className="flex-1"
               onClick={() => {
-                console.log("Delete mentor:", selectedMentee);
                 setShowDetailDialog(false);
+                setShowDeleteDialog(true);
               }}
             >
               Hapus
@@ -488,6 +583,7 @@ export function DataTable<TData extends Mentor, TValue>({
                           alt="Preview"
                           width={80}
                           height={80}
+                          unoptimized
                           className="rounded-full object-cover"
                         />
                       ) : (
@@ -697,15 +793,99 @@ export function DataTable<TData extends Mentor, TValue>({
               className="flex-1 bg-[#0CA678] hover:bg-[#08916C] py-3"
               onClick={() => {
                 if (editStep === 3) {
-                  console.log("Save changes:", editFormData);
-                  setShowEditDialog(false);
-                  setEditStep(1);
+                  handleSaveEditMentor();
                 } else {
                   setEditStep(editStep + 1);
                 }
               }}
             >
               {editStep === 3 ? "Simpan Perubahan" : "Selanjutnya"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent
+          className="sm:max-w-md"
+          onInteractOutside={(e) => e.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-[#0CA678]">
+              Konfirmasi Hapus Mentor
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <p className="text-gray-700 text-sm">
+              Apakah kamu yakin ingin menghapus akun mentor berikut?
+            </p>
+
+            <div className="bg-gray-50 border border-gray-200 rounded-md p-3">
+              <p className="font-semibold text-gray-900">
+                {selectedMentee?.name}
+              </p>
+              <p className="text-sm text-gray-600">{selectedMentee?.email}</p>
+            </div>
+
+            <p className="text-sm text-red-600">
+              Tindakan ini <b>tidak dapat dibatalkan</b>.
+            </p>
+          </div>
+
+          <DialogFooter className="flex gap-3 mt-6">
+            <Button
+              variant="outline"
+              className="flex-1"
+              disabled={deleting}
+              onClick={() => setShowDeleteDialog(false)}
+            >
+              Batal
+            </Button>
+
+            <Button
+              variant="destructive"
+              className="flex-1 bg-[#0CA678] hover:bg-[#08916C]"
+              disabled={deleting}
+              onClick={async () => {
+                if (!selectedMentee?.id) return;
+
+                setDeleting(true);
+                const loadingToastId = toast.loading(
+                  "Menghapus akun mentor..."
+                );
+
+                try {
+                  await axios.delete(
+                    `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/${selectedMentee.id}`,
+                    {
+                      withCredentials: true,
+                    }
+                  );
+
+                  toast.success("Akun mentor berhasil dihapus", {
+                    id: loadingToastId,
+                  });
+
+                  setShowDeleteDialog(false);
+                  setSelectedMentee(null);
+                  router.refresh();
+                } catch (err: any) {
+                  console.error(err);
+
+                  toast.error("Gagal menghapus akun mentor", {
+                    id: loadingToastId,
+                    description:
+                      err?.response?.data?.message ??
+                      "Terjadi kesalahan saat menghapus akun",
+                  });
+                } finally {
+                  setDeleting(false);
+                }
+              }}
+            >
+              Hapus
             </Button>
           </DialogFooter>
         </DialogContent>

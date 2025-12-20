@@ -1,5 +1,8 @@
 "use client";
 
+import axios from "axios";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import * as React from "react";
 import {
   ColumnDef,
@@ -26,6 +29,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Datas } from "./columns";
 import {
@@ -56,10 +60,9 @@ export function DataTable<TData extends Datas, TValue>({
     date: "",
     topic: "",
     evaluasi: {
-      kepuasan: 0,
-      keaktifan: 0,
-      perkembangan: 0,
+      understanding: "",
       kendala: "",
+      common_question: "",
       tantangan: "",
       catatan_mentor: "",
       catatan_tambahan: "",
@@ -77,10 +80,9 @@ export function DataTable<TData extends Datas, TValue>({
     date: "",
     topic: "",
     evaluasi: {
-      kepuasan: 0,
-      keaktifan: 0,
-      perkembangan: 0,
+      understanding: "",
       kendala: "",
+      common_question: "",
       tantangan: "",
       catatan_mentor: "",
       catatan_tambahan: "",
@@ -107,9 +109,12 @@ export function DataTable<TData extends Datas, TValue>({
   const to = Math.min((pageIndex + 1) * pageSize, totalRows);
   const totalPages = table.getPageCount();
 
+  const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
+
   return (
     <div>
-      {/* 🔍 Search bar */}
+      {/* Search bar */}
       <div className="flex items-center pb-4">
         <div className="relative w-full max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
@@ -351,68 +356,67 @@ export function DataTable<TData extends Datas, TValue>({
               {/* TAB: EVALUASI & CATATAN */}
               {/* ======================= */}
               <TabsContent value="evaluasi" className="space-y-6">
-                <div className="grid grid-cols-2 gap-8">
+                <div className="grid grid-cols-2 gap-6">
+                  {/* 1️⃣ Pemahaman Mentor */}
                   <div>
                     <p className="text-sm text-gray-600 mb-1">
-                      Kepuasan Keterlibatan Mentee
+                      Pemahaman Mentee
                     </p>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {selectedProject?.evaluasi.kepuasan}
-                    </p>
+                    <div className="bg-gray-50 p-3 rounded-lg text-gray-900 text-sm font-medium break-words whitespace-pre-wrap leading-relaxed">
+                      {selectedProject?.evaluasi.understanding || "Tidak ada"}
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">
-                      Keaktifan Mentee
-                    </p>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {selectedProject?.evaluasi.keaktifan}
-                    </p>
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-8">
+                  {/* 2️⃣ Kendala */}
                   <div>
                     <p className="text-sm text-gray-600 mb-1">
-                      Mentee Menunjukkan Perkembangan
+                      Partisipasi Mentee
                     </p>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {selectedProject?.evaluasi.perkembangan}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">
-                      Perkembangan atau Kendala
-                    </p>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {selectedProject?.evaluasi.kendala || "Tidak ada"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-8">
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">
-                      Tantangan Dalam Membimbing
-                    </p>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {selectedProject?.evaluasi.tantangan || "Tidak ada"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">
-                      Catatan Mentor Class Selanjutnya
-                    </p>
-                    <p className="text-lg font-semibold text-gray-900">
+                    <div className="bg-gray-50 p-3 rounded-lg text-gray-900 text-sm font-medium break-words whitespace-pre-wrap leading-relaxed">
                       {selectedProject?.evaluasi.catatan_mentor || "Tidak ada"}
-                    </p>
+                    </div>
                   </div>
-                </div>
 
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Catatan Tambahan</p>
-                  <p className="text-lg font-semibold text-gray-900">
-                    {selectedProject?.evaluasi.catatan_tambahan || "Tidak ada"}
-                  </p>
+                  {/* 4️⃣ Tantangan */}
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">
+                      Tantangan Mentee (Secara Umum)
+                    </p>
+                    <div className="bg-gray-50 p-3 rounded-lg text-gray-900 text-sm font-medium break-words whitespace-pre-wrap leading-relaxed">
+                      {selectedProject?.evaluasi.kendala || "Tidak ada"}
+                    </div>
+                  </div>
+
+                  {/* 3️⃣ Pertanyaan Umum */}
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">
+                      Pertanyaan Umum dari Mentee
+                    </p>
+                    <div className="bg-gray-50 p-3 rounded-lg text-gray-900 text-sm font-medium break-words whitespace-pre-wrap leading-relaxed">
+                      {selectedProject?.evaluasi.common_question || "Tidak ada"}
+                    </div>
+                  </div>
+
+                  {/* 5️⃣ Catatan Mentor */}
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">
+                      Fokus Selanjutnya (Di Sesi Selanjutnya)
+                    </p>
+                    <div className="bg-gray-50 p-3 rounded-lg text-gray-900 text-sm font-medium break-words whitespace-pre-wrap leading-relaxed">
+                      {selectedProject?.evaluasi.tantangan || "Tidak ada"}
+                    </div>
+                  </div>
+
+                  {/* 6️⃣ Catatan Tambahan */}
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">
+                      Catatan Tambahan
+                    </p>
+                    <div className="bg-gray-50 p-3 rounded-lg text-gray-900 text-sm font-medium break-words whitespace-pre-wrap leading-relaxed">
+                      {selectedProject?.evaluasi.catatan_tambahan ||
+                        "Tidak ada"}
+                    </div>
+                  </div>
                 </div>
               </TabsContent>
             </Tabs>
@@ -441,10 +445,7 @@ export function DataTable<TData extends Datas, TValue>({
             <Button
               variant="destructive"
               className="flex-1 bg-red-500 hover:bg-red-600"
-              onClick={() => {
-                console.log("Delete project:", selectedProject);
-                setShowDetailDialog(false);
-              }}
+              onClick={() => setShowDeleteDialog(true)}
             >
               Hapus
             </Button>
@@ -525,10 +526,11 @@ export function DataTable<TData extends Datas, TValue>({
           <div className="border-t mt-2 mb-0"></div>
 
           {/* ================= CONTENT ================= */}
-          <div className="space-y-6 py-4">
-            {/* ================= STEP 1 ================= */}
+          <div className="flex-1 overflow-y-auto space-y-6 py-4 pr-2">
+            {/* ================= STEP 1 (READ ONLY) ================= */}
             {editStep === 1 && (
               <>
+                {/* ID Mentoring */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     ID Mentoring
@@ -536,35 +538,24 @@ export function DataTable<TData extends Datas, TValue>({
                   <Input
                     value={editFormData.id}
                     readOnly
-                    className="bg-green-50 border-green-200 text-green-800 font-medium"
+                    disabled
+                    className="bg-gray-100 border-gray-300 text-gray-700 cursor-not-allowed"
                   />
                 </div>
 
+                {/* Mentor & Program */}
                 <div className="grid grid-cols-2 gap-4">
                   {/* Mentor */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Mentor
                     </label>
-                    <Select
+                    <Input
                       value={editFormData.mentor}
-                      onValueChange={(value) =>
-                        setEditFormData({ ...editFormData, mentor: value })
-                      }
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Pilih Mentor" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Laura Ayu">Laura Ayu</SelectItem>
-                        <SelectItem value="Gilang Dirga">
-                          Gilang Dirga
-                        </SelectItem>
-                        <SelectItem value="Nina Pratiwi">
-                          Nina Pratiwi
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
+                      readOnly
+                      disabled
+                      className="bg-gray-100 border-gray-300 text-gray-700 cursor-not-allowed"
+                    />
                   </div>
 
                   {/* Program */}
@@ -572,54 +563,27 @@ export function DataTable<TData extends Datas, TValue>({
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Program
                     </label>
-                    <Select
+                    <Input
                       value={editFormData.program}
-                      onValueChange={(value) =>
-                        setEditFormData({ ...editFormData, program: value })
-                      }
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Pilih Program" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Bootcamp">Bootcamp</SelectItem>
-                        <SelectItem value="Short Class">Short Class</SelectItem>
-                        <SelectItem value="Live Class">Live Class</SelectItem>
-                        <SelectItem value="1 on 1 Mentoring">
-                          1 on 1 Mentoring
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
+                      readOnly
+                      disabled
+                      className="bg-gray-100 border-gray-300 text-gray-700 cursor-not-allowed"
+                    />
                   </div>
                 </div>
 
                 {/* Tanggal & Topik */}
                 <div className="grid grid-cols-2 gap-4">
-                  {/* Tanggal / Waktu */}
+                  {/* Tanggal & Waktu */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Tanggal & Waktu
                     </label>
-
                     <Input
-                      type="datetime-local"
-                      value={
-                        editFormData.date
-                          ? (() => {
-                              // Format asal: 12-05-2025, 20:00
-                              const [tanggal, jam] =
-                                editFormData.date.split(", ");
-                              const [d, m, y] = tanggal.split("-");
-                              return `${y}-${m}-${d}T${jam}`;
-                            })()
-                          : ""
-                      }
-                      onChange={(e) =>
-                        setEditFormData({
-                          ...editFormData,
-                          date: e.target.value,
-                        })
-                      }
+                      value={editFormData.date}
+                      readOnly
+                      disabled
+                      className="bg-gray-100 border-gray-300 text-gray-700 cursor-not-allowed"
                     />
                   </div>
 
@@ -629,14 +593,10 @@ export function DataTable<TData extends Datas, TValue>({
                       Topik
                     </label>
                     <Input
-                      type="text"
                       value={editFormData.topic}
-                      onChange={(e) =>
-                        setEditFormData({
-                          ...editFormData,
-                          topic: e.target.value,
-                        })
-                      }
+                      readOnly
+                      disabled
+                      className="bg-gray-100 border-gray-300 text-gray-700 cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -645,144 +605,79 @@ export function DataTable<TData extends Datas, TValue>({
 
             {/* ================= STEP 2 ================= */}
             {editStep === 2 && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-3 gap-4">
-                  {/* Kepuasan */}
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-6">
+                  {/* 1️⃣ Pemahaman Mentee */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Kepuasan
+                      Pemahaman Mentee
                     </label>
-                    <Input
-                      type="number"
-                      min="1"
-                      max="5"
-                      value={editFormData.evaluasi.kepuasan}
-                      onChange={(e) =>
-                        setEditFormData({
-                          ...editFormData,
-                          evaluasi: {
-                            ...editFormData.evaluasi,
-                            kepuasan: Number(e.target.value),
-                          },
-                        })
-                      }
+                    <Textarea
+                      rows={3}
+                      value={editFormData.evaluasi.understanding}
+                      readOnly
+                      className="bg-gray-50 border-gray-200 text-gray-800 pointer-events-none"
                     />
                   </div>
 
-                  {/* Keaktifan */}
+                  {/* 2️⃣ Partisipasi Mentee */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Keaktifan
+                      Partisipasi Mentee
                     </label>
-                    <Input
-                      type="number"
-                      min="1"
-                      max="5"
-                      value={editFormData.evaluasi.keaktifan}
-                      onChange={(e) =>
-                        setEditFormData({
-                          ...editFormData,
-                          evaluasi: {
-                            ...editFormData.evaluasi,
-                            keaktifan: Number(e.target.value),
-                          },
-                        })
-                      }
+                    <Textarea
+                      rows={3}
+                      value={editFormData.evaluasi.catatan_mentor}
+                      readOnly
+                      className="bg-gray-50 border-gray-200 text-gray-800 pointer-events-none"
                     />
                   </div>
 
-                  {/* Perkembangan */}
+                  {/* 3️⃣ Tantangan Mentee */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Perkembangan
-                    </label>
-                    <Input
-                      type="number"
-                      min="1"
-                      max="5"
-                      value={editFormData.evaluasi.perkembangan}
-                      onChange={(e) =>
-                        setEditFormData({
-                          ...editFormData,
-                          evaluasi: {
-                            ...editFormData.evaluasi,
-                            perkembangan: Number(e.target.value),
-                          },
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-
-                {/* Kendala & Tantangan */}
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Kendala */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Kendala
+                      Tantangan Mentee (Secara Umum)
                     </label>
                     <Textarea
                       rows={3}
                       value={editFormData.evaluasi.kendala}
-                      onChange={(e) =>
-                        setEditFormData({
-                          ...editFormData,
-                          evaluasi: {
-                            ...editFormData.evaluasi,
-                            kendala: e.target.value,
-                          },
-                        })
-                      }
+                      readOnly
+                      className="bg-gray-50 border-gray-200 text-gray-800 pointer-events-none"
                     />
                   </div>
 
-                  {/* Tantangan */}
+                  {/* 4️⃣ Pertanyaan Umum */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Tantangan
+                      Pertanyaan Umum yang ditanyakan Mentee
+                    </label>
+                    <Textarea
+                      rows={3}
+                      value={editFormData.evaluasi.common_question}
+                      readOnly
+                      className="bg-gray-50 border-gray-200 text-gray-800 pointer-events-none"
+                    />
+                  </div>
+
+                  {/* 5️⃣ Fokus Selanjutnya */}
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Fokus Selanjutnya (Di Sesi Selanjutnya)
                     </label>
                     <Textarea
                       rows={3}
                       value={editFormData.evaluasi.tantangan}
-                      onChange={(e) =>
-                        setEditFormData({
-                          ...editFormData,
-                          evaluasi: {
-                            ...editFormData.evaluasi,
-                            tantangan: e.target.value,
-                          },
-                        })
-                      }
+                      readOnly
+                      className="bg-gray-50 border-gray-200 text-gray-800 pointer-events-none"
                     />
                   </div>
-                </div>
-
-                {/* Catatan Mentor */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Catatan Mentor
-                  </label>
-                  <Textarea
-                    rows={3}
-                    value={editFormData.evaluasi.catatan_mentor}
-                    onChange={(e) =>
-                      setEditFormData({
-                        ...editFormData,
-                        evaluasi: {
-                          ...editFormData.evaluasi,
-                          catatan_mentor: e.target.value,
-                        },
-                      })
-                    }
-                  />
                 </div>
               </div>
             )}
 
-            {/* ================= STEP 3 (BARU) ================= */}
+            {/* ================= STEP 3 ================= */}
             {editStep === 3 && (
               <div className="space-y-4">
-                {/* Catatan Tambahan */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Catatan Tambahan
@@ -790,15 +685,8 @@ export function DataTable<TData extends Datas, TValue>({
                   <Textarea
                     rows={5}
                     value={editFormData.evaluasi.catatan_tambahan}
-                    onChange={(e) =>
-                      setEditFormData({
-                        ...editFormData,
-                        evaluasi: {
-                          ...editFormData.evaluasi,
-                          catatan_tambahan: e.target.value,
-                        },
-                      })
-                    }
+                    readOnly
+                    className="bg-gray-50 border-gray-200 text-gray-800 pointer-events-none"
                   />
                 </div>
               </div>
@@ -806,9 +694,11 @@ export function DataTable<TData extends Datas, TValue>({
           </div>
 
           {/* ================= NAVIGATION ================= */}
-          <div className="flex justify-between pt-6 border-t">
+          <div className="grid grid-cols-2 gap-4 pt-6 border-t">
+            {/* KIRI: Kembali / Sebelumnya */}
             <Button
               variant="outline"
+              className="w-full"
               onClick={() => {
                 if (editStep === 1) {
                   setShowEditDialog(false);
@@ -821,19 +711,98 @@ export function DataTable<TData extends Datas, TValue>({
               {editStep === 1 ? "Kembali" : "Sebelumnya"}
             </Button>
 
+            {/* KANAN: Selanjutnya (mati di step 3) */}
             <Button
-              className="bg-[#0CA678] hover:bg-[#08916C] text-white"
+              className={`
+      w-full
+      bg-[#0CA678]
+      text-white
+      hover:bg-[#08916C]
+      ${
+        editStep === 3
+          ? "opacity-50 cursor-not-allowed pointer-events-none"
+          : ""
+      }
+    `}
               onClick={() => {
-                if (editStep === 3) {
-                  console.log("✅ Save Feedback:", editFormData);
-                  setShowEditDialog(false);
-                  setEditStep(1);
-                } else {
+                if (editStep < 3) {
                   setEditStep(editStep + 1);
                 }
               }}
             >
-              {editStep === 3 ? "Simpan Perubahan" : "Selanjutnya"}
+              Selanjutnya
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent
+          className="max-w-md rounded-xl"
+          onInteractOutside={(e) => e.preventDefault()}
+        >
+          {/* HEADER */}
+          <DialogHeader>
+            <DialogTitle className="text-emerald-600 text-xl font-semibold">
+              Konfirmasi Hapus Feedback
+            </DialogTitle>
+            <DialogDescription className="text-gray-600">
+              Apakah Anda yakin ingin menghapus feedback mentor ini?
+              <span className="block mt-2 text-sm text-red-500">
+                Tindakan ini tidak dapat dibatalkan.
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* BODY */}
+          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mt-4">
+            <p className="text-sm text-emerald-800">
+              Feedback mentor yang dihapus akan hilang secara permanen dari
+              sistem.
+            </p>
+          </div>
+
+          {/* ACTIONS */}
+          <div className="grid grid-cols-2 gap-3 mt-6">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setShowDeleteDialog(false)}
+              disabled={deleting}
+            >
+              Batal
+            </Button>
+
+            <Button
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+              disabled={deleting}
+              onClick={async () => {
+                if (!selectedProject?.id) return;
+
+                try {
+                  setDeleting(true);
+
+                  await axios.delete(
+                    `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentorReports/mentor/reports/${selectedProject.id}`,
+                    { withCredentials: true }
+                  );
+
+                  toast.success("Feedback mentor berhasil dihapus");
+
+                  setShowDeleteDialog(false);
+                  setShowDetailDialog(false);
+                } catch (error: any) {
+                  console.error(error);
+                  toast.error(
+                    error?.response?.data?.message ??
+                      "Gagal menghapus feedback mentor"
+                  );
+                } finally {
+                  setDeleting(false);
+                }
+              }}
+            >
+              {deleting ? "Menghapus..." : "Ya, Hapus"}
             </Button>
           </div>
         </DialogContent>

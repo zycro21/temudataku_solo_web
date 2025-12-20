@@ -7,6 +7,7 @@ import {
   getAllUsersSchema,
   exportUsersSchema,
   getUserByIdSchema,
+  adminUpdateUserSchema,
 } from "../validations/user.validation.js";
 import { validate } from "../middlewares/validate.js";
 import { handleUpload } from "../middlewares/uploadImage.js";
@@ -627,5 +628,48 @@ router.get(
   validate(getUserByIdSchema),
   UserController.getUserById
 );
+
+/**
+ * @swagger
+ * /api/user/admin/{id}:
+ *   put:
+ *     summary: Admin update user (mentee/mentor)
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               fullName:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *               isActive:
+ *                 type: boolean
+ *               profilePicture:
+ *                 type: string
+ *                 format: binary
+ */
+router.put(
+  "/admin/:id",
+  authenticate,
+  authorizeRoles("admin"),
+  handleUpload("profilePicture"),
+  validate(adminUpdateUserSchema),
+  UserController.adminUpdateUser
+);
+
 
 export default router;

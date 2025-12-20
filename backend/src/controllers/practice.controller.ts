@@ -6,6 +6,7 @@ import * as PracticeService from "../services/practice.service.js";
 import { PrismaClient, Prisma } from "@prisma/client";
 import path from "path";
 import fs from "fs";
+import { logActivity } from "../utils/logActivtiy.js";
 
 const prisma = new PrismaClient();
 

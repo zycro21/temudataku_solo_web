@@ -807,7 +807,10 @@ export const reviewSubmission = async ({
   const isMentorOfService = submission.project.mentoringService.mentors.some(
     (m) => m.mentorProfile?.id === mentorId
   );
-  if (!(isMentorOfService || role === "admin")) {
+
+  const isAdmin = Array.isArray(role) && role.includes("admin");
+
+  if (!(isMentorOfService || isAdmin)) {
     throw new Error("Kamu tidak berhak menilai submission ini.");
   }
 
@@ -885,22 +888,14 @@ export const getAdminSubmissions = async ({
     prisma.projectSubmission.findMany({
       where: whereClause,
       include: {
-        user: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true,
-          },
-        },
+        user: { select: { id: true, fullName: true, email: true } },
+        gradedByUser: { select: { fullName: true } }, // <-- Tambahan
         project: {
           select: {
             id: true,
             title: true,
             mentoringService: {
-              select: {
-                id: true,
-                serviceName: true,
-              },
+              select: { id: true, serviceName: true, serviceType: true },
             },
           },
         },
@@ -909,15 +904,34 @@ export const getAdminSubmissions = async ({
       skip,
       take: limit,
     }),
-    prisma.projectSubmission.count({
-      where: whereClause,
-    }),
+    prisma.projectSubmission.count({ where: whereClause }),
   ]);
 
   const totalPages = Math.ceil(total / limit);
 
+  // Mapping reviewStatus ke statusDetail untuk FE
+  const statusMap: Record<string, string> = {
+    PENDING: "Belum Direview",
+    REVIEWED: "Sudah Direview",
+    REVISION_REQUIRED: "Revisi",
+  };
+
+  const formattedData = submissions.map((s) => ({
+    id: s.id,
+    mentee: s.user.fullName,
+    mentor: s.gradedByUser?.fullName || "-", // Bisa kosong jika belum dinilai
+    program: s.project.mentoringService.serviceName,
+    date: s.submissionDate?.toISOString() || "",
+    deadline: s.revisionDeadline?.toISOString() || "",
+    projectFile: s.filePaths, // kirim semua file ke frontend
+    topic: s.project.title,
+    statusDetail: statusMap[s.reviewStatus],
+    score: s.score?.toString() || "",
+    document: s.projectLink || "",
+  }));
+
   return {
-    data: submissions,
+    data: formattedData,
     pagination: {
       total,
       page,
@@ -1524,4 +1538,98 @@ export const getMenteeSubmissionDetailService = async ({
     createdAt: submission.createdAt,
     updatedAt: submission.updatedAt,
   };
+};
+
+export const getProjectStats = async () => {
+  const [
+    totalProject,
+    totalSubmission,
+    reviewedSubmission,
+    notReviewedSubmission,
+    projectWithSubmission,
+  ] = await prisma.$transaction([
+    // Total Project
+    prisma.project.count(),
+
+    // Total submission (Sudah Mengirim)
+    prisma.projectSubmission.count(),
+
+    // Submission sudah direview
+    prisma.projectSubmission.count({
+      where: {
+        reviewStatus: "REVIEWED",
+      },
+    }),
+
+    // Submission belum direview
+    prisma.projectSubmission.count({
+      where: {
+        reviewStatus: "PENDING",
+      },
+    }),
+
+    // Project yang punya minimal 1 submission
+    prisma.project.count({
+      where: {
+        submissions: {
+          some: {},
+        },
+      },
+    }),
+  ]);
+
+  const notSubmitted = totalProject - projectWithSubmission;
+
+  return {
+    totalProject,
+    submitted: totalSubmission,
+    notSubmitted: notSubmitted < 0 ? 0 : notSubmitted,
+    reviewed: reviewedSubmission,
+    notReviewed: notReviewedSubmission,
+  };
+};
+
+export const deleteSubmission = async ({
+  submissionId,
+  mentorId,
+  role,
+}: {
+  submissionId: string;
+  mentorId?: string;
+  role: string[];
+}) => {
+  const submission = await prisma.projectSubmission.findUnique({
+    where: { id: submissionId },
+    include: {
+      project: {
+        include: {
+          mentoringService: {
+            include: { mentors: { include: { mentorProfile: true } } },
+          },
+        },
+      },
+    },
+  });
+
+  if (!submission) {
+    throw new Error("Submission tidak ditemukan.");
+  }
+
+  const isMentorOfService =
+    mentorId &&
+    submission.project.mentoringService.mentors.some(
+      (m) => m.mentorProfile?.id === mentorId
+    );
+
+  const isAdmin = role.includes("admin");
+
+  if (!(isMentorOfService || isAdmin)) {
+    throw new Error("Kamu tidak berhak menghapus submission ini.");
+  }
+
+  await prisma.projectSubmission.delete({
+    where: { id: submissionId },
+  });
+
+  return true;
 };

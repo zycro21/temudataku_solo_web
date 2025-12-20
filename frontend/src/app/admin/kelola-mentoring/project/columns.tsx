@@ -107,25 +107,24 @@ export const columns: ColumnDef<Project>[] = [
     },
   },
 
-  // Program (Filter cycle)
+  // Program
   {
     accessorKey: "program",
     header: ({ column }) => {
-      const filter = column.getFilterValue() as string | undefined;
-      const programCycle = ["Bootcamp", "Live Class", "Short Class"];
+      const sort = column.getIsSorted();
+
       return (
         <button
-          className="flex items-center gap-1 w-full cursor-pointer"
           onClick={() => {
-            if (!filter) column.setFilterValue(programCycle[0]);
-            else if (programCycle.indexOf(filter) < programCycle.length - 1)
-              column.setFilterValue(
-                programCycle[programCycle.indexOf(filter) + 1]
-              );
-            else column.setFilterValue(undefined); // reset
+            if (!sort) column.toggleSorting(false); // asc
+            else if (sort === "asc") column.toggleSorting(true); // desc
+            else column.clearSorting(); // reset
           }}
+          className="flex items-center gap-1 w-full cursor-pointer"
         >
-          {filter ? `Program - ${filter}` : "Program"}
+          Program
+          {sort === "asc" && <ArrowDown className="w-4 h-4" />}
+          {sort === "desc" && <ArrowUp className="w-4 h-4" />}
         </button>
       );
     },
@@ -151,26 +150,62 @@ export const columns: ColumnDef<Project>[] = [
         </button>
       );
     },
+    cell: ({ row }) => {
+      const rawDate = row.original.date;
+      if (!rawDate) return <span className="text-gray-400 italic">-</span>;
+      const formattedDate = new Date(rawDate).toLocaleString("id-ID", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      });
+      return <span>{formattedDate}</span>;
+    },
   },
 
-  // Project file
   {
     accessorKey: "projectFile",
     header: "Project",
     cell: ({ row }) => {
-      const file = row.original.projectFile;
-      return file ? (
-        <a
-          href={file}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-600 hover:underline"
-        >
-          Lihat
-        </a>
-      ) : (
-        <span className="text-gray-400 italic">-</span>
-      );
+      const files: string[] = Array.isArray(row.original.projectFile)
+        ? row.original.projectFile
+        : row.original.projectFile
+        ? [row.original.projectFile]
+        : [];
+
+      const document = row.original.document;
+
+      if (files.length > 0) {
+        return (
+          <>
+            {files.map((file, idx) => (
+              <div key={idx}>
+                <a
+                  href={`${process.env.NEXT_PUBLIC_API_BASE_URL}/uploads/${file}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#0CA678] text-sm font-medium hover:underline"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Lihat – FILE {idx + 1}
+                </a>
+              </div>
+            ))}
+          </>
+        );
+      } else if (document && document.length > 0) {
+        return (
+          <a
+            href={document}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#0CA678] text-sm font-medium hover:underline"
+            onClick={(e) => e.stopPropagation()}
+          >
+            Lihat
+          </a>
+        );
+      } else {
+        return <span className="text-gray-400 italic">-</span>;
+      }
     },
   },
 ];

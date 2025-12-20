@@ -7,6 +7,7 @@ import { PrismaClient, Prisma } from "@prisma/client";
 import path from "path";
 import fs from "fs";
 import { format as formatDate, subDays } from "date-fns";
+import { logActivity } from "../utils/logActivtiy.js";
 
 const prisma = new PrismaClient();
 
@@ -16,6 +17,13 @@ export const createReferralCodeController = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     // Pastikan pengguna adalah admin
     if (!req.user!.roles.includes("admin")) {
       throw new Error("Unauthorized: Only admins can create referral codes");
@@ -45,6 +53,16 @@ export const createReferralCodeController = async (
       expiryDate,
       isActive,
     });
+
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: req.user!.userId,
+        action: "CREATE_REFERRAL",
+        type: "CREATE",
+        description: `Admin membuat referral code: ${code}`,
+        req,
+      });
+    }
 
     res.status(201).json({
       success: true,
@@ -132,6 +150,13 @@ export const updateReferralCodeController = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     // Pastikan pengguna adalah admin
     if (!req.user!.roles.includes("admin")) {
       throw new Error("Unauthorized: Only admins can update referral codes");
@@ -157,6 +182,16 @@ export const updateReferralCodeController = async (
       throw new Error("Referral code not found");
     }
 
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: req.user!.userId,
+        action: "UPDATE_REFERRAL",
+        type: "UPDATE",
+        description: `Admin mengupdate referral code ID: ${id}`,
+        req,
+      });
+    }
+
     res.status(200).json({
       success: true,
       message: "Referral code updated successfully.",
@@ -173,6 +208,13 @@ export const deleteReferralCodeController = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     // Pastikan pengguna adalah admin
     if (!req.user!.roles.includes("admin")) {
       throw new Error("Unauthorized: Only admins can delete referral codes");
@@ -184,6 +226,16 @@ export const deleteReferralCodeController = async (
 
     if (!deleted) {
       throw new Error("Referral code not found");
+    }
+
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: req.user!.userId,
+        action: "DELETE_REFERRAL",
+        type: "DELETE",
+        description: `Admin menghapus referral code ID: ${id}`,
+        req,
+      });
     }
 
     res.status(200).json({
@@ -554,6 +606,13 @@ export const updateCommissionPaymentStatusController = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     if (!req.user) {
       res.status(401).json({ success: false, message: "Unauthorized." });
       return;
@@ -581,6 +640,16 @@ export const updateCommissionPaymentStatusController = async (
       adminId: req.user.userId,
     });
 
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: req.user.userId,
+        action: "UPDATE_COMMISSION_PAYMENT",
+        type: "UPDATE",
+        description: `Admin mengubah status payment komisi ID: ${id} menjadi ${status}`,
+        req,
+      });
+    }
+
     res.status(200).json({
       success: true,
       message: "Commission payment status updated successfully.",
@@ -601,6 +670,13 @@ export const exportCommissionPaymentsController = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     const format = req.query.format as "csv" | "excel";
 
     const buffer = await ReferralService.exportCommissionPayments({ format });
@@ -609,6 +685,16 @@ export const exportCommissionPaymentsController = async (
     const filename = `commission-payments-${timestamp}.${
       format === "csv" ? "csv" : "xlsx"
     }`;
+
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: adminId,
+        action: "EXPORT_COMMISSION_PAYMENTS",
+        type: "EXPORT",
+        description: `Admin export data commission payments dalam format: ${format}`,
+        req,
+      });
+    }
 
     res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
     res.setHeader(

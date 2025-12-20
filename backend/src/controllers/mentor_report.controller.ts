@@ -1,6 +1,7 @@
 import { Response, NextFunction } from "express";
 import { AuthenticatedRequestMentorReport } from "../middlewares/authenticate.js";
 import * as MentorReportService from "../services/mentor_report.service.js";
+import { logActivity } from "../utils/logActivtiy.js";
 
 export const createMentorReport = async (
   req: AuthenticatedRequestMentorReport,
@@ -71,7 +72,7 @@ export const getMentorReports = async (
 
     const {
       page = "1",
-      limit = "10",
+      limit = "10000",
       sessionId,
       search,
       sortField,
@@ -184,6 +185,13 @@ export const deleteMentorReport = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     if (!req.user) {
       res.status(401).json({ message: "Unauthorized" });
       return;
@@ -204,6 +212,16 @@ export const deleteMentorReport = async (
       id
     );
 
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: req.user.userId,
+        action: "DELETE_MENTOR_REPORT",
+        type: "DELETE",
+        description: `Admin menghapus laporan mentor dengan ID: ${id}`,
+        req,
+      });
+    }
+
     res.status(200).json(result);
     return;
   } catch (err) {
@@ -217,10 +235,27 @@ export const exportMentorReports = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     const format = req.validatedQuery?.format === "excel" ? "excel" : "csv";
 
     const { buffer, fileName, mimeType } =
       await MentorReportService.exportMentorReportsToFile(format);
+
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: adminId,
+        action: "EXPORT_MENTOR_REPORTS",
+        type: "EXPORT",
+        description: `Admin melakukan export laporan mentor dalam format: ${format}`,
+        req,
+      });
+    }
 
     res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
     res.setHeader("Content-Type", mimeType);
@@ -281,7 +316,9 @@ export const getMentorReportsByMentorProfileId = async (
     const { mentorProfileId } = req.validatedParams || {};
 
     if (!mentorProfileId) {
-      res.status(400).json({ message: "Parameter mentorProfileId wajib diisi" });
+      res
+        .status(400)
+        .json({ message: "Parameter mentorProfileId wajib diisi" });
       return;
     }
 
@@ -293,6 +330,30 @@ export const getMentorReportsByMentorProfileId = async (
     res.status(200).json({
       message: "Laporan mentor berhasil diambil",
       data: reports,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getMentorReportStats = async (
+  req: AuthenticatedRequestMentorReport,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+
+    const { userId, roles } = req.user;
+
+    const stats = await MentorReportService.getMentorReportStats(userId, roles);
+
+    res.status(200).json({
+      message: "Statistik laporan mentor berhasil diambil",
+      data: stats,
     });
   } catch (err) {
     next(err);

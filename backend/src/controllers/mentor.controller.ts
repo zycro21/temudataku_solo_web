@@ -4,6 +4,7 @@ import { HttpError } from "../utils/httpError";
 import * as MentorService from "../services/mentor.service.js";
 import { uploadPath } from "../middlewares/uploadImage";
 import { PrismaClient } from "@prisma/client";
+import { logActivity } from "../utils/logActivtiy.js";
 
 const prisma = new PrismaClient();
 
@@ -13,6 +14,13 @@ export const createMentorProfile = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     const { userId: bodyUserId, ...profileData } = req.body;
     const requester = req.user!;
 
@@ -45,6 +53,16 @@ export const createMentorProfile = async (
       userId: targetUserId,
       ...profileData,
     });
+
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: adminId,
+        action: "CREATE MENTOR PROFILE",
+        type: "CREATE",
+        description: `Admin membuat mentor profile untuk userId: ${targetUserId}`,
+        req,
+      });
+    }
 
     res.status(201).json({ data: newProfile });
     return;
@@ -92,6 +110,13 @@ export const updateMentorProfile = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     const { userId: requesterId, roles } = req.user!;
     const queryUserId = req.query.userId as string | undefined;
 
@@ -113,6 +138,16 @@ export const updateMentorProfile = async (
       ...req.body,
     });
 
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: adminId,
+        action: "UPDATE MENTOR PROFILE",
+        type: "UPDATE",
+        description: `Admin mengupdate mentor profile userId: ${targetUserId}`,
+        req,
+      });
+    }
+
     res.json({ data: updatedProfile });
   } catch (err: any) {
     if (err instanceof Error) {
@@ -131,7 +166,7 @@ export const getAllMentorProfiles = async (
   try {
     const {
       page = 1,
-      limit = 10,
+      limit = 10000,
       isVerified,
       name,
       sortBy = "createdAt",
@@ -164,6 +199,13 @@ export const verifyMentorProfile = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     const { id } = req.validatedParams!;
     const { isVerified } = req.validatedBody!;
 
@@ -176,6 +218,18 @@ export const verifyMentorProfile = async (
     }
 
     const result = await MentorService.toggleVerificationStatus(id, isVerified);
+
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: adminId,
+        action: "VERIFY_MENTOR_PROFILE",
+        type: "UPDATE",
+        description: `Admin ${
+          isVerified ? "memverifikasi" : "membatalkan verifikasi"
+        } mentor profile ID: ${id}`,
+        req,
+      });
+    }
 
     res.json({
       success: true,
@@ -235,6 +289,13 @@ export const getMentorProfileById = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     const { id } = req.validatedParams!;
 
     const profile = await MentorService.getMentorProfileById(id);
@@ -245,6 +306,16 @@ export const getMentorProfileById = async (
         message: "Mentor profile not found",
       });
       return;
+    }
+
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: adminId,
+        action: "GET_MENTOR_PROFILE_BY_ID",
+        type: "READ",
+        description: `Admin melihat detail mentor profile ID: ${id}`,
+        req,
+      });
     }
 
     res.json({
@@ -306,6 +377,24 @@ export const deleteMentorProfile = async (
       success: true,
       message: "Mentor profile deleted successfully",
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getMentorsByService = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { serviceId } = (req as any).validatedParams;
+
+    const result = await MentorService.getMentorsByService({
+      serviceId,
+    });
+
+    res.json(result);
   } catch (err) {
     next(err);
   }

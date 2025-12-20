@@ -5,14 +5,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowUp, ArrowDown } from "lucide-react";
 import Image from "next/image";
 
-// Tipe data Project
 export type Project = {
   id: string;
   foto: string;
   nama: string;
 
-  kategori: "Mentoring" | "Practice" | "E-Learning";
+  kategori: "Mentoring" | "E-Learning";
 
+  /* =====================
+     MENTORING ONLY
+  ===================== */
   tipeMentoring?:
     | "Bootcamp"
     | "Short Class"
@@ -20,19 +22,46 @@ export type Project = {
     | "1 on 1 Mentoring"
     | "Group Mentoring";
 
-  harga: string;
+  mentorIds?: string[]; // 🟢 mentoring (multi)
+  mentorId?: string; // 🔵 e-learning (single)
+
+  mentorNames?: string[]; // 🟢 mentoring (multi)
+  mentorName?: string; // 🔵 e-learning (single)
+
+  maxParticipants?: number; // 🆕
+  durationDays?: number; // 🆕
+
+  benefits?: string;
+  mechanism?: string;
+  syllabusPath?: string;
+  toolsUsed?: string;
+  targetAudience?: string;
+  schedule?: string;
+  alumniPortfolio?: string;
+
+  /* =====================
+     E-LEARNING ONLY
+  ===================== */
+  category?: string;
+  tags?: string[];
+  level?: string;
+  estimatedDuration?: string;
+
+  /* =====================
+     SHARED
+  ===================== */
+  harga: number;
+  hargaDisplay: string;
+  hargaDiskon: string;
   deskripsi: string;
   status: string;
   diskonTipe: string;
-  diskon: number;   
-  hargaDiskon: string;
-  
-  // Tambahkan ini
+  diskon: number;
   tanggalDitambahkan?: string;
 };
 
 // Cycle kategori untuk filter 4 mode
-const kategoriCycle = ["Mentoring", "Practice", "E-Learning"];
+const kategoriCycle = ["Mentoring", "E-Learning"];
 
 export const columns: ColumnDef<Project>[] = [
   {
@@ -63,17 +92,17 @@ export const columns: ColumnDef<Project>[] = [
   {
     accessorKey: "id",
     header: ({ column }) => {
-      const sort = column.getIsSorted(); // false | "asc" | "desc"
+      const sort = column.getIsSorted();
 
       return (
         <button
           onClick={() => {
-            if (!sort) column.toggleSorting(false); // ASC
-            else if (sort === "asc") column.toggleSorting(true); // DESC
-            else column.clearSorting(); // RESET
+            if (!sort) column.toggleSorting(false);
+            else if (sort === "asc") column.toggleSorting(true);
+            else column.clearSorting();
           }}
           className={`flex items-center gap-1 w-full cursor-pointer 
-            ${sort ? "bg-emerald-200" : ""}`}
+          ${sort ? "bg-emerald-200" : ""}`}
         >
           ID Produk
           {sort === "asc" && <ArrowDown className="w-4 h-4" />}
@@ -81,6 +110,13 @@ export const columns: ColumnDef<Project>[] = [
         </button>
       );
     },
+
+    // TAMBAHKAN INI
+    cell: ({ getValue }) => (
+      <div className="break-all whitespace-normal max-w-[200px]">
+        {getValue() as string}
+      </div>
+    ),
   },
 
   /* ============================
@@ -98,6 +134,7 @@ export const columns: ColumnDef<Project>[] = [
           alt="Foto Produk"
           width={40}
           height={40}
+          unoptimized
           className="rounded object-cover border"
         />
       );
@@ -120,7 +157,7 @@ export const columns: ColumnDef<Project>[] = [
             else column.clearSorting();
           }}
           className={`flex items-center gap-1 w-full cursor-pointer 
-            ${sort ? "bg-emerald-200" : ""}`}
+          ${sort ? "bg-emerald-200" : ""}`}
         >
           Nama Produk
           {sort === "asc" && <ArrowDown className="w-4 h-4" />}
@@ -128,11 +165,18 @@ export const columns: ColumnDef<Project>[] = [
         </button>
       );
     },
+
+    // TAMBAHKAN INI
+    cell: ({ getValue }) => (
+      <div className="break-words whitespace-normal max-w-[250px]">
+        {getValue() as string}
+      </div>
+    ),
   },
 
   /* ============================
      FILTER 4 MODE – KATEGORI
-     Mentoring → Practice → E-Learning → RESET
+     Mentoring → E-Learning → RESET
   ============================ */
   {
     accessorKey: "kategori",
@@ -162,7 +206,7 @@ export const columns: ColumnDef<Project>[] = [
      SORT 3 MODE – HARGA
   ============================ */
   {
-    accessorKey: "harga",
+    accessorKey: "hargaDisplay",
     header: ({ column }) => {
       const sort = column.getIsSorted();
       return (
@@ -173,7 +217,7 @@ export const columns: ColumnDef<Project>[] = [
             else column.clearSorting();
           }}
           className={`flex items-center gap-1 w-full cursor-pointer 
-            ${sort ? "bg-emerald-200" : ""}`}
+          ${sort ? "bg-emerald-200" : ""}`}
         >
           Harga
           {sort === "asc" && <ArrowDown className="w-4 h-4" />}
@@ -181,6 +225,11 @@ export const columns: ColumnDef<Project>[] = [
         </button>
       );
     },
+
+    // INI PENTING
+    cell: ({ getValue }) => (
+      <div className="font-semibold text-gray-900">{getValue() as string}</div>
+    ),
   },
 
   /* ============================
@@ -198,7 +247,7 @@ export const columns: ColumnDef<Project>[] = [
             else column.clearSorting();
           }}
           className={`flex items-center gap-1 w-full cursor-pointer 
-            ${sort ? "bg-emerald-200" : ""}`}
+          ${sort ? "bg-emerald-200" : ""}`}
         >
           Deskripsi
           {sort === "asc" && <ArrowDown className="w-4 h-4" />}
@@ -206,5 +255,12 @@ export const columns: ColumnDef<Project>[] = [
         </button>
       );
     },
+
+    // TAMBAHKAN INI (PALING PENTING)
+    cell: ({ getValue }) => (
+      <div className="break-words whitespace-normal max-w-[350px]">
+        {getValue() as string}
+      </div>
+    ),
   },
 ];

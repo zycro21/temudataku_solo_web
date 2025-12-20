@@ -22,6 +22,8 @@ import {
   getMenteeSubmissionDetailSchema,
   getMentorServiceSubmissionListSchema,
   updateSubmissionSchema,
+  getProjectStatsSchema,
+  deleteSubmissionSchema,
 } from "../validations/project.validation.js";
 import { validate } from "../middlewares/validate.js";
 import { authenticate } from "../middlewares/authenticate.js";
@@ -2762,5 +2764,100 @@ router.get(
   validate(getMenteeSubmissionDetailSchema),
   ProjectController.getMenteeSubmissionDetail
 );
+
+/**
+ * @swagger
+ * /api/project/adminprojectsstats:
+ *   get:
+ *     summary: Ambil statistik proyek (admin)
+ *     tags: [Project]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Statistik proyek berhasil diambil
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Statistik proyek berhasil diambil
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalProject:
+ *                       type: integer
+ *                       example: 80
+ *                     submitted:
+ *                       type: integer
+ *                       example: 78
+ *                     notSubmitted:
+ *                       type: integer
+ *                       example: 2
+ *                     reviewed:
+ *                       type: integer
+ *                       example: 78
+ *                     notReviewed:
+ *                       type: integer
+ *                       example: 2
+ *       401:
+ *         description: Tidak ada token / token tidak valid
+ *       403:
+ *         description: Akses ditolak. Hanya admin yang bisa mengakses endpoint ini
+ *       500:
+ *         description: Terjadi kesalahan di server
+ */
+router.get(
+  "/adminprojectsstats",
+  authenticate,
+  authorizeRoles("admin"),
+  validate(getProjectStatsSchema),
+  ProjectController.getProjectStatsHandler
+);
+
+/**
+ * @swagger
+ * /api/project/mentors/submissions/{id}:
+ *   delete:
+ *     summary: Hapus submission project (mentor/admin)
+ *     tags: [Project]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Submission berhasil dihapus
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Submission berhasil dihapus
+ *       403:
+ *         description: Tidak berhak menghapus submission ini
+ *       404:
+ *         description: Submission tidak ditemukan
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Terjadi kesalahan di server
+ */
+router.delete(
+  "/mentors/submissions/:id",
+  authenticate,
+  authorizeRoles("admin"),
+  validate(deleteSubmissionSchema),
+  ProjectController.deleteSubmission
+);
+
 
 export default router;

@@ -121,7 +121,18 @@ export const getMentorReports = async (
   const [reports, total] = await Promise.all([
     prisma.mentorReport.findMany({
       where,
-      include: { session: true, mentorProfile: true },
+      include: {
+        mentorProfile: {
+          include: {
+            user: true, // ⬅️ biar fullName aman
+          },
+        },
+        session: {
+          include: {
+            mentoringService: true, // ⬅️ INI PENTING
+          },
+        },
+      },
       orderBy,
       skip,
       take: limit,
@@ -400,4 +411,68 @@ export const getMentorReportsByMentorProfileId = async (
   }
 
   return reports;
+};
+
+export const getMentorReportStats = async (userId: string, roles: string[]) => {
+  let mentorProfileId: string | undefined;
+
+  // jika mentor → ambil mentorProfileId
+  if (roles.includes("mentor")) {
+    const mentorProfile = await prisma.mentorProfile.findUnique({
+      where: { userId },
+    });
+
+    if (!mentorProfile) {
+      throw new Error("Profil mentor tidak ditemukan");
+    }
+
+    mentorProfileId = mentorProfile.id;
+  }
+
+  /** ===============================
+   * 1. Total laporan mentor
+   * =============================== */
+  const totalReports = await prisma.mentorReport.count({
+    where: mentorProfileId ? { mentorProfileId } : undefined,
+  });
+
+  /** ===============================
+   * 2. Mentoring session yang SUDAH ada report
+   * =============================== */
+  const reportedSessionIds = await prisma.mentorReport.findMany({
+    where: mentorProfileId ? { mentorProfileId } : undefined,
+    select: { sessionId: true },
+  });
+
+  const reportedSessionIdList = reportedSessionIds.map((r) => r.sessionId);
+
+  /** ===============================
+   * 3. Mentoring session yang BELUM ada report
+   * (punya mentor, tapi tidak ada mentor_report)
+   * =============================== */
+  const unreportedSessionsCount = await prisma.mentoringSession.count({
+    where: {
+      mentors: mentorProfileId
+        ? {
+            some: {
+              mentorProfileId,
+            },
+          }
+        : {
+            some: {}, // admin → semua session yang punya mentor
+          },
+      id: {
+        notIn:
+          reportedSessionIdList.length > 0
+            ? reportedSessionIdList
+            : ["___dummy___"], // avoid empty notIn
+      },
+    },
+  });
+
+  return {
+    totalFeedback: totalReports,
+    filled: totalReports,
+    unfilled: unreportedSessionsCount,
+  };
 };

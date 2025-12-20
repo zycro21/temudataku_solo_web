@@ -34,7 +34,7 @@ export const createMentoringServiceSchema = z.object({
 export const getAllMentoringServicesSchema = z.object({
   query: z.object({
     page: z.string().regex(/^\d+$/).optional().default("1"),
-    limit: z.string().regex(/^\d+$/).optional().default("10"),
+    limit: z.string().regex(/^\d+$/).optional().default("10000"),
     search: z.string().optional(),
     sort_by: z
       .enum(["createdAt", "price", "durationDays"])
@@ -83,6 +83,14 @@ export const updateMentoringServiceSchema = z.object({
         .optional(),
 
       // Tambahan field baru:
+      serviceType: z.enum([
+        "one-on-one",
+        "group",
+        "bootcamp",
+        "shortclass",
+        "live class",
+      ]).optional(),
+      
       benefits: z.string().nullable().optional(),
       mechanism: z.string().nullable().optional(),
       syllabusPath: z.string().nullable().optional(),

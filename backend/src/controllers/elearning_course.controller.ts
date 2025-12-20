@@ -397,4 +397,34 @@ export const ELearningCourseController = {
       next(err);
     }
   },
+
+  async exportProductEvent(
+    req: AuthenticatedRequestElearning,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const format = req.validatedQuery?.format;
+
+      if (!format || (format !== "csv" && format !== "excel")) {
+        res.status(400).json({
+          success: false,
+          message: "Invalid format. Use 'csv' or 'excel'",
+        });
+        return;
+      }
+
+      const file = await ELearningCourseService.exportProductEventToFile(format);
+
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=${file.filename}`
+      );
+      res.setHeader("Content-Type", file.mimetype);
+
+      res.send(file.buffer);
+    } catch (err) {
+      next(err);
+    }
+  },
 };

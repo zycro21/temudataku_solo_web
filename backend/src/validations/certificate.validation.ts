@@ -10,7 +10,7 @@ export const generateCertificateSchema = z.object({
 export const getAllCertificatesSchema = z.object({
   query: z.object({
     page: z.coerce.number().min(1).default(1),
-    limit: z.coerce.number().min(1).max(100).default(10),
+    limit: z.coerce.number().min(1).max(10000).default(10000),
     search: z.string().optional(),
     status: z.string().optional(), // "generated" | "sent" | "viewed"
     serviceId: z.string().optional(),
@@ -27,6 +27,9 @@ export const updateCertificateSchema = z.object({
     status: z.enum(["generated", "sent", "viewed"]).optional(),
     verifiedBy: z.string().optional(),
     note: z.string().optional(),
+
+    removeCertificate: z.boolean().optional(),
+    regenerateCertificate: z.boolean().optional(),
   }),
 });
 

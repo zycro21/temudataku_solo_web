@@ -5,6 +5,7 @@ import { HttpError } from "../utils/httpError";
 import * as MentoringSessionService from "../services/mentoring_session.service.js";
 import { uploadPath } from "../middlewares/uploadImage";
 import { PrismaClient } from "@prisma/client";
+import { logActivity } from "../utils/logActivtiy.js";
 
 const prisma = new PrismaClient();
 
@@ -15,6 +16,7 @@ export const createMentoringSessionController = async (
 ) => {
   try {
     const data = req.validatedBody!;
+    const userId = req.user?.userId!;
 
     if (!data) {
       res.status(400).json({ message: "Body tidak valid" });
@@ -22,6 +24,14 @@ export const createMentoringSessionController = async (
     }
 
     const session = await MentoringSessionService.createMentoringSession(data);
+
+    await logActivity({
+      userId,
+      action: "CREATE_MENTORING_SESSION",
+      type: "CREATE",
+      description: `Admin membuat sesi mentoring baru untuk serviceId=${data.serviceId} pada tanggal ${data.date}`,
+      req,
+    });
 
     res.status(201).json({
       message: "Sesi mentoring berhasil dibuat",
@@ -90,11 +100,20 @@ export const updateMentoringSessionController = async (
   try {
     const { id } = req.validatedParams!;
     const data = req.validatedBody!;
+    const userId = req.user?.userId!;
 
     const updatedSession = await MentoringSessionService.updateMentoringSession(
       id,
       data
     );
+
+    await logActivity({
+      userId,
+      action: "UPDATE MENTORING SESSION",
+      type: "UPDATE",
+      description: `Admin mengupdate sesi mentoring id=${id}`,
+      req,
+    });
 
     res.status(200).json({
       message: "Berhasil mengupdate sesi mentoring",
@@ -113,11 +132,20 @@ export const updateStatusController = async (
   try {
     const { id } = req.validatedParams!;
     const { status } = req.validatedBody!;
+    const userId = req.user?.userId!;
 
     const updated = await MentoringSessionService.updateMentoringSessionStatus(
       id,
       status
     );
+
+    await logActivity({
+      userId,
+      action: "UPDATE MENTORING SESSION STATUS",
+      type: "UPDATE",
+      description: `Admin mengubah status sesi mentoring id=${id} menjadi "${status}"`,
+      req,
+    });
 
     res.status(200).json({
       message: "Status sesi berhasil diperbarui",
@@ -136,11 +164,22 @@ export const updateSessionMentorsController = async (
   try {
     const { id } = req.validatedParams!;
     const { mentorProfileIds } = req.validatedBody!;
+    const userId = req.user?.userId!;
 
     const updated = await MentoringSessionService.updateMentoringSessionMentors(
       id,
       mentorProfileIds
     );
+
+    await logActivity({
+      userId,
+      action: "UPDATE_MENTORING_SESSION_MENTORS",
+      type: "UPDATE",
+      description: `Admin memperbarui daftar mentor pada sesi mentoring id=${id} menjadi [${mentorProfileIds.join(
+        ", "
+      )}]`,
+      req,
+    });
 
     res.status(200).json({
       message: "Daftar mentor dalam sesi berhasil diperbarui",
@@ -158,8 +197,17 @@ export const deleteSessionController = async (
 ) => {
   try {
     const { id } = req.validatedParams!;
+    const userId = req.user?.userId!;
 
     await MentoringSessionService.deleteMentoringSession(id);
+
+    await logActivity({
+      userId,
+      action: "DELETE_MENTORING_SESSION",
+      type: "DELETE",
+      description: `Admin menghapus sesi mentoring id=${id}`,
+      req,
+    });
 
     res.status(200).json({
       message: "Sesi mentoring berhasil dihapus",
@@ -257,21 +305,15 @@ export const updateMentorSessionController = async (
   try {
     const mentorProfileId = req.user?.mentorProfileId;
     const sessionId = req.validatedParams?.id;
-    const {
-      status,
-      meetingLink,
-      meetingId,
-      passcode,
-      pptLink,
-      recordingLink,
-    } = req.validatedBody as {
-      status?: "scheduled" | "ongoing" | "completed" | "cancelled";
-      meetingLink?: string;
-      meetingId?: string;
-      passcode?: string;
-      pptLink?: string;
-      recordingLink?: string;
-    };
+    const { status, meetingLink, meetingId, passcode, pptLink, recordingLink } =
+      req.validatedBody as {
+        status?: "scheduled" | "ongoing" | "completed" | "cancelled";
+        meetingLink?: string;
+        meetingId?: string;
+        passcode?: string;
+        pptLink?: string;
+        recordingLink?: string;
+      };
 
     if (!mentorProfileId || !sessionId) {
       res.status(400).json({

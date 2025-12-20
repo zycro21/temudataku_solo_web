@@ -12,7 +12,7 @@ export const getAllCoursesSchema = z.object({
     ),
     limit: z.preprocess(
       (val) => (val ? Number(val) : 10),
-      z.number().int().min(1).max(100).default(10)
+      z.number().int().min(1).max(10000).default(10000)
     ),
     sortBy: z
       .enum(["createdAt", "title", "price"])
@@ -80,7 +80,10 @@ export const updateCourseSchema = z.object({
     ),
     targetAudience: z.string().optional(),
     level: z.string().optional(),
-    estimatedDuration: z.string().optional(),
+    estimatedDuration: z.preprocess(
+      (val) => val?.toString(),
+      z.string().optional()
+    ),
     benefits: z.string().optional(),
     toolsUsed: z.string().optional(),
     isActive: z.preprocess(
@@ -111,14 +114,8 @@ export const getCoursesSchema = z.object({
     level: z.string().optional(),
     mentorId: z.string().optional(),
     search: z.string().optional(),
-    page: z
-      .string()
-      .regex(/^\d+$/, "Page harus angka")
-      .optional(),
-    limit: z
-      .string()
-      .regex(/^\d+$/, "Limit harus angka")
-      .optional(),
+    page: z.string().regex(/^\d+$/, "Page harus angka").optional(),
+    limit: z.string().regex(/^\d+$/, "Limit harus angka").optional(),
   }),
 });
 
@@ -135,6 +132,12 @@ export const getCourseStatisticsSchema = z.object({
 });
 
 export const exportCoursesSchema = z.object({
+  query: z.object({
+    format: z.enum(["csv", "excel"]).default("csv"),
+  }),
+});
+
+export const exportProductEventSchema = z.object({
   query: z.object({
     format: z.enum(["csv", "excel"]).default("csv"),
   }),

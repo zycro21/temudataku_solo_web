@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import axios from "axios";
 import Link from "next/link";
 import Image from "next/image";
@@ -129,12 +130,12 @@ export default function AdminLayout({
       ],
     },
 
-    {
-      name: "Kelola Practice",
-      href: "/admin/kelola-practice",
-      icon: "/assets/dashboard/user/materi.svg",
-      activeIcon: "/assets/dashboard/user/whitemateri.svg",
-    },
+    // {
+    //   name: "Kelola Practice",
+    //   href: "/admin/kelola-practice",
+    //   icon: "/assets/dashboard/user/materi.svg",
+    //   activeIcon: "/assets/dashboard/user/whitemateri.svg",
+    // },
     {
       name: "Transaksi",
       href: "/admin/transaksi",
@@ -149,7 +150,7 @@ export default function AdminLayout({
     },
 
     {
-      name: "History & Security",
+      name: "History",
       icon: "/assets/admin/hissec.svg",
       activeIcon: "/assets/admin/hissec.svg",
       hasSubmenu: true,
@@ -160,12 +161,12 @@ export default function AdminLayout({
           icon: "/assets/admin/his.svg",
           activeIcon: "/assets/admin/whitehis.svg",
         },
-        {
-          name: "Security",
-          href: "/admin/security",
-          icon: "/assets/admin/sec.svg",
-          activeIcon: "/assets/admin/whitesec.svg",
-        },
+        // {
+        //   name: "Security",
+        //   href: "/admin/security",
+        //   icon: "/assets/admin/sec.svg",
+        //   activeIcon: "/assets/admin/whitesec.svg",
+        // },
       ],
     },
   ];
@@ -181,37 +182,34 @@ export default function AdminLayout({
   } | null>(null);
 
   useEffect(() => {
-  if (isProfileOpen) {
-    axios
-      .get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/me`, {
-        withCredentials: true,
-      })
-      .then((res) => {
-        const user = res.data.data;
+    if (isProfileOpen) {
+      axios
+        .get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/me`, {
+          withCredentials: true,
+        })
+        .then((res) => {
+          const user = res.data.data;
 
-        setCurrentAdmin({
-          id: user.id,
-          fullName: user.fullName,
-          email: user.email,
-          phone: user.phoneNumber || "-",
-          role:
-            user.userRoles?.[0]?.role?.roleName?.charAt(0).toUpperCase() +
-              user.userRoles?.[0]?.role?.roleName?.slice(1) ||
-            "Admin",
-          avatarUrl:
-            user.profilePicture &&
-            user.profilePicture !== "default.jpg"
-              ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${user.profilePicture}`
-              : "/assets/dashboard/user/avatar.png",
-          isActive: user.isActive,
+          setCurrentAdmin({
+            id: user.id,
+            fullName: user.fullName,
+            email: user.email,
+            phone: user.phoneNumber || "-",
+            role:
+              user.userRoles?.[0]?.role?.roleName?.charAt(0).toUpperCase() +
+                user.userRoles?.[0]?.role?.roleName?.slice(1) || "Admin",
+            avatarUrl:
+              user.profilePicture && user.profilePicture !== "default.jpg"
+                ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${user.profilePicture}`
+                : "/assets/dashboard/user/avatar.png",
+            isActive: user.isActive,
+          });
+        })
+        .catch(() => {
+          setCurrentAdmin(null);
         });
-      })
-      .catch(() => {
-        setCurrentAdmin(null);
-      });
-  }
-}, [isProfileOpen]);
-
+    }
+  }, [isProfileOpen]);
 
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -241,14 +239,52 @@ export default function AdminLayout({
     reader.readAsDataURL(file);
   };
 
-  const handleSaveEdit = () => {
-    console.log("Data yang dikirim ke backend:", {
-      email,
-      phone,
-      avatar: selectedFile,
-    });
+  const handleSaveEdit = async () => {
+    if (!currentAdmin) return;
 
-    setIsEditAdminOpen(false);
+    try {
+      const formData = new FormData();
+      formData.append("email", email);
+      formData.append("phoneNumber", phone);
+      if (selectedFile) {
+        formData.append("profilePicture", selectedFile);
+      }
+
+      const res = await axios.put(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/update`,
+        formData,
+        {
+          withCredentials: true,
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      if (res.data.success) {
+        // Update currentAdmin agar UI otomatis terupdate
+        setCurrentAdmin((prev) =>
+          prev
+            ? {
+                ...prev,
+                email,
+                phone,
+                avatarUrl: selectedFile ? preview : prev.avatarUrl,
+              }
+            : prev
+        );
+        setIsEditAdminOpen(false);
+        toast.success("Profil berhasil diperbarui!");
+      } else {
+        toast.error(res.data.message || "Gagal memperbarui profil");
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(
+        err.response?.data?.message ||
+          "Terjadi kesalahan saat memperbarui profil"
+      );
+    }
   };
 
   return (
@@ -501,6 +537,7 @@ export default function AdminLayout({
                 alt="Foto Admin"
                 width={400}
                 height={250}
+                unoptimized
                 className="object-cover w-full h-full"
               />
             </div>
@@ -586,6 +623,7 @@ export default function AdminLayout({
                   alt="Foto Admin"
                   width={80}
                   height={80}
+                  unoptimized
                   className="object-cover w-full h-full"
                 />
               </div>

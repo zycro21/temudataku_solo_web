@@ -125,3 +125,14 @@ export const feedbackStatsQuerySchema = z.object({
       }),
   }),
 });
+
+export const updateFeedbackAdminSchema = z.object({
+  params: z.object({
+    id: z.string().min(1),
+  }),
+  body: z.object({
+    isVisible: z.boolean(),
+    rating: z.number().min(0).max(5),
+    comment: z.string().nullable(),
+  }),
+});

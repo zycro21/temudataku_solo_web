@@ -11,6 +11,7 @@ import {
   exportMentorReportQuerySchema,
   mentorReportSessionIdSchema,
   mentorReportMentorProfileIdSchema,
+  getMentorReportStatsSchema,
 } from "../validations/mentor_report.validation.js";
 
 const router = Router();
@@ -566,7 +567,7 @@ router.delete(
 
 /**
  * @swagger
- * /api/mentorReports/mentor/reports/export:
+ * /api/mentorReports/mentor/reportsExport:
  *   get:
  *     summary: Export laporan mentor (admin only)
  *     tags: [MentorReport]
@@ -606,7 +607,7 @@ router.delete(
  *         description: Terjadi kesalahan server
  */
 router.get(
-  "/mentor/reports/export",
+  "/mentor/reportsExport",
   authenticate,
   authorizeRoles("admin"),
   validate(exportMentorReportQuerySchema),
@@ -764,6 +765,26 @@ router.get(
   authorizeRoles("admin"),
   validate(mentorReportMentorProfileIdSchema),
   MentorReportController.getMentorReportsByMentorProfileId
+);
+
+/**
+ * @swagger
+ * /api/mentorReports/mentor/reports/stats:
+ *   get:
+ *     summary: Statistik laporan mentor
+ *     tags: [MentorReport]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Statistik laporan mentor
+ */
+router.get(
+  "/mentorReportStats",
+  authenticate,
+  authorizeRoles("admin", "mentor"),
+  validate(getMentorReportStatsSchema),
+  MentorReportController.getMentorReportStats
 );
 
 export default router;

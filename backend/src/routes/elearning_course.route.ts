@@ -14,6 +14,7 @@ import {
   getCourseDetailSchema,
   getCourseStatisticsSchema,
   exportCoursesSchema,
+  exportProductEventSchema,
 } from "../validations/elearning_course.validation.js";
 import { handleElearningThumbnailUpload } from "../middlewares/uploadImage.js";
 
@@ -532,5 +533,44 @@ router.get(
   validate(exportCoursesSchema),
   ELearningCourseController.exportCourses
 );
+
+/**
+ * @swagger
+ * /api/elearningCourse/exportProductEvent:
+ *   get:
+ *     summary: Export data produk & event (Mentoring & E-Learning)
+ *     tags: [ProductEvent]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: format
+ *         in: query
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [csv, excel]
+ *           default: csv
+ *         example: csv
+ *     responses:
+ *       200:
+ *         description: File export berhasil dikirim
+ *         content:
+ *           application/octet-stream:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       400:
+ *         description: Format tidak valid
+ *       500:
+ *         description: Server error
+ */
+router.get(
+  "/exportProductEvent",
+  authenticate,
+  authorizeRoles("admin"),
+  validate(exportProductEventSchema),
+  ELearningCourseController.exportProductEvent
+);
+
 
 export default router;

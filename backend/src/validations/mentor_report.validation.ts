@@ -35,7 +35,7 @@ export const updateMentorReportSchema = z.object({
 export const getMentorReportListSchema = z.object({
   query: z.object({
     page: z.string().optional().default("1"),
-    limit: z.string().optional().default("10"),
+    limit: z.string().optional().default("10000"),
     sessionId: z.string().optional(), // filter berdasarkan session
     search: z.string().optional(), // search di kolom tertentu
     sortField: z.enum(["createdAt", "updatedAt"]).optional(),
@@ -65,5 +65,12 @@ export const mentorReportSessionIdSchema = z.object({
 export const mentorReportMentorProfileIdSchema = z.object({
   params: z.object({
     mentorProfileId: z.string().min(1, "mentorProfileId wajib diisi"),
+  }),
+});
+
+export const getMentorReportStatsSchema = z.object({
+  query: z.object({
+    // disiapkan untuk future extension
+    // misalnya filter by date range, mentorId, dll
   }),
 });

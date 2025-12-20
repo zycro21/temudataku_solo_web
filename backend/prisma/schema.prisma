@@ -7,6 +7,21 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model AdminActivityLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String   @db.VarChar       // contoh: "LOGIN", "CREATE_SERVICE", "UPDATE_PROFILE"
+  description String? @db.Text         // detail tambahan
+  ipAddress String?  @db.VarChar       // IP user
+  userAgent String?  @db.VarChar       // browser info
+  type      String?  @db.VarChar       // join, leave, upload, send_message, update_material, dll
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("activity_logs")
+}
+
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model Booking {
   id                  String              @id @default(cuid())
@@ -393,7 +408,7 @@ model Feedback {
   id               String            @id @default(cuid())
   sessionId        String            @map("session_id")
   userId           String            @map("user_id")
-  rating           Int
+  rating           Decimal           @db.Decimal(3,1)
   comment          String?
 
   submittedDate    DateTime?         @default(now()) @db.Timestamp(6) @map("submitted_date")
@@ -941,6 +956,7 @@ model User {
   tiktok                     String?             @db.VarChar
   otherSocialMedia           String?             @db.VarChar
 
+  adminActivityLogs          AdminActivityLog[]
   bookings                   Booking[]
   bookingParticipants        BookingParticipant[]
   certificates               Certificate[]

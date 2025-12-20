@@ -729,7 +729,7 @@ router.get(
  *             properties:
  *               status:
  *                 type: string
- *                 enum: [pending, confirmed, failed]
+ *                 enum: [pending, confirmed, failed, refunded]
  *                 example: "confirmed"
  *     responses:
  *       200:

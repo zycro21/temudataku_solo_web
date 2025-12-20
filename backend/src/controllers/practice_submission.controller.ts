@@ -1,6 +1,7 @@
 import { Response, NextFunction } from "express";
 import { AuthenticatedRequestPractice } from "../middlewares/authenticate.js";
 import * as PracticeSubmissionService from "../services/practice_submission.service.js";
+import { logActivity } from "../utils/logActivtiy.js";
 
 export const createPracticeSubmissionController = async (
   req: AuthenticatedRequestPractice,
@@ -148,6 +149,13 @@ export const reviewPracticeSubmissionController = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     const { user } = req;
     if (!user) {
       res.status(401).json({
@@ -165,6 +173,16 @@ export const reviewPracticeSubmissionController = async (
         mentorProfileId: user.mentorProfileId,
         ...req.validatedBody,
       });
+
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: adminId,
+        action: "Review Practice Submission",
+        type: "UPDATE",
+        description: `User ${user.userId} reviewed submission ${req.params.id}`,
+        req,
+      });
+    }
 
     res.json({
       success: true,
@@ -185,10 +203,29 @@ export const deletePracticeSubmissionController = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     await PracticeSubmissionService.deletePracticeSubmissionService(
       req.params.id,
       { userId: req.user!.userId, roles: req.user!.roles || [] }
     );
+
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: req.user!.userId,
+        action: "Delete Practice Submission",
+        type: "DELETE",
+        description: `User ${req.user!.userId} deleted submission ${
+          req.params.id
+        }`,
+        req,
+      });
+    }
 
     res.json({ success: true, message: "Submission deleted successfully." });
   } catch (err: any) {

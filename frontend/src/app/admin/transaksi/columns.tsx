@@ -5,7 +5,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowUp, ArrowDown } from "lucide-react";
 
 export type Project = {
-  id: string;
+  paymentId: string;   // ⬅️ MURNI ID DB (dipakai update)
+  displayId: string;
+
   mentee: string;
   mentor: string;
   program: string;
@@ -14,6 +16,7 @@ export type Project = {
   totalHarga: string;
   statusTransaksi: string;
   alasan: string;
+  type: string;
 };
 
 function threeModeSort(column: any) {
@@ -50,7 +53,7 @@ export const columns: ColumnDef<Project>[] = [
      SORTING 3 MODE: id, mentee, mentor, topic
   ================================= */
   {
-    accessorKey: "id",
+    accessorKey: "displayId",
     header: ({ column }) => {
       const sort = column.getIsSorted();
       return (
@@ -88,7 +91,7 @@ export const columns: ColumnDef<Project>[] = [
   },
 
   {
-    accessorKey: "mentor",
+    accessorKey: "type",
     header: ({ column }) => {
       const sort = column.getIsSorted();
       return (
@@ -98,7 +101,7 @@ export const columns: ColumnDef<Project>[] = [
             sort ? "bg-emerald-200" : ""
           }`}
         >
-          Mentor
+          Tipe
           {sort === "asc" && <ArrowDown className="w-4 h-4" />}
           {sort === "desc" && <ArrowUp className="w-4 h-4" />}
         </button>
@@ -120,8 +123,6 @@ export const columns: ColumnDef<Project>[] = [
         "Live Class",
         "1 on 1 Mentoring",
         "Group Mentoring",
-        "Practice",
-        "E-Learning",
       ];
 
       const next = () => {
@@ -156,6 +157,25 @@ export const columns: ColumnDef<Project>[] = [
           }`}
         >
           Topik/Judul
+          {sort === "asc" && <ArrowDown className="w-4 h-4" />}
+          {sort === "desc" && <ArrowUp className="w-4 h-4" />}
+        </button>
+      );
+    },
+  },
+
+  {
+    accessorKey: "date",
+    header: ({ column }) => {
+      const sort = column.getIsSorted();
+      return (
+        <button
+          onClick={() => threeModeSort(column)}
+          className={`flex items-center gap-1 w-full cursor-pointer ${
+            sort ? "bg-emerald-200" : ""
+          }`}
+        >
+          Tanggal
           {sort === "asc" && <ArrowDown className="w-4 h-4" />}
           {sort === "desc" && <ArrowUp className="w-4 h-4" />}
         </button>

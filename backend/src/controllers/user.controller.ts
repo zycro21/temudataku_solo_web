@@ -6,6 +6,7 @@ import * as AuthService from "../services/auth.service.js";
 import * as UserService from "../services/user.service.js";
 import { uploadPath } from "../middlewares/uploadImage";
 import { PrismaClient } from "@prisma/client";
+import { logActivity } from "../utils/logActivtiy.js";
 
 const prisma = new PrismaClient();
 
@@ -59,6 +60,12 @@ export const updateUserRoles = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const rolesLog = req.user?.roles || [];
+
     const adminId = req.user?.userId;
     const { userId, roles_to_add = [], roles_to_remove = [] } = req.body;
 
@@ -72,6 +79,18 @@ export const updateUserRoles = async (
       roles_to_add,
       roles_to_remove
     );
+
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: adminId,
+        action: "UPDATE_USER_ROLES",
+        type: "UPDATE",
+        description: `Updated roles for user ${userId}. Added: [${roles_to_add.join(
+          ", "
+        )}], Removed: [${roles_to_remove.join(", ")}]`,
+        req,
+      });
+    }
 
     res.status(200).json({
       success: true,
@@ -90,6 +109,12 @@ export const deleteUser = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const rolesLog = req.user?.roles || [];
+
     const adminId = req.user?.userId;
     const { userId } = req.params;
 
@@ -99,6 +124,16 @@ export const deleteUser = async (
     }
 
     const result = await UserService.deleteUser(adminId, userId);
+
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: adminId,
+        action: "DELETE USER ACCOUNT",
+        type: "DELETE",
+        description: `Deleted user ${userId}`,
+        req,
+      });
+    }
 
     res.status(200).json({
       success: true,
@@ -136,7 +171,25 @@ export const updateUserStatus = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const rolesLog = req.user?.roles || [];
+    const adminId = req.user?.userId;
+
     const users = await UserService.updateUsersStatus();
+
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: adminId!,
+        action: "UPDATE_STATUS_USERS",
+        type: "UPDATE",
+        description: `Auto-updated user statuses. Total deactivated: ${users?.count}`,
+        req,
+      });
+    }
+
     res.status(200).json({
       success: true,
       message: "User statuses updated successfully.",
@@ -148,9 +201,26 @@ export const updateUserStatus = async (
 };
 
 export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user?.userId) {
+    res.status(401).json({ message: "Unauthorized. User ID not found." });
+    return;
+  }
+  const rolesLog = req.user?.roles || [];
+  const adminId = req.user?.userId;
+
   const query = req.validatedQuery ?? req.query;
   const { fileBuffer, filename, contentType } =
     await UserService.exportUsersToFile(query);
+
+  if (rolesLog.includes("admin") && adminId) {
+    await logActivity({
+      userId: adminId!,
+      action: "EXPORT USERS",
+      type: "EXPORT",
+      description: `Exported users file in format ${query?.format || "csv"}`,
+      req,
+    });
+  }
 
   res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
   res.setHeader("Content-Type", contentType);
@@ -173,6 +243,35 @@ export const getUserById = async (
     }
 
     res.status(200).json({ data: user });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const adminUpdateUser = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.params.id;
+    const data = req.body;
+
+    if (req.file) {
+      data.profilePicture = req.file.filename;
+    }
+
+    const { updatedFields, skippedFields } = await UserService.adminUpdateUser(
+      userId,
+      data
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "User updated successfully",
+      updatedFields,
+      skippedFields,
+    });
   } catch (err) {
     next(err);
   }

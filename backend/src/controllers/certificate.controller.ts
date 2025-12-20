@@ -5,6 +5,7 @@ import { HttpError } from "../utils/httpError";
 import * as CertificateService from "../services/certificate.service.js";
 import { PrismaClient } from "@prisma/client";
 import path from "path";
+import { logActivity } from "../utils/logActivtiy.js";
 
 const prisma = new PrismaClient();
 
@@ -14,6 +15,13 @@ export const generateCertificate = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const roles = req.user?.roles || [];
+
     const { menteeId, serviceId } = req.validatedBody as {
       menteeId: string;
       serviceId: string;
@@ -23,6 +31,16 @@ export const generateCertificate = async (
       menteeId,
       serviceId,
     });
+
+    if (roles.includes("admin") && adminId) {
+      await logActivity({
+        userId: adminId,
+        action: "ADMIN_GENERATE_CERTIFICATE",
+        type: "CREATE",
+        description: `Admin membuat certificate untuk menteeId=${menteeId}, serviceId=${serviceId}.`,
+        req,
+      });
+    }
 
     res.status(201).json({
       success: true,
@@ -40,6 +58,13 @@ export const getAllCertificates = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const roles = req.user?.roles || [];
+
     const { page, limit, search, status, serviceId, startDate, endDate } =
       req.validatedQuery as {
         page: number;
@@ -77,11 +102,27 @@ export const updateCertificate = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+
+    const adminId = req.user.userId;
+    const roles = req.user.roles || [];
+
     const { id } = req.validatedParams as { id: string };
-    const { status, verifiedBy, note } = req.validatedBody as {
+    const {
+      status,
+      verifiedBy,
+      note,
+      removeCertificate,
+      regenerateCertificate,
+    } = req.validatedBody as {
       status?: string;
       verifiedBy?: string;
       note?: string;
+      removeCertificate?: boolean;
+      regenerateCertificate?: boolean;
     };
 
     const result = await CertificateService.updateCertificateService({
@@ -89,7 +130,24 @@ export const updateCertificate = async (
       status,
       verifiedBy,
       note,
+      removeCertificate,
+      regenerateCertificate,
+      adminId,
     });
+
+    if (roles.includes("admin")) {
+      await logActivity({
+        userId: adminId,
+        action: "ADMIN_UPDATE_CERTIFICATE",
+        type: "UPDATE",
+        description: regenerateCertificate
+          ? `Admin regenerate sertifikat id=${id}`
+          : removeCertificate
+          ? `Admin menghapus file sertifikat id=${id}`
+          : `Admin update metadata sertifikat id=${id}`,
+        req,
+      });
+    }
 
     res.status(200).json({
       success: true,
@@ -188,10 +246,27 @@ export const exportCertificatesController = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const roles = req.user?.roles || [];
+
     const { format } = req.validatedQuery as { format: "csv" | "excel" };
 
     const { buffer, filename, contentType } =
       await CertificateService.exportCertificates(format);
+
+    if (roles.includes("admin") && adminId) {
+      await logActivity({
+        userId: adminId,
+        action: "ADMIN_EXPORT_CERTIFICATE",
+        type: "EXPORT",
+        description: `Admin mengekspor data booking dalam format ${format}.`,
+        req,
+      });
+    }
 
     res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
     res.setHeader("Content-Type", contentType);

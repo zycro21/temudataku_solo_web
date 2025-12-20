@@ -7,17 +7,21 @@ import { ArrowUp, ArrowDown } from "lucide-react";
 // Tipe data mentee
 export type SesiMentoring = {
   id: string;
+  serviceId: string;
   mentor: string;
+  mentorProfileId: string;
   program: string;
   durasi: string;
   topik: string;
   date: string;
-  time: string;        
+  rawDate: string; // "20-10-2025"
+  rawStartTime: string; // ISO
+  rawEndTime: string;
+  time: string;
   dokumenPendukung: string;
   ukuranFile: number | null;
   status: string;
 };
-
 
 export const columns: ColumnDef<SesiMentoring>[] = [
   {

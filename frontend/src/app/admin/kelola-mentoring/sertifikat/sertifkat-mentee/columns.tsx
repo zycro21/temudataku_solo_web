@@ -12,6 +12,23 @@ export type MenteeCertificate = {
   name: string;
   program: string;
   date: string;
+  certificatePath: string;
+  driveUrl?: string;
+};
+
+const buildCertificateUrl = (certificatePath?: string, driveUrl?: string) => {
+  if (certificatePath) {
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+    // jaga-jaga kalau path sudah diawali /
+    const normalizedPath = certificatePath.startsWith("/")
+      ? certificatePath.slice(1)
+      : certificatePath;
+
+    return `${baseUrl}/${normalizedPath}`;
+  }
+
+  return driveUrl;
 };
 
 const getProgramBadgeColor = (program: string) => {
@@ -133,6 +150,33 @@ export const columnsMentee: ColumnDef<MenteeCertificate>[] = [
     },
   },
 
+  {
+    accessorKey: "certificatePath",
+    header: "Sertifikat",
+    enableSorting: false,
+    enableGlobalFilter: false,
+    cell: ({ row }) => {
+      const { certificatePath, driveUrl } = row.original;
+
+      const url = buildCertificateUrl(certificatePath, driveUrl);
+
+      if (!url) {
+        return <span className="text-gray-400">-</span>;
+      }
+
+      return (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 font-semibold hover:underline"
+        >
+          LIHAT SERTIFIKAT
+        </a>
+      );
+    },
+  },
+
   // =====================================================
   // 4. PROGRAM (Filter 4 Mode)
   // =====================================================
@@ -231,14 +275,6 @@ export const columnsMentee: ColumnDef<MenteeCertificate>[] = [
           }}
         >
           <Edit className="w-4 h-4" />
-        </Button>
-
-        <Button
-          size="sm"
-          variant="outline"
-          className="w-8 h-8 p-0 bg-red-500 hover:bg-red-600 text-white border-red-500"
-        >
-          <Trash2 className="w-4 h-4" />
         </Button>
       </div>
     ),

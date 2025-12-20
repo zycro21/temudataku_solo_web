@@ -477,8 +477,18 @@ export const getAllCertificatesService = async ({
       },
       orderBy: { createdAt: "desc" },
       include: {
-        user: { select: { fullName: true, email: true } },
-        mentoringService: { select: { serviceName: true } },
+        user: {
+          select: {
+            fullName: true,
+            email: true,
+          },
+        },
+        mentoringService: {
+          select: {
+            serviceName: true, // untuk Nama Sertifikat
+            serviceType: true, // untuk Program (Bootcamp / Live / Short)
+          },
+        },
       },
     }),
     prisma.certificate.count({
@@ -503,52 +513,105 @@ export const updateCertificateService = async ({
   status,
   verifiedBy,
   note,
+  removeCertificate,
+  regenerateCertificate,
+  adminId,
 }: {
   id: string;
   status?: string;
   verifiedBy?: string;
   note?: string;
+  removeCertificate?: boolean;
+  regenerateCertificate?: boolean;
+  adminId: string;
 }) => {
-  const existing = await prisma.certificate.findUnique({
+  const certificate = await prisma.certificate.findUnique({
     where: { id },
+    include: {
+      user: { select: { id: true, fullName: true, email: true } },
+      mentoringService: { select: { id: true, serviceName: true } },
+    },
   });
 
-  if (!existing) {
+  if (!certificate) {
     throw new Error("Certificate not found");
   }
 
-  // Validasi: Jika ada verifiedBy, pastikan user-nya ada dan role-nya "admin"
+  if (removeCertificate && regenerateCertificate) {
+    throw new Error(
+      "Cannot remove and regenerate certificate at the same time"
+    );
+  }
+
+  // ================= VALIDASI VERIFIED BY =================
   if (verifiedBy) {
-    const userWithRoles = await prisma.user.findUnique({
+    const admin = await prisma.user.findUnique({
       where: { id: verifiedBy },
-      include: {
-        userRoles: {
-          include: {
-            role: true, // Include relasi ke Role untuk akses roleName
-          },
-        },
-      },
+      include: { userRoles: { include: { role: true } } },
     });
 
-    if (!userWithRoles) {
-      throw new Error("VerifiedBy user not found");
-    }
-
-    const isAdmin = userWithRoles.userRoles.some(
-      (userRole) => userRole.role.roleName === "admin"
-    );
-
-    if (!isAdmin) {
+    if (!admin || !admin.userRoles.some((r) => r.role.roleName === "admin")) {
       throw new Error("VerifiedBy user must have admin role");
     }
   }
 
+  let newCertificatePath: string | null | undefined;
+  let newGoogleDriveUrl: string | null | undefined;
+
+  // ================= REGENERATE CERTIFICATE =================
+  if (regenerateCertificate) {
+    const certificateNumber = certificate.certificateNumber;
+
+    const pdfDir = path.join(__dirname, "../../Uploads/certificate");
+    if (!fs.existsSync(pdfDir)) {
+      fs.mkdirSync(pdfDir, { recursive: true });
+    }
+
+    const pdfFileName = `${certificateNumber}-${certificate.user.id}.pdf`;
+    const pdfPath = path.join(pdfDir, pdfFileName);
+
+    // 🔁 generate ulang PDF
+    await generateCertificatePDF({
+      certificateNumber,
+      menteeName: certificate.user.fullName,
+      serviceName: certificate.mentoringService.serviceName,
+      issueDate: new Date().toISOString().split("T")[0],
+      pdfPath,
+      projects: [], // bisa kamu isi ulang kalau mau ambil project lagi
+    });
+
+    // 🔁 upload ulang ke Google Drive
+    const uploadedFile = await uploadToGoogleDrive(
+      pdfPath,
+      pdfFileName,
+      "16dqTiqyEhFhrfzfoX5upUkgkNoUGNnI9"
+    );
+
+    newCertificatePath = `/certificates/${pdfFileName}`;
+    newGoogleDriveUrl = uploadedFile.webViewLink;
+  }
+
+  // ================= UPDATE DB =================
   const updated = await prisma.certificate.update({
     where: { id },
     data: {
       status,
       verifiedBy,
       note,
+
+      ...(removeCertificate && {
+        certificatePath: null,
+        googleDriveUrl: null,
+        projectCertificatePath: null,
+      }),
+
+      ...(regenerateCertificate && {
+        certificatePath: newCertificatePath,
+        googleDriveUrl: newGoogleDriveUrl,
+        issueDate: new Date(),
+        status: "generated",
+      }),
+
       updatedAt: new Date(),
     },
   });

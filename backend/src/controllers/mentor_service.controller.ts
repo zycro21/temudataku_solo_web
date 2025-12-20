@@ -4,6 +4,7 @@ import { HttpError } from "../utils/httpError";
 import * as MentorServiceService from "../services/mentor_service.service.js";
 import { uploadPath } from "../middlewares/uploadImage";
 import { PrismaClient } from "@prisma/client";
+import { logActivity } from "../utils/logActivtiy.js";
 
 const prisma = new PrismaClient();
 
@@ -13,9 +14,26 @@ export const createMentoringServiceController = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     const input = req.validatedBody ?? req.body;
 
     const result = await MentorServiceService.createMentoringService(input);
+
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: req.user.userId,
+        action: "CREATE_MENTORING_SERVICE",
+        type: "CREATE",
+        description: `Admin membuat mentoring service baru: ${result.serviceName}`,
+        req,
+      });
+    }
 
     res.status(201).json({
       message: "Mentoring service created successfully",
@@ -92,7 +110,12 @@ export const updateMentoringServiceController = async (
   next: NextFunction
 ) => {
   try {
-    console.log(req.validatedParams?.id); // Debugging
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
 
     if (!req.validatedParams || !req.validatedBody) {
       res.status(400).json({ message: "Invalid request" });
@@ -108,6 +131,7 @@ export const updateMentoringServiceController = async (
       durationDays,
       isActive,
       mentorProfileIds,
+      serviceType,
       benefits,
       mechanism,
       syllabusPath,
@@ -126,6 +150,7 @@ export const updateMentoringServiceController = async (
         durationDays,
         isActive,
         mentorProfileIds,
+        serviceType,
         benefits,
         mechanism,
         syllabusPath,
@@ -134,6 +159,16 @@ export const updateMentoringServiceController = async (
         schedule,
         alumniPortfolio,
       });
+
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: req.user.userId,
+        action: "UPDATE_MENTORING_SERVICE",
+        type: "UPDATE",
+        description: `Admin mengupdate mentoring service ID: ${id}`,
+        req,
+      });
+    }
 
     res.status(200).json({
       message: "Mentoring service updated successfully",
@@ -154,10 +189,27 @@ export const deleteMentoringServiceController = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     const { id } = req.validatedParams!;
 
     // Panggil service untuk menghapus mentoring service
     await MentorServiceService.deleteMentoringServiceById(id);
+
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: req.user.userId,
+        action: "DELETE_MENTORING_SERVICE",
+        type: "DELETE",
+        description: `Admin menghapus mentoring service ID: ${id}`,
+        req,
+      });
+    }
 
     // Berikan response sukses jika berhasil
     res.status(200).json({
@@ -193,6 +245,13 @@ export const exportMentoringServicesController = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     const { format } = req.validatedQuery!;
 
     if (!format || (format !== "csv" && format !== "excel")) {
@@ -203,6 +262,16 @@ export const exportMentoringServicesController = async (
     const file = await MentorServiceService.exportMentoringServicesToFile(
       format
     );
+
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: req.user.userId,
+        action: "EXPORT_MENTORING_SERVICES",
+        type: "EXPORT",
+        description: `Admin melakukan export mentoring services dalam format ${format}`,
+        req,
+      });
+    }
 
     res.setHeader(
       "Content-Disposition",

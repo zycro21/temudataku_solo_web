@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import {
   ColumnDef,
   flexRender,
@@ -65,6 +68,7 @@ export function DataTable<TData extends SesiMentoring, TValue>({
   const [editFormData, setEditFormData] = useState<{
     id: string;
     mentor: string;
+    mentorProfileId: string;
     program: string;
     topik: string;
     date: string;
@@ -76,6 +80,7 @@ export function DataTable<TData extends SesiMentoring, TValue>({
   }>({
     id: "",
     mentor: "",
+    mentorProfileId: "",
     program: "",
     topik: "",
     date: "",
@@ -111,13 +116,204 @@ export function DataTable<TData extends SesiMentoring, TValue>({
   const to = Math.min((pageIndex + 1) * pageSize, totalRows);
   const totalPages = table.getPageCount();
 
-  // Fungsi untuk konversi dd-mm-yy ke yyyy-mm-dd
-  function convertToDateInputFormat(dateStr: string) {
-    // Asumsikan dateStr = "20-10-26" => "2020-10-26"
-    const [yy, mm, dd] = dateStr.split("-");
-    const fullYear = +yy > 50 ? `19${yy}` : `20${yy}`; // 20 berarti 2020, 21 => 2021, dll
-    return `${fullYear}-${mm}-${dd}`;
-  }
+  const toISODate = (ddmmyyyy: string) => {
+    const [dd, mm, yyyy] = ddmmyyyy.split("-");
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const parseDateAndTime = (value: string) => {
+    // contoh: 20-10-2025 (08:30 - 09:45)
+    const match = value.match(
+      /^(\d{2}-\d{2}-\d{4})\s+\((\d{2}:\d{2})\s-\s(\d{2}:\d{2})\)$/
+    );
+
+    if (!match) {
+      return { date: "", time: "" };
+    }
+
+    return {
+      date: toISODate(match[1]), // ✅ FIX PENTING
+      time: `${match[2]} - ${match[3]}`,
+    };
+  };
+
+  const formatHourMinute = (iso: string) =>
+    new Date(iso).toLocaleTimeString("id-ID", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+  type MentorOption = {
+    id: string;
+    fullName: string;
+  };
+
+  const [mentors, setMentors] = useState<MentorOption[]>([]);
+  const [loadingMentor, setLoadingMentor] = useState(false);
+
+  useEffect(() => {
+    if (!selectedMentee?.serviceId || !showEditDialog) return;
+
+    const fetchMentorsByService = async () => {
+      setLoadingMentor(true);
+      try {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentor/admin/mentor-profiles/by-service/${selectedMentee.serviceId}`,
+          { withCredentials: true }
+        );
+
+        setMentors(res.data.data);
+      } catch (err) {
+        console.error("Gagal mengambil mentor by service", err);
+        setMentors([]);
+      } finally {
+        setLoadingMentor(false);
+      }
+    };
+
+    fetchMentorsByService();
+  }, [selectedMentee?.serviceId, showEditDialog]);
+
+  const [initialProgram, setInitialProgram] = useState<string>("");
+
+  const parseTimeRange = (time: string) => {
+    // "13:30 - 15:00"
+    const match = time.match(/^(\d{2}):(\d{2})\s-\s(\d{2}):(\d{2})$/);
+
+    if (!match) return null;
+
+    return {
+      startTime: {
+        hour: Number(match[1]),
+        minute: Number(match[2]),
+      },
+      endTime: {
+        hour: Number(match[3]),
+        minute: Number(match[4]),
+      },
+    };
+  };
+
+  const mapProgramToServiceType = (program: string) => {
+    switch (program) {
+      case "1 on 1 Mentoring":
+        return "one-on-one";
+      case "Group Mentoring":
+        return "group";
+      case "Short Class":
+        return "shortclass";
+      case "Live Class":
+        return "live class";
+      case "Bootcamp":
+        return "bootcamp";
+      default:
+        return "bootcamp";
+    }
+  };
+
+  const handleSaveEditSession = async () => {
+    try {
+      const sessionId = editFormData.id;
+
+      /** ===============================
+     * 1. UPDATE JADWAL (DATE + TIME)
+     =============================== */
+      const timeParsed = parseTimeRange(editFormData.time);
+
+      if (editFormData.date || timeParsed) {
+        await axios.patch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentoringSession/admin/mentoring-sessions/${sessionId}`,
+          {
+            date: editFormData.date
+              ? editFormData.date.split("-").reverse().join("-") // yyyy-mm-dd -> dd-mm-yyyy
+              : undefined,
+            ...(timeParsed ?? {}),
+          },
+          { withCredentials: true }
+        );
+      }
+
+      /** ===============================
+     * 2. UPDATE STATUS
+     =============================== */
+      if (editFormData.status) {
+        await axios.patch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentoringSession/admin/mentoring-sessions/${sessionId}/status`,
+          { status: editFormData.status },
+          { withCredentials: true }
+        );
+      }
+
+      /** ===============================
+     * 3. UPDATE MENTOR
+     =============================== */
+      if (editFormData.mentorProfileId) {
+        await axios.patch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentoringSession/admin/mentoring-sessions/${sessionId}/mentors`,
+          {
+            mentorProfileIds: [editFormData.mentorProfileId],
+          },
+          { withCredentials: true }
+        );
+      }
+
+      /** ===============================
+ * 4. UPDATE PROGRAM SAJA
+ * (serviceType mentoring service)
+ =============================== */
+      if (
+        selectedMentee?.serviceId &&
+        editFormData.program !== initialProgram
+      ) {
+        await axios.patch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentorService/admin/mentoring-services/${selectedMentee.serviceId}`,
+          {
+            serviceType: mapProgramToServiceType(editFormData.program),
+          },
+          { withCredentials: true }
+        );
+      }
+
+      toast.success("Sesi mentoring berhasil diperbarui");
+
+      setShowEditDialog(false);
+      setEditStep(1);
+      // fetchMentoringSessions();
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.response?.data?.message ?? "Gagal menyimpan perubahan");
+    }
+  };
+
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteSession = async () => {
+    if (!selectedMentee?.id) return;
+
+    try {
+      setIsDeleting(true);
+
+      await axios.delete(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentoringSession/admin/mentoring-sessions/${selectedMentee.id}`,
+        { withCredentials: true }
+      );
+
+      toast.success("Sesi mentoring berhasil dihapus");
+
+      setShowDeleteDialog(false);
+      setSelectedMentee(null);
+    } catch (err: any) {
+      console.error(err);
+      toast.error(
+        err.response?.data?.error ||
+          err.response?.data?.message ||
+          "Gagal menghapus sesi mentoring"
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <div>
@@ -189,9 +385,15 @@ export function DataTable<TData extends SesiMentoring, TValue>({
                     return (
                       <TableCell
                         key={cell.id}
-                        className={`px-5 py-4 text-sm ${
-                          isSelectColumn ? "" : "cursor-pointer"
-                        }`}
+                        className={`
+    px-5 py-4 text-sm 
+    ${isSelectColumn ? "" : "cursor-pointer"} 
+    ${
+      cell.column.id === "topik" || cell.column.id === "dokumenPendukung"
+        ? "whitespace-normal break-words"
+        : ""
+    }
+  `}
                         onClick={() => {
                           if (!isSelectColumn) {
                             setSelectedMentee(row.original);
@@ -288,7 +490,7 @@ export function DataTable<TData extends SesiMentoring, TValue>({
         </div>
       </div>
 
-      {/*  Session Detail Dialog */}
+      {/* Session Detail Dialog */}
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
         <DialogContent
           className="sm:max-w-xl"
@@ -361,7 +563,10 @@ export function DataTable<TData extends SesiMentoring, TValue>({
                   <div>
                     <p className="text-sm text-gray-500 mb-1">Status</p>
                     <p className="text-lg font-semibold">
-                      {selectedMentee.status}
+                      {selectedMentee.status
+                        ? selectedMentee.status.charAt(0).toUpperCase() +
+                          selectedMentee.status.slice(1)
+                        : "-"}
                     </p>
                   </div>
                 </div>
@@ -383,7 +588,7 @@ export function DataTable<TData extends SesiMentoring, TValue>({
                             {selectedMentee.dokumenPendukung}
                           </p>
 
-                          {/* Ukuran File (contoh perhitungan jika tersedia) */}
+                          {/* Ukuran File */}
                           <p className="text-sm text-gray-500">
                             {selectedMentee.ukuranFile
                               ? `${(
@@ -394,10 +599,15 @@ export function DataTable<TData extends SesiMentoring, TValue>({
                               : "Ukuran tidak tersedia"}
                           </p>
 
-                          {/* Tombol tampil di baris bawah */}
-                          <button className="text-[#0CA678] text-sm font-medium hover:underline text-left mt-1">
+                          {/* Tombol lihat dokumen */}
+                          <a
+                            href={`${process.env.NEXT_PUBLIC_API_BASE_URL}/supportDocuments/${selectedMentee.dokumenPendukung}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#0CA678] text-sm font-medium hover:underline text-left mt-1"
+                          >
                             Lihat Dokumen
-                          </button>
+                          </a>
                         </div>
                       </div>
                     </div>
@@ -412,13 +622,19 @@ export function DataTable<TData extends SesiMentoring, TValue>({
                 <Button
                   className="flex-1 bg-[#0CA678] hover:bg-[#08916C] text-white"
                   onClick={() => {
+                    const parsed = parseDateAndTime(selectedMentee.date);
+                    setInitialProgram(selectedMentee.program);
+
                     setEditFormData({
                       id: selectedMentee.id,
                       mentor: selectedMentee.mentor,
+                      mentorProfileId: selectedMentee.mentorProfileId ?? "",
                       program: selectedMentee.program,
                       topik: selectedMentee.topik,
-                      date: convertToDateInputFormat(selectedMentee.date),
-                      time: selectedMentee.time,
+                      date: toISODate(selectedMentee.rawDate),
+                      time: `${formatHourMinute(
+                        selectedMentee.rawStartTime
+                      )} - ${formatHourMinute(selectedMentee.rawEndTime)}`,
                       durasi: selectedMentee.durasi,
                       status: selectedMentee.status,
                       dokumenPendukung: selectedMentee.dokumenPendukung,
@@ -437,8 +653,8 @@ export function DataTable<TData extends SesiMentoring, TValue>({
                   variant="destructive"
                   className="flex-1 bg-red-500 hover:bg-red-600"
                   onClick={() => {
-                    console.log("Delete session:", selectedMentee);
                     setShowDetailDialog(false);
+                    setShowDeleteDialog(true);
                   }}
                 >
                   Hapus
@@ -512,18 +728,32 @@ export function DataTable<TData extends SesiMentoring, TValue>({
                     Mentor
                   </label>
                   <Select
-                    value={editFormData.mentor}
+                    key={editFormData.mentorProfileId}
+                    value={editFormData.mentorProfileId}
                     onValueChange={(value) =>
-                      setEditFormData({ ...editFormData, mentor: value })
+                      setEditFormData({
+                        ...editFormData,
+                        mentorProfileId: value,
+                      })
                     }
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Pilih mentor" />
                     </SelectTrigger>
+
                     <SelectContent>
-                      <SelectItem value="Laura Ayu">Laura Ayu</SelectItem>
-                      <SelectItem value="Gilang Dirga">Gilang Dirga</SelectItem>
-                      <SelectItem value="Nina Pratiwi">Nina Pratiwi</SelectItem>
+                      {loadingMentor && (
+                        <div className="px-3 py-2 text-sm text-gray-500">
+                          Memuat mentor...
+                        </div>
+                      )}
+
+                      {!loadingMentor &&
+                        mentors.map((mentor) => (
+                          <SelectItem key={mentor.id} value={mentor.id}>
+                            {mentor.fullName}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -557,18 +787,15 @@ export function DataTable<TData extends SesiMentoring, TValue>({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-900 mb-2">
-                    Topik
+                    Topik (Otomatis dari Layanan)
                   </label>
+
                   <Textarea
                     value={editFormData.topik}
-                    onChange={(e) =>
-                      setEditFormData({
-                        ...editFormData,
-                        topik: e.target.value,
-                      })
-                    }
-                    className="w-full min-h-[100px] resize-none"
-                    placeholder="Masukkan topik mentoring"
+                    disabled
+                    readOnly
+                    className="w-full min-h-[100px] resize-none bg-gray-100 text-gray-600 cursor-not-allowed"
+                    placeholder="Topik ditentukan dari layanan mentoring"
                   />
                 </div>
               </div>
@@ -597,56 +824,64 @@ export function DataTable<TData extends SesiMentoring, TValue>({
                   <label className="block text-sm font-medium text-gray-900 mb-2">
                     Waktu
                   </label>
-                  <Select
+                  <Input
+                    placeholder="HH:MM - HH:MM"
                     value={editFormData.time}
-                    onValueChange={(val: string) =>
-                      setEditFormData({ ...editFormData, time: val })
-                    }
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Pilih waktu" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[
-                        "20:00",
-                        "19:00",
-                        "18:00",
-                        "16:00",
-                        "15:00",
-                        "14:00",
-                      ].map((opt) => (
-                        <SelectItem key={opt} value={opt}>
-                          {opt}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onChange={(e) => {
+                      // ambil angka saja
+                      const digits = e.target.value
+                        .replace(/\D/g, "")
+                        .slice(0, 8);
+
+                      let formatted = "";
+
+                      if (digits.length >= 1) {
+                        formatted += digits.slice(0, 2);
+                      }
+
+                      if (digits.length >= 3) {
+                        formatted =
+                          digits.slice(0, 2) + ":" + digits.slice(2, 4);
+                      }
+
+                      if (digits.length >= 5) {
+                        formatted =
+                          digits.slice(0, 2) +
+                          ":" +
+                          digits.slice(2, 4) +
+                          " - " +
+                          digits.slice(4, 6);
+                      }
+
+                      if (digits.length >= 7) {
+                        formatted =
+                          digits.slice(0, 2) +
+                          ":" +
+                          digits.slice(2, 4) +
+                          " - " +
+                          digits.slice(4, 6) +
+                          ":" +
+                          digits.slice(6, 8);
+                      }
+
+                      setEditFormData({
+                        ...editFormData,
+                        time: formatted,
+                      });
+                    }}
+                    className="w-full"
+                  />
                 </div>
 
-                {/* Durasi */}
                 <div>
                   <label className="block text-sm font-medium text-gray-900 mb-2">
                     Durasi Sesi
                   </label>
-                  <Select
+                  <Input
                     value={editFormData.durasi}
-                    onValueChange={(val: string) =>
-                      setEditFormData({ ...editFormData, durasi: val })
-                    }
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Pilih durasi" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {["60 Menit", "90 Menit", "120 Menit", "180 Menit"].map(
-                        (opt) => (
-                          <SelectItem key={opt} value={opt}>
-                            {opt}
-                          </SelectItem>
-                        )
-                      )}
-                    </SelectContent>
-                  </Select>
+                    disabled
+                    className="w-full bg-gray-100 cursor-not-allowed"
+                  />
                 </div>
 
                 {/* Status */}
@@ -664,16 +899,13 @@ export function DataTable<TData extends SesiMentoring, TValue>({
                       <SelectValue placeholder="Pilih status" />
                     </SelectTrigger>
                     <SelectContent>
-                      {[
-                        "terjadwal",
-                        "selesai",
-                        "dibatalkan",
-                        "penjadwalan ulang",
-                      ].map((opt) => (
-                        <SelectItem key={opt} value={opt}>
-                          {opt}
-                        </SelectItem>
-                      ))}
+                      {["scheduled", "ongoing", "completed", "cancelled"].map(
+                        (opt) => (
+                          <SelectItem key={opt} value={opt}>
+                            {opt.charAt(0).toUpperCase() + opt.slice(1)}
+                          </SelectItem>
+                        )
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -681,7 +913,7 @@ export function DataTable<TData extends SesiMentoring, TValue>({
             )}
 
             {/* Step 3: Supporting Documents */}
-            {editStep === 3 && (
+            {editStep === 3 && selectedMentee && (
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">
@@ -706,26 +938,23 @@ export function DataTable<TData extends SesiMentoring, TValue>({
                                 ).toFixed(2)} MB`
                               : "Ukuran tidak tersedia"}
                           </p>
-                          <button className="text-[#0CA678] text-sm font-medium hover:underline">
+                          <a
+                            href={`${process.env.NEXT_PUBLIC_API_BASE_URL}/supportDocuments/${selectedMentee.dokumenPendukung}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#0CA678] text-sm font-medium hover:underline"
+                          >
                             Lihat Dokumen
-                          </button>
+                          </a>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <button
-                          className="p-2 text-red-500 hover:bg-red-100 rounded"
-                          onClick={() =>
-                            setEditFormData({
-                              ...editFormData,
-                              dokumenPendukung: "-",
-                              ukuranFile: null, 
-                            })
-                          }
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
                     </div>
+                  )}
+
+                  {editFormData.dokumenPendukung === "-" && (
+                    <p className="text-sm text-gray-500 italic">
+                      Tidak ada dokumen pendukung
+                    </p>
                   )}
                 </div>
               </div>
@@ -755,15 +984,72 @@ export function DataTable<TData extends SesiMentoring, TValue>({
               className="flex-1 bg-[#0CA678] hover:bg-[#08916C]"
               onClick={() => {
                 if (editStep === 3) {
-                  console.log("Save changes:", editFormData);
-                  setShowEditDialog(false);
-                  setEditStep(1);
+                  handleSaveEditSession();
                 } else {
                   setEditStep(editStep + 1);
                 }
               }}
             >
               {editStep === 3 ? "Simpan Perubahan" : "Selanjutnya"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent
+          className="sm:max-w-md border-emerald-200"
+          onInteractOutside={(e) => e.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-emerald-700">
+              Konfirmasi Hapus Sesi
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <p className="text-gray-700">
+              Apakah kamu yakin ingin menghapus sesi mentoring berikut?
+            </p>
+
+            <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4">
+              <p className="text-sm text-gray-500 mb-1">Mentor</p>
+              <p className="font-semibold text-gray-900">
+                {selectedMentee?.mentor}
+              </p>
+
+              <p className="text-sm text-gray-500 mt-3 mb-1">Program</p>
+              <p className="font-semibold text-gray-900">
+                {selectedMentee?.program}
+              </p>
+
+              <p className="text-sm text-gray-500 mt-3 mb-1">Tanggal</p>
+              <p className="font-semibold text-gray-900">
+                {selectedMentee?.date}
+              </p>
+            </div>
+
+            <p className="text-sm text-red-600">
+              Tindakan ini tidak dapat dibatalkan.
+            </p>
+          </div>
+
+          <div className="flex space-x-4 pt-4">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setShowDeleteDialog(false)}
+              disabled={isDeleting}
+            >
+              Batal
+            </Button>
+
+            <Button
+              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+              onClick={handleDeleteSession}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Menghapus..." : "Ya, Hapus"}
             </Button>
           </div>
         </DialogContent>

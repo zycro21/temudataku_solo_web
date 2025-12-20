@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
   FileText,
@@ -46,6 +49,69 @@ import { columnsMentee, MenteeCertificate } from "./sertifkat-mentee/columns";
 
 export default function AdminMentorPage() {
   const [exportOpen, setExportOpen] = useState(false);
+
+  const handleExportCertificates = async (format: "csv" | "excel") => {
+    const loadingToastId = toast.loading(
+      `Mengekspor data sertifikat ke ${format.toUpperCase()}...`
+    );
+
+    try {
+      const res = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/certificate/certificatesExport`,
+        {
+          params: { format }, // ⬅️ csv | excel (SESUAI API)
+          responseType: "blob",
+          withCredentials: true,
+        }
+      );
+
+      const blob = new Blob([res.data], {
+        type: res.headers["content-type"],
+      });
+
+      // Ambil filename dari header kalau ada
+      const contentDisposition = res.headers["content-disposition"];
+      let filename = "certificates-export";
+
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="?(.+)"?/);
+        if (match?.[1]) filename = match[1];
+      } else {
+        const timestamp = new Date()
+          .toLocaleString("sv-SE")
+          .replace(" ", "_")
+          .replace(/:/g, "-");
+        filename = `certificates-${timestamp}.${
+          format === "excel" ? "xlsx" : "csv"
+        }`;
+      }
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast.success("Export berhasil", {
+        id: loadingToastId,
+        description: `Data sertifikat berhasil diekspor (${filename})`,
+      });
+    } catch (err: any) {
+      console.error("Export certificates error:", err);
+
+      toast.error("Gagal export data sertifikat", {
+        id: loadingToastId,
+        description:
+          err?.response?.data?.message ??
+          "Terjadi kesalahan saat mengekspor data sertifikat",
+      });
+    }
+  };
+
   const [showAddDialog, setShowAddDialog] = useState(false);
 
   const [addFormData, setAddFormData] = useState({
@@ -55,200 +121,195 @@ export default function AdminMentorPage() {
     templateFile: null as File | null,
   });
 
-  const publishedCertificates: PublishedCertificate[] = [
-    {
-      id: "MNTG01",
-      template: "/placeholder.svg?height=40&width=60&text=Template",
-      name: "Sertifikat Kelulusan",
-      program: "Short Class",
-      date: "10-05-2025, 20:00",
-    },
-    {
-      id: "MNTG02",
-      template: "/placeholder.svg?height=40&width=60&text=Template",
-      name: "Sertifikat Penyelesaian",
-      program: "Live Class",
-      date: "10-05-2025, 20:00",
-    },
-    {
-      id: "MNTG03",
-      template: "/placeholder.svg?height=40&width=60&text=Template",
-      name: "Sertifikat Peserta Bootcamp",
-      program: "Bootcamp",
-      date: "11-05-2025, 18:30",
-    },
-    {
-      id: "MNTG04",
-      template: "/placeholder.svg?height=40&width=60&text=Template",
-      name: "Sertifikat Pencapaian Data Science",
-      program: "Short Class",
-      date: "12-05-2025, 19:00",
-    },
-    {
-      id: "MNTG05",
-      template: "/placeholder.svg?height=40&width=60&text=Template",
-      name: "Sertifikat Web Development",
-      program: "Live Class",
-      date: "12-05-2025, 14:20",
-    },
-    {
-      id: "MNTG06",
-      template: "/placeholder.svg?height=40&width=60&text=Template",
-      name: "Sertifikat UI/UX Mastery",
-      program: "Bootcamp",
-      date: "13-05-2025, 09:45",
-    },
-    {
-      id: "MNTG07",
-      template: "/placeholder.svg?height=40&width=60&text=Template",
-      name: "Sertifikat Data Analyst Foundation",
-      program: "Short Class",
-      date: "14-05-2025, 20:10",
-    },
-    {
-      id: "MNTG08",
-      template: "/placeholder.svg?height=40&width=60&text=Template",
-      name: "Sertifikat Machine Learning",
-      program: "Live Class",
-      date: "14-05-2025, 12:00",
-    },
-    {
-      id: "MNTG09",
-      template: "/placeholder.svg?height=40&width=60&text=Template",
-      name: "Sertifikat Backend Engineering",
-      program: "Bootcamp",
-      date: "15-05-2025, 16:50",
-    },
-    {
-      id: "MNTG10",
-      template: "/placeholder.svg?height=40&width=60&text=Template",
-      name: "Sertifikat Digital Marketing",
-      program: "Short Class",
-      date: "15-05-2025, 08:25",
-    },
-    {
-      id: "MNTG11",
-      template: "/placeholder.svg?height=40&width=60&text=Template",
-      name: "Sertifikat Fullstack Developer",
-      program: "Bootcamp",
-      date: "16-05-2025, 21:10",
-    },
-  ];
+  // const publishedCertificates: PublishedCertificate[] = [
+  //   {
+  //     id: "MNTG01",
+  //     template: "/placeholder.svg?height=40&width=60&text=Template",
+  //     name: "Sertifikat Kelulusan",
+  //     program: "Short Class",
+  //     date: "10-05-2025, 20:00",
+  //   },
+  //   {
+  //     id: "MNTG02",
+  //     template: "/placeholder.svg?height=40&width=60&text=Template",
+  //     name: "Sertifikat Penyelesaian",
+  //     program: "Live Class",
+  //     date: "10-05-2025, 20:00",
+  //   },
+  //   {
+  //     id: "MNTG03",
+  //     template: "/placeholder.svg?height=40&width=60&text=Template",
+  //     name: "Sertifikat Peserta Bootcamp",
+  //     program: "Bootcamp",
+  //     date: "11-05-2025, 18:30",
+  //   },
+  //   {
+  //     id: "MNTG04",
+  //     template: "/placeholder.svg?height=40&width=60&text=Template",
+  //     name: "Sertifikat Pencapaian Data Science",
+  //     program: "Short Class",
+  //     date: "12-05-2025, 19:00",
+  //   },
+  //   {
+  //     id: "MNTG05",
+  //     template: "/placeholder.svg?height=40&width=60&text=Template",
+  //     name: "Sertifikat Web Development",
+  //     program: "Live Class",
+  //     date: "12-05-2025, 14:20",
+  //   },
+  //   {
+  //     id: "MNTG06",
+  //     template: "/placeholder.svg?height=40&width=60&text=Template",
+  //     name: "Sertifikat UI/UX Mastery",
+  //     program: "Bootcamp",
+  //     date: "13-05-2025, 09:45",
+  //   },
+  //   {
+  //     id: "MNTG07",
+  //     template: "/placeholder.svg?height=40&width=60&text=Template",
+  //     name: "Sertifikat Data Analyst Foundation",
+  //     program: "Short Class",
+  //     date: "14-05-2025, 20:10",
+  //   },
+  //   {
+  //     id: "MNTG08",
+  //     template: "/placeholder.svg?height=40&width=60&text=Template",
+  //     name: "Sertifikat Machine Learning",
+  //     program: "Live Class",
+  //     date: "14-05-2025, 12:00",
+  //   },
+  //   {
+  //     id: "MNTG09",
+  //     template: "/placeholder.svg?height=40&width=60&text=Template",
+  //     name: "Sertifikat Backend Engineering",
+  //     program: "Bootcamp",
+  //     date: "15-05-2025, 16:50",
+  //   },
+  //   {
+  //     id: "MNTG10",
+  //     template: "/placeholder.svg?height=40&width=60&text=Template",
+  //     name: "Sertifikat Digital Marketing",
+  //     program: "Short Class",
+  //     date: "15-05-2025, 08:25",
+  //   },
+  //   {
+  //     id: "MNTG11",
+  //     template: "/placeholder.svg?height=40&width=60&text=Template",
+  //     name: "Sertifikat Fullstack Developer",
+  //     program: "Bootcamp",
+  //     date: "16-05-2025, 21:10",
+  //   },
+  // ];
 
-  const menteeCertificates: MenteeCertificate[] = [
-    {
-      id: "MNTG01",
-      mentee: "Jehan Ra",
-      name: "Sertifikat Kelulusan",
-      program: "Short Class",
-      date: "10-05-2025, 20:00",
-    },
-    {
-      id: "MNTG02",
-      mentee: "Galih B",
-      name: "Sertifikat Penyelesaian",
-      program: "Live Class",
-      date: "10-05-2025, 20:00",
-    },
+  const [menteeCertificates, setMenteeCertificates] = useState<
+    MenteeCertificate[]
+  >([]);
+  const [loading, setLoading] = useState(false);
 
-    // =====================
-    // Tambahan 12 data baru
-    // =====================
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleString("id-ID", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
-    {
-      id: "MNTG03",
-      mentee: "Rizky Maulana",
-      name: "Sertifikat Bootcamp Web Dev",
-      program: "Bootcamp",
-      date: "12-05-2025, 19:30",
-    },
-    {
-      id: "MNTG04",
-      mentee: "Nadia Putri",
-      name: "Sertifikat UI/UX Research",
-      program: "Short Class",
-      date: "14-05-2025, 18:00",
-    },
-    {
-      id: "MNTG05",
-      mentee: "Aditya Pradana",
-      name: "Sertifikat Data Analyst",
-      program: "Live Class",
-      date: "15-05-2025, 20:15",
-    },
-    {
-      id: "MNTG06",
-      mentee: "Siti Nurhaliza",
-      name: "Sertifikat Web Design",
-      program: "Bootcamp",
-      date: "17-05-2025, 17:45",
-    },
-    {
-      id: "MNTG07",
-      mentee: "Kevin Wijaya",
-      name: "Sertifikat Machine Learning",
-      program: "Live Class",
-      date: "18-05-2025, 21:00",
-    },
-    {
-      id: "MNTG08",
-      mentee: "Rara Andini",
-      name: "Sertifikat Digital Marketing",
-      program: "Short Class",
-      date: "19-05-2025, 19:20",
-    },
-    {
-      id: "MNTG09",
-      mentee: "Michael Angelo",
-      name: "Sertifikat Frontend Development",
-      program: "Bootcamp",
-      date: "20-05-2025, 20:40",
-    },
-    {
-      id: "MNTG10",
-      mentee: "Fajar Ramadhan",
-      name: "Sertifikat Product Management",
-      program: "Live Class",
-      date: "21-05-2025, 18:30",
-    },
-    {
-      id: "MNTG11",
-      mentee: "Indah Sari",
-      name: "Sertifikat Data Visualization",
-      program: "Short Class",
-      date: "23-05-2025, 20:00",
-    },
-    {
-      id: "MNTG12",
-      mentee: "Bagus Prasetyo",
-      name: "Sertifikat Backend Development",
-      program: "Bootcamp",
-      date: "24-05-2025, 19:45",
-    },
-    {
-      id: "MNTG13",
-      mentee: "Cindy Lestari",
-      name: "Sertifikat Python Fundamental",
-      program: "Live Class",
-      date: "25-05-2025, 20:00",
-    },
-    {
-      id: "MNTG14",
-      mentee: "Arif Susanto",
-      name: "Sertifikat Database Management",
-      program: "Short Class",
-      date: "26-05-2025, 18:50",
-    },
-  ];
+  const mapProgramLabel = (raw: string): string => {
+    switch (raw?.toLowerCase()) {
+      case "shortclass":
+        return "Short Class";
+      case "live class":
+      case "liveclass":
+        return "Live Class";
+      case "bootcamp":
+        return "Bootcamp";
+      default:
+        return raw; // fallback aman
+    }
+  };
 
-  const stats = [
+  useEffect(() => {
+    const fetchCertificates = async () => {
+      try {
+        setLoading(true);
+
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/certificate/admin/certificates`,
+          {
+            params: {
+              page: 1,
+              limit: 10000,
+            },
+            withCredentials: true,
+          }
+        );
+
+        const items = res.data.data.items;
+
+        const mapped: MenteeCertificate[] = items.map((cert: any) => ({
+          id: cert.id,
+          mentee: cert.user?.fullName ?? "-",
+          name: `Sertifikat ${cert.mentoringService?.serviceName ?? ""}`,
+          program: mapProgramLabel(cert.mentoringService?.serviceType),
+          date: formatDate(cert.updatedAt || cert.createdAt),
+
+          // TAMBAHAN BARU
+          certificatePath: cert.certificatePath,
+          driveUrl: cert.googleDriveUrl || undefined,
+        }));
+
+        setMenteeCertificates(mapped);
+      } catch (error) {
+        console.error("Gagal mengambil sertifikat:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCertificates();
+  }, []);
+
+  const [stats, setStats] = useState([
     {
       title: "Jumlah Sertifikat Terbit",
-      value: "5",
+      value: "-",
       image: "/assets/admin/tugas.svg",
       color: "text-gray-900",
     },
-  ];
+  ]);
+
+  useEffect(() => {
+    const fetchCertificateStats = async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/certificate/admin/certificates`,
+          {
+            params: {
+              page: 1,
+              limit: 10000,
+            },
+            withCredentials: true,
+          }
+        );
+
+        const totalIssued = res.data?.data?.total ?? 0;
+
+        setStats((prev) =>
+          prev.map((stat) =>
+            stat.title === "Jumlah Sertifikat Terbit"
+              ? { ...stat, value: totalIssued.toString() }
+              : stat
+          )
+        );
+      } catch (error) {
+        console.error("Failed fetch certificate stats", error);
+      }
+    };
+
+    fetchCertificateStats();
+  }, []);
 
   return (
     <>
@@ -288,20 +349,19 @@ export default function AdminMentorPage() {
             </DropdownMenuTrigger>
 
             <DropdownMenuContent align="end" className="w-40">
-              <DropdownMenuItem
-                onClick={() => console.log("Export CSV Sertifikat")}
-              >
+              <DropdownMenuItem onClick={() => handleExportCertificates("csv")}>
                 Export ke CSV
               </DropdownMenuItem>
+
               <DropdownMenuItem
-                onClick={() => console.log("Export Excel Sertifikat")}
+                onClick={() => handleExportCertificates("excel")}
               >
                 Export ke Excel
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Tombol Tambah Sertifikat */}
+          {/* Tombol Tambah Sertifikat
           <Button
             className="bg-[#0CA678] hover:bg-[#08916C] flex items-center gap-1"
             onClick={() => {
@@ -317,7 +377,7 @@ export default function AdminMentorPage() {
           >
             <Plus className="w-4 h-4" />
             <span>Tambah Sertifikat</span>
-          </Button>
+          </Button> */}
         </div>
       </div>
 

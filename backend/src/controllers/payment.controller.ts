@@ -6,6 +6,7 @@ import * as PaymentService from "../services/payment.service.js";
 import { PrismaClient, Prisma } from "@prisma/client";
 import path from "path";
 import fs from "fs";
+import { logActivity } from "../utils/logActivtiy.js";
 
 const prisma = new PrismaClient();
 
@@ -15,6 +16,13 @@ export const createPayment = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     const { referenceId, paymentMethod } = req.body;
 
     const userEmail = req.user?.email || "test@example.com";
@@ -26,6 +34,16 @@ export const createPayment = async (
       email: userEmail,
       phoneNumber: userPhone,
     });
+
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: req.user!.userId,
+        action: "CREATE_PAYMENT",
+        type: "CREATE",
+        description: `Admin created a payment manually. RefID: ${referenceId}, Method: ${paymentMethod}`,
+        req,
+      });
+    }
 
     res.status(201).json({
       success: true,
@@ -67,6 +85,13 @@ export const getAllPayments = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     const { page, limit, status } = req.validatedQuery;
 
     const result = await PaymentService.getPayments({
@@ -91,9 +116,26 @@ export const getDetailIdPayments = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     const { id } = req.params;
 
     const paymentDetail = await PaymentService.getPaymentDetailById(id);
+
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: req.user!.userId,
+        action: "GET_PAYMENT_DETAIL",
+        type: "READ",
+        description: `Admin viewed payment detail. PaymentID: ${id}`,
+        req,
+      });
+    }
 
     res.status(200).json({
       success: true,
@@ -111,6 +153,13 @@ export const exportPayments = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     const { format: exportFormat, status } = req.query as {
       format: "csv" | "excel";
       status?: string;
@@ -124,6 +173,18 @@ export const exportPayments = async (
     const fileName = `payments_${format(new Date(), "yyyyMMdd_HHmmss")}.${
       exportFormat === "excel" ? "xlsx" : "csv"
     }`;
+
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: req.user!.userId,
+        action: "EXPORT_PAYMENTS",
+        type: "EXPORT",
+        description: `Admin exported payments to ${exportFormat} (status filter: ${
+          status || "none"
+        })`,
+        req,
+      });
+    }
 
     res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
     res.setHeader(
@@ -178,10 +239,27 @@ export const updatePaymentStatus = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     const { id } = req.validatedParams;
     const { status } = req.validatedBody;
 
     const updated = await PaymentService.updatePaymentStatus({ id, status });
+
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: req.user!.userId,
+        action: "UPDATE_PAYMENT_STATUS",
+        type: "UPDATE",
+        description: `Admin updated payment status. PaymentID: ${id}, NewStatus: ${status}`,
+        req,
+      });
+    }
 
     res.status(200).json({
       success: true,

@@ -165,7 +165,7 @@ export const getPayments = async ({
   const where: Prisma.PaymentWhereInput = {};
   if (status) where.status = status;
 
-  const [payments, total] = await Promise.all([
+  const [payments, total, statusCounts] = await Promise.all([
     prisma.payment.findMany({
       where,
       skip,
@@ -174,44 +174,50 @@ export const getPayments = async ({
       include: {
         booking: {
           include: {
-            mentee: {
-              select: {
-                id: true,
-                fullName: true,
-                email: true,
+            mentee: { select: { id: true, fullName: true, email: true } },
+            mentoringService: {
+              include: {
+                mentors: {
+                  include: { mentorProfile: { include: { user: true } } },
+                },
               },
             },
           },
         },
         practicePurchase: {
           include: {
-            user: {
-              select: {
-                id: true,
-                fullName: true,
-                email: true,
-              },
-            },
+            user: { select: { id: true, fullName: true, email: true } },
+            practice: true, // <--- tambahkan agar frontend bisa ambil title
+          },
+        },
+        eLearningPurchase: {
+          include: {
+            user: { select: { id: true, fullName: true, email: true } },
+            course: true, // <--- tambahkan agar frontend bisa ambil title
           },
         },
       },
     }),
     prisma.payment.count({ where }),
+    prisma.payment.groupBy({
+      by: ["status"],
+      _count: { _all: true },
+    }),
   ]);
 
   const formatted = payments.map((payment) => {
-    const isBooking = !!payment.booking;
-    const user = isBooking
-      ? payment.booking?.mentee
-      : payment.practicePurchase?.user;
+    const user =
+      payment.booking?.mentee ??
+      payment.practicePurchase?.user ??
+      payment.eLearningPurchase?.user;
 
     return {
       id: payment.id,
+      transactionId: payment.transactionId,
       amount: payment.amount,
       status: payment.status,
       paymentMethod: payment.paymentMethod,
       paymentDate: payment.paymentDate,
-      transactionId: payment.transactionId,
       createdAt: payment.createdAt,
       updatedAt: payment.updatedAt,
       user: {
@@ -219,8 +225,39 @@ export const getPayments = async ({
         fullName: user?.fullName,
         email: user?.email,
       },
-      type: isBooking ? "booking" : "practice",
+      bookingId: payment.bookingId,
+      practicePurchaseId: payment.practicePurchaseId,
+      eLearningPurchaseId: payment.eLearningPurchaseId,
+      booking: payment.booking,
+      practicePurchase: payment.practicePurchase,
+      eLearningPurchase: payment.eLearningPurchase,
     };
+  });
+
+  // 🔥 ADMIN STATS
+  const stats = {
+    total,
+    success: 0,
+    process: 0,
+    failed: 0,
+    refunded: 0,
+  };
+
+  statusCounts.forEach((s) => {
+    switch (s.status) {
+      case "confirmed":
+        stats.success = s._count._all;
+        break;
+      case "pending":
+        stats.process = s._count._all;
+        break;
+      case "failed":
+        stats.failed += s._count._all;
+        break;
+      case "refunded":
+        stats.refunded = s._count._all;
+        break;
+    }
   });
 
   return {
@@ -229,6 +266,7 @@ export const getPayments = async ({
     page,
     limit,
     totalPages: Math.ceil(total / limit),
+    stats,
   };
 };
 
@@ -457,7 +495,7 @@ export const updatePaymentStatus = async ({
   status,
 }: {
   id: string;
-  status: "pending" | "confirmed" | "failed";
+  status: "pending" | "confirmed" | "failed" | "refunded";
 }) => {
   const payment = await prisma.payment.findUnique({ where: { id } });
   if (!payment) {

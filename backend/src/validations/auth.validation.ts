@@ -23,6 +23,11 @@ export const registerSchema = z.object({
       invalid_type_error: "Invalid role selected",
     })
     .default("mentee"),
+
+  createdByAdmin: z
+    .union([z.boolean(), z.string()])
+    .optional()
+    .transform((val) => val === true || val === "true"),
 });
 
 export const loginSchema = z.object({

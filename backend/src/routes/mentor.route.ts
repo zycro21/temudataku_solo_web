@@ -9,6 +9,7 @@ import {
   getMentorProfileByIdSchema,
   getPublicMentorProfileByIdSchema,
   deleteMentorProfileSchema,
+  getMentorsByServiceSchema,
 } from "../validations/mentor.validation.js";
 import { validate } from "../middlewares/validate.js";
 import { authenticate } from "../middlewares/authenticate.js";
@@ -863,6 +864,57 @@ router.delete(
   authorizeRoles("admin"),
   validate(deleteMentorProfileSchema),
   MentorController.deleteMentorProfile
+);
+
+/**
+ * @swagger
+ * /api/mentor/admin/mentor-profiles/by-service/{serviceId}:
+ *   get:
+ *     summary: Ambil daftar mentor berdasarkan mentoring service (admin)
+ *     tags: [Mentor]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: serviceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID mentoring service
+ *     responses:
+ *       200:
+ *         description: Daftar mentor berhasil diambil
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         example: "clxmentorprofile123"
+ *                       fullName:
+ *                         type: string
+ *                         example: "Laura Ayu"
+ *       400:
+ *         description: Parameter tidak valid
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       500:
+ *         description: Internal server error
+ */
+router.get(
+  "/admin/mentor-profiles/by-service/:serviceId",
+  authenticate,
+  authorizeRoles("admin"),
+  validate(getMentorsByServiceSchema),
+  MentorController.getMentorsByService
 );
 
 export default router;

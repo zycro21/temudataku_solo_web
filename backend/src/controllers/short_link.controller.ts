@@ -1,6 +1,7 @@
 import { Response, NextFunction } from "express";
 import { AuthenticatedRequestShortLink } from "../middlewares/authenticate.js";
 import * as ShortLinkService from "../services/short_link.service.js";
+import { logActivity } from "../utils/logActivtiy.js";
 
 export const createShortLinkController = async (
   req: AuthenticatedRequestShortLink,
@@ -8,6 +9,13 @@ export const createShortLinkController = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     const { originalUrl, shortCode, expiresAt, isActive } = req.validatedBody!;
 
     if (!originalUrl) {
@@ -28,6 +36,18 @@ export const createShortLinkController = async (
       isActive,
       createdById: user?.userId,
     });
+
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: user!.userId,
+        action: "CREATE_SHORTLINK",
+        type: "CREATE",
+        description: `User ${user!.userId} created a shortlink with ID ${
+          created.id
+        } (${created.shortCode})`,
+        req,
+      });
+    }
 
     res.status(201).json({
       success: true,
@@ -151,6 +171,13 @@ export const updateShortLinkController = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     const { id } = req.validatedParams!;
     if (!id) throw new Error("Missing short link ID");
 
@@ -166,6 +193,16 @@ export const updateShortLinkController = async (
       isActive: payload.isActive,
     });
 
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: user.userId,
+        action: "UPDATE_SHORTLINK",
+        type: "UPDATE",
+        description: `User ${user.userId} updated shortlink ID ${id}`,
+        req,
+      });
+    }
+
     res.json({ success: true, message: "Short link updated", data: updated });
   } catch (err) {
     next(err);
@@ -178,6 +215,13 @@ export const deleteShortLinkController = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     const { id } = req.validatedParams || {};
     if (!id) throw new Error("Missing short link ID");
 
@@ -187,6 +231,16 @@ export const deleteShortLinkController = async (
       requesterUserId: user.userId,
       requesterRoles: user.roles,
     });
+
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: user.userId,
+        action: "DELETE_SHORTLINK",
+        type: "DELETE",
+        description: `User ${user.userId} deleted shortlink ID ${id}`,
+        req,
+      });
+    }
 
     res.json({
       success: true,

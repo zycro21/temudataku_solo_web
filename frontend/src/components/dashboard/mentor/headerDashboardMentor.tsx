@@ -119,6 +119,7 @@ export default function DashboardHeaderMentor() {
                 alt="User Avatar"
                 width={36}
                 height={36}
+                unoptimized
                 className="rounded-full object-cover"
               />
               <div className="flex flex-col text-left">

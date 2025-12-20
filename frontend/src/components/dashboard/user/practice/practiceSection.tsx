@@ -91,6 +91,7 @@ export default function PracticeSection({
                     src={imageUrl}
                     alt={practice.title}
                     fill
+                    unoptimized
                     className="object-cover"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;

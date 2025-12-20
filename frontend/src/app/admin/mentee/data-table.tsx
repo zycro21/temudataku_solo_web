@@ -62,7 +62,6 @@ export function DataTable<TData extends Mentee, TValue>({
   const [editPhotoPreview, setEditPhotoPreview] = useState("");
 
   const [sorting, setSorting] = useState<{ id: string; desc: boolean }[]>([]);
-  const [roleCycle, setRoleCycle] = useState(0); // 0 all, 1 mentee, 2 mentor, 3 admin, 4 affiliator
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
   const [editFormData, setEditFormData] = useState({

@@ -147,3 +147,9 @@ export const deleteMentorProfileSchema = z.object({
     id: z.string().regex(/^Mentor-\d{6}$/, "Invalid mentor profile ID"),
   }),
 });
+
+export const getMentorsByServiceSchema = z.object({
+  params: z.object({
+    serviceId: z.string().min(1, { message: "serviceId wajib diisi" }),
+  }),
+});

@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { HttpError } from "../utils/httpError";
 import * as NotificationService from "../services/notification.service.js";
 import { PrismaClient } from "@prisma/client";
+import { logActivity } from "../utils/logActivtiy.js";
 
 const prisma = new PrismaClient();
 
@@ -13,9 +14,27 @@ export const createNotificationController = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     const notification = await NotificationService.createNotification(
       req.validatedBody
     );
+
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: req.user.userId,
+        action: "Create Notification",
+        type: "CREATE",
+        description: `Admin membuat notifikasi baru"`,
+        req,
+      });
+    }
+
     res.status(201).json({
       message: "Notifikasi berhasil dibuat",
       data: notification,
@@ -138,6 +157,13 @@ export const resendNotificationController = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     const { id } = req.validatedParams;
     const { userIds } = req.validatedBody;
 
@@ -146,6 +172,18 @@ export const resendNotificationController = async (
     if (!result.success) {
       res.status(result.statusCode).json({ message: result.message });
       return;
+    }
+
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: req.user.userId,
+        action: "Resend Notification",
+        type: "UPDATE",
+        description: `Admin mengirim ulang notifikasi ID: ${id} kepada userIds: ${userIds.join(
+          ", "
+        )}`,
+        req,
+      });
     }
 
     res.status(200).json({
@@ -164,10 +202,27 @@ export const exportNotifications = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
     const { format } = req.validatedQuery;
 
     const { fileBuffer, fileName, mimeType } =
       await NotificationService.exportNotifications(format);
+
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: req.user.userId,
+        action: "EXPORT_MENTORING_SERVICES",
+        type: "EXPORT",
+        description: `Admin melakukan export notification dalam format ${format}`,
+        req,
+      });
+    }
 
     res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
     res.setHeader("Content-Type", mimeType);

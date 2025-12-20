@@ -6,6 +6,7 @@ import * as BehaviorService from "../services/behavior.service.js";
 import { PrismaClient, Prisma } from "@prisma/client";
 import path from "path";
 import fs from "fs";
+import { logActivity } from "../utils/logActivtiy.js";
 
 const prisma = new PrismaClient();
 
@@ -52,6 +53,12 @@ export const getAllAdminUserBehaviorsController = async (
       throw new Error("Unauthorized: Only admins can view user behaviors");
     }
 
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+
     const { page, limit, userId, pageVisited, action, startDate, endDate } =
       req.validatedQuery as {
         page: number;
@@ -71,6 +78,14 @@ export const getAllAdminUserBehaviorsController = async (
       action,
       startDate,
       endDate,
+    });
+
+    await logActivity({
+      userId: adminId,
+      action: "ADMIN_VIEW_USER_BEHAVIORS",
+      type: "READ",
+      description: "Admin melihat daftar user behaviors",
+      req,
     });
 
     res.status(200).json({
@@ -96,6 +111,12 @@ export const getUserBehaviorByIdController = async (
       );
     }
 
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+
     const { id } = req.validatedParams as { id: string };
 
     const behavior = await BehaviorService.getUserBehaviorByIdService(id);
@@ -103,6 +124,14 @@ export const getUserBehaviorByIdController = async (
     if (!behavior) {
       throw new Error("User behavior not found");
     }
+
+    await logActivity({
+      userId: adminId,
+      action: "ADMIN_VIEW_USER_BEHAVIOR_DETAIL",
+      type: "READ",
+      description: `Admin melihat detail user behavior ${id}`,
+      req,
+    });
 
     res.status(200).json({
       success: true,
@@ -125,13 +154,30 @@ export const deleteUserBehaviorByIdController = async (
       throw new Error("Unauthorized: Only admins can delete user behavior");
     }
 
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+
     const { id } = req.validatedParams as { id: string };
 
-    const deletedBehavior = await BehaviorService.deleteUserBehaviorByIdService(id);
+    const deletedBehavior = await BehaviorService.deleteUserBehaviorByIdService(
+      id
+    );
 
     if (!deletedBehavior) {
       throw new Error("User behavior not found");
     }
+
+    // 📝 Log aktivitas admin
+    await logActivity({
+      userId: adminId,
+      action: "ADMIN_DELETE_USER_BEHAVIOR",
+      type: "DELETE",
+      description: `Admin menghapus user behavior ${id}`,
+      req,
+    });
 
     res.status(200).json({
       success: true,
@@ -144,17 +190,24 @@ export const deleteUserBehaviorByIdController = async (
 };
 
 export const exportUserBehaviorsController = async (
-    req: AuthenticatedRequestBehavior,
-    res: Response,
-    next: NextFunction
-  ) => {
-    try {
-      // Pastikan pengguna adalah admin
-      if (!req.user!.roles.includes("admin")) {
-        throw new Error("Unauthorized: Only admins can export user behaviors");
-      }
-  
-      const { format, userId, pageVisited, action, startDate, endDate } = req.validatedQuery as {
+  req: AuthenticatedRequestBehavior,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    // Pastikan pengguna adalah admin
+    if (!req.user!.roles.includes("admin")) {
+      throw new Error("Unauthorized: Only admins can export user behaviors");
+    }
+
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+
+    const { format, userId, pageVisited, action, startDate, endDate } =
+      req.validatedQuery as {
         format: "csv" | "excel";
         userId?: string;
         pageVisited?: string;
@@ -162,8 +215,9 @@ export const exportUserBehaviorsController = async (
         startDate?: Date;
         endDate?: Date;
       };
-  
-      const { fileBuffer, fileName, MIMEType } = await BehaviorService.exportUserBehaviorsService({
+
+    const { fileBuffer, fileName, MIMEType } =
+      await BehaviorService.exportUserBehaviorsService({
         format,
         userId,
         pageVisited,
@@ -171,11 +225,19 @@ export const exportUserBehaviorsController = async (
         startDate,
         endDate,
       });
-  
-      res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
-      res.setHeader("Content-Type", MIMEType);
-      res.send(fileBuffer);
-    } catch (err) {
-      next(err);
-    }
-  };
+
+    await logActivity({
+      userId: adminId,
+      action: "ADMIN_EXPORT_USER_BEHAVIORS",
+      type: "EXPORT",
+      description: `Admin export data user behaviors dalam format ${format}`,
+      req,
+    });
+
+    res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
+    res.setHeader("Content-Type", MIMEType);
+    res.send(fileBuffer);
+  } catch (err) {
+    next(err);
+  }
+};

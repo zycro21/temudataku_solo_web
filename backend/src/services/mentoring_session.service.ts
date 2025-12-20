@@ -1,6 +1,15 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 import { Parser } from "json2csv";
 import ExcelJS from "exceljs";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// samakan dengan booking
+const uploadsRoot = path.join(__dirname, "../../uploads");
 
 const prisma = new PrismaClient();
 
@@ -202,7 +211,7 @@ export const getMentoringSessions = async ({
   sortBy = "createdAt",
   sortOrder = "desc",
   page = 1,
-  limit = 10,
+  limit = 10000,
 }: {
   serviceId?: string;
   mentorProfileId?: string;
@@ -215,16 +224,10 @@ export const getMentoringSessions = async ({
   page?: number;
   limit?: number;
 }) => {
-  // Build where clause for filtering
   const where: any = {};
 
-  if (serviceId) {
-    where.serviceId = serviceId;
-  }
-
-  if (status) {
-    where.status = status;
-  }
+  if (serviceId) where.serviceId = serviceId;
+  if (status) where.status = status;
 
   if (dateFrom || dateTo) {
     where.date = {};
@@ -240,9 +243,7 @@ export const getMentoringSessions = async ({
 
   if (mentorProfileId) {
     where.mentors = {
-      some: {
-        mentorProfileId: mentorProfileId,
-      },
+      some: { mentorProfileId },
     };
   }
 
@@ -253,17 +254,12 @@ export const getMentoringSessions = async ({
     ];
   }
 
-  // Calculate pagination
   const skip = (page - 1) * limit;
   const take = limit;
 
-  // Build orderBy clause
   const orderBy: any = {};
-  if (sortBy) {
-    orderBy[sortBy] = sortOrder || "desc";
-  }
+  if (sortBy) orderBy[sortBy] = sortOrder;
 
-  // Fetch sessions with relations
   const sessions = await prisma.mentoringSession.findMany({
     where,
     skip,
@@ -282,8 +278,15 @@ export const getMentoringSessions = async ({
           isActive: true,
           createdAt: true,
           updatedAt: true,
+          bookings: {
+            select: { supportDocument: true },
+            orderBy: { createdAt: "desc" },
+            take: 1,
+          },
         },
       },
+
+      // 🔽 PERBAIKAN UTAMA ADA DI SINI
       mentors: {
         include: {
           mentorProfile: {
@@ -298,6 +301,16 @@ export const getMentoringSessions = async ({
               isVerified: true,
               createdAt: true,
               updatedAt: true,
+
+              // ✅ USER DI BAWAH MENTOR PROFILE
+              user: {
+                select: {
+                  id: true,
+                  fullName: true,
+                  email: true,
+                  profilePicture: true,
+                },
+              },
             },
           },
         },
@@ -305,10 +318,8 @@ export const getMentoringSessions = async ({
     },
   });
 
-  // Count total items for pagination
   const totalItems = await prisma.mentoringSession.count({ where });
 
-  // Build pagination metadata
   const pagination = {
     currentPage: page,
     totalPages: Math.ceil(totalItems / limit),
@@ -316,8 +327,41 @@ export const getMentoringSessions = async ({
     limit,
   };
 
+  const sessionsWithFileSize = sessions.map((session) => {
+    const booking = session.mentoringService?.bookings?.[0];
+    let fileSizes: Array<number | null> = [];
+
+    if (booking?.supportDocument) {
+      let files: string[] = [];
+      try {
+        files = JSON.parse(booking.supportDocument);
+      } catch {
+        files = [];
+      }
+
+      fileSizes = files.map((rawPath) => {
+        try {
+          const fixedPath = rawPath.replace(
+            "supportDocuments",
+            "supportDocument"
+          );
+          const filePath = path.join(uploadsRoot, fixedPath);
+          return fs.statSync(filePath).size;
+        } catch {
+          return null;
+        }
+      });
+    }
+
+    return {
+      ...session,
+      supportDocument: booking?.supportDocument ?? null,
+      supportDocumentSizes: fileSizes,
+    };
+  });
+
   return {
-    data: sessions,
+    data: sessionsWithFileSize,
     pagination,
   };
 };
@@ -819,7 +863,7 @@ export const exportMentoringSessions = async (format: "xlsx" | "csv") => {
   const flatData: FlatRow[] = sessions.flatMap((session): FlatRow[] => {
     const averageRating =
       session.feedbacks.length > 0
-        ? session.feedbacks.reduce((sum, f) => sum + f.rating, 0) /
+        ? session.feedbacks.reduce((sum, f) => sum + f.rating.toNumber(), 0) /
           session.feedbacks.length
         : null;
 
@@ -975,7 +1019,7 @@ export const getOwnMentorSessions = async (mentorProfileId: string) => {
 
   return sessions.map((session) => {
     const averageRating = session.feedbacks.length
-      ? session.feedbacks.reduce((sum, f) => sum + f.rating, 0) /
+      ? session.feedbacks.reduce((sum, f) => sum + f.rating.toNumber(), 0) /
         session.feedbacks.length
       : null;
 
@@ -1063,7 +1107,7 @@ export const getMentorSessionDetail = async (
   if (!session) return null;
 
   const averageRating = session.feedbacks.length
-    ? session.feedbacks.reduce((sum, f) => sum + f.rating, 0) /
+    ? session.feedbacks.reduce((sum, f) => sum + f.rating.toNumber(), 0) /
       session.feedbacks.length
     : null;
 

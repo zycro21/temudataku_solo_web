@@ -74,8 +74,8 @@ export const updateMenteeBookingSchema = z.object({
   body: z.object({
     specialRequests: z.string().optional(),
     participantIds: z.array(z.string()).optional(),
-    material: z.string().optional(),      
-    expectedOutput: z.string().optional(),  
+    material: z.string().optional(),
+    expectedOutput: z.string().optional(),
   }),
 });
 
@@ -108,9 +108,13 @@ export const getAdminBookingsValidator = z.object({
       })
       .optional(),
     page: z.coerce.number().min(1).default(1),
-    limit: z.coerce.number().min(1).max(100).default(10),
+    limit: z.coerce.number().min(1).max(10000).default(10000),
     sortBy: z.enum(["createdAt", "bookingDate"]).default("createdAt"),
     sortOrder: z.enum(["asc", "desc"]).default("desc"),
+    isRescheduled: z
+      .preprocess((val) => val === "true", z.boolean())
+      .optional(),
+    hasSession: z.preprocess((val) => val === "true", z.boolean()).optional(),
   }),
 });
 

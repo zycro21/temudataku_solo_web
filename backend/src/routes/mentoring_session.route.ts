@@ -12,6 +12,7 @@ import {
   updateMentorSessionBodySchema,
   publicGetSessionsSchema,
   publicGetSessionByIdSchema,
+  exportMentoringSessionsSchema,
 } from "../validations/mentoring_session.validation.js";
 import { validate } from "../middlewares/validate.js";
 import { authenticate } from "../middlewares/authenticate.js";
@@ -1434,6 +1435,47 @@ router.get(
   authenticate,
   validate(publicGetSessionByIdSchema),
   MentoringSessionController.publicGetMentoringSessionByIdController
+);
+
+/**
+ * @swagger
+ * /api/mentoringSession/admin/export:
+ *   get:
+ *     summary: Export semua sesi mentoring (admin) ke CSV atau XLSX
+ *     tags: [MentoringSession]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: format
+ *         schema:
+ *           type: string
+ *           enum: [csv, xlsx]
+ *           default: xlsx
+ *         description: Format file export
+ *     responses:
+ *       200:
+ *         description: File export berhasil diunduh
+ *         content:
+ *           application/octet-stream:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       400:
+ *         description: Bad request - format tidak valid
+ *       401:
+ *         description: Unauthorized - belum login
+ *       403:
+ *         description: Forbidden - bukan admin
+ *       500:
+ *         description: Server error
+ */
+router.get(
+  "/admin/export",
+  authenticate,
+  authorizeRoles("admin"),
+  validate(exportMentoringSessionsSchema),
+  MentoringSessionController.exportSessionsController
 );
 
 export default router;

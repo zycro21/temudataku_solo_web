@@ -1,5 +1,9 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import * as React from "react";
 import {
   ColumnDef,
@@ -20,7 +24,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -50,22 +54,29 @@ export function DataTable<TData extends Project, TValue>({
     null
   );
   const [showDetailDialog, setShowDetailDialog] = React.useState(false);
+
   const [showEditDialog, setShowEditDialog] = React.useState(false);
-  const [showRefundDialog, setShowRefundDialog] = React.useState(false);
-
   const [editStep, setEditStep] = React.useState(1);
-
   const [editFormData, setEditFormData] = React.useState({
     id: "",
+    display: "",
     mentee: "",
     mentor: "",
     program: "",
     topic: "",
     date: "",
     totalHarga: "",
-    statusTransaksi: "",
+    statusTransaksi: "pending" as
+      | "pending"
+      | "confirmed"
+      | "failed"
+      | "refunded",
     alasan: "",
   });
+  const [saving, setSaving] = React.useState(false);
+
+  const [showRefundDialog, setShowRefundDialog] = React.useState(false);
+  const [refunding, setRefunding] = React.useState(false);
 
   const table = useReactTable({
     data,
@@ -164,9 +175,12 @@ export function DataTable<TData extends Project, TValue>({
                     return (
                       <TableCell
                         key={cell.id}
-                        className={`px-4 py-4 text-sm ${
-                          isSelectColumn ? "" : "cursor-pointer"
-                        }`}
+                        className={`
+    px-4 py-4 text-sm align-top
+    break-words whitespace-normal
+    max-w-[240px]
+    ${isSelectColumn ? "" : "cursor-pointer"}
+  `}
                         onClick={() => {
                           if (!isSelectColumn) {
                             setSelectedProject(row.original);
@@ -278,20 +292,20 @@ export function DataTable<TData extends Project, TValue>({
           {selectedProject && (
             <div className="py-4">
               {/* Scrollable Content */}
-              <div className="space-y-6 max-h-[75vh] overflow-y-auto pr-2">
+              <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
                 {/* First Row */}
                 <div className="grid grid-cols-2 gap-8">
                   <div>
                     <p className="text-sm text-gray-600 mb-1">ID Transaksi</p>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {selectedProject.id}
+                    <p className="text-lg font-semibold text-gray-900 break-words whitespace-normal leading-relaxed">
+                      {selectedProject.displayId}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 mb-1">
                       Tanggal & Waktu Order
                     </p>
-                    <p className="text-lg font-semibold text-gray-900">
+                    <p className="text-lg font-semibold text-gray-900 break-words whitespace-normal leading-relaxed">
                       {selectedProject.date}
                     </p>
                   </div>
@@ -301,14 +315,14 @@ export function DataTable<TData extends Project, TValue>({
                 <div className="grid grid-cols-2 gap-8">
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Mentee</p>
-                    <p className="text-lg font-semibold text-gray-900">
+                    <p className="text-lg font-semibold text-gray-900 break-words whitespace-normal leading-relaxed">
                       {selectedProject.mentee}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Mentor</p>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {selectedProject.mentor}
+                    <p className="text-sm text-gray-600 mb-1">Type</p>
+                    <p className="text-lg font-semibold text-gray-900 break-words whitespace-normal leading-relaxed">
+                      {selectedProject.type}
                     </p>
                   </div>
                 </div>
@@ -317,13 +331,13 @@ export function DataTable<TData extends Project, TValue>({
                 <div className="grid grid-cols-2 gap-8">
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Program</p>
-                    <p className="text-lg font-semibold text-gray-900">
+                    <p className="text-lg font-semibold text-gray-900 break-words whitespace-normal leading-relaxed">
                       {selectedProject.program}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Topik</p>
-                    <p className="text-lg font-semibold text-gray-900">
+                    <p className="text-sm text-gray-600 mb-1">Judul/Topik</p>
+                    <p className="text-lg font-semibold text-gray-900 break-words whitespace-normal leading-relaxed">
                       {selectedProject.topic}
                     </p>
                   </div>
@@ -333,7 +347,7 @@ export function DataTable<TData extends Project, TValue>({
                 <div className="grid grid-cols-2 gap-8">
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Total Harga</p>
-                    <p className="text-lg font-semibold text-gray-900">
+                    <p className="text-lg font-semibold text-gray-900 break-words whitespace-normal leading-relaxed">
                       {selectedProject.totalHarga}
                     </p>
                   </div>
@@ -341,7 +355,7 @@ export function DataTable<TData extends Project, TValue>({
                     <p className="text-sm text-gray-600 mb-1">
                       Status Transaksi
                     </p>
-                    <p className="text-lg font-semibold text-gray-900">
+                    <p className="text-lg font-semibold text-gray-900 break-words whitespace-normal leading-relaxed">
                       {selectedProject.statusTransaksi}
                     </p>
                   </div>
@@ -349,22 +363,32 @@ export function DataTable<TData extends Project, TValue>({
               </div>
 
               {/* Action Buttons */}
-              <div className="grid grid-cols-3 gap-4 mt-8 pt-6 border-t">
+              <div className="grid grid-cols-2 gap-4 mt-8 pt-6 border-t">
                 {/* Edit */}
                 <Button
-                  className="flex-1 bg-[#0CA678] hover:bg-[#08916C] text-white"
+                  className="bg-[#0CA678] hover:bg-[#08916C] text-white"
                   onClick={() => {
                     if (!selectedProject) return;
 
                     setEditFormData({
-                      id: selectedProject.id,
+                      id: selectedProject.paymentId,
+                      display: selectedProject.displayId,
                       date: selectedProject.date,
-                      mentee: selectedProject.mentee,
                       mentor: selectedProject.mentor,
+                      mentee: selectedProject.mentee,
                       program: selectedProject.program,
                       topic: selectedProject.topic,
                       totalHarga: selectedProject.totalHarga,
-                      statusTransaksi: selectedProject.statusTransaksi,
+                      statusTransaksi:
+                        selectedProject.statusTransaksi === "Belum Dibayar"
+                          ? "pending"
+                          : selectedProject.statusTransaksi === "Lunas"
+                          ? "confirmed"
+                          : selectedProject.statusTransaksi === "Gagal"
+                          ? "failed"
+                          : selectedProject.statusTransaksi === "Refunded"
+                          ? "refunded"
+                          : "pending",
                       alasan: selectedProject.alasan,
                     });
 
@@ -378,7 +402,7 @@ export function DataTable<TData extends Project, TValue>({
 
                 {/* Pengembalian Dana */}
                 <Button
-                  className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white"
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white"
                   onClick={() => {
                     setShowDetailDialog(false);
                     setShowRefundDialog(true);
@@ -386,208 +410,146 @@ export function DataTable<TData extends Project, TValue>({
                 >
                   Pengembalian Dana
                 </Button>
-
-                {/* Hapus */}
-                <Button
-                  variant="destructive"
-                  className="flex-1 bg-red-500 hover:bg-red-600"
-                  onClick={() => {
-                    console.log("Delete project:", selectedProject);
-                    setShowDetailDialog(false);
-                  }}
-                >
-                  Hapus
-                </Button>
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Edit Project Transaksi Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent
           className="max-w-2xl"
           onInteractOutside={(e) => e.preventDefault()}
         >
-          <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b">
+          <DialogHeader className="pb-4 border-b">
             <DialogTitle className="text-xl font-semibold">
               Edit Transaksi
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-6 py-4">
-            {/* Step 1 */}
-            {editStep === 1 && (
-              <>
-                {/* ID Sesi */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    ID Sesi
-                  </label>
-                  <Input
-                    value={editFormData.id}
-                    readOnly
-                    className="pointer-events-none select-none bg-gray-100 text-gray-700"
-                  />
-                </div>
+          {/* Scrollable Content */}
+          <div className="space-y-6 py-4 max-h-[70vh] overflow-y-auto pr-2">
+            {/* ID */}
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">
+                ID Transaksi
+              </label>
+              <Input
+                value={editFormData.display}
+                readOnly
+                className="bg-gray-100 pointer-events-none"
+              />
+            </div>
 
-                {/* Mentee & Mentor */}
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Mentee (Input manual) */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Mentee
-                    </label>
-                    <Input
-                      value={editFormData.mentee}
-                      onChange={(e) =>
-                        setEditFormData({
-                          ...editFormData,
-                          mentee: e.target.value,
-                        })
-                      }
-                      className="w-full"
-                    />
-                  </div>
+            {/* Mentee & Topik */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">
+                  Mentee
+                </label>
+                <Input
+                  value={editFormData.mentee}
+                  readOnly
+                  className="bg-gray-100 pointer-events-none"
+                />
+              </div>
 
-                  {/* Mentor tetap select */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Mentor
-                    </label>
-                    <Select
-                      value={editFormData.mentor}
-                      onValueChange={(value) =>
-                        setEditFormData({ ...editFormData, mentor: value })
-                      }
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Pilih Mentor" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Gilang Dirga">
-                          Gilang Dirga
-                        </SelectItem>
-                        <SelectItem value="Nina Pratiwi">
-                          Nina Pratiwi
-                        </SelectItem>
-                        <SelectItem value="Laura Ayu">Laura Ayu</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">
+                  Topik
+                </label>
+                <Input
+                  value={editFormData.topic}
+                  readOnly
+                  className="bg-gray-100 pointer-events-none"
+                />
+              </div>
+            </div>
 
-                {/* Program (FULL WIDTH) */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Program
-                  </label>
-                  <Select
-                    value={editFormData.program}
-                    onValueChange={(value) =>
-                      setEditFormData({ ...editFormData, program: value })
-                    }
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Pilih Program" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Short Class">Short Class</SelectItem>
-                      <SelectItem value="Bootcamp">Bootcamp</SelectItem>
-                      <SelectItem value="Live Class">Live Class</SelectItem>
-                      <SelectItem value="1 on 1 Mentoring">
-                        1 on 1 Mentoring
-                      </SelectItem>
-                      <SelectItem value="Group Mentoring">
-                        Group Mentoring
-                      </SelectItem>
-                      <SelectItem value="Practice">Practice</SelectItem>
-                      <SelectItem value="E-Learning">E-Learning</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+            {/* Total & Status */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">
+                  Total Harga
+                </label>
+                <Input
+                  value={editFormData.totalHarga}
+                  readOnly
+                  className="bg-gray-100 pointer-events-none"
+                />
+              </div>
 
-                {/* Baris Total Harga + Status */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Total Harga
-                    </label>
-                    <Input
-                      value={editFormData.totalHarga}
-                      onChange={(e) =>
-                        setEditFormData({
-                          ...editFormData,
-                          totalHarga: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Status Transaksi
-                    </label>
-                    <Select
-                      value={editFormData.statusTransaksi}
-                      onValueChange={(value) =>
-                        setEditFormData({
-                          ...editFormData,
-                          statusTransaksi: value,
-                        })
-                      }
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Pilih Status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Belum Dibayar">
-                          Belum Dibayar
-                        </SelectItem>
-                        <SelectItem value="Selesai">Selesai</SelectItem>
-                        <SelectItem value="Dibatalkan">Dibatalkan</SelectItem>
-                        <SelectItem value="Menunggu Konfirmasi">
-                          Menunggu Konfirmasi
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </>
-            )}
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">
+                  Status Transaksi
+                </label>
+                <Select
+                  value={editFormData.statusTransaksi}
+                  onValueChange={(value) =>
+                    setEditFormData({
+                      ...editFormData,
+                      statusTransaksi: value as any,
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Belum Dibayar</SelectItem>
+                    <SelectItem value="confirmed">Lunas</SelectItem>
+                    <SelectItem value="failed">Gagal</SelectItem>
+                    <SelectItem value="refunded">Refunded</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
 
-          {/* CTA BUTTONS FULL-WIDTH 1/2 – 1/2 */}
+          {/* CTA */}
           <div className="grid grid-cols-2 gap-4 pt-6 border-t">
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => {
-                if (editStep === 1) {
-                  setShowEditDialog(false);
-                  setEditStep(1);
-                } else {
-                  setEditStep(editStep - 1);
-                }
-              }}
-            >
-              {editStep === 1 ? "Kembali" : "Sebelumnya"}
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+              Batal
             </Button>
 
             <Button
-              className="bg-[#0CA678] hover:bg-[#08916C] text-white w-full"
-              onClick={() => {
-                if (editStep === 1) {
-                  console.log("Save changes:", editFormData);
+              className="bg-[#0CA678] hover:bg-[#08916C] text-white"
+              disabled={saving}
+              onClick={async () => {
+                try {
+                  setSaving(true);
+
+                  await axios.patch(
+                    `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/payment/payments-status/${editFormData.id}`,
+                    {
+                      status: editFormData.statusTransaksi,
+                    },
+                    { withCredentials: true }
+                  );
+
+                  toast.success("Status transaksi berhasil diperbarui");
+
                   setShowEditDialog(false);
-                  setEditStep(1);
-                } else {
-                  setEditStep(editStep + 1);
+                } catch (error: any) {
+                  console.error(error);
+
+                  toast.error(
+                    error?.response?.data?.message ??
+                      "Gagal memperbarui status transaksi"
+                  );
+                } finally {
+                  setSaving(false);
                 }
               }}
             >
-              {editStep === 1 ? "Simpan Perubahan" : "Selanjutnya"}
+              {saving ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Menyimpan...
+                </span>
+              ) : (
+                "Simpan Perubahan"
+              )}
             </Button>
           </div>
         </DialogContent>
@@ -614,7 +576,7 @@ export function DataTable<TData extends Project, TValue>({
                   <div>
                     <p className="text-sm text-gray-500 mb-1">ID Transaksi</p>
                     <p className="text-lg font-semibold text-gray-900">
-                      {selectedProject.id}
+                      {selectedProject.displayId}
                     </p>
                   </div>
                   <div>
@@ -636,9 +598,9 @@ export function DataTable<TData extends Project, TValue>({
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Mentor</p>
+                    <p className="text-sm text-gray-500 mb-1">Tipe</p>
                     <p className="text-lg font-semibold text-gray-900">
-                      {selectedProject.mentor}
+                      {selectedProject.type}
                     </p>
                   </div>
                 </div>
@@ -692,12 +654,46 @@ export function DataTable<TData extends Project, TValue>({
               <div className="pt-6 border-t">
                 <Button
                   className="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-6 text-base font-semibold rounded-lg"
-                  onClick={() => {
-                    console.log("Refund confirmed for:", selectedProject);
-                    setShowRefundDialog(false);
+                  disabled={
+                    refunding || selectedProject?.statusTransaksi === "Refunded"
+                  }
+                  onClick={async () => {
+                    if (!selectedProject) return;
+
+                    try {
+                      setRefunding(true);
+
+                      await axios.patch(
+                        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/payment/payments-status/${selectedProject.paymentId}`,
+                        {
+                          status: "refunded",
+                        },
+                        { withCredentials: true }
+                      );
+
+                      toast.success("Pengembalian dana berhasil diproses");
+
+                      setShowRefundDialog(false);
+                    } catch (error: any) {
+                      console.error(error);
+
+                      toast.error(
+                        error?.response?.data?.message ??
+                          "Gagal memproses pengembalian dana"
+                      );
+                    } finally {
+                      setRefunding(false);
+                    }
                   }}
                 >
-                  Konfirmasi Pengembalian Dana
+                  {refunding ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Memproses Refund...
+                    </span>
+                  ) : (
+                    "Konfirmasi Pengembalian Dana"
+                  )}
                 </Button>
               </div>
             </div>

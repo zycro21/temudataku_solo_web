@@ -11,6 +11,7 @@ import {
   patchFeedbackVisibilitySchema,
   exportFeedbackQuerySchema,
   feedbackStatsQuerySchema,
+  updateFeedbackAdminSchema,
 } from "../validations/feedback.validation.js";
 import { validate } from "../middlewares/validate.js";
 import { authenticate } from "../middlewares/authenticate.js";
@@ -1353,6 +1354,58 @@ router.get(
   authorizeRoles("admin"),
   validate(feedbackStatsQuerySchema),
   FeedbackController.getFeedbackStatistics
+);
+
+/**
+ * @swagger
+ * /api/feedback/adminFeedbacks/{id}:
+ *   put:
+ *     summary: Update feedback (admin)
+ *     tags: [Feedback]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID feedback
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               isVisible:
+ *                 type: boolean
+ *                 example: true
+ *               rating:
+ *                 type: number
+ *                 minimum: 0
+ *                 maximum: 5
+ *                 example: 4.5
+ *               comment:
+ *                 type: string
+ *                 nullable: true
+ *                 example: |
+ *                   Sudah sangat bagus sebenarnya
+ *                   Catatan Tambahan: Lebih tepat waktu
+ *     responses:
+ *       200:
+ *         description: Feedback berhasil diperbarui
+ *       404:
+ *         description: Feedback tidak ditemukan
+ *       403:
+ *         description: Akses ditolak
+ */
+router.put(
+  "/adminFeedbacks/:id",
+  authenticate,
+  authorizeRoles("admin"),
+  validate(updateFeedbackAdminSchema),
+  FeedbackController.updateFeedbackByAdmin
 );
 
 export default router;

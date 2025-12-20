@@ -78,15 +78,14 @@ export default function MentorPerformance() {
         const feedbacks = res.data.data || [];
 
         if (feedbacks.length > 0) {
-          // Hitung rating
           const totalRating = feedbacks.reduce(
-            (sum: number, f: any) => sum + f.rating,
+            (sum: number, f: any) => sum + (Number(f.rating) || 0),
             0
           );
+          const avgRating = totalRating / feedbacks.length;
           setFeedbackCount(feedbacks.length);
-          setRating(parseFloat((totalRating / feedbacks.length).toFixed(1)));
+          setRating(isNaN(avgRating) ? 0 : parseFloat(avgRating.toFixed(1)));
 
-          // Ambil 3 keyword terbanyak
           const comments = feedbacks.map((f: any) => f.comment || "");
           const topKeywords = extractTopKeywords(comments, 3);
           setTags(topKeywords);
@@ -117,13 +116,14 @@ export default function MentorPerformance() {
   };
 
   const renderStars = (rating: number) => {
+    const safeRating = isNaN(rating) ? 0 : rating;
     return Array.from({ length: 5 }).map((_, idx) => {
       const starValue = idx + 1;
       const fill =
-        rating >= starValue
+        safeRating >= starValue
           ? 100
-          : rating > starValue - 1
-          ? (rating - (starValue - 1)) * 100
+          : safeRating > starValue - 1
+          ? (safeRating - (starValue - 1)) * 100
           : 0;
 
       return (
@@ -162,7 +162,10 @@ export default function MentorPerformance() {
       <CardContent className="px-6 py-4 pt-0 grid grid-cols-2 gap-4 items-center">
         <div>
           <div className="flex items-baseline gap-2">
-            <h2 className="text-6xl font-extrabold text-gray-900">{rating}</h2>
+            <h2 className="text-6xl font-extrabold text-gray-900">
+              {isNaN(rating) ? 0 : rating}
+            </h2>
+
             <p className="text-xs text-gray-500">({feedbackCount} feedback)</p>
           </div>
           <div className="flex items-center gap-1 mt-2">

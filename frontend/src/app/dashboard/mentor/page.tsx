@@ -61,6 +61,7 @@ export default function MainDashboardMentorPage() {
               alt="User Avatar"
               width={50}
               height={50}
+              unoptimized
               className="rounded-full relative top-[-0.5px]"
             />
             <div>

@@ -8,6 +8,7 @@ import path from "path";
 import fs from "fs";
 import { uploadPath } from "../middlewares/uploadImage.js";
 import { PrismaClient } from "@prisma/client";
+import { logActivity } from "../utils/logActivtiy.js";
 
 const prisma = new PrismaClient();
 
@@ -17,8 +18,16 @@ export const register = async (
   next: NextFunction
 ) => {
   try {
-    const { email, password, fullName, role, phoneNumber, city, province } =
-      req.body;
+    const {
+      email,
+      password,
+      fullName,
+      role,
+      phoneNumber,
+      city,
+      province,
+      createdByAdmin,
+    } = req.body;
 
     const uploadedFileName = req.file?.filename ?? "default.jpg";
 
@@ -32,6 +41,7 @@ export const register = async (
       city,
       province,
       profilePicture: uploadedFileName,
+      createdByAdmin,
     });
 
     // Ambil role user
@@ -142,6 +152,19 @@ export const login = async (
       sameSite: "lax",
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 hari
     });
+
+    // === LOG ACTIVITY (HANYA ADMIN) ===
+    const isAdmin = roles.some((r) => r.role_name.toLowerCase() === "admin");
+
+    if (isAdmin) {
+      await logActivity({
+        userId: user.id,
+        action: "ADMIN_LOGIN",
+        type: "AUTH",
+        description: `Admin ${user.fullName} berhasil login.`,
+        req,
+      });
+    }
 
     res.status(200).json({
       message: "Login successful",

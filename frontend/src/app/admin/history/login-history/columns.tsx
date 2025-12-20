@@ -105,6 +105,32 @@ export const columns: ColumnDef<loginHistory>[] = [
     },
   },
 
+  /* ========================================
+    SORT — ROLE
+========================================= */
+  {
+    accessorKey: "role",
+    header: ({ column }) => {
+      const sort = column.getIsSorted(); // false | asc | desc
+
+      return (
+        <button
+          onClick={() => {
+            if (!sort) column.toggleSorting(false); // ASC
+            else if (sort === "asc") column.toggleSorting(true); // DESC
+            else column.clearSorting(); // RESET
+          }}
+          className={`flex items-center gap-1 w-full cursor-pointer 
+          ${sort ? "bg-emerald-200" : ""}`}
+        >
+          Role
+          {sort === "asc" && <ArrowDown className="w-4 h-4" />}
+          {sort === "desc" && <ArrowUp className="w-4 h-4" />}
+        </button>
+      );
+    },
+  },
+
   {
     accessorKey: "perangkat",
     header: ({ column }) => {
@@ -190,23 +216,7 @@ export const columns: ColumnDef<loginHistory>[] = [
     accessorKey: "aksi",
     header: "Aksi",
     cell: ({ row }) => (
-      <div className="flex items-center space-x-2">
-        {/* Tombol Lihat (Eye) */}
-        <button
-          className="w-8 h-8 flex items-center justify-center rounded bg-blue-500 hover:bg-blue-600 text-white"
-          onClick={() => console.log("View:", row.original.id)}
-        >
-          <Eye className="w-4 h-4" />
-        </button>
-
-        {/* Tombol Hapus */}
-        <button
-          className="w-8 h-8 flex items-center justify-center rounded bg-red-500 hover:bg-red-600 text-white"
-          onClick={() => console.log("Hapus:", row.original.id)}
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
-      </div>
+      <span className="text-gray-700 font-medium">{row.original.aksi}</span>
     ),
   },
 ];

@@ -154,11 +154,11 @@ export const getMentoringSessionsSchema = z
           .string()
           .transform(Number)
           .refine(
-            (val) => val > 0 && val <= 100,
-            "Limit harus antara 1 dan 100"
+            (val) => val > 0 && val <= 10000,
+            "Limit harus antara 1 dan 10000"
           )
           .optional()
-          .default("10"),
+          .default("10000"),
       })
       .optional(), // Tambahkan .optional() di sini
   })
@@ -213,26 +213,16 @@ export const updateMentoringSessionSchema = z.object({
         .optional(),
 
       startTime: z
-        .string()
-        .regex(
-          /^([01]?[0-9]|2[0-3]):([0-5][0-9])$/,
-          "Format waktu mulai tidak valid, gunakan format HH:mm"
-        )
-        .transform((val) => {
-          const [hour, minute] = val.split(":");
-          return { hour: parseInt(hour), minute: parseInt(minute) };
+        .object({
+          hour: z.number().int().min(0).max(23),
+          minute: z.number().int().min(0).max(59),
         })
         .optional(),
 
       endTime: z
-        .string()
-        .regex(
-          /^([01]?[0-9]|2[0-3]):([0-5][0-9])$/,
-          "Format waktu selesai tidak valid, gunakan format HH:mm"
-        )
-        .transform((val) => {
-          const [hour, minute] = val.split(":");
-          return { hour: parseInt(hour), minute: parseInt(minute) };
+        .object({
+          hour: z.number().int().min(0).max(23),
+          minute: z.number().int().min(0).max(59),
         })
         .optional(),
       meetingLink: z.string().url().optional(),
@@ -361,5 +351,15 @@ export const publicGetSessionByIdSchema = z.object({
         /^Session-[A-Za-z0-9]{10}-[a-z_]+-\d{6}$/,
         "ID sesi tidak valid. Format harus: Session-<10_karakter>-<kategori>-<6_digit>"
       ),
+  }),
+});
+
+export const exportMentoringSessionsSchema = z.object({
+  query: z.object({
+    format: z
+      .enum(["csv", "xlsx"])
+      .optional()
+      .default("xlsx")
+      .describe("Format file export, csv atau xlsx"),
   }),
 });

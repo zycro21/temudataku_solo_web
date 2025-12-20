@@ -150,6 +150,8 @@ export interface AuthenticatedRequestBooking extends Request {
     usedReferral?: boolean;
     startDate?: string;
     endDate?: string;
+    isRescheduled?: boolean;
+    hasSession?: boolean;
     format?: "csv" | "excel";
     mentorId?: string;
   };
@@ -673,7 +675,35 @@ export interface AuthenticatedRequestElearningSubmission extends Request {
   file?: Express.Multer.File;
 }
 
+export interface AuthenticatedRequestELearningPurchase extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+  };
+  validatedBody?: {
+    courseId?: string;
+    referralUsageId?: string;
+  };
+  validatedParams?: any;
+  validatedQuery?: any;
+}
 
+export interface AuthenticatedRequestAdminActivityLog extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+  };
+
+  validatedBody?: any;
+  validatedParams?: any;
+  validatedQuery?: any;
+}
 
 export const authenticate = (
   req: AuthenticatedRequest,

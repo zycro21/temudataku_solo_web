@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
   FileText,
@@ -22,222 +25,165 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { DataTable } from "./data-table";
 import { columns, Project } from "./columns";
+import dynamic from "next/dynamic";
 
 export default function AdminMentorPage() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const [exportOpen, setExportOpen] = useState(false);
 
-  const [projects] = useState<Project[]>([
-    {
-      id: "MNTG01",
-      mentee: "Jehan Ra",
-      mentor: "Gilang Dirga",
-      program: "Short Class",
-      date: "10-05-2025, 20:00",
-      projectFile: "",
-      topic: "Excel Untuk Pemula",
-      statusDetail: "Belum Dinilai",
-      score: "",
-      document: "",
-    },
-    {
-      id: "MNTG02",
-      mentee: "Galih B",
-      mentor: "Gilang Dirga",
-      program: "Bootcamp",
-      date: "10-05-2025, 20:00",
-      projectFile: "",
-      topic: "Introduction to Data Science",
-      statusDetail: "Belum Dinilai",
-      score: "",
-      document: "",
-    },
-    {
-      id: "MNTG03",
-      mentee: "Bonda Prakoso",
-      mentor: "Nina Pratiwi",
-      program: "Bootcamp",
-      date: "10-05-2025, 20:00",
-      projectFile: "",
-      topic: "Belajar Data Science dari Nol",
-      statusDetail: "Belum Dinilai",
-      score: "",
-      document: "",
-    },
-    {
-      id: "MNTG04",
-      mentee: "Kepa",
-      mentor: "Nina Pratiwi",
-      program: "Bootcamp",
-      date: "10-05-2025, 20:00",
-      projectFile: "Lorem Ipsum.pdf",
-      topic: "Visualisasi Data dengan Matplotlib",
-      statusDetail: "Belum Dinilai",
-      score: "",
-      document: "Lorem Ipsum.pdf",
-    },
-    {
-      id: "MNTG05",
-      mentee: "Darwin Nunez",
-      mentor: "Laura Ayu",
-      program: "Bootcamp",
-      date: "10-05-2025, 20:00",
-      projectFile: "Lorem Ipsum.pdf",
-      topic: "Visualisasi Data dengan Matplotlib",
-      statusDetail: "Sudah Dinilai",
-      score: "85",
-      document: "Lorem Ipsum.pdf",
-    },
-    {
-      id: "MNTG06",
-      mentee: "Marc Marquez",
-      mentor: "Gilang Dirga",
-      program: "Bootcamp",
-      date: "10-05-2025, 20:00",
-      projectFile: "Lorem Ipsum.pdf",
-      topic: "Visualisasi Data dengan Matplotlib",
-      statusDetail: "Sudah Dinilai",
-      score: "92",
-      document: "Lorem Ipsum.pdf",
-    },
-    {
-      id: "MNTG07",
-      mentee: "Rafael Struick",
-      mentor: "Laura Ayu",
-      program: "Bootcamp",
-      date: "10-05-2025, 20:00",
-      projectFile: "Lorem Ipsum.pdf",
-      topic: "Visualisasi Data dengan Matplotlib",
-      statusDetail: "Sudah Dinilai",
-      score: "88",
-      document: "Lorem Ipsum.pdf",
-    },
-    {
-      id: "MNTG08",
-      mentee: "Marteen Paes",
-      mentor: "Laura Ayu",
-      program: "Bootcamp",
-      date: "10-05-2025, 20:00",
-      projectFile: "Lorem Ipsum.pdf",
-      topic: "Visualisasi Data dengan Matplotlib",
-      statusDetail: "Sudah Dinilai",
-      score: "90",
-      document: "Lorem Ipsum.pdf",
-    },
-    {
-      id: "MNTG09",
-      mentee: "Kevin Mendoza",
-      mentor: "Laura Ayu",
-      program: "Short Class",
-      date: "10-05-2025, 20:00",
-      projectFile: "Lorem Ipsum Dolor.pdf",
-      topic: "Visualisasi Data dengan Matplotlib",
-      statusDetail: "Sudah Dinilai",
-      score: "99",
-      document: "Lorem Ipsum Dolor.pdf",
-    },
-    {
-      id: "MNTG10",
-      mentee: "Lorenzo",
-      mentor: "Nina Pratiwi",
-      program: "Short Class",
-      date: "10-05-2025, 20:00",
-      projectFile: "",
-      topic: "Excel Untuk Pemula",
-      statusDetail: "Belum Dinilai",
-      score: "",
-      document: "",
-    },
-    // Tambahan 5 data baru
-    {
-      id: "MNTG11",
-      mentee: "Satria Adi",
-      mentor: "Gilang Dirga",
-      program: "Short Class",
-      date: "11-05-2025, 18:00",
-      projectFile: "Satria_Excel.pdf",
-      topic: "Excel Lanjutan",
-      statusDetail: "Belum Dinilai",
-      score: "",
-      document: "Satria_Excel.pdf",
-    },
-    {
-      id: "MNTG12",
-      mentee: "Nadia Fitri",
-      mentor: "Laura Ayu",
-      program: "Bootcamp",
-      date: "11-05-2025, 19:00",
-      projectFile: "",
-      topic: "Python Dasar",
-      statusDetail: "Belum Dinilai",
-      score: "",
-      document: "",
-    },
-    {
-      id: "MNTG13",
-      mentee: "Ahmad Fauzi",
-      mentor: "Nina Pratiwi",
-      program: "Live Class",
-      date: "12-05-2025, 20:30",
-      projectFile: "Fauzi_Python.pdf",
-      topic: "Python untuk Data Science",
-      statusDetail: "Sudah Dinilai",
-      score: "87",
-      document: "Fauzi_Python.pdf",
-    },
-    {
-      id: "MNTG14",
-      mentee: "Lia Kartika",
-      mentor: "Gilang Dirga",
-      program: "Short Class",
-      date: "12-05-2025, 21:00",
-      projectFile: "",
-      topic: "Analisis Data dengan Excel",
-      statusDetail: "Belum Dinilai",
-      score: "",
-      document: "",
-    },
-    {
-      id: "MNTG15",
-      mentee: "Rizky Maulana",
-      mentor: "Laura Ayu",
-      program: "Bootcamp",
-      date: "13-05-2025, 20:00",
-      projectFile: "Rizky_Visualization.pdf",
-      topic: "Visualisasi Data Lanjutan",
-      statusDetail: "Sudah Dinilai",
-      score: "91",
-      document: "Rizky_Visualization.pdf",
-    },
-  ]);
+  const handleExportSubmission = async (format: "csv" | "excel") => {
+    const loadingToastId = toast.loading(
+      `Mengekspor submissions ke ${format.toUpperCase()}...`
+    );
+
+    try {
+      const res = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/project/adminSubmissionsExport`,
+        {
+          params: { format },
+          responseType: "blob",
+          withCredentials: true, // pastikan cookie/auth dikirim
+        }
+      );
+
+      const blob = new Blob([res.data], { type: res.headers["content-type"] });
+
+      // Buat timestamp untuk filename
+      const now = new Date();
+      const timestamp = now
+        .toLocaleString("sv-SE")
+        .replace(" ", "_")
+        .replace(/:/g, "-");
+
+      const extension = format === "excel" ? "xlsx" : "csv";
+      const filename = `submissions-${timestamp}.${extension}`;
+
+      // Buat link download
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast.success("Export berhasil", {
+        id: loadingToastId,
+        description: `Data submissions berhasil diekspor (${filename})`,
+      });
+    } catch (err: any) {
+      console.error("Export submissions error:", err);
+
+      toast.error("Gagal export data submissions", {
+        id: loadingToastId,
+        description:
+          err?.response?.data?.message ??
+          "Terjadi kesalahan saat mengekspor data submissions",
+      });
+    }
+  };
+
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSubmissions = async () => {
+      try {
+        setLoading(true);
+
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/project/admin/submissions`,
+          {
+            withCredentials: true,
+            params: {
+              page: 1,
+              limit: 10000,
+              sortBy: "submissionDate",
+              sortOrder: "desc",
+            },
+          }
+        );
+
+        setProjects(res.data.data);
+      } catch (error: any) {
+        console.error(error);
+        toast.error(
+          error?.response?.data?.message || "Gagal memuat daftar submission"
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSubmissions();
+  }, []);
+
+  type ProjectStats = {
+    totalProject: number;
+    submitted: number;
+    notSubmitted: number;
+    reviewed: number;
+    notReviewed: number;
+  };
+
+  const [statsData, setStatsData] = useState<ProjectStats | null>(null);
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  useEffect(() => {
+    const fetchProjectStats = async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/project/adminprojectsstats`,
+          {
+            withCredentials: true,
+          }
+        );
+
+        setStatsData(res.data.data);
+      } catch (error) {
+        console.error("Gagal mengambil statistik project:", error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    fetchProjectStats();
+  }, []);
 
   const stats = [
     {
       title: "Total Project",
-      value: "80",
+      value: statsData?.totalProject ?? 0,
       image: "/assets/admin/totalproject.svg",
       color: "text-gray-900",
     },
     {
       title: "Sudah Mengirim",
-      value: "78",
+      value: statsData?.submitted ?? 0,
       image: "/assets/admin/menteeac.svg",
       color: "text-green-600",
     },
     {
       title: "Belum Mengirim",
-      value: "2",
+      value: statsData?.notSubmitted ?? 0,
       image: "/assets/admin/penjadwalanulang.svg",
       color: "text-orange-600",
     },
     {
       title: "Sudah Direview",
-      value: "78",
+      value: statsData?.reviewed ?? 0,
       image: "/assets/admin/menteeac.svg",
       color: "text-green-600",
     },
     {
       title: "Belum Direview",
-      value: "2",
+      value: statsData?.notReviewed ?? 0,
       image: "/assets/admin/penjadwalanulang.svg",
       color: "text-orange-600",
     },
@@ -277,10 +223,10 @@ export default function AdminMentorPage() {
           </DropdownMenuTrigger>
 
           <DropdownMenuContent align="end" className="w-40">
-            <DropdownMenuItem onClick={() => console.log("Export CSV")}>
+            <DropdownMenuItem onClick={() => handleExportSubmission("csv")}>
               Export ke CSV
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => console.log("Export Excel")}>
+            <DropdownMenuItem onClick={() => handleExportSubmission("excel")}>
               Export ke Excel
             </DropdownMenuItem>
           </DropdownMenuContent>

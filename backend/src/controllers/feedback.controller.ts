@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { HttpError } from "../utils/httpError";
 import * as FeedbackService from "../services/feedback.service.js";
 import { PrismaClient } from "@prisma/client";
+import { logActivity } from "../utils/logActivtiy.js";
 
 const prisma = new PrismaClient();
 
@@ -206,7 +207,7 @@ export const getAllFeedbacksForAdmin = async (
       search,
       sortBy,
       sortOrder,
-      limit = 10,
+      limit = 10000,
       page = 1,
     } = req.validatedQuery;
 
@@ -238,6 +239,13 @@ export const updateFeedbackVisibility = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const roles = req.user?.roles || [];
+
     const feedbackId = req.validatedParams.id;
     const { isVisible } = req.validatedBody;
 
@@ -256,6 +264,16 @@ export const updateFeedbackVisibility = async (
       responseData.updatedAt = result.updatedAt;
     }
 
+    if (roles.includes("admin") && adminId) {
+      await logActivity({
+        userId: req.user.userId,
+        action: "ADMIN_UPDATE_FEEDBACK_VISIBILITY",
+        type: "UPDATE",
+        description: `Admin mengubah visibility feedback ${feedbackId} menjadi ${isVisible}`,
+        req,
+      });
+    }
+
     res.status(200).json({
       message: result.message,
       data: responseData,
@@ -271,10 +289,27 @@ export const exportFeedbacks = async (
   next: NextFunction
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const roles = req.user?.roles || [];
+
     const format = req.validatedQuery?.format === "excel" ? "excel" : "csv";
 
     const { buffer, fileName, mimeType } =
       await FeedbackService.exportFeedbacksToFile(format);
+
+    if (roles.includes("admin") && adminId) {
+      await logActivity({
+        userId: req.user.userId,
+        action: "ADMIN_EXPORT_FEEDBACKS",
+        type: "EXPORT",
+        description: `Admin mengekspor feedback dalam format ${format}`,
+        req,
+      });
+    }
 
     res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
     res.setHeader("Content-Type", mimeType);
@@ -304,5 +339,47 @@ export const getFeedbackStatistics = async (
     return;
   } catch (err) {
     next(err);
+  }
+};
+
+export const updateFeedbackByAdmin = async (
+  req: AuthenticatedRequestFeedback,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      return;
+    }
+    const adminId = req.user.userId;
+    const roles = req.user?.roles || [];
+
+    const { id } = req.validatedParams;
+    const { isVisible, rating, comment } = req.validatedBody;
+
+    const result = await FeedbackService.updateFeedbackByAdmin({
+      id,
+      isVisible,
+      rating,
+      comment,
+    });
+
+     if (roles.includes("admin") && adminId) {
+      await logActivity({
+        userId: req.user.userId,
+        action: "ADMIN_UPDATE_FEEDBACKS",
+        type: "EXPORT",
+        description: `Admin melakukan update Feedback dengan ID: ${id}`,
+        req,
+      });
+    }
+
+    res.status(200).json({
+      message: "Feedback berhasil diperbarui",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
   }
 };
