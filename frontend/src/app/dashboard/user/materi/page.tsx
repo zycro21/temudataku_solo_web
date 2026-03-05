@@ -46,10 +46,16 @@ export default function MateriDashboardUserPage() {
           {
             params: { page: 1, limit: 1000 },
             withCredentials: true,
-          }
+          },
         );
 
-        const bookings = res.data.data.data;
+        const bookingsRaw = res.data.data.data || [];
+
+        const bookings = bookingsRaw.filter((b: any) =>
+          ["confirmed", "completed"].includes(
+            (b.status || "").toLowerCase().trim(),
+          ),
+        );
 
         // 🔄 Normalisasi data mentoring sessions
         const materiData: Materi[] = bookings.flatMap((booking: any) =>
@@ -75,8 +81,8 @@ export default function MateriDashboardUserPage() {
                   session.mentors?.[0]?.mentorProfile?.user?.fullName ||
                   "Mentor belum terdaftar",
               };
-            }
-          )
+            },
+          ),
         );
 
         setMateriList(materiData);
@@ -92,7 +98,7 @@ export default function MateriDashboardUserPage() {
 
   // ✅ Filter hanya yang sesuai label
   const allMateri: Materi[] = materiList.filter((m) =>
-    Object.keys(PROGRAM_LABELS).includes(m.program)
+    Object.keys(PROGRAM_LABELS).includes(m.program),
   );
 
   // 🔍 Filter berdasarkan program & pencarian

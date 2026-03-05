@@ -23,6 +23,7 @@ import { ArrowUpDown, ArrowDown, ArrowUp } from "lucide-react";
 
 interface ApiPayment {
   id: string;
+  merchantOrderId?: string;
   type: "booking" | "practice";
   title: string;
   amount: number;
@@ -58,29 +59,50 @@ export default function TransactionSection() {
           {
             withCredentials: true, // 🔹 penting untuk cookie-based auth
             params: { page: 1, limit: 100 },
-          }
+          },
         );
 
-        const data: ApiPayment[] = res.data.data.map((p: any) => ({
-          id: p.id,
-          type: p.type,
-          title: p.title || "-",
-          amount: Number(p.amount),
-          status: p.status || "-",
-          paymentMethod: p.paymentMethod || "-",
+        const data: ApiPayment[] = res.data.data.map((p: any) => {
+          let title = p.title || "-";
 
-          // 🔹 Gunakan paymentDate jika ada, fallback ke createdAt
-          paymentDate: p.paymentDate
-            ? new Date(p.paymentDate).toLocaleDateString("id-ID")
-            : new Date(p.createdAt).toLocaleDateString("id-ID"),
+          // hapus "- angka" untuk group / one-on-one
+          if (title) {
+            title = title.replace(/\s-\s\d+$/, "");
+          }
 
-          // 🔹 Gunakan transactionId jika ada, fallback ke id
-          transactionId: p.transactionId || p.id,
+          // status pending lebih dari 2 hari
+          let status = p.status || "-";
+          if (status === "pending") {
+            const created = new Date(p.createdAt);
+            const now = new Date();
+            const diffDays =
+              (now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24);
 
-          createdAt: p.createdAt
-            ? new Date(p.createdAt).toLocaleDateString("id-ID")
-            : "-",
-        }));
+            if (diffDays > 2) {
+              status = "failed";
+            }
+          }
+
+          return {
+            id: p.id,
+            merchantOrderId: p.merchantOrderId,
+            type: p.type,
+            title,
+            amount: Number(p.amount),
+            status,
+            paymentMethod: p.paymentMethod || "-",
+
+            paymentDate: p.paymentDate
+              ? new Date(p.paymentDate).toLocaleDateString("id-ID")
+              : new Date(p.createdAt).toLocaleDateString("id-ID"),
+
+            transactionId: p.merchantOrderId || "Tidak Ada No Transaksi",
+
+            createdAt: p.createdAt
+              ? new Date(p.createdAt).toLocaleDateString("id-ID")
+              : "-",
+          };
+        });
 
         setTransactions(data);
       } catch (err) {
@@ -98,8 +120,12 @@ export default function TransactionSection() {
     if (!sortConfig || sortConfig.direction === "default") return 0;
     const { key, direction } = sortConfig;
 
-    const getValue = (item: ApiPayment) =>
-      key === "price" ? item.amount : item[key];
+    const getValue = (item: ApiPayment): string | number => {
+      if (key === "price") return item.amount;
+
+      const value = item[key];
+      return value ?? "";
+    };
 
     if (getValue(a) < getValue(b)) return direction === "asc" ? -1 : 1;
     if (getValue(a) > getValue(b)) return direction === "asc" ? 1 : -1;
@@ -112,14 +138,14 @@ export default function TransactionSection() {
       (t.id.toLowerCase().includes(search.toLowerCase()) ||
         t.title.toLowerCase().includes(search.toLowerCase()) ||
         t.status.toLowerCase().includes(search.toLowerCase())) &&
-      (statusFilter === "all" ? true : t.status === statusFilter)
+      (statusFilter === "all" ? true : t.status === statusFilter),
   );
 
   // 🔹 Pagination
   const totalPages = Math.ceil(filteredData.length / rowsPerPage);
   const paginatedData = filteredData.slice(
     (currentPage - 1) * rowsPerPage,
-    currentPage * rowsPerPage
+    currentPage * rowsPerPage,
   );
 
   // 🔹 Sort toggle
@@ -230,7 +256,7 @@ export default function TransactionSection() {
                 {paginatedData.map((t, idx) => (
                   <TableRow key={idx} className="border-b border-gray-200">
                     <TableCell className="py-3 px-3">
-                      {t.transactionId}
+                      {t.transactionId || "Tidak Ada No Transaksi"}
                     </TableCell>
                     <TableCell className="py-3">{t.paymentDate}</TableCell>
                     <TableCell className="py-3">{t.title}</TableCell>
@@ -243,8 +269,8 @@ export default function TransactionSection() {
                           t.status === "confirmed"
                             ? "bg-green-100 text-green-600"
                             : t.status === "pending"
-                            ? "bg-yellow-100 text-yellow-600"
-                            : "bg-red-100 text-red-600"
+                              ? "bg-yellow-100 text-yellow-600"
+                              : "bg-red-100 text-red-600"
                         }`}
                       >
                         {t.status || "-"}

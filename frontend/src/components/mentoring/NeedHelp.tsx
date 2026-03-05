@@ -5,10 +5,10 @@ import { Instagram, Linkedin } from "lucide-react";
 export default function NeedHelp() {
   return (
     <section className="py-8 md:py-16 bg-gray-50">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8 lg:gap-12">
           {/* Left Content */}
-          <div className="lg:max-w-lg">
+          <div className="lg:max-w-xl">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-4 md:mb-6">
               Butuh Bantuan?
             </h2>
@@ -53,7 +53,7 @@ export default function NeedHelp() {
           </div>
 
           {/* Right Illustration */}
-          <div className="lg:max-w-md xl:max-w-lg flex-shrink-0">
+          <div className="lg:max-w-lg xl:max-w-xl flex-shrink-0">
             <div className="relative">
               <Image
                 src="/assets/mentoringPage/trouble.svg"

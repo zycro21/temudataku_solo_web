@@ -6,6 +6,7 @@ const prisma = new PrismaClient();
 export const createBookingSchema = z.object({
   body: z.object({
     mentoringServiceId: z.string().min(1),
+    mentorProfileId: z.string().optional(),
     participantIds: z.array(z.string()).optional(),
     referralUsageId: z.string().optional(),
     specialRequests: z.string().min(5).max(500).optional(),
@@ -13,6 +14,28 @@ export const createBookingSchema = z.object({
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/)
       .optional(),
+    material: z.string().optional(),
+    expectedOutput: z.string().optional(),
+    startTime: z
+      .object({
+        hour: z.number().min(0).max(23),
+        minute: z.number().min(0).max(59),
+      })
+      .optional(),
+    endTime: z
+      .object({
+        hour: z.number().min(0).max(23),
+        minute: z.number().min(0).max(59),
+      })
+      .optional(),
+  }),
+});
+
+export const updateBookingContentSchema = z.object({
+  params: z.object({
+    id: z.string().min(1),
+  }),
+  body: z.object({
     material: z.string().optional(),
     expectedOutput: z.string().optional(),
   }),
@@ -128,11 +151,9 @@ export const getAdminBookingDetailValidator = z.object({
 
 export const updateAdminBookingStatusValidator = z.object({
   params: z.object({
-    id: z
-      .string()
-      .regex(/^Booking-(bootcamp|shortclass|liveclass|one-on-one|group)-\d+$/, {
-        message: "Format ID booking tidak valid",
-      }),
+    id: z.string().regex(/^Booking-(bootcamp|one-on-one|group)-\d+$/, {
+      message: "Format ID booking tidak valid",
+    }),
   }),
   body: z.object({
     status: z.enum(["pending", "confirmed", "completed", "cancelled"]),
@@ -147,11 +168,9 @@ export const exportAdminBookingsValidator = z.object({
 
 export const getBookingParticipantsIdValidator = z.object({
   params: z.object({
-    id: z
-      .string()
-      .regex(/^Booking-(bootcamp|shortclass|liveclass|one-on-one|group)-\d+$/, {
-        message: "Format ID booking tidak valid",
-      }),
+    id: z.string().regex(/^Booking-(bootcamp|one-on-one|group)-\d+$/, {
+      message: "Format ID booking tidak valid",
+    }),
   }),
 });
 

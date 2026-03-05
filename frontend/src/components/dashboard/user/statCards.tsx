@@ -8,10 +8,10 @@ import { toast } from "sonner";
 
 export default function StatCards() {
   const [programCount, setProgramCount] = useState<number | null>(null);
-  const [materiCount, setMateriCount] = useState<number | null>(null);
+  const [materiCount, setMateriCount] = useState<number | null>(0); // sementara 0
   const [certificateCount, setCertificateCount] = useState<number | null>(null);
   const [tugasSelesaiCount, setTugasSelesaiCount] = useState<number | null>(
-    null
+    null,
   );
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -21,39 +21,25 @@ export default function StatCards() {
         const res = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/booking/mentee/bookings`,
           {
-            params: { page: 1, limit: 1000 },
+            params: { page: 1, limit: 1000, status: "confirmed" },
             withCredentials: true,
-          }
+          },
         );
+
         const total = res.data?.data?.pagination?.total ?? 0;
         setProgramCount(total);
       } catch (error: any) {
         console.error(error);
         toast.error(
           error?.response?.data?.message ||
-            "Gagal memuat data program terdaftar."
+            "Gagal memuat data program terdaftar.",
         );
       }
     };
 
+    // sementara e-learning belum ada endpoint
     const fetchJumlahMateri = async () => {
-      try {
-        const res = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/practice/mentees/practice-purchases`,
-          {
-            params: { page: 1, limit: 1000 },
-            withCredentials: true,
-          }
-        );
-        const total =
-          res.data?.data?.total ?? res.data?.data?.data?.length ?? 0;
-        setMateriCount(total);
-      } catch (error: any) {
-        console.error(error);
-        toast.error(
-          error?.response?.data?.message || "Gagal memuat data jumlah materi."
-        );
-      }
+      setMateriCount(0);
     };
 
     const fetchJumlahSertifikat = async () => {
@@ -63,7 +49,7 @@ export default function StatCards() {
           {
             params: { status: "verified", page: 1, limit: 1000 },
             withCredentials: true,
-          }
+          },
         );
 
         const total = res.data?.data?.total ?? 0;
@@ -71,61 +57,48 @@ export default function StatCards() {
       } catch (error: any) {
         console.error(error);
         toast.error(
-          error?.response?.data?.message || "Gagal memuat data sertifikat."
+          error?.response?.data?.message || "Gagal memuat data sertifikat.",
         );
       }
     };
 
-    // Ambil total tugas selesai (project reviewed + practice completed)
+    // sekarang hanya menghitung project yang sudah direview
     const fetchTugasSelesai = async () => {
       try {
-        const [projectRes, practiceRes] = await Promise.all([
-          axios.get(
-            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/project/menteesSubmissions`,
-            {
-              params: { page: 1, limit: 1000 },
-              withCredentials: true,
-            }
-          ),
-          axios.get(
-            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/practice/practice/progress`,
-            {
-              params: { page: 1, limit: 1000 },
-              withCredentials: true,
-            }
-          ),
-        ]);
+        const projectRes = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/project/menteesSubmissions`,
+          {
+            params: { page: 1, limit: 1000 },
+            withCredentials: true,
+          },
+        );
 
-        // Hitung submission yang sudah direview
         const projectSubmissions = projectRes.data?.data ?? [];
+
         const reviewedProjects = projectSubmissions.filter(
           (item: any) =>
-            item.isReviewed === true || item.reviewStatus === "REVIEWED"
+            item.isReviewed === true || item.reviewStatus === "REVIEWED",
         ).length;
 
-        // Hitung practice progress yang sudah selesai
-        const practiceData = practiceRes.data?.data?.data ?? [];
-        const completedPractices = practiceData.filter(
-          (item: any) => item.isCompleted === true
-        ).length;
-
-        setTugasSelesaiCount(reviewedProjects + completedPractices);
+        setTugasSelesaiCount(reviewedProjects);
       } catch (error: any) {
         console.error(error);
         toast.error(
-          error?.response?.data?.message || "Gagal memuat data tugas selesai."
+          error?.response?.data?.message || "Gagal memuat data tugas selesai.",
         );
       }
     };
 
     const fetchAll = async () => {
       setLoading(true);
+
       await Promise.all([
         fetchProgramTerdaftar(),
         fetchJumlahMateri(),
         fetchJumlahSertifikat(),
         fetchTugasSelesai(),
       ]);
+
       setLoading(false);
     };
 
@@ -139,7 +112,7 @@ export default function StatCards() {
       icon: "/assets/dashboard/user/programterdaftar.svg",
     },
     {
-      title: "Jumlah Materi (Practice + E-Learning)",
+      title: "Jumlah Materi (E-Learning)",
       value: materiCount ?? 0,
       icon: "/assets/dashboard/user/jumlahmateri.svg",
     },
@@ -163,14 +136,9 @@ export default function StatCards() {
           className="relative p-4 bg-white border border-gray-200 rounded-lg shadow-sm max-w-[264px] w-full"
         >
           <ChevronRight className="absolute top-3 right-3 w-4 h-4 text-gray-800" />
+
           <div className="flex items-center gap-2">
-            <Image
-              src={item.icon}
-              alt={item.title}
-              width={16}
-              height={16}
-              className="text-gray-600"
-            />
+            <Image src={item.icon} alt={item.title} width={16} height={16} />
             <span className="text-sm text-gray-600">{item.title}</span>
           </div>
 

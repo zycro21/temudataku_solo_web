@@ -21,45 +21,88 @@ export const ELearningSubChapterService = {
   ) {
     const { page = 1, limit = 10, search, orderNumber } = options;
 
-    // Cek course
+    // =========================
+    // CEK COURSE
+    // =========================
     const course = await prisma.eLearningCourse.findUnique({
       where: { id: courseId },
     });
-    if (!course) throw new Error("Course tidak ditemukan");
 
-    // Hak akses
+    if (!course) {
+      throw new Error("Course tidak ditemukan");
+    }
+
+    // =========================
+    // ROLE: MENTOR
+    // =========================
     if (
       user.roles.includes("mentor") &&
-      user.mentorProfileId !== course.mentorId
+      course.mentorId !== user.mentorProfileId
     ) {
       throw new Error(
         "Mentor hanya bisa melihat sub-chapter dari course yang dia ampu"
       );
     }
 
+    // =========================
+    // ROLE: MENTEE (SUBSCRIPTION CHECK)
+    // =========================
     if (user.roles.includes("mentee")) {
-      const purchase = await prisma.eLearningPurchase.findFirst({
-        where: { courseId, userId: user.userId },
+      const now = new Date();
+
+      const activeSubscription = await prisma.eLearningSubscription.findFirst({
+        where: {
+          userId: user.userId,
+          status: {
+            in: ["active", "confirmed"],
+          },
+          startAt: {
+            lte: now,
+          },
+          endAt: {
+            gt: now,
+          },
+        },
       });
-      if (!purchase)
-        throw new Error("Mentee hanya bisa melihat course yang sudah dibeli");
+
+      if (!activeSubscription) {
+        throw new Error(
+          "Mentee hanya bisa mengakses course jika memiliki subscription aktif"
+        );
+      }
     }
 
-    // Build filter
+    // =========================
+    // BUILD FILTER
+    // =========================
     const where: any = { courseId };
-    if (search) where.title = { contains: search, mode: "insensitive" };
-    if (orderNumber) where.orderNumber = orderNumber;
 
-    // Pagination
+    if (search) {
+      where.title = {
+        contains: search,
+        mode: "insensitive",
+      };
+    }
+
+    if (orderNumber !== undefined) {
+      where.orderNumber = orderNumber;
+    }
+
+    // =========================
+    // QUERY DATA
+    // =========================
     const subChapters = await prisma.eLearningSubChapter.findMany({
       where,
-      include: { subBabs: true },
-      orderBy: { orderNumber: "asc" },
+      include: {
+        subBabs: true,
+      },
+      orderBy: {
+        orderNumber: "asc",
+      },
       skip: (page - 1) * limit,
       take: limit,
     });
 
-    // Count total untuk frontend pagination
     const total = await prisma.eLearningSubChapter.count({ where });
 
     return {
@@ -74,7 +117,9 @@ export const ELearningSubChapterService = {
     id: string,
     user: { userId: string; roles: string[]; mentorProfileId?: string }
   ) {
-    // Cari sub-chapter beserta course dan subBab-nya
+    // =========================
+    // FETCH SUB-CHAPTER + COURSE
+    // =========================
     const subChapter = await prisma.eLearningSubChapter.findUnique({
       where: { id },
       include: {
@@ -96,13 +141,16 @@ export const ELearningSubChapterService = {
 
     const course = subChapter.course;
 
-    // Hak akses berdasarkan role
-    // Admin bebas
+    // =========================
+    // ROLE: ADMIN
+    // =========================
     if (user.roles.includes("admin")) {
       return subChapter;
     }
 
-    // Mentor hanya boleh lihat sub-chapter dari course yang dia ampu
+    // =========================
+    // ROLE: MENTOR
+    // =========================
     if (user.roles.includes("mentor")) {
       if (user.mentorProfileId !== course.mentorId) {
         throw new Error("Akses ditolak: Anda bukan mentor course ini");
@@ -110,14 +158,33 @@ export const ELearningSubChapterService = {
       return subChapter;
     }
 
-    // Mentee hanya boleh lihat jika sudah membeli course
+    // =========================
+    // ROLE: MENTEE (SUBSCRIPTION CHECK)
+    // =========================
     if (user.roles.includes("mentee")) {
-      const purchase = await prisma.eLearningPurchase.findFirst({
-        where: { courseId: course.id, userId: user.userId },
+      const now = new Date();
+
+      const activeSubscription = await prisma.eLearningSubscription.findFirst({
+        where: {
+          userId: user.userId,
+          status: {
+            in: ["active", "confirmed"],
+          },
+          startAt: {
+            lte: now,
+          },
+          endAt: {
+            gt: now,
+          },
+        },
       });
-      if (!purchase) {
-        throw new Error("Akses ditolak: Anda belum membeli course ini");
+
+      if (!activeSubscription) {
+        throw new Error(
+          "Akses ditolak: Anda harus memiliki subscription aktif"
+        );
       }
+
       return subChapter;
     }
 

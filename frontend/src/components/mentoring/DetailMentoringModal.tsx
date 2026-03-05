@@ -17,6 +17,8 @@ import { FaLinkedin } from "react-icons/fa";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import axios from "axios";
+import { toast } from "sonner";
 
 interface Mentor {
   id: number;
@@ -29,33 +31,127 @@ interface Mentor {
 interface DetailMentoringModalProps {
   isOpen: boolean;
   onClose: () => void;
-  mentor: Mentor | null;
+  mentor: any | null;
+  service: any | null;
   date: Date | null;
   time: string | null;
+  timeRange: {
+    startTime: { hour: number; minute: number };
+    endTime: { hour: number; minute: number };
+  } | null;
 }
 
 export default function DetailMentoringModal({
   isOpen,
   onClose,
   mentor,
+  service,
   date,
   time,
+  timeRange,
 }: DetailMentoringModalProps) {
-  const [topic, setTopic] = useState("Power BI untuk analisis data");
-  const [notes, setNotes] = useState(
-    "Saya ingin penjelasan lebih dalam tentang data cleaning menggunakan Power BI"
-  );
+  const [topic, setTopic] = useState("");
+  const [notes, setNotes] = useState("");
 
   // state untuk modal konfirmasi batal
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   const router = useRouter();
 
+  const handleConfirm = async () => {
+    if (!mentor || !service || !date || !timeRange) {
+      toast.error("Data belum lengkap", {
+        description: "Silakan lengkapi semua informasi sebelum melanjutkan.",
+      });
+      return;
+    }
+
+    if (!topic.trim() || !notes.trim()) {
+      toast.error("Form belum lengkap", {
+        description: "Materi dan catatan wajib diisi.",
+      });
+      return;
+    }
+
+    const loadingToast = toast.loading("Memproses pemesanan...");
+
+    try {
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/booking/createBooking`,
+        {
+          mentoringServiceId: service.id,
+          mentorProfileId: mentor.id,
+          bookingDate: `${date.getFullYear()}-${String(
+            date.getMonth() + 1,
+          ).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`,
+          startTime: timeRange.startTime,
+          endTime: timeRange.endTime,
+          material: topic,
+          specialRequests: notes,
+        },
+        {
+          withCredentials: true,
+        },
+      );
+
+      const bookingData = response.data.data;
+
+      const bookingId = bookingData.id;
+      const paymentId = bookingData.payment.id;
+
+      toast.dismiss(loadingToast);
+
+      toast.success("Pemesanan berhasil", {
+        description: "Kamu akan diarahkan ke halaman pembayaran/checkout.",
+      });
+
+      setTimeout(() => {
+        router.push(
+          `/checkout/mentoring?bookingId=${bookingId}&paymentId=${paymentId}`,
+        );
+      }, 1200);
+    } catch (error: any) {
+      toast.dismiss(loadingToast);
+
+      if (error.response?.status === 401) {
+        toast.error("Silakan login terlebih dahulu", {
+          description: "Kamu harus login untuk melakukan pemesanan.",
+        });
+        return;
+      }
+
+      toast.error("Gagal membuat pemesanan", {
+        description:
+          error.response?.data?.message ||
+          "Terjadi kesalahan, silakan coba lagi.",
+      });
+
+      console.error("Failed create booking:", error);
+    }
+  };
+
+  const getDurationInMinutes = () => {
+    if (!timeRange) return 0;
+
+    const startMinutes =
+      timeRange.startTime.hour * 60 + timeRange.startTime.minute;
+
+    const endMinutes = timeRange.endTime.hour * 60 + timeRange.endTime.minute;
+
+    return endMinutes - startMinutes;
+  };
+
+  const duration = getDurationInMinutes();
+
   return (
     <>
       {/* Modal utama */}
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[60rem] min-h-[70vh] max-h-[90vh] p-0 overflow-hidden">
+        <DialogContent
+          className="sm:max-w-[60rem] min-h-[70vh] max-h-[90vh] p-0 overflow-hidden"
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
           <VisuallyHidden>
             <DialogTitle>Detail Mentoring</DialogTitle>
           </VisuallyHidden>
@@ -68,47 +164,45 @@ export default function DetailMentoringModal({
                 <h2 className="text-2xl font-semibold mb-2">
                   Detail Mentoring
                 </h2>
-                <p className="text-sm text-gray-500 mb-8">
+                <p className="text-sm text-gray-500 mb-5">
                   Lihat lebih detail mentor dan jadwal-mu
                 </p>
 
                 {/* Main Content */}
-                <div className="flex flex-col items-start gap-2 mb-4 text-left">
-                  <div className="w-20 h-20 mb-4 rounded-full overflow-hidden">
+                <div className="flex flex-col items-start gap-3 mb-6 text-left">
+                  <div className="w-28 h-28 rounded-full overflow-hidden">
                     <Image
                       src={
-                        mentor?.image || "/assets/mentorPage/mentors/vania.svg"
+                        mentor?.user?.profilePicture
+                          ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${mentor.user.profilePicture}`
+                          : "/assets/default-avatar.png"
                       }
-                      alt={mentor?.name || "Mentor"}
-                      width={80}
-                      height={80}
+                      alt={mentor?.user?.fullName || "Mentor"}
+                      unoptimized
+                      width={120}
+                      height={120}
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <h3 className="font-semibold">
-                    {mentor?.name || "Nama Mentor"}
+                  <h3 className="text-xl font-bold">
+                    {mentor?.user?.fullName}
                   </h3>
                   <p className="text-xs text-gray-500 leading-relaxed">
-                    {mentor?.description || "Deskripsi mentor tidak tersedia."}
+                    {mentor?.bio || "-"}
                   </p>
                 </div>
 
                 {mentor?.linkedin && (
-                  <Button
-                    asChild
-                    className="mt-0 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md inline-flex items-center gap-2 px-4 py-2 text-xs w-auto"
-                    size="sm"
+                  <a
+                    href={mentor.linkedin}
+                    target="_blank"
+                    rel="noopener noreferrer"
                   >
-                    <a
-                      href={mentor.linkedin}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2"
-                    >
-                      <FaLinkedin className="text-white w-4 h-4" />
-                      <span className="leading-none">Lihat Linkedin</span>
-                    </a>
-                  </Button>
+                    <Button className="mt-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md flex items-center gap-2 px-6 py-2.5 text-sm">
+                      <FaLinkedin className="text-white w-5 h-5" />
+                      <span className="leading-none mt-1">Lihat Profil</span>
+                    </Button>
+                  </a>
                 )}
               </div>
 
@@ -133,7 +227,11 @@ export default function DetailMentoringModal({
                 </div>
                 <div className="flex items-center gap-2">
                   <Timer size={14} className="text-gray-500" />
-                  <span>45 menit</span>
+                  <span>
+                    {duration > 0
+                      ? `${duration} menit`
+                      : "Durasi belum tersedia"}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Video size={14} className="text-gray-500" />
@@ -162,7 +260,7 @@ export default function DetailMentoringModal({
                 {/* Input Materi */}
                 <div>
                   <label className="block text-sm font-medium mb-1">
-                    Materi yang Diinginkan{" "}
+                    Materi yang Diinginkan (Min - 5 Karakter)
                     <span className="text-emerald-600">*</span>
                   </label>
                   <div className="relative">
@@ -184,7 +282,8 @@ export default function DetailMentoringModal({
                 {/* Input Catatan */}
                 <div>
                   <label className="block text-sm font-medium mb-1">
-                    Catatan atau Permintaan Khusus untuk Mentor{" "}
+                    Catatan atau Permintaan Khusus untuk Mentor (Min - 5
+                    Karakter)
                     <span className="text-emerald-600">*</span>
                   </label>
                   <div className="relative">
@@ -215,7 +314,7 @@ export default function DetailMentoringModal({
                 </Button>
                 <Button
                   className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-md"
-                  onClick={() => router.push("/checkout/mentoring")}
+                  onClick={handleConfirm}
                 >
                   Konfirmasi
                 </Button>
@@ -229,9 +328,7 @@ export default function DetailMentoringModal({
       <Dialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>
         <DialogContent
           className="sm:max-w-[400px] text-center p-6"
-          // cegah close ketika klik di luar
           onInteractOutside={(e) => e.preventDefault()}
-          // cegah close ketika tekan ESC (opsional kalau mau)
           onEscapeKeyDown={(e) => e.preventDefault()}
         >
           <VisuallyHidden>

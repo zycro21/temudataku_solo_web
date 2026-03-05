@@ -31,14 +31,25 @@ export class ELearningQuizAttemptService {
       });
       if (!quiz) throw new Error("Quiz tidak ditemukan");
 
-      // ===== Validasi mentee sudah membeli course =====
+      // ===== Validasi mentee memiliki subscription aktif =====
       if (user.roles.includes("mentee")) {
-        const courseId = quiz.subBab.subChapter.course.id;
-        const purchased = await tx.eLearningPurchase.findFirst({
-          where: { userId: user.userId, courseId },
+        const now = new Date();
+
+        const activeSubscription = await tx.eLearningSubscription.findFirst({
+          where: {
+            userId: user.userId,
+            status: {
+              in: ["active", "confirmed", "completed"],
+            }, // sesuaikan jika enum / value berbeda
+            startAt: { lte: now },
+            endAt: { gte: now },
+          },
         });
-        if (!purchased) {
-          throw new Error("Mentee belum membeli course ini");
+
+        if (!activeSubscription) {
+          throw new Error(
+            "Akses ditolak: kamu tidak memiliki subscription aktif"
+          );
         }
       }
 
@@ -241,15 +252,24 @@ export class ELearningQuizAttemptService {
 
     // 🔹 Role: Mentee
     if (user.roles.includes("mentee")) {
-      // Validasi mentee punya course-nya
-      const purchased = await prisma.eLearningPurchase.findFirst({
+      const now = new Date();
+
+      // Validasi mentee punya subscription aktif
+      const activeSubscription = await prisma.eLearningSubscription.findFirst({
         where: {
           userId: user.userId,
-          courseId: quiz.subBab.subChapter.course.id,
+          status: {
+            in: ["active", "confirmed", "completed"],
+          }, // sesuaikan jika enum / value berbeda
+          startAt: { lte: now },
+          endAt: { gte: now },
         },
       });
-      if (!purchased) {
-        throw new Error("Akses ditolak: course ini belum dibeli");
+
+      if (!activeSubscription) {
+        throw new Error(
+          "Akses ditolak: kamu tidak memiliki subscription aktif"
+        );
       }
 
       const [data, total] = await prisma.$transaction([
@@ -356,7 +376,7 @@ export class ELearningQuizAttemptService {
       startDate,
       endDate,
       page = 1,
-      limit = 10,
+      limit = 10000,
     } = query;
 
     const filters: any = {};
@@ -473,14 +493,23 @@ export class ELearningQuizAttemptService {
 
     // Mentee hanya bisa lihat attempt miliknya sendiri
     if (isMentee && attempt.userId === user.userId) {
-      // pastikan mentee sudah beli course
-      const purchased = await prisma.eLearningPurchase.findFirst({
-        where: { userId: user.userId, courseId: course.id },
+      const now = new Date();
+
+      // pastikan mentee memiliki subscription aktif
+      const activeSubscription = await prisma.eLearningSubscription.findFirst({
+        where: {
+          userId: user.userId,
+          status: {
+            in: ["active", "confirmed", "completed"],
+          }, // sesuaikan jika enum / value berbeda
+          startAt: { lte: now },
+          endAt: { gte: now },
+        },
       });
 
-      if (!purchased)
+      if (!activeSubscription)
         throw new Error(
-          "Anda tidak memiliki izin untuk melihat attempt ini (belum membeli course)"
+          "Anda tidak memiliki izin untuk melihat attempt ini (tidak ada subscription aktif)"
         );
 
       return attempt;

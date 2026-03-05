@@ -3,7 +3,13 @@ import { z } from "zod";
 export const createPaymentSchema = z.object({
   body: z.object({
     referenceId: z.string().min(1, "Reference ID is required"),
-    paymentMethod: z.string().optional(), // <-- ubah ini
+    paymentMethod: z.string().optional(),
+  }),
+});
+
+export const getPaymentStatusSchema = z.object({
+  params: z.object({
+    merchantOrderId: z.string().min(1, "merchantOrderId is required"),
   }),
 });
 

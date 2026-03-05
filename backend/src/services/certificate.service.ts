@@ -8,17 +8,41 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { uploadToGoogleDrive } from "../utils/googleDrive.js";
+import QRCode from "qrcode";
 
 const prisma = new PrismaClient();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+async function generateQRCodeBuffer(url: string): Promise<Buffer> {
+  return QRCode.toBuffer(url, {
+    type: "png",
+    width: 300,
+    margin: 1,
+    color: {
+      dark: "#000000",
+      light: "#FFFFFF",
+    },
+  });
+}
+
+function formatIssueDate(date: string | Date): string {
+  const d = new Date(date);
+
+  return d.toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 // Helper function to generate PDF
 async function generateCertificatePDF({
   certificateNumber,
   menteeName,
   serviceName,
+  serviceType,
   issueDate,
   pdfPath,
   projects,
@@ -26,6 +50,7 @@ async function generateCertificatePDF({
   certificateNumber: string;
   menteeName: string;
   serviceName: string;
+  serviceType?: string;
   issueDate: string;
   pdfPath: string;
   projects: {
@@ -35,6 +60,9 @@ async function generateCertificatePDF({
     mentorName?: string;
   }[];
 }): Promise<void> {
+  const frontendCertificateUrl = `https://frontend-domain.com/certificate/${certificateNumber}`;
+  const qrBuffer = await generateQRCodeBuffer(frontendCertificateUrl);
+
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({
       size: "A4",
@@ -45,6 +73,15 @@ async function generateCertificatePDF({
     const stream = fs.createWriteStream(pdfPath);
     doc.pipe(stream);
 
+    const fontDir = path.join(__dirname, "../../assets/fonts");
+
+    doc.registerFont("Poppins", path.join(fontDir, "Poppins-Regular.ttf"));
+    doc.registerFont("Poppins-Bold", path.join(fontDir, "Poppins-Bold.ttf"));
+    doc.registerFont(
+      "Poppins-SemiBold",
+      path.join(fontDir, "Poppins-SemiBold.ttf")
+    );
+
     // Colors
     const primaryColor = "#003087"; // Navy blue
     const accentColor = "#FFD700"; // Gold
@@ -53,128 +90,118 @@ async function generateCertificatePDF({
     const tableHeaderBg = "#F5F5F5"; // Light gray
 
     // Fonts
-    const titleFont = "Times-Bold";
-    const bodyFont = "Times-Roman";
-    const tableFont = "Helvetica";
-    const tableFontBold = "Helvetica-Bold";
+    const fontRegular = "Poppins";
+    const fontBold = "Poppins-Bold";
+    const fontSemiBold = "Poppins-SemiBold";
 
     // ---------------------------
-    // Page 1 - Certificate
+    // Page 1 - Certificate (NEW DESIGN)
     // ---------------------------
+
+    // Background
+    doc.rect(0, 0, doc.page.width, doc.page.height).fill("#FFFFFF");
+
+    // ===== LEFT DECORATION STRIP =====
+    doc.rect(0, 0, 90, doc.page.height).fill("#0A2A66");
+
+    // Accent shapes
+    doc.circle(45, 120, 25).fill("#00C2A8");
+    doc.circle(45, 180, 12).fill("#FFFFFF");
+
+    // ===== HEADER =====
     doc
-      .rect(0, 0, doc.page.width, doc.page.height)
-      .fillOpacity(0.1)
-      .fill("#E6E6FA")
-      .fillOpacity(1);
+      .font(fontBold)
+      .fontSize(28)
+      .fillColor("#00A859")
+      .text("CERTIFICATE", 120, 80, { align: "left" });
 
     doc
-      .lineWidth(3)
-      .rect(20, 20, doc.page.width - 40, doc.page.height - 40)
-      .stroke(accentColor);
-    doc
-      .lineWidth(1)
-      .rect(25, 25, doc.page.width - 50, doc.page.height - 50)
-      .stroke(primaryColor);
+      .font(fontRegular)
+      .fontSize(16)
+      .fillColor("#000000")
+      .text("Of Completion", 120, 115, { align: "left" });
 
+    // Logo kanan atas
     const logoPath = path.join(__dirname, "../../assets/logo.png");
     if (fs.existsSync(logoPath)) {
-      doc.image(logoPath, (doc.page.width - 150) / 2, 30, { width: 150 });
+      doc.image(logoPath, doc.page.width - 200, 60, { width: 150 });
     }
 
-    const watermarkPath = path.join(__dirname, "../../assets/watermark.png");
-    if (fs.existsSync(watermarkPath)) {
-      doc
-        .opacity(0.1)
-        .image(watermarkPath, doc.page.width / 4, doc.page.height / 4, {
-          width: doc.page.width / 2,
-        })
-        .opacity(1);
-    }
-
+    // ===== BODY TEXT =====
     doc
-      .fontSize(36)
-      .font(titleFont)
-      .fillColor(primaryColor)
-      .text("Certificate of Completion", 0, 200, { align: "center" });
+      .font(fontRegular)
+      .fontSize(14)
+      .fillColor("#333333")
+      .text("This Certificate is Proudly Presented to", 120, 180);
 
+    // Mentee Name (Highlight)
     doc
-      .fontSize(18)
-      .font(bodyFont)
-      .fillColor(secondaryTextColor)
-      .text("This certifies that", 0, 280, { align: "center" });
+      .font(fontSemiBold)
+      .fontSize(26)
+      .fillColor("#0A2A66")
+      .text(menteeName, 120, 210);
 
+    // Subtitle (Service Type – dynamic)
     doc
-      .fontSize(28)
-      .font(titleFont)
-      .fillColor(textColor)
-      .text(menteeName, 0, 320, { align: "center" });
+      .font(fontRegular)
+      .fontSize(14)
+      .fillColor("#333333")
+      .text(`Has Completed in ${serviceType ?? "Program"}`, 120, 260);
 
+    // Service Name
     doc
-      .fontSize(18)
-      .font(bodyFont)
-      .fillColor(secondaryTextColor)
-      .text("has successfully completed the", 0, 380, { align: "center" });
+      .font(fontBold)
+      .fontSize(22)
+      .fillColor("#00A859")
+      .text(serviceName, 120, 290);
 
-    doc
-      .fontSize(24)
-      .font(titleFont)
-      .fillColor(primaryColor)
-      .text(serviceName, 0, 420, { align: "center" });
-
-    doc
-      .fontSize(16)
-      .font(bodyFont)
-      .fillColor(secondaryTextColor)
-      .text("Congratulations on your achievement!", 0, 480, {
-        align: "center",
-      });
-
-    doc
-      .fontSize(12)
-      .font(bodyFont)
-      .fillColor(textColor)
-      .text(`Certificate Number: ${certificateNumber}`, 0, 540, {
-        align: "center",
-      });
-    doc.text(`Issue Date: ${issueDate}`, 0, 560, { align: "center" });
-
+    // ===== SIGNATURE =====
     const signaturePath = path.join(__dirname, "../../assets/signature.png");
     if (fs.existsSync(signaturePath)) {
-      doc.image(signaturePath, 100, doc.page.height - 150, { width: 150 });
-    } else {
-      doc
-        .fontSize(14)
-        .font(bodyFont)
-        .fillColor(secondaryTextColor)
-        .text("Authorized Signature", 100, doc.page.height - 130);
-      doc
-        .lineWidth(1)
-        .moveTo(90, doc.page.height - 140)
-        .lineTo(250, doc.page.height - 140)
-        .stroke(secondaryTextColor);
+      doc.image(signaturePath, 120, 360, { width: 160 });
     }
 
     doc
-      .rect(doc.page.width - 200, doc.page.height - 180, 100, 100)
-      .fillOpacity(0.2)
-      .fill(accentColor)
-      .fillOpacity(1)
-      .stroke(primaryColor);
+      .font(fontRegular)
+      .fontSize(12)
+      .fillColor("#000000")
+      .text("Example", 120, 440);
+
     doc
+      .font(fontSemiBold)
+      .fontSize(12)
+      .fillColor("#000000")
+      .text("CEO TemuDataku", 120, 460);
+
+    // ===== QR CODE =====
+    doc.image(qrBuffer, doc.page.width - 260, doc.page.height - 300, {
+      width: 150,
+    });
+
+    // Certificate number
+    doc
+      .font(fontRegular)
       .fontSize(10)
-      .font(bodyFont)
-      .fillColor(secondaryTextColor)
-      .text("Company Stamp", doc.page.width - 195, doc.page.height - 80, {
+      .fillColor("#333333")
+      .text(certificateNumber, doc.page.width - 260, doc.page.height - 140, {
+        width: 150,
         align: "center",
       });
 
+    // Issue date
     doc
-      .fontSize(10)
-      .font(bodyFont)
-      .fillColor(secondaryTextColor)
-      .text("Page 1 of 2 - Temudataku", 0, doc.page.height - 20, {
-        align: "center",
-      });
+      .font(fontRegular)
+      .fontSize(12)
+      .fillColor("#666666")
+      .text(
+        formatIssueDate(issueDate),
+        doc.page.width - 260,
+        doc.page.height - 125,
+        {
+          width: 150,
+          align: "center",
+        }
+      );
 
     // ---------------------------
     // Page 2 - Project Table (Landscape)
@@ -187,15 +214,16 @@ async function generateCertificatePDF({
       .fill("#E6E6FA")
       .fillOpacity(1);
 
+    // Title
     doc
+      .font(fontBold)
       .fontSize(20)
-      .font(tableFontBold)
       .fillColor(primaryColor)
       .text("Project Summary", 40, 50, { align: "left" });
 
     const tableTop = 80;
     const rowHeight = 30;
-    const colWidths = [50, 300, 100, 250, 100]; // Adjusted for landscape
+    const colWidths = [50, 300, 100, 250, 100];
     const tableWidth = colWidths.reduce((sum, w) => sum + w, 0);
     const tableLeft = (doc.page.width - tableWidth) / 2;
 
@@ -205,9 +233,8 @@ async function generateCertificatePDF({
       bold = false,
       isHeader = false
     ) => {
-      const font = bold ? tableFontBold : tableFont;
       doc
-        .font(font)
+        .font(bold ? fontSemiBold : fontRegular)
         .fontSize(10)
         .fillColor(isHeader ? primaryColor : textColor);
 
@@ -225,11 +252,11 @@ async function generateCertificatePDF({
           width: width - 10,
           height: rowHeight - 10,
           align: "left",
-          continued: false,
         });
         x += width;
       });
 
+      // Table borders
       x = tableLeft;
       for (let i = 0; i <= colWidths.length; i++) {
         doc
@@ -238,16 +265,19 @@ async function generateCertificatePDF({
           .stroke(secondaryTextColor);
         x += colWidths[i] || 0;
       }
+
       doc
         .moveTo(tableLeft, y)
         .lineTo(tableLeft + tableWidth, y)
         .stroke(secondaryTextColor);
+
       doc
         .moveTo(tableLeft, y + rowHeight)
         .lineTo(tableLeft + tableWidth, y + rowHeight)
         .stroke(secondaryTextColor);
     };
 
+    // Header
     drawRow(
       tableTop,
       ["No", "Project Title", "Grade", "Mentor Feedback", "Mentor"],
@@ -255,32 +285,31 @@ async function generateCertificatePDF({
       true
     );
 
+    // Rows
     if (projects.length > 0) {
       projects.forEach((project, index) => {
-        const values = [
+        drawRow(tableTop + rowHeight * (index + 1), [
           (index + 1).toString(),
           project.title || "-",
           project.grade || "-",
           project.feedback || "-",
           project.mentorName || "-",
-        ];
-        drawRow(tableTop + rowHeight * (index + 1), values);
+        ]);
       });
     } else {
       doc
+        .font(fontRegular)
         .fontSize(12)
-        .font(tableFont)
         .fillColor(secondaryTextColor)
-        .text("No projects submitted", tableLeft, tableTop + rowHeight + 10, {
-          align: "left",
-        });
+        .text("No projects submitted", tableLeft, tableTop + rowHeight + 10);
     }
 
+    // Footer
     doc
+      .font(fontRegular)
       .fontSize(10)
-      .font(tableFont)
       .fillColor(secondaryTextColor)
-      .text("Page 2 of 2 - Temudataku", 0, doc.page.height - 20, {
+      .text("Page 2 of 2 - TemuDataku", 0, doc.page.height - 20, {
         align: "center",
       });
 
@@ -317,7 +346,11 @@ export const generateCertificateService = async ({
 
   const service = await prisma.mentoringService.findUnique({
     where: { id: serviceId },
-    select: { serviceName: true, durationDays: true },
+    select: {
+      serviceName: true,
+      serviceType: true,
+      durationDays: true,
+    },
   });
 
   if (!mentee || !service) {
@@ -393,6 +426,7 @@ export const generateCertificateService = async ({
     certificateNumber,
     menteeName: mentee.fullName,
     serviceName: service.serviceName,
+    serviceType: service.serviceType ?? undefined,
     issueDate: new Date().toISOString().split("T")[0],
     pdfPath,
     projects: projectList,

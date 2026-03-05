@@ -1,6 +1,10 @@
 import { Response, NextFunction } from "express";
 import { ELearningTextService } from "../services/elearning_text.service.js";
-import { AuthenticatedRequestText } from "../middlewares/authenticate.js";
+import {
+  AuthenticatedRequestText,
+  ReorderTextRequest,
+  AuthenticatedRequestTextBlock,
+} from "../middlewares/authenticate.js";
 
 export class ELearningTextController {
   static async getTextsBySubBab(
@@ -93,12 +97,9 @@ export class ELearningTextController {
         return;
       }
 
-      const { subBabId } = validatedParams;
-      const data = validatedBody;
-
       const newText = await ELearningTextService.createText(
-        subBabId,
-        data,
+        validatedParams.subBabId,
+        validatedBody,
         user
       );
 
@@ -107,17 +108,16 @@ export class ELearningTextController {
         message: "Teks berhasil ditambahkan",
         data: newText,
       });
-      return;
     } catch (err: any) {
       if (err.message.includes("tidak ditemukan")) {
         res.status(404).json({ success: false, message: err.message });
         return;
-      } else if (err.message.includes("Akses ditolak")) {
+      }
+      if (err.message.includes("Akses ditolak")) {
         res.status(403).json({ success: false, message: err.message });
         return;
-      } else {
-        next(err);
       }
+      next(err);
     }
   }
 
@@ -129,18 +129,18 @@ export class ELearningTextController {
     try {
       const { validatedParams, validatedBody, user } = req;
 
-      if (!validatedParams?.id || !user) {
-        res.status(400).json({
-          success: false,
-          message: "Data request tidak valid",
-        });
+      if (!validatedParams?.id || !validatedBody || !user) {
+        res
+          .status(400)
+          .json({ success: false, message: "Data request tidak valid" });
         return;
       }
 
-      const { id } = validatedParams;
-      const data = validatedBody!;
-
-      const updated = await ELearningTextService.updateText(id, data, user);
+      const updated = await ELearningTextService.updateText(
+        validatedParams.id,
+        validatedBody,
+        user
+      );
 
       res.status(200).json({
         success: true,
@@ -166,8 +166,9 @@ export class ELearningTextController {
     next: NextFunction
   ) {
     try {
-      const { validatedParams } = req;
-      if (!validatedParams?.id) {
+      const params = req.validatedParams;
+
+      if (!params?.id) {
         res.status(400).json({
           success: false,
           message: "ID teks tidak valid",
@@ -175,43 +176,45 @@ export class ELearningTextController {
         return;
       }
 
-      const { id } = validatedParams;
-      const result = await ELearningTextService.deleteText(id);
+      const textId: string = params.id;
+
+      const result = await ELearningTextService.deleteText(textId);
 
       res.status(200).json({
         success: true,
         message: "Teks berhasil dihapus dan urutan diperbarui",
         data: result,
       });
-    } catch (err: any) {
-      if (err.message.includes("tidak ditemukan")) {
-        res.status(404).json({ success: false, message: err.message });
-      } else if (err.message.includes("Akses ditolak")) {
-        res.status(403).json({ success: false, message: err.message });
-      } else {
-        next(err);
-      }
+    } catch (err) {
+      next(err);
     }
   }
 
   static async reorderTexts(
-    req: AuthenticatedRequestText,
+    req: ReorderTextRequest,
     res: Response,
     next: NextFunction
   ) {
     try {
-      const { validatedParams, validatedBody, user } = req;
-      if (!validatedParams?.subBabId || !validatedBody?.orders || !user) {
-        res.status(400).json({
+      const { subBabId } = req.validatedParams!;
+      const { orders } = req.validatedBody!;
+
+      if (!req.user) {
+        res.status(401).json({
           success: false,
-          message: "Data request tidak valid",
+          message: "Unauthorized",
         });
         return;
       }
 
+      const user = {
+        userId: req.user.userId,
+        roles: req.user.roles,
+      };
+
       const result = await ELearningTextService.reorderTexts(
-        validatedParams.subBabId,
-        validatedBody.orders,
+        subBabId,
+        orders,
         user
       );
 
@@ -220,16 +223,8 @@ export class ELearningTextController {
         message: "Urutan teks berhasil diperbarui",
         data: result,
       });
-    } catch (err: any) {
-      if (err.message.includes("tidak ditemukan")) {
-        res.status(404).json({ success: false, message: err.message });
-      } else if (err.message.includes("Akses ditolak")) {
-        res.status(403).json({ success: false, message: err.message });
-      } else if (err.message.includes("duplikat")) {
-        res.status(409).json({ success: false, message: err.message });
-      } else {
-        next(err);
-      }
+    } catch (err) {
+      next(err);
     }
   }
 
@@ -239,26 +234,15 @@ export class ELearningTextController {
     next: NextFunction
   ) {
     try {
-      const { validatedQuery, user } = req;
-
-      if (!user) {
-        res.status(400).json({
-          success: false,
-          message: "Data request tidak valid",
-        });
-        return;
-      }
-
-      if (!user.roles.includes("admin")) {
+      if (!req.user || !req.user.roles.includes("admin")) {
         res.status(403).json({
           success: false,
-          message:
-            "Akses ditolak: hanya admin yang dapat melakukan pencarian global",
+          message: "Akses ditolak: hanya admin",
         });
         return;
       }
 
-      const result = await ELearningTextService.searchTexts(validatedQuery);
+      const result = await ELearningTextService.searchTexts(req.validatedQuery);
 
       res.status(200).json({
         success: true,
@@ -307,6 +291,309 @@ export class ELearningTextController {
       res.send(file.buffer);
     } catch (err) {
       next(err);
+    }
+  }
+
+  static async getBlocksByText(
+    req: AuthenticatedRequestTextBlock,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { validatedParams, user } = req;
+
+      if (!validatedParams?.textId || !user) {
+        res.status(400).json({
+          success: false,
+          message: "Data request tidak valid",
+        });
+        return;
+      }
+
+      const result = await ELearningTextService.getBlocksByText(
+        validatedParams.textId,
+        user
+      );
+
+      res.status(200).json({
+        success: true,
+        message: "Daftar block berhasil diambil",
+        data: result,
+      });
+    } catch (err: any) {
+      if (err.message.includes("tidak ditemukan")) {
+        res.status(404).json({ success: false, message: err.message });
+      } else if (err.message.includes("Akses ditolak")) {
+        res.status(403).json({ success: false, message: err.message });
+      } else {
+        next(err);
+      }
+    }
+  }
+
+  static async createBlock(
+    req: AuthenticatedRequestTextBlock,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { validatedParams, validatedBody, user } = req;
+
+      if (!validatedParams?.textId || !validatedBody?.content || !user) {
+        res.status(400).json({
+          success: false,
+          message: "Data request tidak valid",
+        });
+        return;
+      }
+
+      const result = await ELearningTextService.createBlock(
+        validatedParams.textId,
+        validatedBody.content,
+        user
+      );
+
+      res.status(201).json({
+        success: true,
+        message: "Block berhasil ditambahkan",
+        data: result,
+      });
+    } catch (err: any) {
+      if (err.message.includes("tidak ditemukan")) {
+        res.status(404).json({ success: false, message: err.message });
+      } else if (err.message.includes("Akses ditolak")) {
+        res.status(403).json({ success: false, message: err.message });
+      } else {
+        next(err);
+      }
+    }
+  }
+
+  static async updateBlock(
+    req: AuthenticatedRequestTextBlock,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { validatedParams, validatedBody, user } = req;
+
+      if (!validatedParams?.blockId || !validatedBody?.content || !user) {
+        res.status(400).json({
+          success: false,
+          message: "Data request tidak valid",
+        });
+        return;
+      }
+
+      const result = await ELearningTextService.updateBlock(
+        validatedParams.blockId,
+        validatedBody.content,
+        user
+      );
+
+      res.status(200).json({
+        success: true,
+        message: "Block berhasil diperbarui",
+        data: result,
+      });
+    } catch (err: any) {
+      if (err.message.includes("tidak ditemukan")) {
+        res.status(404).json({ success: false, message: err.message });
+      } else if (err.message.includes("Akses ditolak")) {
+        res.status(403).json({ success: false, message: err.message });
+      } else {
+        next(err);
+      }
+    }
+  }
+
+  static async deleteBlock(
+    req: AuthenticatedRequestTextBlock,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { validatedParams, user } = req;
+
+      if (!validatedParams?.blockId || !user) {
+        res.status(400).json({
+          success: false,
+          message: "Data request tidak valid",
+        });
+        return;
+      }
+
+      const result = await ELearningTextService.deleteBlock(
+        validatedParams.blockId,
+        user
+      );
+
+      res.status(200).json({
+        success: true,
+        message: "Block berhasil dihapus dan di-reorder",
+        data: result,
+      });
+    } catch (err: any) {
+      if (err.message.includes("tidak ditemukan")) {
+        res.status(404).json({ success: false, message: err.message });
+      } else if (err.message.includes("Akses ditolak")) {
+        res.status(403).json({ success: false, message: err.message });
+      } else {
+        next(err);
+      }
+    }
+  }
+
+  static async reorderBlocks(
+    req: AuthenticatedRequestTextBlock,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { validatedParams, validatedBody, user } = req;
+
+      if (!validatedParams?.textId || !validatedBody?.orders || !user) {
+        res.status(400).json({
+          success: false,
+          message: "Data request tidak valid",
+        });
+        return;
+      }
+
+      const result = await ELearningTextService.reorderBlocks(
+        validatedParams.textId,
+        validatedBody.orders,
+        user
+      );
+
+      res.status(200).json({
+        success: true,
+        message: "Urutan block berhasil diperbarui",
+        data: result,
+      });
+    } catch (err: any) {
+      if (err.message.includes("tidak ditemukan")) {
+        res.status(404).json({ success: false, message: err.message });
+      } else if (err.message.includes("Akses ditolak")) {
+        res.status(403).json({ success: false, message: err.message });
+      } else if (err.message.includes("tidak valid")) {
+        res.status(400).json({ success: false, message: err.message });
+      } else {
+        next(err);
+      }
+    }
+  }
+
+  static async getSingleBlock(
+    req: AuthenticatedRequestTextBlock,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { validatedParams, user } = req;
+
+      if (!validatedParams?.blockId || !user) {
+        res.status(400).json({
+          success: false,
+          message: "Data request tidak valid",
+        });
+        return;
+      }
+
+      const result = await ELearningTextService.getSingleBlock(
+        validatedParams.blockId,
+        user
+      );
+
+      res.status(200).json({
+        success: true,
+        message: "Detail block berhasil diambil",
+        data: result,
+      });
+    } catch (err: any) {
+      if (err.message.includes("tidak ditemukan")) {
+        res.status(404).json({ success: false, message: err.message });
+      } else if (err.message.includes("Akses ditolak")) {
+        res.status(403).json({ success: false, message: err.message });
+      } else {
+        next(err);
+      }
+    }
+  }
+
+  static async exportBlocks(
+    req: AuthenticatedRequestText,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { validatedQuery, user } = req;
+      const format = validatedQuery?.format;
+
+      if (!user || !user.roles.includes("admin")) {
+        res.status(403).json({
+          success: false,
+          message: "Akses ditolak. Hanya admin yang dapat mengekspor data.",
+        });
+        return;
+      }
+
+      if (!format || (format !== "csv" && format !== "excel")) {
+        res.status(400).json({
+          success: false,
+          message: "Invalid format. Use 'csv' or 'excel'",
+        });
+        return;
+      }
+
+      const file = await ELearningTextService.exportBlocksToFile(format);
+
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=${file.filename}`
+      );
+      res.setHeader("Content-Type", file.mimetype);
+
+      res.send(file.buffer);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async getTextContent(
+    req: AuthenticatedRequestText,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { validatedParams, user } = req;
+
+      if (!validatedParams?.textId || !user) {
+        res.status(400).json({
+          success: false,
+          message: "Data request tidak valid",
+        });
+        return;
+      }
+
+      const result = await ELearningTextService.getFullTextContent(
+        validatedParams.textId,
+        user
+      );
+
+      res.status(200).json({
+        success: true,
+        message: "Konten teks berhasil diambil",
+        data: result,
+      });
+    } catch (err: any) {
+      if (err.message.includes("tidak ditemukan")) {
+        res.status(404).json({ success: false, message: err.message });
+      } else if (err.message.includes("Akses ditolak")) {
+        res.status(403).json({ success: false, message: err.message });
+      } else {
+        next(err);
+      }
     }
   }
 }

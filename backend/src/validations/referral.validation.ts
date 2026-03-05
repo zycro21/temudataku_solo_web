@@ -10,7 +10,7 @@ export const createReferralCodeSchema = z.object({
       .max(10, "Referral code cannot exceed 10 characters")
       .regex(
         /^[A-Za-z0-9-_]+$/,
-        "Referral code must contain only letters, numbers, hyphens, or underscores"
+        "Referral code must contain only letters, numbers, hyphens, or underscores",
       ),
     discountPercentage: z
       .number()
@@ -27,7 +27,7 @@ export const createReferralCodeSchema = z.object({
       })
       .optional()
       .transform((val: string | undefined) =>
-        val ? new Date(`${val}T23:59:59.999Z`) : undefined
+        val ? new Date(`${val}T23:59:59.999Z`) : undefined,
       )
       .refine((val: Date | undefined) => !val || !isNaN(val.getTime()), {
         message: "Invalid expiry date",
@@ -78,7 +78,7 @@ export const updateReferralCodeSchema = z.object({
         })
         .optional()
         .transform((val: string | undefined) =>
-          val ? new Date(`${val}T23:59:59.999Z`) : undefined
+          val ? new Date(`${val}T23:59:59.999Z`) : undefined,
         )
         .refine((val: Date | undefined) => !val || !isNaN(val.getTime()), {
           message: "Invalid expiry date",
@@ -97,7 +97,7 @@ export const updateReferralCodeSchema = z.object({
     })
     .refine(
       (data) => Object.values(data).some((value) => value !== undefined),
-      { message: "At least one field must be provided to update" }
+      { message: "At least one field must be provided to update" },
     ),
 });
 
@@ -106,17 +106,31 @@ export const useReferralCodeSchema = z.object({
     code: z
       .string()
       .nonempty("Referral code is required")
-      .min(6, "Referral code must be at least 6 characters")
-      .max(10, "Referral code cannot exceed 10 characters")
-      .regex(
-        /^[A-Za-z0-9-_]+$/,
-        "Referral code must contain only letters, numbers, hyphens, or underscores"
-      ),
-    context: z.enum(["booking", "practice_purchase"], {
-      errorMap: () => ({
-        message: "Context must be 'booking' or 'practice_purchase'",
-      }),
-    }),
+      .min(6)
+      .max(10)
+      .regex(/^[A-Za-z0-9-_]+$/),
+    context: z.enum(
+      ["booking", "practice_purchase", "elearning_subscription"],
+      {
+        errorMap: () => ({
+          message:
+            "Context must be 'booking', 'practice_purchase', or 'elearning_subscription'",
+        }),
+      },
+    ),
+  }),
+});
+
+export const applyReferralSchema = z.object({
+  params: z.object({
+    id: z.string().min(1),
+  }),
+  body: z.object({
+    code: z
+      .string()
+      .min(6)
+      .max(20)
+      .regex(/^[A-Za-z0-9-_]+$/),
   }),
 });
 
@@ -146,7 +160,9 @@ export const getReferralUsagesSchema = z.object({
     id: z.string().min(1, "Referral code ID is required"),
   }),
   query: z.object({
-    context: z.enum(["booking", "practice_purchase"]).optional(),
+    context: z
+      .enum(["booking", "practice_purchase", "elearning_subscription"])
+      .optional(),
     page: z.string().transform(Number).default("1"),
     limit: z.string().transform(Number).default("10"),
   }),

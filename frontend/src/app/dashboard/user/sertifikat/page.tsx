@@ -36,16 +36,31 @@ export default function SertifikatDashboardUserPage() {
         // Ambil daftar booking (semua program yang diikuti mentee)
         const bookingRes = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/booking/mentee/bookings?page=1&limit=100`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
 
         // Ambil semua sertifikat
         const certRes = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/certificate/certificates`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
 
-        const bookings = bookingRes.data?.data?.data || [];
+        const bookingsRaw = bookingRes.data?.data?.data || [];
+
+        // filter booking status + service type
+        const bookings = bookingsRaw.filter((b: any) => {
+          const serviceType = b?.mentoringService?.serviceType?.toLowerCase();
+          const status = b?.status?.toLowerCase();
+
+          const allowedServiceTypes = ["bootcamp", "live class", "shortclass"];
+          const allowedStatus = ["confirmed", "completed"];
+
+          return (
+            allowedServiceTypes.includes(serviceType) &&
+            allowedStatus.includes(status)
+          );
+        });
+
         const certificates = certRes.data?.data?.data || [];
 
         // Gabungkan booking + sertifikat berdasarkan serviceId
@@ -54,7 +69,7 @@ export default function SertifikatDashboardUserPage() {
           const cert = certificates.find(
             (c: any) =>
               c.serviceId === service.id ||
-              c.mentoringService?.id === service.id // fallback kalau struktur berbeda
+              c.mentoringService?.id === service.id, // fallback kalau struktur berbeda
           );
 
           return {
@@ -81,7 +96,7 @@ export default function SertifikatDashboardUserPage() {
                       {
                         month: "long",
                         year: "numeric",
-                      }
+                      },
                     );
                   }
                   // fallback kalau tidak ada sesi

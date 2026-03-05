@@ -21,16 +21,16 @@ export default function ScheduleStatCards() {
           axios.get(
             `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/booking/mentee/bookings`,
             {
-              params: { page: 1, limit: 1000 },
+              params: { page: 1, limit: 1000, status: "confirmed" },
               withCredentials: true,
-            }
+            },
           ),
           axios.get(
             `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/booking/mentee/completed-programs`,
             {
               params: { page: 1, limit: 1000 },
               withCredentials: true,
-            }
+            },
           ),
         ]);
 
@@ -43,7 +43,7 @@ export default function ScheduleStatCards() {
       } catch (error: any) {
         console.error(error);
         toast.error(
-          error?.response?.data?.message || "Gagal memuat data program."
+          error?.response?.data?.message || "Gagal memuat data program.",
         );
       } finally {
         setLoading(false);

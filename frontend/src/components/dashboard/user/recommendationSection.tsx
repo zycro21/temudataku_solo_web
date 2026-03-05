@@ -16,13 +16,13 @@ interface RecommendationItem {
   id: string;
   tag: string;
   title: string;
-  type: "Mentoring" | "Practice";
+  type: "Mentoring";
   level?: string;
 }
 
 export default function RecommendationSection() {
   const [recommendations, setRecommendations] = useState<RecommendationItem[]>(
-    []
+    [],
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,49 +32,32 @@ export default function RecommendationSection() {
       try {
         const meRes = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/me`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
         const userData = meRes.data.data;
 
-        const [bookingsRes, purchasesRes] = await Promise.all([
-          axios.get(
-            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/booking/mentee/bookings`,
-            { params: { page: 1, limit: 1000 }, withCredentials: true }
-          ),
-          axios.get(
-            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/practice/mentees/practice-purchases`,
-            { params: { page: 1, limit: 1000 }, withCredentials: true }
-          ),
-        ]);
+        const bookingsRes = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/booking/mentee/bookings`,
+          {
+            params: { page: 1, limit: 1000, status: "confirmed" },
+            withCredentials: true,
+          },
+        );
 
         const bookedServiceIds =
           bookingsRes.data?.data?.data?.map(
-            (b: any) => b.mentoringService?.id
+            (b: any) => b.mentoringService?.id,
           ) || [];
-        const purchasedPracticeIds =
-          purchasesRes.data?.data?.data?.map((p: any) => p.practice?.id) || [];
 
-        const [servicesRes, practicesRes] = await Promise.all([
-          axios.get(
-            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentorService/public-mentoring-services`,
-            { params: { limit: 8 } }
-          ),
-          axios.get(
-            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/practice/practices`,
-            {
-              params: { limit: 8, sortBy: "createdAt", sortOrder: "desc" },
-            }
-          ),
-        ]);
+        const servicesRes = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentorService/public-mentoring-services`,
+          { params: { limit: 8 } },
+        );
 
         const services = servicesRes.data?.data || [];
-        const practices = practicesRes.data?.data?.practices || [];
 
         const unbookedServices = services.filter(
-          (s: any) => !bookedServiceIds.includes(s.id)
-        );
-        const unpurchasedPractices = practices.filter(
-          (p: any) => !purchasedPracticeIds.includes(p.id)
+          (s: any) => !bookedServiceIds.includes(s.id),
         );
 
         const merged: RecommendationItem[] = [
@@ -84,13 +67,6 @@ export default function RecommendationSection() {
             title: s.serviceName || s.title || "Mentoring Service",
             type: "Mentoring" as const,
             level: s.level || s.serviceType || "General",
-          })),
-          ...unpurchasedPractices.map((p: any) => ({
-            id: p.id,
-            tag: "Dapatkan Sertifikat!",
-            title: p.title || "Practice",
-            type: "Practice" as const,
-            level: p.category || "Beginner",
           })),
         ].slice(0, 8);
 
@@ -138,7 +114,6 @@ export default function RecommendationSection() {
     );
   }
 
-  // versi UI final — sama kayak statis tapi lebar dibatasi
   return (
     <div className="mt-8 flex justify-center">
       <div className="bg-white rounded-2xl shadow-sm p-6 relative w-full max-w-[90rem]">

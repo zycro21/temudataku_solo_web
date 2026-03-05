@@ -24,7 +24,7 @@ interface MentorSchedule {
   image: string;
   description: string;
   linkedin: string;
-  availability: Availability[];
+  availabilitySchedule: Record<string, string[]>;
 }
 
 interface CalendarProps {
@@ -74,7 +74,7 @@ export default function MentorCalendar({
 }: CalendarProps) {
   const [hoveredDate, setHoveredDate] = useState<Date | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(
-    null
+    null,
   );
 
   const today = new Date();
@@ -82,12 +82,19 @@ export default function MentorCalendar({
 
   const [month, setMonth] = useState(new Date());
 
-  const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+  const dayMap: Record<number, string> = {
+    0: "sunday",
+    1: "monday",
+    2: "tuesday",
+    3: "wednesday",
+    4: "thursday",
+    5: "friday",
+    6: "saturday",
+  };
 
   const getSlotsForDate = (date: Date) => {
-    const dayName = days[date.getDay()];
-    const avail = mentor.availability.find((a) => a.day === dayName);
-    return avail ? avail.times : [];
+    const key = dayMap[date.getDay()];
+    return mentor.availabilitySchedule?.[key] || [];
   };
 
   return (
@@ -143,7 +150,7 @@ export default function MentorCalendar({
           {getSlotsForDate(hoveredDate).length > 0 ? (
             getSlotsForDate(hoveredDate).map((slot, idx) => (
               <div key={idx}>
-                {slot.start} - {slot.end}
+                {slot}
               </div>
             ))
           ) : (

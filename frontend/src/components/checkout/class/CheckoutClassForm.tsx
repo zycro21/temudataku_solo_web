@@ -1,119 +1,95 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SelectItem } from "@/components/ui/select";
 import { SelectInput } from "@/components/ui/selectInput";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { regions } from "../mentoring/region";
-import { X } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
-export default function CheckoutForm() {
+export default function CheckoutClassForm({
+  currentUser,
+  booking,
+  onFormChange,
+}: any) {
   const [formData, setFormData] = useState({
     email: "",
     fullName: "",
     city: "",
     province: "",
     phone: "",
-    description: "",
-    expectedOutput: "",
-    supportingDocs: [] as File[],
   });
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const isEmailLocked = !!currentUser?.email;
+  const isFullNameLocked = !!currentUser?.fullName;
+  const isPhoneLocked = !!currentUser?.phoneNumber;
+
+  /* ===============================
+     PREFILL USER
+  =============================== */
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const updated = {
+      email: currentUser.email || "",
+      fullName: currentUser.fullName || "",
+      province: currentUser.province || "",
+      city: currentUser.city || "",
+      phone: currentUser.phoneNumber || "",
+    };
+
+    setFormData(updated);
+    if (onFormChange) onFormChange(updated);
+  }, [currentUser]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const updated = { ...formData, [e.target.name]: e.target.value };
+    setFormData(updated);
+    if (onFormChange) onFormChange(updated);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setFormData({
-        ...formData,
-        supportingDocs: [
-          ...formData.supportingDocs,
-          ...Array.from(e.target.files),
-        ],
-      });
-    }
-  };
-
-  const handleRemoveFile = (index: number) => {
-    setFormData({
-      ...formData,
-      supportingDocs: formData.supportingDocs.filter((_, i) => i !== index),
-    });
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Checkout form data:", formData);
-    // TODO: kirim ke API
-  };
-
-  // Ambil list kota berdasarkan provinsi
   const cityOptions = formData.province ? regions[formData.province] : [];
 
   return (
-    <form onSubmit={handleSubmit} className="p-6 pl-6 md:pl-10 space-y-6">
+    <form className="p-6 pl-6 md:pl-10 space-y-6">
       <h2 className="text-2xl font-bold">Informasi Pemesanan</h2>
+
       {/* Email */}
       <div className="grid gap-2 max-w-4xl">
-        <label htmlFor="email" className="text-sm font-medium">
-          Email
-        </label>
+        <label className="text-sm font-medium">Email</label>
         <Input
-          type="email"
-          id="email"
           name="email"
-          placeholder="contoh@email.com"
           value={formData.email}
           onChange={handleChange}
           required
+          readOnly={isEmailLocked}
+          className={isEmailLocked ? "bg-gray-100 cursor-not-allowed" : ""}
         />
       </div>
 
-      {/* Nama Lengkap */}
+      {/* Nama */}
       <div className="grid gap-2 max-w-4xl">
-        <label htmlFor="fullName" className="text-sm font-medium">
-          Nama Lengkap
-        </label>
+        <label className="text-sm font-medium">Nama Lengkap</label>
         <Input
-          type="text"
-          id="fullName"
           name="fullName"
-          placeholder="Masukkan nama lengkap"
           value={formData.fullName}
           onChange={handleChange}
           required
+          readOnly={isFullNameLocked}
+          className={isFullNameLocked ? "bg-gray-100 cursor-not-allowed" : ""}
         />
       </div>
 
-      {/* Kota & Provinsi */}
+      {/* Province & City */}
       <div className="flex gap-4">
-        {/* Provinsi */}
         <div className="flex flex-col w-1/3">
-          <label htmlFor="province" className="text-sm font-medium mb-2">
-            Provinsi
-          </label>
+          <label className="text-sm font-medium mb-2">Provinsi</label>
           <SelectInput
             value={formData.province}
-            onValueChange={
-              (value) => setFormData({ ...formData, province: value, city: "" }) // reset kota kalau provinsi ganti
-            }
-            placeholder="Pilih provinsi"
+            onValueChange={(value) => {
+              const updated = { ...formData, province: value, city: "" };
+              setFormData(updated);
+              if (onFormChange) onFormChange(updated);
+            }}
           >
             <div className="max-h-40 overflow-y-auto">
               {Object.keys(regions).map((prov) => (
@@ -125,18 +101,16 @@ export default function CheckoutForm() {
           </SelectInput>
         </div>
 
-        {/* Kota */}
         <div className="flex flex-col w-1/3">
-          <label htmlFor="city" className="text-sm font-medium mb-2">
-            Kota/Kabupaten
-          </label>
+          <label className="text-sm font-medium mb-2">Kota/Kabupaten</label>
           <SelectInput
             value={formData.city}
-            onValueChange={(value) => setFormData({ ...formData, city: value })}
-            placeholder={
-              formData.province ? "Pilih kota" : "Pilih provinsi dulu"
-            }
-            disabled={!formData.province} // 👈 terkunci sebelum pilih provinsi
+            onValueChange={(value) => {
+              const updated = { ...formData, city: value };
+              setFormData(updated);
+              if (onFormChange) onFormChange(updated);
+            }}
+            disabled={!formData.province}
           >
             <div className="max-h-40 overflow-y-auto">
               {cityOptions.map((city) => (
@@ -149,18 +123,15 @@ export default function CheckoutForm() {
         </div>
       </div>
 
-      {/* No. Telepon */}
+      {/* Phone */}
       <div className="grid gap-2 max-w-4xl">
-        <label htmlFor="phone" className="text-sm font-medium">
-          No. Telepon
-        </label>
+        <label className="text-sm font-medium">No. Telepon</label>
         <Input
-          type="tel"
-          id="phone"
           name="phone"
-          placeholder="08xxxxxxxxxx"
           value={formData.phone}
           onChange={handleChange}
+          readOnly={isPhoneLocked}
+          className={isPhoneLocked ? "bg-gray-100 cursor-not-allowed" : ""}
         />
       </div>
     </form>

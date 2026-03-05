@@ -15,6 +15,7 @@ import {
   AllCommissionPaymentsSchema,
   validateUpdateCommissionPaymentStatusSchema,
   exportCommissionPaymentsSchema,
+  applyReferralSchema,
 } from "../validations/referral.validation.js";
 import { validate } from "../middlewares/validate.js";
 import { authenticate } from "../middlewares/authenticate.js";
@@ -22,13 +23,13 @@ import { authorizeRoles } from "../middlewares/authorizeRole.js";
 
 const router = Router();
 
-/** 
+/**
  * @swagger
  * tags:
  *   - name: Referral
  *     description: Manajemen kode referral & komisi
  */
- 
+
 /**
  * @swagger
  * /api/referral/admin/referral-codes:
@@ -127,7 +128,7 @@ router.post(
   authenticate,
   authorizeRoles("admin"),
   validate(createReferralCodeSchema),
-  ReferralController.createReferralCodeController
+  ReferralController.createReferralCodeController,
 );
 
 /**
@@ -226,7 +227,7 @@ router.get(
   authenticate,
   authorizeRoles("admin"),
   validate(getReferralCodesSchema),
-  ReferralController.getReferralCodesController
+  ReferralController.getReferralCodesController,
 );
 
 /**
@@ -302,7 +303,7 @@ router.get(
   authenticate,
   authorizeRoles("admin"),
   validate(getReferralCodeByIdSchema),
-  ReferralController.getReferralCodeByIdController
+  ReferralController.getReferralCodeByIdController,
 );
 
 /**
@@ -395,7 +396,7 @@ router.patch(
   authenticate,
   authorizeRoles("admin"),
   validate(updateReferralCodeSchema),
-  ReferralController.updateReferralCodeController
+  ReferralController.updateReferralCodeController,
 );
 
 /**
@@ -434,7 +435,7 @@ router.delete(
   authenticate,
   authorizeRoles("admin"),
   validate(getReferralCodeByIdSchema),
-  ReferralController.deleteReferralCodeController
+  ReferralController.deleteReferralCodeController,
 );
 
 /**
@@ -451,14 +452,15 @@ router.delete(
  *         application/json:
  *           schema:
  *             type: object
+ *             required: [code, context]
  *             properties:
  *               code:
  *                 type: string
  *                 example: "REF12345"
  *               context:
  *                 type: string
- *                 enum: [booking, practice_purchase]
- *                 example: "booking"
+ *                 enum: [booking, practice_purchase, elearning_subscription]
+ *                 example: "elearning_subscription"
  *     responses:
  *       201:
  *         description: Referral code berhasil digunakan
@@ -481,13 +483,70 @@ router.delete(
  *       400:
  *         description: Referral code tidak valid, sudah dipakai, atau kadaluarsa
  *       401:
- *         description: Unauthorized - token tidak valid atau tidak ditemukan
+ *         description: Unauthorized
  */
 router.post(
   "/referral/use",
   authenticate,
   validate(useReferralCodeSchema),
-  ReferralController.useReferralCodeController
+  ReferralController.useReferralCodeController,
+);
+
+/**
+ * @swagger
+ * /api/referral/booking/{id}/apply-referral:
+ *   post:
+ *     summary: Apply referral ke booking yang sudah ada
+ *     tags: [Booking]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         example: "Booking-one-on-one-1234567890"
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [code]
+ *             properties:
+ *               code:
+ *                 type: string
+ *                 example: "XAVA-2025"
+ *     responses:
+ *       200:
+ *         description: Referral berhasil diterapkan
+ *       400:
+ *         description: Error validasi
+ *       404:
+ *         description: Booking tidak ditemukan
+ */
+router.post(
+  "/booking/:id/apply-referral",
+  authenticate,
+  validate(applyReferralSchema),
+  ReferralController.applyReferralToBookingController,
+);
+
+/**
+ * @swagger
+ * /api/referral/elearning-subscriptions/{id}/apply-referral:
+ *   post:
+ *     summary: Apply referral ke subscription yang sudah ada
+ *     tags: [ELearningSubscription]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.post(
+  "/elearning-subscriptions/:id/apply-referral",
+  authenticate,
+  validate(applyReferralSchema),
+  ReferralController.applyReferralToELearningController,
 );
 
 /**
@@ -604,7 +663,7 @@ router.get(
   authenticate,
   authorizeRoles("admin"),
   validate(getReferralCommissionsSchema),
-  ReferralController.getReferralCommissionsController
+  ReferralController.getReferralCommissionsController,
 );
 
 /**
@@ -706,7 +765,7 @@ router.get(
   authenticate,
   authorizeRoles("affiliator"),
   validate(getAffiliatorReferralCodesSchema),
-  ReferralController.getAffiliatorReferralCodesController
+  ReferralController.getAffiliatorReferralCodesController,
 );
 
 /**
@@ -774,7 +833,7 @@ router.get(
  *                             format: date-time
  *                           context:
  *                             type: string
- *                             enum: [booking, practice_purchase]
+ *                             enum: [booking, practice_purchase, elearning_subscription]
  *                           createdAt:
  *                             type: string
  *                             format: date-time
@@ -835,7 +894,7 @@ router.get(
   authenticate,
   authorizeRoles("affiliator"),
   validate(getReferralUsagesSchema),
-  ReferralController.getReferralUsagesController
+  ReferralController.getReferralUsagesController,
 );
 
 /**
@@ -966,7 +1025,7 @@ router.get(
   authenticate,
   authorizeRoles("affiliator"),
   validate(getReferralCommissionsByCodeSchema),
-  ReferralController.getReferralCommissionsByCodeController
+  ReferralController.getReferralCommissionsByCodeController,
 );
 
 /**
@@ -1048,7 +1107,7 @@ router.post(
   authenticate,
   authorizeRoles("affiliator"),
   validate(requestCommissionPaymentSchema),
-  ReferralController.requestCommissionPaymentController
+  ReferralController.requestCommissionPaymentController,
 );
 
 /**
@@ -1163,7 +1222,7 @@ router.get(
   authenticate,
   authorizeRoles("affiliator"),
   validate(validateCommissionPaymentsSchema),
-  ReferralController.getCommissionPaymentsController
+  ReferralController.getCommissionPaymentsController,
 );
 
 /**
@@ -1294,7 +1353,7 @@ router.get(
   authenticate,
   authorizeRoles("admin"),
   validate(AllCommissionPaymentsSchema),
-  ReferralController.getAllCommissionPaymentsController
+  ReferralController.getAllCommissionPaymentsController,
 );
 
 /**
@@ -1453,7 +1512,7 @@ router.patch(
   authenticate,
   authorizeRoles("admin"),
   validate(validateUpdateCommissionPaymentStatusSchema),
-  ReferralController.updateCommissionPaymentStatusController
+  ReferralController.updateCommissionPaymentStatusController,
 );
 
 /**
@@ -1542,7 +1601,7 @@ router.get(
   authenticate,
   authorizeRoles("admin"),
   validate(exportCommissionPaymentsSchema),
-  ReferralController.exportCommissionPaymentsController
+  ReferralController.exportCommissionPaymentsController,
 );
 
 export default router;

@@ -1,7 +1,12 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { MdSchool, MdSupervisorAccount, MdAssignment } from "react-icons/md";
+import {
+  MdSchool,
+  MdSupervisorAccount,
+  MdAssignment,
+  MdMenuBook,
+} from "react-icons/md";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext"; // pakai AuthContext
 import { useLogout } from "@/hooks/useLogout"; // import hook logout
@@ -97,7 +102,7 @@ export default function Navbar() {
                   className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100"
                 >
                   <MdSchool className="text-gray-500 text-md" />
-                  Program & Bootcamp
+                  Bootcamp
                 </Link>
               </li>
               <li>
@@ -109,13 +114,22 @@ export default function Navbar() {
                   Mentoring
                 </Link>
               </li>
-              <li>
+              {/* <li>
                 <Link
                   href="/practice"
                   className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100"
                 >
                   <MdAssignment className="text-gray-500 text-md" />
                   Praktik
+                </Link>
+              </li> */}
+              <li>
+                <Link
+                  href="/elearning"
+                  className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100"
+                >
+                  <MdMenuBook className="text-gray-500 text-md" />
+                  E-Learning
                 </Link>
               </li>
             </ul>

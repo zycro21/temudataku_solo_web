@@ -16,15 +16,10 @@ const uploadsRoot = path.join(__dirname, "../../uploads");
 
 const prisma = new PrismaClient();
 
-type ServiceType =
-  | "one-on-one"
-  | "group"
-  | "bootcamp"
-  | "shortclass"
-  | "live class";
+type ServiceType = "one-on-one" | "group" | "bootcamp";
 
 const generatePaymentId = async (
-  type: "booking" | "practice"
+  type: "booking" | "practice",
 ): Promise<string> => {
   const datePart = formatDate(new Date(), "yyyyMMdd");
   const prefix = type === "booking" ? "PAY-BKG" : "PAY-PRC";
@@ -68,10 +63,82 @@ const generateBookingId = async (serviceType: ServiceType): Promise<string> => {
   };
 };
 
+const getOrCreateAutoService = async (
+  tx: Prisma.TransactionClient,
+  serviceId: string,
+  serviceType: "one-on-one" | "group",
+) => {
+  await tx.$executeRaw`
+    SELECT id
+    FROM mentoring_services
+    WHERE id = ${serviceId}
+    FOR UPDATE
+  `;
+
+  const currentService = await tx.mentoringService.findUnique({
+    where: { id: serviceId },
+  });
+
+  if (!currentService) {
+    throw {
+      status: 404,
+      message: "Service tidak ditemukan.",
+    };
+  }
+
+  // 🔥 SELALU BUAT SERVICE BARU
+
+  const lastService = await tx.mentoringService.findFirst({
+    where: { serviceType },
+    orderBy: { createdAt: "desc" },
+    select: { id: true },
+  });
+
+  let nextNumber = 1;
+
+  if (lastService) {
+    const lastNumber = parseInt(lastService.id.split("-").pop() || "0", 10);
+    nextNumber = lastNumber + 1;
+  }
+
+  const paddedNumber = String(nextNumber).padStart(6, "0");
+  // khusus untuk ID → ganti dash jadi underscore
+  const idPrefix = serviceType.replace(/-/g, "_");
+
+  const generatedId = `${idPrefix}-${paddedNumber}`;
+
+  await tx.mentoringService.create({
+    data: {
+      id: generatedId,
+      serviceName:
+        serviceType === "one-on-one"
+          ? `Mentoring 1 on 1 - ${nextNumber}`
+          : `Mentoring Group - ${nextNumber}`,
+      description: currentService.description,
+      price: currentService.price,
+      serviceType: currentService.serviceType,
+      maxParticipants: currentService.maxParticipants,
+      durationDays: currentService.durationDays,
+      isActive: true,
+    },
+  });
+
+  return currentService; // booking tetap pakai service lama
+};
+
+const generateRandomString = (length: number) => {
+  const chars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  return Array.from({ length }, () =>
+    chars.charAt(Math.floor(Math.random() * chars.length)),
+  ).join("");
+};
+
 export const createBooking = async (
   menteeId: string,
   {
     mentoringServiceId,
+    mentorProfileId,
     referralUsageId,
     specialRequests,
     bookingDate,
@@ -79,8 +146,11 @@ export const createBooking = async (
     material,
     expectedOutput,
     supportDocument,
+    startTime,
+    endTime,
   }: {
     mentoringServiceId: string;
+    mentorProfileId?: string;
     referralUsageId?: string;
     specialRequests?: string;
     bookingDate?: string;
@@ -88,7 +158,9 @@ export const createBooking = async (
     material?: string;
     expectedOutput?: string;
     supportDocument?: string[] | null;
-  }
+    startTime?: { hour: number; minute: number };
+    endTime?: { hour: number; minute: number };
+  },
 ) => {
   const mentoringService = await prisma.mentoringService.findUnique({
     where: { id: mentoringServiceId },
@@ -108,13 +180,38 @@ export const createBooking = async (
     };
   }
 
-  const validServiceTypes: ServiceType[] = [
-    "one-on-one",
-    "group",
-    "bootcamp",
-    "shortclass",
-    "live class",
-  ];
+  // CEK DUPLIKASI BOOKING BOOTCAMP
+  if (mentoringService.serviceType === "bootcamp") {
+    const existingConfirmedBooking = await prisma.booking.findFirst({
+      where: {
+        menteeId,
+        mentoringServiceId,
+        payment: {
+          status: "confirmed",
+        },
+      },
+    });
+
+    if (existingConfirmedBooking) {
+      throw {
+        status: 400,
+        message: "Kamu sudah membeli bootcamp ini.",
+      };
+    }
+  }
+
+  const validServiceTypes: ServiceType[] = ["one-on-one", "group", "bootcamp"];
+
+  if (
+    !mentoringService.serviceType ||
+    !validServiceTypes.includes(mentoringService.serviceType as ServiceType)
+  ) {
+    throw {
+      status: 400,
+      message: "Layanan ini tidak tersedia untuk sistem booking.",
+    };
+  }
+
   if (
     !mentoringService.serviceType ||
     !validServiceTypes.includes(mentoringService.serviceType as ServiceType)
@@ -123,6 +220,30 @@ export const createBooking = async (
       status: 400,
       message: "Tipe layanan tidak valid atau tidak diisi.",
     };
+  }
+
+  // VALIDASI MENTOR UNTUK ONE-ON-ONE / GROUP
+  if (
+    mentoringService.serviceType === "one-on-one" ||
+    mentoringService.serviceType === "group"
+  ) {
+    if (!mentorProfileId) {
+      throw {
+        status: 400,
+        message: "mentorProfileId wajib dipilih untuk layanan ini.",
+      };
+    }
+
+    const mentor = await prisma.mentorProfile.findUnique({
+      where: { id: mentorProfileId },
+    });
+
+    if (!mentor) {
+      throw {
+        status: 404,
+        message: "Mentor tidak ditemukan.",
+      };
+    }
   }
 
   const isManualBooking =
@@ -153,7 +274,7 @@ export const createBooking = async (
     const activeBookings = await prisma.booking.count({
       where: {
         mentoringServiceId,
-        status: { in: ["pending", "confirmed"] },
+        status: { in: ["confirmed"] },
       },
     });
     if (activeBookings >= mentoringService.maxParticipants) {
@@ -233,59 +354,96 @@ export const createBooking = async (
     finalPrice = originalPrice * (1 - discountPercentage / 100);
   }
 
-  let finalBookingDate: Date;
+  // bookingDate database = selalu waktu booking dibuat
+  const bookingCreatedAt = new Date();
+
+  // bookingDate dari frontend hanya untuk session
+  let sessionBookingDate: string | undefined;
 
   if (isManualBooking) {
     if (!bookingDate) {
       throw {
         status: 400,
-        message: "bookingDate wajib diisi untuk layanan one-on-one atau group.",
+        message: "bookingDate wajib diisi untuk layanan ini.",
       };
     }
 
-    const parsedDate = new Date(bookingDate);
-    if (isNaN(parsedDate.getTime())) {
+    if (!startTime || !endTime) {
       throw {
         status: 400,
-        message: "Format bookingDate tidak valid. Gunakan yyyy-mm-dd.",
+        message: "startTime dan endTime wajib diisi untuk layanan ini.",
       };
     }
 
-    finalBookingDate = parsedDate;
-  } else {
-    finalBookingDate = new Date();
+    sessionBookingDate = bookingDate;
   }
 
   const booking = await prisma.$transaction(async (tx) => {
+    let finalService = mentoringService;
+
+    if (
+      mentoringService.serviceType === "one-on-one" ||
+      mentoringService.serviceType === "group"
+    ) {
+      finalService = await getOrCreateAutoService(
+        tx,
+        mentoringService.id,
+        mentoringService.serviceType as "one-on-one" | "group",
+      );
+    }
+
+    // Attach mentor ke service jika belum ada
+    if (
+      (finalService.serviceType === "one-on-one" ||
+        finalService.serviceType === "group") &&
+      mentorProfileId
+    ) {
+      const existingRelation = await tx.mentoringServiceMentor.findFirst({
+        where: {
+          mentoringServiceId: finalService.id,
+          mentorProfileId,
+        },
+      });
+
+      if (!existingRelation) {
+        await tx.mentoringServiceMentor.create({
+          data: {
+            mentoringServiceId: finalService.id,
+            mentorProfileId,
+          },
+        });
+      }
+    }
+
     const bookingId = await generateBookingId(
-      mentoringService.serviceType as ServiceType
+      finalService.serviceType as ServiceType,
     );
 
     const newBooking = await tx.booking.create({
       data: {
         id: bookingId,
         menteeId,
-        mentoringServiceId,
+        mentoringServiceId: finalService.id,
         referralUsageId,
         specialRequests,
-        bookingDate: finalBookingDate,
+        bookingDate: bookingCreatedAt,
         material,
         expectedOutput,
         supportDocument: supportDocument
           ? JSON.stringify(supportDocument)
           : null, // simpan JSON string
-        status: isManualBooking ? "confirmed" : "pending",
+        status: "pending",
         participants: {
           create: [
             {
               userId: menteeId,
-              isLeader: isManualBooking,
-              paymentStatus: isManualBooking ? "confirmed" : "pending",
+              isLeader: true,
+              paymentStatus: "pending",
             },
             ...participantIds.map((userId) => ({
               userId,
               isLeader: false,
-              paymentStatus: "confirmed",
+              paymentStatus: "pending",
             })),
           ],
         },
@@ -301,7 +459,7 @@ export const createBooking = async (
         id: paymentId,
         bookingId: newBooking.id,
         amount: finalPrice,
-        status: isManualBooking ? "confirmed" : "pending",
+        status: "pending",
       },
     });
 
@@ -326,6 +484,72 @@ export const createBooking = async (
       });
     }
 
+    // =======================================================
+    // ✅ AUTO CREATE MENTORING SESSION
+    // =======================================================
+
+    if (
+      (finalService.serviceType === "one-on-one" ||
+        finalService.serviceType === "group") &&
+      mentorProfileId &&
+      startTime &&
+      endTime
+    ) {
+      const formatToDDMMYYYY = (date: string) => {
+        const [year, month, day] = date.split("-");
+        return `${day}-${month}-${year}`;
+      };
+
+      const sessionDate = formatToDDMMYYYY(sessionBookingDate!);
+
+      const createWIBDateTime = (
+        date: string,
+        time: { hour: number; minute: number },
+      ) => {
+        const [year, month, day] = date.split("-");
+        const hour = time.hour.toString().padStart(2, "0");
+        const minute = time.minute.toString().padStart(2, "0");
+
+        return new Date(`${year}-${month}-${day}T${hour}:${minute}:00+07:00`);
+      };
+
+      const startDateObj = createWIBDateTime(sessionBookingDate!, startTime);
+      const endDateObj = createWIBDateTime(sessionBookingDate!, endTime);
+
+      if (endDateObj <= startDateObj) {
+        throw {
+          status: 400,
+          message: "endTime harus lebih besar dari startTime.",
+        };
+      }
+
+      const durationMinutes = Math.floor(
+        (endDateObj.getTime() - startDateObj.getTime()) / (1000 * 60),
+      );
+
+      const sessionId = `Session-${generateRandomString(10)}-${finalService.id}`;
+
+      const session = await tx.mentoringSession.create({
+        data: {
+          id: sessionId,
+          serviceId: finalService.id,
+          date: sessionDate,
+          startTime: startDateObj.toISOString(),
+          endTime: endDateObj.toISOString(),
+          durationMinutes,
+          status: "scheduled",
+          notes: specialRequests ?? null,
+        },
+      });
+
+      await tx.mentoringSessionMentor.create({
+        data: {
+          mentoringSessionId: session.id,
+          mentorProfileId,
+        },
+      });
+    }
+
     return {
       ...newBooking,
       payment,
@@ -339,6 +563,62 @@ export const createBooking = async (
     message: "Booking berhasil dibuat.",
     data: booking,
   };
+};
+
+export const updateBookingContent = async (
+  bookingId: string,
+  userId: string,
+  {
+    material,
+    expectedOutput,
+    supportDocument,
+  }: {
+    material?: string;
+    expectedOutput?: string;
+    supportDocument?: string[] | null;
+  },
+) => {
+  const booking = await prisma.booking.findUnique({
+    where: { id: bookingId },
+    include: { participants: true },
+  });
+
+  if (!booking) {
+    throw { status: 404, message: "Booking not found." };
+  }
+
+  // Authorization: hanya leader boleh update
+  const isLeader = booking.participants.find(
+    (p) => p.userId === userId && p.isLeader,
+  );
+
+  if (!isLeader) {
+    throw { status: 403, message: "Only leader can update booking content." };
+  }
+
+  let existingDocs: string[] = [];
+
+  if (booking.supportDocument) {
+    existingDocs = JSON.parse(booking.supportDocument);
+  }
+
+  if (supportDocument && supportDocument.length > 0) {
+    existingDocs = [...existingDocs, ...supportDocument];
+  }
+
+  const updatedBooking = await prisma.booking.update({
+    where: { id: bookingId },
+    data: {
+      ...(material && { material }),
+      ...(expectedOutput && { expectedOutput }),
+      ...(supportDocument && {
+        supportDocument: JSON.stringify(existingDocs),
+      }),
+      updatedAt: new Date(),
+    },
+  });
+
+  return updatedBooking;
 };
 
 export const getMenteeBookings = async (
@@ -355,13 +635,18 @@ export const getMenteeBookings = async (
     status?: string;
     sortBy?: string;
     sortOrder?: "asc" | "desc";
-  }
+  },
 ) => {
   const skip = (page - 1) * limit;
 
   const whereClause = {
     menteeId,
     ...(status && { status }),
+    mentoringService: {
+      serviceType: {
+        in: ["one-on-one", "group", "bootcamp"],
+      },
+    },
   };
 
   const bookings = await prisma.booking.findMany({
@@ -519,7 +804,7 @@ export const getMenteeBookings = async (
 
 export const getMenteeBookingDetail = async (
   userId: string,
-  bookingId: string
+  bookingId: string,
 ) => {
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
@@ -563,17 +848,30 @@ export const getMenteeBookingDetail = async (
     throw { status: 403, message: "Akses ditolak. Bukan booking milikmu." };
   }
 
-  const serviceType = booking.mentoringService.serviceType;
+  const serviceType = booking.mentoringService?.serviceType;
+
+  if (!serviceType) {
+    throw {
+      status: 404,
+      message: "Booking tidak ditemukan.",
+    };
+  }
+
+  const allowedServiceTypes = ["one-on-one", "group", "bootcamp"];
+
+  if (!allowedServiceTypes.includes(serviceType)) {
+    throw {
+      status: 404,
+      message: "Booking tidak ditemukan.",
+    };
+  }
 
   let filteredParticipants = booking.participants;
 
-  if (
-    serviceType === "bootcamp" ||
-    serviceType === "shortclass" ||
-    serviceType === "liveclass"
-  ) {
+  // Bootcamp tetap hanya tampilkan diri sendiri
+  if (serviceType === "bootcamp") {
     filteredParticipants = filteredParticipants.filter(
-      (p) => p.userId === userId
+      (p) => p.userId === userId,
     );
   }
 
@@ -595,35 +893,61 @@ export const getCompletedPrograms = async (
     limit: number;
     sortBy?: string;
     sortOrder?: "asc" | "desc";
-  }
+  },
 ) => {
   const skip = (page - 1) * limit;
   const now = new Date();
 
-  // Ambil semua booking dengan join mentoringService
+  // ✅ Helper lokal (tidak keluar dari function ini)
+  const parseDDMMYYYY = (dateString: string): Date => {
+    const [day, month, year] = dateString.split("-");
+    return new Date(Number(year), Number(month) - 1, Number(day));
+  };
+
   const bookings = await prisma.booking.findMany({
     where: {
       menteeId,
+      status: {
+        in: ["confirmed", "completed"],
+      },
+      mentoringService: {
+        serviceType: {
+          in: ["one-on-one", "group", "bootcamp"],
+        },
+      },
     },
     include: {
-      mentoringService: true,
+      mentoringService: {
+        include: {
+          mentoringSessions: true,
+        },
+      },
     },
     orderBy: {
       [sortBy ?? "bookingDate"]: sortOrder ?? "desc",
     },
   });
 
-  // Filter hanya yang sudah melewati masa program
-  const completedPrograms = bookings.filter((b) => {
-    if (!b.bookingDate || !b.mentoringService?.durationDays) return false;
+  const completedPrograms = bookings.filter((booking) => {
+    const sessions = booking.mentoringService?.mentoringSessions;
 
-    const endDate = new Date(b.bookingDate);
-    endDate.setDate(endDate.getDate() + b.mentoringService.durationDays);
+    if (!sessions || sessions.length === 0) return false;
 
-    return endDate < now;
+    // ambil session terakhir
+    const sortedSessions = [...sessions].sort((a, b) => {
+      const dateA = parseDDMMYYYY(a.date);
+      const dateB = parseDDMMYYYY(b.date);
+      return dateB.getTime() - dateA.getTime();
+    });
+
+    const lastSession = sortedSessions[0];
+    if (!lastSession?.date) return false;
+
+    const lastSessionDate = parseDDMMYYYY(lastSession.date);
+
+    return lastSessionDate < now;
   });
 
-  // Pagination manual
   const paginated = completedPrograms.slice(skip, skip + limit);
 
   return {
@@ -650,7 +974,7 @@ export const updateMenteeBooking = async (
     participantIds?: string[];
     material?: string;
     expectedOutput?: string;
-  }
+  },
 ) => {
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
@@ -669,6 +993,19 @@ export const updateMenteeBooking = async (
     throw { status: 403, message: "Akses ditolak. Ini bukan booking milikmu." };
   }
 
+  // Batasi hanya 3 tipe layanan
+  const serviceType = booking.mentoringService?.serviceType;
+
+  if (!serviceType) {
+    throw { status: 404, message: "Booking tidak ditemukan." };
+  }
+
+  const allowedServiceTypes = ["one-on-one", "group", "bootcamp"];
+
+  if (!allowedServiceTypes.includes(serviceType)) {
+    throw { status: 404, message: "Booking tidak ditemukan." };
+  }
+
   const paymentStatus = booking.payment?.status;
   const isPaymentCompleted = paymentStatus === "completed";
 
@@ -680,7 +1017,8 @@ export const updateMenteeBooking = async (
     };
   }
 
-  const isGroup = booking.mentoringService.serviceType === "group";
+  const isGroup = serviceType === "group";
+
   if (!isGroup && participantIds) {
     throw {
       status: 400,
@@ -688,7 +1026,6 @@ export const updateMenteeBooking = async (
     };
   }
 
-  // Update booking data (material & expectedOutput opsional)
   await prisma.booking.update({
     where: { id: bookingId },
     data: {
@@ -699,7 +1036,6 @@ export const updateMenteeBooking = async (
     },
   });
 
-  // Update peserta jika perlu
   if (participantIds && isGroup) {
     await prisma.bookingParticipant.deleteMany({
       where: { bookingId },
@@ -708,7 +1044,7 @@ export const updateMenteeBooking = async (
     const newParticipants = [
       {
         bookingId,
-        userId: userId, // mentee
+        userId,
         isLeader: true,
         paymentStatus: "pending",
       },
@@ -742,11 +1078,14 @@ export const updateMenteeBooking = async (
 
 export const cancelMenteeBooking = async (
   userId: string,
-  bookingId: string
+  bookingId: string,
 ) => {
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
-    include: { payment: true },
+    include: {
+      payment: true,
+      mentoringService: true, // tambahan
+    },
   });
 
   if (!booking) {
@@ -755,6 +1094,19 @@ export const cancelMenteeBooking = async (
 
   if (booking.menteeId !== userId) {
     throw { status: 403, message: "Akses ditolak. Ini bukan booking milikmu." };
+  }
+
+  // Batasi hanya 3 tipe layanan
+  const serviceType = booking.mentoringService?.serviceType;
+
+  if (!serviceType) {
+    throw { status: 404, message: "Booking tidak ditemukan." };
+  }
+
+  const allowedServiceTypes = ["one-on-one", "group", "bootcamp"];
+
+  if (!allowedServiceTypes.includes(serviceType)) {
+    throw { status: 404, message: "Booking tidak ditemukan." };
   }
 
   const isAlreadyPaid = booking.payment?.status === "completed";
@@ -768,7 +1120,6 @@ export const cancelMenteeBooking = async (
     };
   }
 
-  // Ubah status booking jadi 'cancelled'
   const cancelled = await prisma.booking.update({
     where: { id: bookingId },
     data: {
@@ -777,10 +1128,9 @@ export const cancelMenteeBooking = async (
     },
   });
 
-  // Ubah semua paymentStatus peserta jadi 'failed'
   await prisma.bookingParticipant.updateMany({
     where: {
-      bookingId: bookingId,
+      bookingId,
     },
     data: {
       paymentStatus: "failed",
@@ -798,7 +1148,7 @@ export const getAdminBookings = async (params: {
   startDate?: string;
   endDate?: string;
   isRescheduled?: boolean;
-  hasSession?: boolean; // ⬅️ BARU
+  hasSession?: boolean; // BARU
   page: number;
   limit: number;
   sortBy: string;
@@ -848,30 +1198,36 @@ export const getAdminBookings = async (params: {
    * STEP A — mentoringService filter
    * ===============================
    */
-  const mentoringServiceFilter: any = serviceName
-    ? {
-        serviceName: {
-          contains: serviceName,
-          mode: "insensitive",
-        },
-      }
-    : {};
+  const mentoringServiceFilter: any = {
+    // WAJIB hanya 3 tipe ini
+    serviceType: {
+      in: ["one-on-one", "group", "bootcamp"],
+    },
+  };
 
-  // 🔹 FILTER PUNYA SESSION (UNTUK TERJADWAL)
-  if (hasSession) {
-    mentoringServiceFilter.mentoringSessions = {
-      some: {}, // minimal 1 session
+  // FILTER NAMA SERVICE
+  if (serviceName) {
+    mentoringServiceFilter.serviceName = {
+      contains: serviceName,
+      mode: "insensitive",
     };
   }
 
-  // 🔹 FILTER RESCHEDULE (KHUSUS)
+  // FILTER PUNYA SESSION
+  if (hasSession) {
+    mentoringServiceFilter.mentoringSessions = {
+      some: {},
+    };
+  }
+
+  // FILTER RESCHEDULE
   if (isRescheduled) {
     mentoringServiceFilter.serviceType = {
-      in: ["one-on-one", "group"],
+      in: ["one-on-one", "group"], // tetap sesuai logic lama
     };
 
     mentoringServiceFilter.mentoringSessions = {
-      some: {}, // wajib punya session
+      some: {},
     };
   }
 
@@ -935,7 +1291,7 @@ export const getAdminBookings = async (params: {
         (s) =>
           s.updatedAt &&
           s.createdAt &&
-          new Date(s.updatedAt).getTime() > new Date(s.createdAt).getTime()
+          new Date(s.updatedAt).getTime() > new Date(s.createdAt).getTime(),
       );
     });
   }
@@ -962,7 +1318,7 @@ export const getAdminBookings = async (params: {
           try {
             const fixedPath = rawPath.replace(
               "supportDocuments",
-              "supportDocument"
+              "supportDocument",
             );
 
             const filePath = path.join(uploadsRoot, fixedPath);
@@ -1019,15 +1375,28 @@ export const getAdminBookingDetail = async (bookingId: string) => {
     },
   });
 
+  if (!booking) {
+    return null;
+  }
+
+  // Batasi hanya 3 serviceType
+  const serviceType = booking.mentoringService?.serviceType;
+
+  const allowedServiceTypes = ["one-on-one", "group", "bootcamp"];
+
+  if (!serviceType || !allowedServiceTypes.includes(serviceType)) {
+    return null; // dianggap tidak ditemukan
+  }
+
   return booking;
 };
 
 export const updateAdminBookingStatus = async (
   id: string,
-  newStatus: "pending" | "confirmed" | "completed" | "cancelled"
+  newStatus: "pending" | "confirmed" | "completed" | "cancelled",
 ) => {
-  // Validasi status yang diperbolehkan (extra precaution)
   const validStatuses = ["pending", "confirmed", "completed", "cancelled"];
+
   if (!validStatuses.includes(newStatus)) {
     throw new Error("Status booking tidak valid.");
   }
@@ -1042,12 +1411,21 @@ export const updateAdminBookingStatus = async (
 
   if (!booking) return null;
 
-  const isSpecialService =
-    booking.mentoringService.serviceType === "bootcamp" ||
-    booking.mentoringService.serviceType === "shortclass" ||
-    booking.mentoringService.serviceType === "liveclass";
+  const serviceType = booking.mentoringService?.serviceType;
 
-  // Update status booking
+  // Hanya boleh 3 tipe
+  const allowedServiceTypes = ["one-on-one", "group", "bootcamp"];
+
+  if (!serviceType || !allowedServiceTypes.includes(serviceType)) {
+    return null; // dianggap tidak ditemukan
+  }
+
+  // Bootcamp tetap special
+  const isSpecialService = serviceType === "bootcamp";
+
+  // ==========================
+  // UPDATE BOOKING
+  // ==========================
   const updatedBooking = await prisma.booking.update({
     where: { id },
     data: {
@@ -1056,7 +1434,9 @@ export const updateAdminBookingStatus = async (
     },
   });
 
-  // Update status participants jika perlu
+  // ==========================
+  // UPDATE PARTICIPANTS
+  // ==========================
   if (newStatus === "cancelled") {
     await prisma.bookingParticipant.updateMany({
       where: { bookingId: id },
@@ -1073,7 +1453,16 @@ export const updateAdminBookingStatus = async (
 };
 
 export const exportAdminBookings = async (formatType: "csv" | "excel") => {
+  const allowedServiceTypes = ["one-on-one", "group", "bootcamp"];
+
   const bookings = await prisma.booking.findMany({
+    where: {
+      mentoringService: {
+        serviceType: {
+          in: allowedServiceTypes,
+        },
+      },
+    },
     include: {
       mentee: true,
       mentoringService: true,
@@ -1118,7 +1507,7 @@ export const exportAdminBookings = async (formatType: "csv" | "excel") => {
     };
   }
 
-  // Excel (default)
+  // Excel
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet("Bookings");
 
@@ -1142,11 +1531,12 @@ export const exportAdminBookings = async (formatType: "csv" | "excel") => {
 
 export const getBookingParticipants = async (
   bookingId: string,
-  menteeId: string
+  menteeId: string,
 ) => {
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
     include: {
+      mentoringService: true,
       participants: {
         include: {
           user: {
@@ -1169,6 +1559,14 @@ export const getBookingParticipants = async (
     throw new Error("Booking not found");
   }
 
+  // Batasi hanya 3 serviceType
+  const allowedServiceTypes = ["one-on-one", "group", "bootcamp"];
+  const serviceType = booking.mentoringService?.serviceType;
+
+  if (!serviceType || !allowedServiceTypes.includes(serviceType)) {
+    throw new Error("Booking not found");
+  }
+
   if (booking.menteeId !== menteeId) {
     throw new Error("You are not allowed to view this booking's participants");
   }
@@ -1184,6 +1582,8 @@ export const getBookingParticipants = async (
 export const getMentorEarnings = async (params: { mentorId: string }) => {
   const { mentorId } = params;
 
+  const allowedServiceTypes = ["one-on-one", "group", "bootcamp"];
+
   const now = new Date();
   const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -1194,6 +1594,7 @@ export const getMentorEarnings = async (params: { mentorId: string }) => {
     where: {
       status: { in: ["confirmed", "completed"] },
       mentoringService: {
+        serviceType: { in: allowedServiceTypes },
         mentors: {
           some: { mentorProfileId: mentorId },
         },
@@ -1204,14 +1605,15 @@ export const getMentorEarnings = async (params: { mentorId: string }) => {
 
   const totalAllTime = allEarningsRaw.reduce(
     (sum, b) => sum + (b.payment?.amount ? Number(b.payment.amount) : 0),
-    0
+    0,
   );
 
-  // === TOTAL BULAN INI ===
+  // === BULAN INI ===
   const earningsThisMonthRaw = await prisma.booking.findMany({
     where: {
       status: { in: ["confirmed", "completed"] },
       mentoringService: {
+        serviceType: { in: allowedServiceTypes },
         mentors: {
           some: { mentorProfileId: mentorId },
         },
@@ -1223,14 +1625,15 @@ export const getMentorEarnings = async (params: { mentorId: string }) => {
 
   const totalThisMonth = earningsThisMonthRaw.reduce(
     (sum, b) => sum + (b.payment?.amount ? Number(b.payment.amount) : 0),
-    0
+    0,
   );
 
-  // === TOTAL BULAN LALU ===
+  // === BULAN LALU ===
   const earningsLastMonthRaw = await prisma.booking.findMany({
     where: {
       status: { in: ["confirmed", "completed"] },
       mentoringService: {
+        serviceType: { in: allowedServiceTypes },
         mentors: {
           some: { mentorProfileId: mentorId },
         },
@@ -1242,10 +1645,9 @@ export const getMentorEarnings = async (params: { mentorId: string }) => {
 
   const totalLastMonth = earningsLastMonthRaw.reduce(
     (sum, b) => sum + (b.payment?.amount ? Number(b.payment.amount) : 0),
-    0
+    0,
   );
 
-  // === HITUNG GROWTH PERCENT ===
   const growthPercent =
     totalLastMonth === 0
       ? totalThisMonth > 0
@@ -1283,7 +1685,7 @@ export const getAllMentorsEarnings = async (params: {
         fullName: mentor.user.fullName,
         ...earnings,
       };
-    })
+    }),
   );
 
   const totalCount = await prisma.mentorProfile.count();
@@ -1304,19 +1706,21 @@ export const getMentorBookings = async ({
 }: {
   mentorId?: string;
 }) => {
-  // ambil semua booking yang terkait dengan mentoringService
+  const allowedServiceTypes = ["one-on-one", "group", "bootcamp"];
+
   const bookings = await prisma.booking.findMany({
-    where: mentorId
-      ? {
-          mentoringService: {
-            mentors: {
-              some: {
-                mentorProfileId: mentorId,
-              },
+    where: {
+      mentoringService: {
+        serviceType: { in: allowedServiceTypes },
+        ...(mentorId && {
+          mentors: {
+            some: {
+              mentorProfileId: mentorId,
             },
           },
-        }
-      : {}, // admin tanpa filter = semua booking
+        }),
+      },
+    },
     include: {
       mentoringService: true,
       participants: {
@@ -1336,7 +1740,6 @@ export const getMentorBookings = async ({
     },
   });
 
-  // transform hasil agar lebih rapi
   return bookings.map((b) => ({
     bookingId: b.id,
     serviceId: b.mentoringServiceId,
@@ -1360,12 +1763,15 @@ export const getMentorMenteeStats = async ({
 }: {
   mentorId?: string;
 }) => {
+  const allowedServiceTypes = ["one-on-one", "group", "bootcamp"];
+
   const services = await prisma.mentoringService.findMany({
-    where: mentorId
-      ? {
-          mentors: { some: { mentorProfileId: mentorId } },
-        }
-      : {},
+    where: {
+      serviceType: { in: allowedServiceTypes },
+      ...(mentorId && {
+        mentors: { some: { mentorProfileId: mentorId } },
+      }),
+    },
     include: {
       mentors: { select: { mentorProfileId: true } },
       mentoringSessions: {
@@ -1393,10 +1799,10 @@ export const getMentorMenteeStats = async ({
 
   services.forEach((service) => {
     service.mentors.forEach((m) => {
-      // filter khusus kalau mentorId diset
       if (mentorId && m.mentorProfileId !== mentorId) return;
 
       const key = `${m.mentorProfileId}-${service.serviceType ?? ""}`;
+
       if (!statsMap.has(key)) {
         statsMap.set(key, {
           mentorId: m.mentorProfileId,
@@ -1408,14 +1814,12 @@ export const getMentorMenteeStats = async ({
 
       const stat = statsMap.get(key)!;
 
-      // hitung session hanya yang mentor ini terlibat
       const sessionsCount = service.mentoringSessions.filter((s) =>
-        s.mentors.some((sm) => sm.mentorProfileId === m.mentorProfileId)
+        s.mentors.some((sm) => sm.mentorProfileId === m.mentorProfileId),
       ).length;
 
       stat.totalSessions += sessionsCount;
 
-      // mentee hanya dihitung jika memang ada session
       if (sessionsCount > 0) {
         const menteeSet = new Set<string>();
         service.bookings.forEach((b) => {

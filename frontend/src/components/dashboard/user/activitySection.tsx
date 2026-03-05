@@ -4,8 +4,17 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 
+type Activity = {
+  id: string;
+  type: string;
+  title: string;
+  createdAt: string;
+  status: string;
+  project?: any;
+};
+
 export default function ActivitySection() {
-  const [activities, setActivities] = useState<any[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -13,17 +22,14 @@ export default function ActivitySection() {
       try {
         const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-        // Ambil semua bookings & purchases
-        const [bookingsRes, purchasesRes] = await Promise.all([
-          axios.get(`${baseUrl}/api/booking/mentee/bookings`, {
-            params: { page: 1, limit: 100 },
+        // Ambil bookings saja
+        const bookingsRes = await axios.get(
+          `${baseUrl}/api/booking/mentee/bookings`,
+          {
+            params: { page: 1, limit: 100, status: "confirmed" },
             withCredentials: true,
-          }),
-          axios.get(`${baseUrl}/api/practice/mentees/practice-purchases`, {
-            params: { page: 1, limit: 100 },
-            withCredentials: true,
-          }),
-        ]);
+          },
+        );
 
         /** ---------------- Mentoring Section ---------------- **/
         const bookingsRaw = bookingsRes.data?.data?.data || [];
@@ -33,7 +39,7 @@ export default function ActivitySection() {
           .filter(
             (b: any) =>
               Array.isArray(b.mentoringService?.projects) &&
-              b.mentoringService.projects.length > 0
+              b.mentoringService.projects.length > 0,
           )
           .map((b: any) => {
             // ambil project terbaru (berdasarkan deadline atau createdAt)
@@ -42,7 +48,7 @@ export default function ActivitySection() {
                 const da = new Date(a.deadline || a.createdAt || 0).getTime();
                 const db = new Date(b.deadline || b.createdAt || 0).getTime();
                 return db - da;
-              }
+              },
             )[0];
 
             return {
@@ -55,43 +61,11 @@ export default function ActivitySection() {
             };
           });
 
-        /** ---------------- Practice Section ---------------- **/
-        const purchasesRaw = purchasesRes.data?.data?.data || [];
+        /** ---------------- Sort ---------------- **/
 
-        // hanya ambil practice yang punya practiceMaterials
-        const practices = purchasesRaw
-          .filter(
-            (p: any) =>
-              Array.isArray(p.practice?.practiceMaterials) &&
-              p.practice.practiceMaterials.length > 0
-          )
-          .map((p: any) => {
-            // ambil materi terbaru
-            const latestMaterial = [...p.practice.practiceMaterials].sort(
-              (a, b) => {
-                const da = new Date(a.updatedAt || a.createdAt || 0).getTime();
-                const db = new Date(b.updatedAt || b.createdAt || 0).getTime();
-                return db - da;
-              }
-            )[0];
-
-            return {
-              id: p.id,
-              type: "Practice",
-              title: p.practice?.title || "Practice",
-              createdAt: latestMaterial?.createdAt || p.createdAt,
-              status: "Practice Material",
-              practiceId: p.practice?.id,
-            };
-          });
-
-        /** ---------------- Merge & Sort ---------------- **/
-        const merged = [...bookings, ...practices];
-
-        // urutkan berdasarkan tanggal terbaru
-        const sorted = merged.sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        const sorted = bookings.sort(
+          (a: Activity, b: Activity) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
         );
 
         // ambil hanya 3 terbaru
@@ -110,8 +84,6 @@ export default function ActivitySection() {
   const handleView = (activity: any) => {
     if (activity.type === "Mentoring" && activity.project) {
       router.push(`/dashboard/projects/${activity.project.id}`);
-    } else if (activity.type === "Practice" && activity.practiceId) {
-      router.push(`/dashboard/practice/${activity.practiceId}/materials`);
     } else {
       console.warn("Tidak ada target halaman untuk aktivitas ini.");
     }

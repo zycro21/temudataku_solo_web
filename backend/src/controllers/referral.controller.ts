@@ -14,7 +14,7 @@ const prisma = new PrismaClient();
 export const createReferralCodeController = async (
   req: AuthenticatedRequestReferralCode,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -77,7 +77,7 @@ export const createReferralCodeController = async (
 export const getReferralCodesController = async (
   req: AuthenticatedRequestReferralCode,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     // Pastikan pengguna adalah admin
@@ -116,13 +116,13 @@ export const getReferralCodesController = async (
 export const getReferralCodeByIdController = async (
   req: AuthenticatedRequestReferralCode,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     // Pastikan pengguna adalah admin
     if (!req.user!.roles.includes("admin")) {
       throw new Error(
-        "Unauthorized: Only admins can view referral code details"
+        "Unauthorized: Only admins can view referral code details",
       );
     }
 
@@ -147,7 +147,7 @@ export const getReferralCodeByIdController = async (
 export const updateReferralCodeController = async (
   req: AuthenticatedRequestReferralCode,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -205,7 +205,7 @@ export const updateReferralCodeController = async (
 export const deleteReferralCodeController = async (
   req: AuthenticatedRequestReferralCode,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -250,7 +250,7 @@ export const deleteReferralCodeController = async (
 export const useReferralCodeController = async (
   req: AuthenticatedRequestReferralCode,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -259,7 +259,7 @@ export const useReferralCodeController = async (
 
     const { code, context } = req.validatedBody as {
       code: string;
-      context: "booking" | "practice_purchase";
+      context: "booking" | "practice_purchase" | "elearning_subscription";
     };
 
     const result = await ReferralService.useReferralCodeService({
@@ -278,10 +278,84 @@ export const useReferralCodeController = async (
   }
 };
 
+export const applyReferralToBookingController = async (
+  req: AuthenticatedRequestReferralCode,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    if (!req.user?.userId) {
+      throw { status: 401, message: "Unauthorized" };
+    }
+
+    const bookingId = req.validatedParams?.id;
+    const body = req.validatedBody as { code: string };
+
+    if (!bookingId) {
+      throw { status: 400, message: "Booking ID tidak valid." };
+    }
+
+    if (!body?.code) {
+      throw { status: 400, message: "Kode referral wajib diisi." };
+    }
+
+    const result = await ReferralService.applyReferralToBookingService({
+      userId: req.user.userId,
+      bookingId,
+      code: body.code,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Referral berhasil diterapkan ke booking.",
+      data: result,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const applyReferralToELearningController = async (
+  req: AuthenticatedRequestReferralCode,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    if (!req.user?.userId) {
+      throw { status: 401, message: "Unauthorized" };
+    }
+
+    const subscriptionId = req.validatedParams?.id;
+    const body = req.validatedBody as { code: string };
+
+    if (!subscriptionId) {
+      throw { status: 400, message: "Subscription ID tidak valid." };
+    }
+
+    if (!body?.code) {
+      throw { status: 400, message: "Kode referral wajib diisi." };
+    }
+
+    const result = await ReferralService.applyReferralToELearningService({
+      userId: req.user.userId,
+      subscriptionId,
+      code: body.code,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Referral berhasil diterapkan ke subscription.",
+      data: result,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const getReferralCommissionsController = async (
   req: AuthenticatedRequestReferralCode,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.validatedQuery) {
@@ -324,7 +398,7 @@ export const getReferralCommissionsController = async (
 export const getAffiliatorReferralCodesController = async (
   req: AuthenticatedRequestReferralCode,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user) {
@@ -366,7 +440,7 @@ export const getAffiliatorReferralCodesController = async (
 export const getReferralUsagesController = async (
   req: AuthenticatedRequestReferralCode,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user) {
@@ -418,7 +492,7 @@ export const getReferralUsagesController = async (
 export const getReferralCommissionsByCodeController = async (
   req: AuthenticatedRequestReferralCode,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user) {
@@ -470,7 +544,7 @@ export const getReferralCommissionsByCodeController = async (
 export const requestCommissionPaymentController = async (
   req: AuthenticatedRequestReferralCode,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user) {
@@ -515,7 +589,7 @@ export const requestCommissionPaymentController = async (
 export const getCommissionPaymentsController = async (
   req: AuthenticatedRequestReferralCode,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user) {
@@ -557,7 +631,7 @@ export const getCommissionPaymentsController = async (
 export const getAllCommissionPaymentsController = async (
   req: AuthenticatedRequestReferralCode,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user) {
@@ -603,7 +677,7 @@ export const getAllCommissionPaymentsController = async (
 export const updateCommissionPaymentStatusController = async (
   req: AuthenticatedRequestReferralCode,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -667,7 +741,7 @@ export const updateCommissionPaymentStatusController = async (
 export const exportCommissionPaymentsController = async (
   req: AuthenticatedRequestReferralCode,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -701,7 +775,7 @@ export const exportCommissionPaymentsController = async (
       "Content-Type",
       format === "csv"
         ? "text/csv"
-        : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
     res.send(buffer);
   } catch (error: any) {

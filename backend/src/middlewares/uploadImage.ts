@@ -21,7 +21,7 @@ if (!fs.existsSync(correctPath)) {
 export const handleUpload = (
   field: string,
   isMultiple: boolean = false,
-  max: number = 5
+  max: number = 5,
 ) => {
   const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, correctPath),
@@ -50,7 +50,7 @@ export const handleUpload = (
           const idTail = dbUser.id.slice(-6);
           fileName = `${role}-PP-update-${String(nextCount).padStart(
             4,
-            "0"
+            "0",
           )}-${idTail}${ext}`;
         } else {
           // === REGISTER ===
@@ -122,7 +122,7 @@ const submissionUploader = multer({ storage: submissionStorage });
 export const handleSubmissionUpload = (
   field: string,
   isMultiple: boolean = false,
-  max: number = 5
+  max: number = 5,
 ) => {
   return isMultiple
     ? submissionUploader.array(field, max)
@@ -134,7 +134,7 @@ export { finalSubmissionPath as submissionUploadPath };
 // Untuk Upload Thumbnail Practice
 const thumbnailUploadPath = path.join(
   __dirname,
-  "../../images/thumbnailPractice"
+  "../../images/thumbnailPractice",
 );
 const normalizedThumbnailPath = path.normalize(thumbnailUploadPath);
 const correctThumbnailPath = normalizedThumbnailPath.replace(/^\\/, "");
@@ -146,7 +146,7 @@ if (!fs.existsSync(correctThumbnailPath)) {
 export const handleThumbnailUpload = (
   field: string,
   isMultiple: boolean = true, // Ubah ke true agar mendukung multiple file
-  max: number = 5 // Sesuaikan maksimal jumlah file yang diizinkan
+  max: number = 5, // Sesuaikan maksimal jumlah file yang diizinkan
 ) => {
   const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, correctThumbnailPath),
@@ -191,7 +191,7 @@ export { correctThumbnailPath as thumbnailUploadPath };
 // Tentukan folder uploads/practiceFile
 const practiceFileUploadPath = path.join(
   __dirname,
-  "../../uploads/practiceFile"
+  "../../uploads/practiceFile",
 );
 const normalizedPracticeFilePath = path.normalize(practiceFileUploadPath);
 const finalPracticeFilePath = normalizedPracticeFilePath.replace(/^\\/, "");
@@ -234,7 +234,7 @@ const practiceFileUploader = multer({ storage: practiceFileStorage });
 export const handlePracticeFileUpload = (
   field: string,
   isMultiple: boolean = false,
-  max: number = 5
+  max: number = 5,
 ) => {
   return isMultiple
     ? practiceFileUploader.array(field, max)
@@ -246,7 +246,7 @@ export { finalPracticeFilePath as practiceFileUploadPath };
 // === Untuk Upload Support Document Files ===
 const supportDocumentUploadPath = path.join(
   __dirname,
-  "../../uploads/supportDocument"
+  "../../uploads/supportDocument",
 );
 const normalizedSupportDocPath = path.normalize(supportDocumentUploadPath);
 const finalSupportDocPath = normalizedSupportDocPath.replace(/^\\/, "");
@@ -281,12 +281,29 @@ const supportDocStorage = multer.diskStorage({
   },
 });
 
-const supportDocUploader = multer({ storage: supportDocStorage });
+const allowedMimeTypes = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+];
+
+const supportDocUploader = multer({
+  storage: supportDocStorage,
+  fileFilter: (req, file, cb) => {
+    if (allowedMimeTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only PDF, Word, and PowerPoint files are allowed"));
+    }
+  },
+});
 
 export const handleSupportDocumentUpload = (
   field: string,
   isMultiple: boolean = false,
-  max: number = 5
+  max: number = 5,
 ) => {
   return isMultiple
     ? supportDocUploader.array(field, max)
@@ -298,7 +315,7 @@ export { finalSupportDocPath as supportDocumentUploadPath };
 // === Untuk Upload Practice Submission Files ===
 const practiceSubmissionPath = path.join(
   __dirname,
-  "../../uploads/practice/submissions"
+  "../../uploads/practice/submissions",
 );
 const normalizedPracticePath = path.normalize(practiceSubmissionPath);
 const finalPracticePath = normalizedPracticePath.replace(/^\\/, "");
@@ -345,7 +362,7 @@ const practiceSubmissionUploader = multer({
 export const handlePracticeSubmissionUpload = (
   field: string,
   isMultiple: boolean = false,
-  max: number = 5
+  max: number = 5,
 ) => {
   return isMultiple
     ? practiceSubmissionUploader.array(field, max)
@@ -356,7 +373,10 @@ export const handlePracticeSubmissionUpload = (
 export { finalPracticePath as practiceSubmissionUploadPath };
 
 // === Buat folder penyimpanan untuk thumbnail e-learning ===
-const elearningThumbnailPath = path.join(__dirname, "../../images/elearningThumbnail");
+const elearningThumbnailPath = path.join(
+  __dirname,
+  "../../images/elearningThumbnail",
+);
 const normalizedElearningPath = path.normalize(elearningThumbnailPath);
 const correctElearningPath = normalizedElearningPath.replace(/^\\/, "");
 
@@ -368,7 +388,7 @@ if (!fs.existsSync(correctElearningPath)) {
 export const handleElearningThumbnailUpload = (
   field: string,
   isMultiple: boolean = true,
-  max: number = 5
+  max: number = 5,
 ) => {
   const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, correctElearningPath),
@@ -411,9 +431,15 @@ export const handleElearningThumbnailUpload = (
 export { correctElearningPath as elearningThumbnailPath };
 
 // === Untuk Upload File Submission E-Learning ===
-const eLearningSubmissionUploadDir = path.join(__dirname, "../../uploads/elearning/submissions");
-const eLearningSubmissionNormalizedPath = path.normalize(eLearningSubmissionUploadDir);
-const eLearningSubmissionResolvedPath = eLearningSubmissionNormalizedPath.replace(/^\\/, "");
+const eLearningSubmissionUploadDir = path.join(
+  __dirname,
+  "../../uploads/elearning/submissions",
+);
+const eLearningSubmissionNormalizedPath = path.normalize(
+  eLearningSubmissionUploadDir,
+);
+const eLearningSubmissionResolvedPath =
+  eLearningSubmissionNormalizedPath.replace(/^\\/, "");
 
 // Pastikan foldernya ada
 if (!fs.existsSync(eLearningSubmissionResolvedPath)) {
@@ -460,7 +486,7 @@ const eLearningSubmissionUploader = multer({
 export const handleELearningSubmissionUpload = (
   field: string,
   isMultiple: boolean = false,
-  max: number = 5
+  max: number = 5,
 ) => {
   return isMultiple
     ? eLearningSubmissionUploader.array(field, max)
@@ -469,3 +495,63 @@ export const handleELearningSubmissionUpload = (
 
 // Export path untuk static serve
 export { eLearningSubmissionResolvedPath as eLearningSubmissionUploadPath };
+
+// === Upload Video / Image Sub-Bab E-Learning ===
+const eLearningVideoUploadDir = path.join(
+  __dirname,
+  "../../uploads/elearning/videos",
+);
+const normalizedPath = path.normalize(eLearningVideoUploadDir);
+const resolvedPath = normalizedPath.replace(/^\\/, "");
+
+// pastikan folder ada
+if (!fs.existsSync(resolvedPath)) {
+  fs.mkdirSync(resolvedPath, { recursive: true });
+}
+
+const eLearningVideoStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, resolvedPath);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const baseName = path
+      .basename(file.originalname, ext)
+      .replace(/\s+/g, "-")
+      .replace(/[^a-zA-Z0-9-_]/g, "");
+
+    const now = new Date();
+    const timestamp = `${now.getFullYear()}${(now.getMonth() + 1)
+      .toString()
+      .padStart(2, "0")}${now.getDate().toString().padStart(2, "0")}-${now
+      .getHours()
+      .toString()
+      .padStart(2, "0")}${now.getMinutes().toString().padStart(2, "0")}${now
+      .getSeconds()
+      .toString()
+      .padStart(2, "0")}`;
+
+    cb(null, `ELearningMedia-${baseName}-${timestamp}${ext}`);
+  },
+});
+
+const uploader = multer({
+  storage: eLearningVideoStorage,
+  limits: {
+    fileSize: 500 * 1024 * 1024,
+  },
+  fileFilter: (req, file, cb) => {
+    if (
+      file.mimetype.startsWith("video/") ||
+      file.mimetype.startsWith("image/")
+    ) {
+      cb(null, true);
+    } else {
+      cb(new Error("File harus berupa video atau gambar"));
+    }
+  },
+});
+
+export const handleELearningVideoUpload = () => uploader.single("video");
+
+export { resolvedPath as eLearningVideoUploadPath };

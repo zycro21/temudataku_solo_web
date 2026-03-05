@@ -95,6 +95,7 @@ export default function ProfileModal({
                 alt="Foto Mentee"
                 width={400}
                 height={250}
+                unoptimized
                 className="object-cover w-full h-full"
               />
             </div>

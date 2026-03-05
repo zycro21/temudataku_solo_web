@@ -90,7 +90,7 @@ router.get(
  *     description: >
  *       - Admin dapat melihat semua sub-chapter dari course manapun.
  *       - Mentor hanya bisa melihat sub-chapter dari course yang dia ampu.
- *       - Mentee hanya bisa melihat sub-chapter dari course yang sudah dibeli.
+ *       - Mentee hanya bisa melihat jika sudah berlangganan/subscription.
  *     tags: [E-Learning SubChapters]
  *     security:
  *       - bearerAuth: []

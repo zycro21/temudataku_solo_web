@@ -34,7 +34,7 @@ interface CalendarContextProps {
 }
 
 const CalendarContext = createContext<CalendarContextProps | undefined>(
-  undefined
+  undefined,
 );
 
 export function CalendarProvider({ children }: { children: ReactNode }) {
@@ -49,7 +49,7 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
         setIsLoading(true);
         const res = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/booking/mentee/bookings?page=1&limit=500`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
 
         const bookings = res.data?.data?.data || [];
@@ -57,6 +57,10 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
         const newEventDetails: Record<string, any[]> = {};
 
         bookings.forEach((booking: any) => {
+          if (!["confirmed", "completed"].includes(booking.status)) {
+            return;
+          }
+
           const sessions = booking?.mentoringService?.mentoringSessions || [];
 
           sessions.forEach((session: any) => {

@@ -9,6 +9,7 @@ export const createMentorProfile = async (data: {
   experience?: string;
   availabilitySchedule?: any;
   hourlyRate?: number;
+  linkedin?: string;
 }) => {
   const { userId, ...profileData } = data;
 
@@ -52,6 +53,7 @@ export const createMentorProfile = async (data: {
     experience = "",
     availabilitySchedule = {},
     hourlyRate = 0,
+    linkedin = "",
   } = profileData;
 
   // 6. Create mentor profile
@@ -64,6 +66,7 @@ export const createMentorProfile = async (data: {
       experience,
       availabilitySchedule,
       hourlyRate,
+      linkedin,
     },
   });
 
@@ -102,6 +105,7 @@ export const updateMentorProfile = async (data: {
   experience?: string;
   availabilitySchedule?: any;
   hourlyRate?: number;
+  linkedin?: string; 
 }) => {
   const { userId, ...updateData } = data;
 
@@ -353,6 +357,7 @@ export const getPublicMentors = async ({
       mp.experience,
       mp.hourly_rate,
       mp.availability_schedule,
+      mp.linkedin,
       u.id AS user_id,
       u.full_name,
       u.profile_picture,
@@ -391,6 +396,7 @@ export const getPublicMentors = async ({
       experience: string | null;
       hourly_rate: number | null;
       availability_schedule: any;
+      linkedin: string | null;
       full_name: string;
       profile_picture: string | null;
       city: string | null;
@@ -436,6 +442,7 @@ export const getPublicMentors = async ({
     experience: m.experience,
     hourlyRate: m.hourly_rate,
     availabilitySchedule: m.availability_schedule,
+    linkedin: m.linkedin,
     user: {
       id: m.user_id,
       fullName: m.full_name,

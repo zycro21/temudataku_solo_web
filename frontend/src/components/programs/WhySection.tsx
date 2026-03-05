@@ -1,122 +1,134 @@
 import Image from "next/image";
 
 export default function WhySection() {
-    return (
-        <section className="py-16 px-4 md:px-6 lg:px-8 bg-white">
-            <div className="max-w-6xl mx-auto">
-                {/* Section Header */}
-                <div className="mb-12 flex gap-2">
-                    <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 mb-4">
-                        Kenapa Harus Ikut Bootcamp di TemuDataku?
-                    </h2>
-                    <p className="text-sm sm:text-md text-gray-600 max-w-xl mx-auto text-end">
-                        Bootcamp ini nggak cuma ngasih teori, tapi juga
-                        pengalaman belajar yang real dan relevan. Kamu bakal
-                        dapet akses ke mentor kece, materi yang udah dikurasi,
-                        project beneran, dan pastinya komunitas seru buat tumbuh
-                        bareng!
-                    </p>
-                </div>
+  return (
+    <section className="py-20 px-4 md:px-6 lg:px-8 bg-white">
+      <div className="max-w-[1100px] mx-auto">
+        {/* Section Header */}
+        <div className="mb-8 flex flex-col lg:flex-row gap-8 items-start">
+          {/* LEFT SIDE - 25% */}
+          <div className="lg:w-[40%]">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 leading-tight">
+              Kenapa Harus Ikut Bootcamp di TemuDataku?
+            </h2>
+          </div>
 
-                {/* Benefits Grid */}
-                <div className="grid md:grid-cols-2 gap-2 lg:gap-6">
-                    {/* Benefit 1 */}
-                    <div className="flex items-start gap-4 bg-gray-50 rounded-lg px-6 py-8 flex-col">
-                        <div className="flex-shrink-0">
-                            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
-                                <Image
-                                    src={"/assets/mentoringPage/ask.svg"}
-                                    alt="Ask questions icon"
-                                    width={36}
-                                    height={36}
-                                    className="w-9 h-9"
-                                />
-                            </div>
-                        </div>
-                        <div className="flex-1">
-                            <h3 className="text-xl font-bold text-gray-900 mb-2">
-                                Belajar Langsung Bareng Mentor
-                            </h3>
-                            <p className="text-gray-600 leading-relaxed">
-                                Dapet insight & feedback langsung dari praktisi
-                                yang udah berpengalaman di dunia data.
-                            </p>
-                        </div>
-                    </div>
+          {/* RIGHT SIDE - 75% */}
+          <div className="lg:w-[60%]">
+            <p className="text-base md:text-lg text-gray-600 lg:text-right">
+              Bootcamp ini nggak cuma ngasih teori, tapi juga pengalaman belajar
+              yang real dan relevan. Kamu bakal dapet akses ke mentor kece,
+              materi yang udah dikurasi, project beneran, dan pastinya komunitas
+              seru buat tumbuh bareng!
+            </p>
+          </div>
+        </div>
 
-                    {/* Benefit 2 */}
-                    <div className="flex items-start gap-4 bg-gray-50 rounded-lg px-6 py-8 flex-col">
-                        <div className="flex-shrink-0">
-                            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
-                                <Image
-                                    src={"/assets/programsPage/slides.svg"}
-                                    alt="slides icon"
-                                    width={36}
-                                    height={36}
-                                    className="w-9 h-9"
-                                />
-                            </div>
-                        </div>
-                        <div className="flex-1">
-                            <h3 className="text-xl font-bold text-gray-900 mb-2">
-                                Project Beneran, Bukan Cuma Teori
-                            </h3>
-                            <p className="text-gray-600 leading-relaxed">
-                                Langsung praktik ngerjain studi kasus biar
-                                portofolio kamu makin stand out.
-                            </p>
-                        </div>
-                    </div>
+        {/* Benefits Grid */}
+        <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
+          {/* CARD TEMPLATE */}
+          <div className="group bg-gray-50 rounded-2xl px-8 py-10 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:bg-white border border-transparent hover:border-emerald-200">
+            <div className="flex flex-col gap-6">
+              {/* Icon */}
+              <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center shadow-sm group-hover:shadow-md transition">
+                <Image
+                  src={"/assets/mentoringPage/ask.svg"}
+                  alt="Ask questions icon"
+                  width={44}
+                  height={44}
+                  className="w-11 h-11"
+                />
+              </div>
 
-                    {/* Benefit 3 */}
-                    <div className="flex items-start gap-4 bg-gray-50 rounded-lg px-6 py-8 flex-col">
-                        <div className="flex-shrink-0">
-                            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
-                                <Image
-                                    src={"/assets/mentoringPage/book.svg"}
-                                    alt="Book icon"
-                                    width={36}
-                                    height={36}
-                                    className="w-9 h-9"
-                                />
-                            </div>
-                        </div>
-                        <div className="flex-1">
-                            <h3 className="text-xl font-bold text-gray-900 mb-2">
-                                Materi Terstruktur & Nggak Ngebosenim
-                            </h3>
-                            <p className="text-gray-600 leading-relaxed">
-                                Disusun step-by-step biar kamu nggak bingung,
-                                cocok buat pemula sampai yang mau leveling up.
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Benefit 4 */}
-                    <div className="flex items-start gap-4 bg-gray-50 rounded-lg px-6 py-8 flex-col">
-                        <div className="flex-shrink-0">
-                            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
-                                <Image
-                                    src={"/assets/programsPage/community.svg"}
-                                    alt="community icon"
-                                    width={36}
-                                    height={36}
-                                    className="w-9 h-9"
-                                />
-                            </div>
-                        </div>
-                        <div className="flex-1">
-                            <h3 className="text-xl font-bold text-gray-900 mb-2">
-                                Komunitas Supportive Buat Tumbuh Bareng
-                            </h3>
-                            <p className="text-gray-600 leading-relaxed">
-                                Nggak belajar sendirian! Ada teman diskusi,
-                                semangat bareng, dan networking juga.
-                            </p>
-                        </div>
-                    </div>
-                </div>
+              {/* Content */}
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                  Belajar Langsung Bareng Mentor
+                </h3>
+                <p className="text-gray-600 text-base md:text-lg leading-relaxed">
+                  Dapet insight & feedback langsung dari praktisi yang udah
+                  berpengalaman di dunia data.
+                </p>
+              </div>
             </div>
-        </section>
-    );
+          </div>
+
+          {/* Benefit 2 */}
+          <div className="group bg-gray-50 rounded-2xl px-8 py-10 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:bg-white border border-transparent hover:border-emerald-200">
+            <div className="flex flex-col gap-6">
+              <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center shadow-sm group-hover:shadow-md transition">
+                <Image
+                  src={"/assets/programsPage/slides.svg"}
+                  alt="slides icon"
+                  width={44}
+                  height={44}
+                  className="w-11 h-11"
+                />
+              </div>
+
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                  Project Beneran, Bukan Cuma Teori
+                </h3>
+                <p className="text-gray-600 text-base md:text-lg leading-relaxed">
+                  Langsung praktik ngerjain studi kasus biar portofolio kamu
+                  makin stand out.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Benefit 3 */}
+          <div className="group bg-gray-50 rounded-2xl px-8 py-10 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:bg-white border border-transparent hover:border-emerald-200">
+            <div className="flex flex-col gap-6">
+              <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center shadow-sm group-hover:shadow-md transition">
+                <Image
+                  src={"/assets/mentoringPage/book.svg"}
+                  alt="Book icon"
+                  width={44}
+                  height={44}
+                  className="w-11 h-11"
+                />
+              </div>
+
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                  Materi Terstruktur & Nggak Ngebosenin
+                </h3>
+                <p className="text-gray-600 text-base md:text-lg leading-relaxed">
+                  Disusun step-by-step biar kamu nggak bingung, cocok buat
+                  pemula sampai yang mau leveling up.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Benefit 4 */}
+          <div className="group bg-gray-50 rounded-2xl px-8 py-10 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:bg-white border border-transparent hover:border-emerald-200">
+            <div className="flex flex-col gap-6">
+              <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center shadow-sm group-hover:shadow-md transition">
+                <Image
+                  src={"/assets/programsPage/community.svg"}
+                  alt="community icon"
+                  width={44}
+                  height={44}
+                  className="w-11 h-11"
+                />
+              </div>
+
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                  Komunitas Supportive Buat Tumbuh Bareng
+                </h3>
+                <p className="text-gray-600 text-base md:text-lg leading-relaxed">
+                  Nggak belajar sendirian! Ada teman diskusi, semangat bareng,
+                  dan networking juga.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 }

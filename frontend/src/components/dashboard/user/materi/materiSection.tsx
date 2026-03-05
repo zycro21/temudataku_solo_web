@@ -31,6 +31,46 @@ export default function MateriSection({ title, materis }: MateriSectionProps) {
   const isValidLink = (link?: string) =>
     typeof link === "string" && link.trim() !== "";
 
+  function parseDescription(text: string) {
+    const lines = text.split("/n");
+
+    return lines.map((line, lineIndex) => {
+      const parts = line.split(/(\*\*.*?\*\*|\*.*?\*|_.*?_)/g);
+
+      return (
+        <span key={lineIndex}>
+          {parts.map((part, i) => {
+            if (part.startsWith("**") && part.endsWith("**")) {
+              return <strong key={i}>{part.slice(2, -2)}</strong>;
+            }
+
+            if (part.startsWith("_") && part.endsWith("_")) {
+              return (
+                <span key={i} className="underline">
+                  {part.slice(1, -1)}
+                </span>
+              );
+            }
+
+            if (part.startsWith("*") && part.endsWith("*")) {
+              return (
+                <span
+                  key={i}
+                  style={{ display: "inline-block", transform: "skewX(-8deg)" }}
+                >
+                  {part.slice(1, -1)}
+                </span>
+              );
+            }
+
+            return <span key={i}>{part}</span>;
+          })}
+          {lineIndex < lines.length - 1 && <br />}
+        </span>
+      );
+    });
+  }
+
   return (
     <div className="mb-8 mt-2">
       <h2 className="text-lg font-semibold text-gray-800 mb-4">{title}</h2>
@@ -39,13 +79,13 @@ export default function MateriSection({ title, materis }: MateriSectionProps) {
         <p className="text-gray-500 text-sm">Belum ada materi.</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {materis.map((materi) => {
+          {materis.map((materi, index) => {
             const hasPpt = isValidLink(materi.pptLink);
             const hasVideo = isValidLink(materi.videoLink);
 
             return (
               <Card
-                key={materi.id}
+                key={`${materi.id}-${index}`}
                 className="p-0 overflow-hidden flex flex-col justify-between"
               >
                 {/* Gambar */}
@@ -70,9 +110,8 @@ export default function MateriSection({ title, materis }: MateriSectionProps) {
                     {materi.title}
                   </h3>
                   <p className="text-sm text-gray-600 line-clamp-3">
-                    {materi.description}
+                    {parseDescription(materi.description)}
                   </p>
-
                   <div className="flex text-sm gap-2 text-gray-600 mt-1">
                     <Calendar className="w-4 h-4" />
                     <span>{materi.dateRange}</span>

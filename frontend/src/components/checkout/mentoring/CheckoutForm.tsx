@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -19,8 +19,13 @@ import {
 import { regions } from "./region";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
-export default function CheckoutForm() {
+export default function CheckoutForm({
+  currentUser,
+  booking,
+  onFormChange,
+}: any) {
   const [formData, setFormData] = useState({
     email: "",
     fullName: "",
@@ -32,22 +37,78 @@ export default function CheckoutForm() {
     supportingDocs: [] as File[],
   });
 
+  const isEmailLocked = !!currentUser?.email;
+  const isFullNameLocked = !!currentUser?.fullName;
+  const isPhoneLocked = !!currentUser?.phoneNumber;
+
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const userProvince = currentUser.province || "";
+    const userCity = currentUser.city || "";
+
+    const provinceExists = regions[userProvince];
+    const cityExists =
+      provinceExists && regions[userProvince]?.includes(userCity);
+
+    const updated = {
+      email: currentUser.email || "",
+      fullName: currentUser.fullName || "",
+      province: provinceExists ? userProvince : "",
+      city: cityExists ? userCity : "",
+      phone: currentUser.phoneNumber || "",
+      description: "",
+      expectedOutput: "",
+      supportingDocs: [],
+    };
+
+    setFormData(updated);
+    if (onFormChange) onFormChange(updated);
+  }, [currentUser]);
+
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const updated = { ...formData, [e.target.name]: e.target.value };
+    setFormData(updated);
+
+    if (onFormChange) onFormChange(updated);
   };
 
+  const allowedTypes = [
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-powerpoint",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  ];
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setFormData({
-        ...formData,
-        supportingDocs: [
-          ...formData.supportingDocs,
-          ...Array.from(e.target.files),
-        ],
-      });
+    if (!e.target.files) return;
+
+    const files = Array.from(e.target.files);
+
+    const validFiles: File[] = [];
+
+    for (const file of files) {
+      if (!allowedTypes.includes(file.type)) {
+        toast.error(
+          `${file.name} tidak didukung. Hanya PDF, Word, dan PowerPoint yang diperbolehkan.`,
+        );
+        continue;
+      }
+
+      validFiles.push(file);
     }
+
+    const updated = {
+      ...formData,
+      supportingDocs: [...formData.supportingDocs, ...validFiles],
+    };
+
+    setFormData(updated);
+
+    if (onFormChange) onFormChange(updated);
   };
 
   const handleRemoveFile = (index: number) => {
@@ -57,17 +118,11 @@ export default function CheckoutForm() {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Checkout form data:", formData);
-    // TODO: kirim ke API
-  };
-
   // Ambil list kota berdasarkan provinsi
   const cityOptions = formData.province ? regions[formData.province] : [];
 
   return (
-    <form onSubmit={handleSubmit} className="p-6 pl-6 md:pl-10 space-y-6">
+    <form className="p-6 pl-6 md:pl-10 space-y-6">
       <h2 className="text-2xl font-bold">Informasi Pemesanan</h2>
       {/* Email */}
       <div className="grid gap-2 max-w-4xl">
@@ -82,6 +137,8 @@ export default function CheckoutForm() {
           value={formData.email}
           onChange={handleChange}
           required
+          readOnly={isEmailLocked}
+          className={isEmailLocked ? "bg-gray-100 cursor-not-allowed" : ""}
         />
       </div>
 
@@ -98,6 +155,8 @@ export default function CheckoutForm() {
           value={formData.fullName}
           onChange={handleChange}
           required
+          readOnly={isFullNameLocked}
+          className={isFullNameLocked ? "bg-gray-100 cursor-not-allowed" : ""}
         />
       </div>
 
@@ -110,9 +169,11 @@ export default function CheckoutForm() {
           </label>
           <SelectInput
             value={formData.province}
-            onValueChange={
-              (value) => setFormData({ ...formData, province: value, city: "" }) // reset kota kalau provinsi ganti
-            }
+            onValueChange={(value) => {
+              const updated = { ...formData, province: value, city: "" };
+              setFormData(updated);
+              if (onFormChange) onFormChange(updated);
+            }}
             placeholder="Pilih provinsi"
           >
             <div className="max-h-40 overflow-y-auto">
@@ -132,11 +193,15 @@ export default function CheckoutForm() {
           </label>
           <SelectInput
             value={formData.city}
-            onValueChange={(value) => setFormData({ ...formData, city: value })}
+            onValueChange={(value) => {
+              const updated = { ...formData, city: value };
+              setFormData(updated);
+              if (onFormChange) onFormChange(updated);
+            }}
             placeholder={
               formData.province ? "Pilih kota" : "Pilih provinsi dulu"
             }
-            disabled={!formData.province} // 👈 terkunci sebelum pilih provinsi
+            disabled={!formData.province}
           >
             <div className="max-h-40 overflow-y-auto">
               {cityOptions.map((city) => (
@@ -161,13 +226,15 @@ export default function CheckoutForm() {
           placeholder="08xxxxxxxxxx"
           value={formData.phone}
           onChange={handleChange}
+          readOnly={isPhoneLocked}
+          className={isPhoneLocked ? "bg-gray-100 cursor-not-allowed" : ""}
         />
       </div>
 
       {/* Deskripsi Kebutuhan */}
       <div className="grid gap-2 max-w-4xl">
         <label htmlFor="description" className="text-sm font-medium">
-          Kebutuhan yang Dibutuhkan
+          Kebutuhan yang Dibutuhkan (Wajib Diisi)
         </label>
         <textarea
           id="description"
@@ -182,7 +249,7 @@ export default function CheckoutForm() {
       {/* Output yang Diharapkan */}
       <div className="grid gap-2 max-w-4xl">
         <label htmlFor="expectedOutput" className="text-sm font-medium">
-          Output yang Diharapkan
+          Output yang Diharapkan (Wajib Diisi)
         </label>
         <textarea
           id="expectedOutput"
@@ -204,8 +271,13 @@ export default function CheckoutForm() {
           id="supportingDoc"
           name="supportingDoc"
           multiple
+          accept=".pdf,.doc,.docx,.ppt,.pptx"
           onChange={handleFileChange}
         />
+        <p className="text-xs text-gray-500">
+          Format yang diperbolehkan: PDF (.pdf), Word (.doc, .docx), PowerPoint
+          (.ppt, .pptx)
+        </p>
 
         {/* Preview semua file */}
         <div className="mt-3 space-y-2">

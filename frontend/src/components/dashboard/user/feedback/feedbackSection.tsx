@@ -28,6 +28,48 @@ interface FeedbackSectionProps {
   onFeedbackSubmitted: () => void;
 }
 
+function renderFormattedDescription(text: string) {
+  if (!text) return null;
+
+  // ubah /n jadi newline
+  const lines = text.split("/n");
+
+  const formatInline = (line: string) => {
+    const parts = line.split(/(\*\*.*?\*\*|\*.*?\*|_.*?_|)/g);
+
+    return parts.map((part, index) => {
+      if (!part) return null;
+
+      // **bold**
+      if (part.startsWith("**") && part.endsWith("**")) {
+        return <strong key={index}>{part.replace(/\*\*/g, "")}</strong>;
+      }
+
+      // _underline_
+      if (part.startsWith("_") && part.endsWith("_")) {
+        return (
+          <span key={index} className="underline">
+            {part.replace(/_/g, "")}
+          </span>
+        );
+      }
+
+      // *italic* (manual skew)
+      if (part.startsWith("*") && part.endsWith("*")) {
+        return (
+          <span key={index} className="-skew-x-6 inline-block">
+            {part.replace(/\*/g, "")}
+          </span>
+        );
+      }
+
+      return <span key={index}>{part}</span>;
+    });
+  };
+
+  return lines.map((line, i) => <p key={i}>{formatInline(line)}</p>);
+}
+
 export default function FeedbackSection({
   title,
   feedbacks,
@@ -65,7 +107,9 @@ export default function FeedbackSection({
                 <h3 className="text-lg font-bold text-gray-800">
                   {feedback.title}
                 </h3>
-                <p className="text-sm text-gray-600">{feedback.description}</p>
+                <div className="text-sm text-gray-600 space-y-1">
+                  {renderFormattedDescription(feedback.description)}
+                </div>
               </CardContent>
 
               <CardFooter className="flex flex-col items-start gap-4 px-5 pb-6 mt-auto">

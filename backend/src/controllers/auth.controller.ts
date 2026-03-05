@@ -120,6 +120,7 @@ export const login = async (
         mentorProfileId,
         email: user.email,
         phoneNumber: user.phoneNumber,
+        fullName: user.fullName,
       },
       process.env.JWT_SECRET!,
       { expiresIn: "1d" }
@@ -133,6 +134,7 @@ export const login = async (
         mentorProfileId,
         email: user.email,
         phoneNumber: user.phoneNumber,
+        fullName: user.fullName,
       },
       process.env.JWT_REFRESH_SECRET!,
       { expiresIn: "7d" }

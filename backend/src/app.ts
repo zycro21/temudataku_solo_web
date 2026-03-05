@@ -35,8 +35,18 @@ import elearningQuestionRoutes from "./routes/elearning_question.route.js";
 import elearningQuizAttempt from "./routes/elearning_quiz_attempt.route.js";
 import elearningAssignment from "./routes/elearning_assignment.route.js";
 import elearningSubmission from "./routes/elearning_submission.route.js";
-import elearningPurchase from "./routes/elearning_purchase.route.js";
-import adminActivityLogRoutes from "./routes/adminActivityLog.route.js"
+import adminActivityLogRoutes from "./routes/adminActivityLog.route.js";
+import elearningProgressRoutes from "./routes/elearning_progress.route.js";
+import elearningReviewRoutes from "./routes/elearning_review.route.js";
+import elearningCertificateRoutes from "./routes/elearning_certificate.route.js";
+import elearningSubscriptionPlan from "./routes/elearning_subscription_plan.route.js";
+import elearningSubscription from "./routes/elearning_subscription.route.js";
+import elearningVideo from "./routes/elearning_video.route.js";
+import elearningTextInteractive from "./routes/elearning_text_interactive.route.js";
+import elearningMatchingInteractive from "./routes/elearning_matching.route.js";
+import elearningMultipleChoice from "./routes/elearning_multiplechoices.route.js";
+import elearningInteractiveAttempt from "./routes/elearning_interactiveattemptanswer.route.js";
+import elearningExecutableCode from "./routes/elearning_excode.route.js";
 import { redirectShortCodeController } from "./controllers/short_link.controller.js";
 import "./schedulers/cron.js";
 import { fileURLToPath } from "url";
@@ -101,8 +111,18 @@ app.use("/api/elearningQuestion", elearningQuestionRoutes);
 app.use("/api/elearningQuizAttempt", elearningQuizAttempt);
 app.use("/api/elearningAssignment", elearningAssignment);
 app.use("/api/elearningSubmission", elearningSubmission);
-app.use("/api/elearningPurchase", elearningPurchase);
 app.use("/api/admin_activity_logs", adminActivityLogRoutes);
+app.use("/api/elearningProgress", elearningProgressRoutes);
+app.use("/api/elearningReview", elearningReviewRoutes);
+app.use("/api/elearningCertificate", elearningCertificateRoutes);
+app.use("/api/elearningSubscriptionPlan", elearningSubscriptionPlan);
+app.use("/api/elearningSubscription", elearningSubscription);
+app.use("/api/elearningVideo", elearningVideo);
+app.use("/api/elearningTextInteractive", elearningTextInteractive);
+app.use("/api/elearningMatching", elearningMatchingInteractive);
+app.use("/api/e-learningmultiplechoice", elearningMultipleChoice);
+app.use("/api/elearningInteractivesAttempt", elearningInteractiveAttempt);
+app.use("/api/elearningExecutableCode", elearningExecutableCode);
 
 // Path Static untuk Images
 // Perbaikan di sini, mengganti __dirname dengan yang benar menggunakan import.meta.url
@@ -196,6 +216,41 @@ app.use(
     next();
   },
   express.static(elearningSubmissionsPath)
+);
+
+// === E-Learning Certificates (PDF) ===
+const elearningCertificatesPath = path.join(
+  __dirname,
+  "../uploads/elearning_certificate"
+);
+
+console.log("Serving e-learning certificates from:", elearningCertificatesPath);
+
+app.use(
+  "/uploads/elearning_certificate",
+  (req, res, next) => {
+    console.log("Accessing e-learning certificate:", req.path);
+    const filePath = path.join(elearningCertificatesPath, req.path);
+    console.log("Looking for file:", filePath);
+    next();
+  },
+  express.static(elearningCertificatesPath)
+);
+
+// === E-Learning Videos (Static Access) ===
+const elearningVideosPath = path.join(__dirname, "../uploads/elearning/videos");
+
+console.log("Serving e-learning videos from:", elearningVideosPath);
+
+app.use(
+  "/uploads/elearning/videos",
+  (req, res, next) => {
+    console.log("Accessing e-learning video:", req.path);
+    const filePath = path.join(elearningVideosPath, req.path);
+    console.log("Looking for video file:", filePath);
+    next();
+  },
+  express.static(elearningVideosPath)
 );
 
 // Swagger Docs

@@ -80,7 +80,7 @@ export class ELearningQuizService {
       sortBy = "createdAt",
       sortOrder = "desc",
       page = 1,
-      limit = 10,
+      limit = 10000,
     } = query;
     const skip = (page - 1) * limit;
 
@@ -107,12 +107,22 @@ export class ELearningQuizService {
           );
         }
       } else if (user.roles.includes("mentee")) {
-        const purchased = await tx.eLearningPurchase.findFirst({
-          where: { userId: user.userId, courseId },
+        const now = new Date();
+
+        const activeSubscription = await tx.eLearningSubscription.findFirst({
+          where: {
+            userId: user.userId,
+            status: {
+              in: ["active", "confirmed", "completed"],
+            },
+            startAt: { lte: now },
+            endAt: { gte: now },
+          },
         });
-        if (!purchased) {
+
+        if (!activeSubscription) {
           throw new Error(
-            "Akses ditolak: hanya mentee yang telah membeli course ini yang bisa mengakses quiz"
+            "Akses ditolak: Anda tidak memiliki subscription aktif"
           );
         }
       }
@@ -173,7 +183,6 @@ export class ELearningQuizService {
 
       if (!quiz) throw new Error("Quiz tidak ditemukan");
 
-      const courseId = quiz.subBab.subChapter.course.id;
       const mentorId = quiz.subBab.subChapter.course.mentorId;
 
       // 🔹 Admin bebas akses
@@ -191,16 +200,27 @@ export class ELearningQuizService {
         return quiz;
       }
 
-      // 🔹 Cek akses mentee
+      // 🔹 Cek akses mentee (BERBASIS SUBSCRIPTION)
       if (user.roles.includes("mentee")) {
-        const purchase = await tx.eLearningPurchase.findFirst({
-          where: { userId: user.userId, courseId },
+        const now = new Date();
+
+        const activeSubscription = await tx.eLearningSubscription.findFirst({
+          where: {
+            userId: user.userId,
+            status: {
+              in: ["active", "confirmed", "completed"],
+            },
+            startAt: { lte: now },
+            endAt: { gte: now },
+          },
         });
-        if (!purchase) {
+
+        if (!activeSubscription) {
           throw new Error(
-            "Akses ditolak: hanya mentee yang telah membeli course ini yang bisa mengakses quiz"
+            "Akses ditolak: Anda tidak memiliki subscription aktif"
           );
         }
+
         return quiz;
       }
 

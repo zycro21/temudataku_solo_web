@@ -13,7 +13,7 @@ const prisma = new PrismaClient();
 export const createPayment = async (
   req: AuthenticatedRequestPayment,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -27,12 +27,14 @@ export const createPayment = async (
 
     const userEmail = req.user?.email || "test@example.com";
     const userPhone = req.user?.phoneNumber || "08123456789";
+    const customerVaName = req.user?.fullName || req.user?.email || "Customer";
 
     const result = await PaymentService.createDuitkuPayment({
       referenceId,
       paymentMethod,
       email: userEmail,
       phoneNumber: userPhone,
+      customerVaName,
     });
 
     if (rolesLog.includes("admin") && adminId) {
@@ -58,12 +60,39 @@ export const createPayment = async (
   }
 };
 
+export const getPaymentStatus = async (
+  req: AuthenticatedRequestPayment,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { merchantOrderId } = req.params;
+
+    const result = await PaymentService.getPaymentStatus(
+      merchantOrderId,
+      req.user!.userId,
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Payment status retrieved successfully.",
+      data: result,
+    });
+  } catch (error: any) {
+    res.status(error.status || 500).json({
+      success: false,
+      message: error.message || "Failed to retrieve payment status.",
+    });
+  }
+};
+
 export const handleCallback = async (
   req: AuthenticatedRequestPayment,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
+    console.log("🔥 CALLBACK MASUK DARI DUITKU");
     console.log("Callback received from Duitku:", req.body);
 
     if (!req.body?.signature) {
@@ -82,7 +111,7 @@ export const handleCallback = async (
 export const getAllPayments = async (
   req: AuthenticatedRequestPayment,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -113,7 +142,7 @@ export const getAllPayments = async (
 export const getDetailIdPayments = async (
   req: AuthenticatedRequestPayment,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -150,7 +179,7 @@ export const getDetailIdPayments = async (
 export const exportPayments = async (
   req: AuthenticatedRequestPayment,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -167,7 +196,7 @@ export const exportPayments = async (
 
     const fileBuffer = await PaymentService.exportPaymentsToFile(
       exportFormat,
-      status
+      status,
     );
 
     const fileName = `payments_${format(new Date(), "yyyyMMdd_HHmmss")}.${
@@ -191,7 +220,7 @@ export const exportPayments = async (
       "Content-Type",
       exportFormat === "excel"
         ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        : "text/csv"
+        : "text/csv",
     );
 
     res.send(fileBuffer);
@@ -203,7 +232,7 @@ export const exportPayments = async (
 export const getMyPayments = async (
   req: AuthenticatedRequestPayment,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const userId = req.user?.userId;
@@ -236,7 +265,7 @@ export const getMyPayments = async (
 export const updatePaymentStatus = async (
   req: AuthenticatedRequestPayment,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -275,7 +304,7 @@ export const updatePaymentStatus = async (
 export const getMyPaymentDetail = async (
   req: AuthenticatedRequestPayment,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const userId = req.user?.userId;

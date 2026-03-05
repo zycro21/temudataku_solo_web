@@ -33,10 +33,24 @@ export const createTextSchema = z.object({
   }),
   body: z.object({
     title: z.string().optional(),
-    textContent: z
-      .string()
-      .min(1, "Konten teks wajib diisi")
-      .max(10000000, "Konten terlalu panjang"),
+    blocks: z
+      .array(
+        z.object({
+          content: z.string().min(1, "Konten block wajib diisi"),
+          order: z.number().int().min(1),
+        })
+      )
+      .min(1, "Minimal harus ada 1 block teks")
+      .refine((blocks) => {
+        const orders = blocks.map((b) => b.order);
+        const uniqueOrders = new Set(orders);
+        if (uniqueOrders.size !== orders.length) return false; // cek duplikasi
+        const sorted = [...orders].sort((a, b) => a - b);
+        for (let i = 0; i < sorted.length; i++) {
+          if (sorted[i] !== i + 1) return false; // cek berurutan mulai 1
+        }
+        return true;
+      }, "Order block harus unik dan berurutan mulai dari 1"),
   }),
 });
 
@@ -47,8 +61,7 @@ export const updateTextSchema = z.object({
   body: z
     .object({
       title: z.string().optional(),
-      textContent: z.string().optional(),
-      orderNumber: z.number().optional(),
+      orderNumber: z.number().int().min(1).optional(),
     })
     .refine((data) => Object.keys(data).length > 0, {
       message: "Minimal satu field harus diupdate",
@@ -63,20 +76,17 @@ export const deleteTextSchema = z.object({
 
 export const reorderTextSchema = z.object({
   params: z.object({
-    subBabId: z.string().min(1, "subBabId wajib diisi"),
+    subBabId: z.string().min(1),
   }),
   body: z.object({
     orders: z
       .array(
         z.object({
-          id: z.string().min(1, "ID teks wajib diisi"),
-          orderNumber: z
-            .number()
-            .int("orderNumber harus berupa integer")
-            .min(1, "orderNumber minimal 1"),
+          id: z.string().min(1),
+          orderNumber: z.number().int().min(1),
         })
       )
-      .nonempty("Daftar urutan teks tidak boleh kosong"),
+      .min(1),
   }),
 });
 
@@ -110,3 +120,66 @@ export const exportTextSchema = z.object({
   }),
 });
 
+export const getBlocksByTextSchema = z.object({
+  params: z.object({
+    textId: z.string().min(1, "Text ID wajib diisi"),
+  }),
+});
+
+export const createTextBlockSchema = z.object({
+  params: z.object({
+    textId: z.string().min(1, "Text ID wajib diisi"),
+  }),
+  body: z.object({
+    content: z.string().min(1, "Content block tidak boleh kosong"),
+  }),
+});
+
+export const updateTextBlockSchema = z.object({
+  params: z.object({
+    blockId: z.string().min(1, "Block ID wajib diisi"),
+  }),
+  body: z.object({
+    content: z.string().min(1, "Content tidak boleh kosong"),
+  }),
+});
+
+export const deleteBlockSchema = z.object({
+  params: z.object({
+    blockId: z.string().min(1, "Block ID wajib diisi"),
+  }),
+});
+
+export const reorderTextBlocksSchema = z.object({
+  params: z.object({
+    textId: z.string().min(1, "Text ID wajib diisi"),
+  }),
+  body: z.object({
+    orders: z
+      .array(
+        z.object({
+          blockId: z.string().min(1, "Block ID wajib diisi"),
+          order: z.number().int().min(1, "Order minimal bernilai 1"),
+        })
+      )
+      .min(1, "Minimal satu block harus diubah urutannya"),
+  }),
+});
+
+export const getSingleBlockSchema = z.object({
+  params: z.object({
+    blockId: z.string().min(1, "Block ID wajib diisi"),
+  }),
+});
+
+export const exportTextBlockSchema = z.object({
+  query: z.object({
+    format: z.enum(["csv", "excel"]).default("csv"),
+  }),
+});
+
+export const getTextContentSchema = z.object({
+  params: z.object({
+    textId: z.string().min(1, "Text ID wajib diisi"),
+  }),
+});

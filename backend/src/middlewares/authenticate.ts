@@ -8,6 +8,7 @@ export interface AuthenticatedRequest extends Request {
     mentorProfileId?: string;
     email?: string;
     phoneNumber?: string;
+    fullName?: string;
   };
   validatedQuery?: {
     page: string;
@@ -23,10 +24,21 @@ export interface AuthenticatedRequest extends Request {
     sort_by?: string;
     order?: string;
     format?: "csv" | "excel";
+
+    category?: string;
+    level?: string;
+
+    serviceType?:
+      | "one-on-one"
+      | "group"
+      | "bootcamp"
+      | "shortclass"
+      | "live class";
   };
   validatedParams?: {
     id: string;
     userId: string;
+    currentServiceId?: string;
   };
   validatedBody?: {
     serviceName?: string;
@@ -48,7 +60,10 @@ export interface AuthenticatedRequest extends Request {
     toolsUsed?: string | null;
     targetAudience?: string | null;
     schedule?: string | null;
-    alumniPortfolio?: string | null;
+    alumniPortfolio?: any;
+    testimonials?: any;
+    category?: string;
+    level?: string;
 
     isVerified?: boolean;
   };
@@ -61,6 +76,7 @@ export interface AuthenticatedRequestForMentoringSession extends Request {
     mentorProfileId?: string;
     email?: string;
     phoneNumber?: string;
+    fullName?: string;
   };
   validatedQuery?: {
     serviceId?: string;
@@ -102,6 +118,7 @@ export interface AuthenticatedRequestFeedback extends Request {
     mentorProfileId?: string;
     email?: string;
     phoneNumber?: string;
+    fullName?: string;
   };
   validatedBody?: any;
   validatedParams?: any;
@@ -115,6 +132,7 @@ export interface AuthenticatedRequestNotification extends Request {
     mentorProfileId?: string;
     email?: string;
     phoneNumber?: string;
+    fullName?: string;
   };
   validatedBody?: any;
   validatedParams?: any;
@@ -128,15 +146,19 @@ export interface AuthenticatedRequestBooking extends Request {
     mentorProfileId?: string;
     email?: string;
     phoneNumber?: string;
+    fullName?: string;
   };
   validatedBody?: {
     mentoringServiceId: string;
+    mentorProfileId?: string;
     participantIds?: string[];
     referralUsageId?: string;
     specialRequests?: string;
     bookingDate?: string;
     material?: string; // <-- tambahkan
     expectedOutput?: string; // <-- tambahkan
+    startTime?: { hour: number; minute: number };
+    endTime?: { hour: number; minute: number };
   };
   validatedParams?: { id: string };
   validatedQuery?: {
@@ -168,6 +190,7 @@ export interface AuthenticatedRequestProject extends Request {
     mentorProfileId?: string;
     email?: string;
     phoneNumber?: string;
+    fullName?: string;
   };
   validatedBody?: any;
   validatedParams?: any;
@@ -181,6 +204,7 @@ export interface AuthenticatedRequestCertificate extends Request {
     mentorProfileId?: string;
     email?: string;
     phoneNumber?: string;
+    fullName?: string;
   };
   validatedBody?: any;
   validatedParams?: any;
@@ -194,6 +218,7 @@ export interface AuthenticatedRequestPractice extends Request {
     mentorProfileId?: string;
     email?: string;
     phoneNumber?: string;
+    fullName?: string;
   };
   validatedBody?: {
     // Field untuk Create Practice
@@ -260,6 +285,7 @@ export interface AuthenticatedRequestBehavior extends Request {
     mentorProfileId?: string;
     email?: string;
     phoneNumber?: string;
+    fullName?: string;
   };
   validatedBody?: any;
   validatedParams?: any;
@@ -273,6 +299,7 @@ export interface AuthenticatedRequestReferralCode extends Request {
     mentorProfileId?: string;
     email?: string;
     phoneNumber?: string;
+    fullName?: string;
   };
   validatedBody?:
     | {
@@ -291,7 +318,7 @@ export interface AuthenticatedRequestReferralCode extends Request {
       }
     | {
         code: string;
-        context: "booking" | "practice_purchase";
+        context: "booking" | "practice_purchase" | "elearning_subscription";
       }
     | {
         referralCodeId: string;
@@ -308,7 +335,7 @@ export interface AuthenticatedRequestReferralCode extends Request {
     referralCodeId?: string;
     startDate?: string;
     endDate?: string;
-    context?: "booking" | "practice_purchase";
+    context?: "booking" | "practice_purchase" | "elearning_subscription";
   };
 }
 
@@ -319,6 +346,7 @@ export interface AuthenticatedRequestPayment extends Request {
     mentorProfileId?: string;
     email?: string;
     phoneNumber?: string;
+    fullName?: string;
   };
   validatedBody?: any;
   validatedParams?: any;
@@ -332,6 +360,7 @@ export interface AuthenticatedRequestWithdrawal extends Request {
     mentorProfileId?: string;
     email?: string;
     phoneNumber?: string;
+    fullName?: string;
   };
   validatedBody?: {
     userId?: string; // hanya boleh dipakai admin
@@ -352,6 +381,7 @@ export interface AuthenticatedRequestMentorReport extends Request {
     mentorProfileId?: string;
     email?: string;
     phoneNumber?: string;
+    fullName?: string;
   };
   validatedQuery?: {
     page?: string;
@@ -385,6 +415,7 @@ export interface AuthenticatedRequestLog extends Request {
     mentorProfileId?: string;
     email?: string;
     phoneNumber?: string;
+    fullName?: string;
   };
   validatedBody?: any;
   validatedParams?: any;
@@ -398,6 +429,7 @@ export interface AuthenticatedRequestShortLink extends Request {
     mentorProfileId?: string;
     email?: string;
     phoneNumber?: string;
+    fullName?: string;
   };
   validatedBody?: {
     // POST /api/shortlinks
@@ -433,6 +465,7 @@ export interface AuthenticatedRequestElearning extends Request {
     mentorProfileId?: string;
     email?: string;
     phoneNumber?: string;
+    fullName?: string;
   };
   validatedBody?: {
     mentorId?: string;
@@ -461,6 +494,7 @@ export interface AuthenticatedRequestSubChapter extends Request {
     mentorProfileId?: string;
     email?: string;
     phoneNumber?: string;
+    fullName?: string;
   };
   validatedBody?: {
     title: string;
@@ -486,6 +520,7 @@ export interface AuthenticatedRequestReorderSubChapter extends Request {
     mentorProfileId?: string;
     email?: string;
     phoneNumber?: string;
+    fullName?: string;
   };
   validatedBody?: ReorderBody;
   validatedParams?: { courseId?: string };
@@ -498,6 +533,7 @@ export interface AuthenticatedRequestDuplicateSubChapter extends Request {
     mentorProfileId?: string;
     email?: string;
     phoneNumber?: string;
+    fullName?: string;
   };
   validatedBody?: {
     targetCourseId: string;
@@ -514,6 +550,7 @@ export interface AuthenticatedRequestSubBab extends Request {
     mentorProfileId?: string;
     email?: string;
     phoneNumber?: string;
+    fullName?: string;
   };
   validatedBody?: {
     title?: string;
@@ -542,21 +579,53 @@ export interface AuthenticatedRequestText extends Request {
     mentorProfileId?: string;
     email?: string;
     phoneNumber?: string;
+    fullName?: string;
   };
   validatedBody?: {
     title?: string;
-    textContent?: string;
     orderNumber?: number;
-    orders?: {
+    blocks: { content: string; order: number }[];
+  };
+  validatedParams?: { textId?: string; subBabId?: string; id?: string };
+  validatedQuery?: any;
+}
+
+export interface ReorderTextRequest extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+    fullName?: string;
+  };
+  validatedParams?: {
+    subBabId: string;
+  };
+  validatedBody?: {
+    orders: {
       id: string;
       orderNumber: number;
     }[];
   };
+  validatedQuery?: any;
+}
+
+export interface AuthenticatedRequestTextBlock extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+    fullName?: string;
+  };
   validatedParams?: {
-    subBabId?: string;
-    id?: string;
+    textId?: string;
+    blockId?: string;
   };
   validatedQuery?: any;
+  validatedBody?: any;
 }
 
 export interface AuthenticatedRequestQuiz extends Request {
@@ -566,6 +635,7 @@ export interface AuthenticatedRequestQuiz extends Request {
     mentorProfileId?: string;
     email?: string;
     phoneNumber?: string;
+    fullName?: string;
   };
   validatedBody?: {
     title?: string;
@@ -582,12 +652,13 @@ export interface AuthenticatedRequestQuiz extends Request {
 }
 
 export interface AuthenticatedRequestQuestion extends Request {
-  user?: {
+  user: {
     userId: string;
     roles: string[];
     mentorProfileId?: string;
     email?: string;
     phoneNumber?: string;
+    fullName?: string;
   };
   validatedBody?: {
     questionText?: string;
@@ -610,6 +681,7 @@ export interface AuthenticatedRequestQuizAttempt extends Request {
     mentorProfileId?: string;
     email?: string;
     phoneNumber?: string;
+    fullName?: string;
   };
   validatedBody?: {
     answers?: Record<string, string>; // questionId -> selectedAnswer
@@ -630,6 +702,7 @@ export interface AuthenticatedRequestAssignment extends Request {
     mentorProfileId?: string;
     email?: string;
     phoneNumber?: string;
+    fullName?: string;
   };
   validatedBody?: {
     title?: string;
@@ -660,6 +733,7 @@ export interface AuthenticatedRequestElearningSubmission extends Request {
     mentorProfileId?: string;
     email?: string;
     phoneNumber?: string;
+    fullName?: string;
   };
   validatedBody?: {
     notes?: string;
@@ -675,22 +749,6 @@ export interface AuthenticatedRequestElearningSubmission extends Request {
   file?: Express.Multer.File;
 }
 
-export interface AuthenticatedRequestELearningPurchase extends Request {
-  user?: {
-    userId: string;
-    roles: string[];
-    mentorProfileId?: string;
-    email?: string;
-    phoneNumber?: string;
-  };
-  validatedBody?: {
-    courseId?: string;
-    referralUsageId?: string;
-  };
-  validatedParams?: any;
-  validatedQuery?: any;
-}
-
 export interface AuthenticatedRequestAdminActivityLog extends Request {
   user?: {
     userId: string;
@@ -698,8 +756,163 @@ export interface AuthenticatedRequestAdminActivityLog extends Request {
     mentorProfileId?: string;
     email?: string;
     phoneNumber?: string;
+    fullName?: string;
   };
 
+  validatedBody?: any;
+  validatedParams?: any;
+  validatedQuery?: any;
+}
+
+export interface AuthenticatedRequestELearningProgress extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+    fullName?: string;
+  };
+  validatedBody?: any;
+  validatedParams?: any;
+  validatedQuery?: any;
+}
+
+export interface AuthenticatedRequestELearningReview extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+    fullName?: string;
+  };
+  validatedBody?: any;
+  validatedParams?: any;
+  validatedQuery?: any;
+}
+
+export interface AuthenticatedRequestELearningCertificate extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+    fullName?: string;
+  };
+  validatedBody?: any;
+  validatedParams?: any;
+  validatedQuery?: any;
+}
+
+export interface AuthenticatedRequestELearningSubscriptionPlan extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+    fullName?: string;
+  };
+  validatedBody?: any;
+  validatedParams?: any;
+  validatedQuery?: any;
+}
+
+export interface AuthenticatedRequestELearningSubscription extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+    fullName?: string;
+  };
+  validatedBody?: any;
+  validatedParams?: any;
+  validatedQuery?: any;
+}
+
+export interface AuthenticatedRequestELearningVideo extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+    fullName?: string;
+  };
+  validatedBody?: any;
+  validatedParams?: any;
+  validatedQuery?: any;
+}
+
+export interface AuthenticatedRequestELearningTextInteractive extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+    fullName?: string;
+  };
+  validatedBody?: any;
+  validatedParams?: any;
+  validatedQuery?: any;
+}
+
+export interface AuthenticatedRequestELearningMatching extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+    fullName?: string;
+  };
+  validatedBody?: any;
+  validatedParams?: any;
+  validatedQuery?: any;
+}
+
+export interface AuthenticatedRequestELearningMultipleChoice extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+    fullName?: string;
+  };
+  validatedBody?: any;
+  validatedParams?: any;
+  validatedQuery?: any;
+}
+
+export interface AuthenticatedRequestInteractiveAttempt extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+    fullName?: string;
+  };
+  validatedBody?: any;
+  validatedParams?: any;
+  validatedQuery?: any;
+}
+
+export interface AuthenticatedRequestELearningExCode extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+    fullName?: string;
+  };
   validatedBody?: any;
   validatedParams?: any;
   validatedQuery?: any;
@@ -708,7 +921,7 @@ export interface AuthenticatedRequestAdminActivityLog extends Request {
 export const authenticate = (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   const token = req.cookies.token;
 
@@ -724,6 +937,7 @@ export const authenticate = (
       mentorProfileId?: string;
       email?: string;
       phoneNumber?: string;
+      fullName?: string;
     };
 
     req.user = {
@@ -732,6 +946,7 @@ export const authenticate = (
       mentorProfileId: decoded.mentorProfileId,
       email: decoded.email,
       phoneNumber: decoded.phoneNumber,
+      fullName: decoded.fullName,
     };
 
     next();

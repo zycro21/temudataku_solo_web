@@ -2,6 +2,7 @@ import { Router } from "express";
 import * as PaymentController from "../controllers/payment.controller.js";
 import {
   createPaymentSchema,
+  getPaymentStatusSchema,
   getAdminPaymentsSchema,
   getAdminPaymentsDetailSchema,
   getExportPaymentsSchema,
@@ -122,6 +123,61 @@ router.post(
   authenticate,
   validate(createPaymentSchema),
   PaymentController.createPayment
+);
+
+/**
+ * @swagger
+ * /api/payment/status/{merchantOrderId}:
+ *   get:
+ *     summary: Get status pembayaran berdasarkan merchantOrderId
+ *     tags: [Payment]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: merchantOrderId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         example: INV-cm2abc123xyz
+ *     responses:
+ *       200:
+ *         description: Berhasil mengambil status payment
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Payment status retrieved successfully.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     merchantOrderId:
+ *                       type: string
+ *                     status:
+ *                       type: string
+ *                       example: confirmed
+ *                     amount:
+ *                       type: number
+ *                     paymentDate:
+ *                       type: string
+ *       404:
+ *         description: Payment tidak ditemukan
+ *       500:
+ *         description: Gagal mengambil status payment
+ */
+router.get(
+  "/status/:merchantOrderId",
+  authenticate,
+  validate(getPaymentStatusSchema),
+  PaymentController.getPaymentStatus
 );
 
 /**

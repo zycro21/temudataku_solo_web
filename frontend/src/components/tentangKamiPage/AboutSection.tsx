@@ -1,37 +1,57 @@
 import Image from "next/image";
+
 export default function AboutSection() {
   return (
-    <section className="py-16">
-      <div className="container mx-auto px-8 md:px-[100px]">
-        <div className="grid lg:grid-cols-2 items-center">
-          {/* Left side - Logo */}
+    <section className="py-20 bg-gradient-to-b from-white to-emerald-50/40 relative overflow-hidden">
+      <div className="max-w-[1100px] mx-auto px-6 lg:px-8 relative">
+        <div className="grid lg:grid-cols-2 gap-14 items-center">
+          {/* LEFT SIDE - Logo Card */}
           <div className="flex justify-center lg:justify-start">
-            <div className="bg-white rounded-3xl max-w-md">
-              <div className="flex items-center justify-center">
-                {/* TemuDataku Logo */}
-                <div className="flex items-center">
-                  <div className="relative">
-                    <Image src="/assets/tentangKamiPage/logo.svg" alt="TemuDataku Logo" width={1000} height={1000} className="w-full h-full" />
-                  </div>
-                </div>
+            <div className="relative group">
+              {/* Glow Effect */}
+              <div className="absolute -inset-4 bg-emerald-200/40 blur-2xl rounded-3xl opacity-70 group-hover:opacity-100 transition duration-500"></div>
+
+              {/* Card */}
+              <div className="relative bg-white rounded-3xl shadow-xl p-10 transition duration-500 group-hover:-translate-y-2 group-hover:shadow-2xl">
+                <Image
+                  src="/assets/tentangKamiPage/logo.svg"
+                  alt="TemuDataku Logo"
+                  width={1000}
+                  height={1000}
+                  className="w-72 mx-auto"
+                />
               </div>
             </div>
           </div>
 
-          {/* Right side - Content */}
-          <div className="space-y-6">
-            <h2 className="text-3xl md:text-4xl text-gray-900 mb-6">Siapa Kami?</h2>
+          {/* RIGHT SIDE - Content */}
+          <div className="space-y-8">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+              Siapa Kami?
+            </h2>
 
-            <div className="space-y-4 text-gray-700 leading-relaxed">
+            <div className="space-y-5 text-gray-700 leading-relaxed text-base md:text-lg">
               <p>
-                <strong>TemuDataku</strong> adalah platform edukasi online yang didesain khusus untuk membantu kamu memahami dan menguasai dunia data science dan AI secara praktis.
+                <strong>TemuDataku</strong> adalah platform edukasi online yang
+                didesain khusus untuk membantu kamu memahami dan menguasai dunia
+                data science dan AI secara praktis.
                 <br />
-                Kami percaya bahwa setiap orang—baik mahasiswa, fresh graduate, maupun profesional—berhak mendapatkan akses belajar yang personal dan relevan.
+                Kami percaya bahwa setiap orang—baik mahasiswa, fresh graduate,
+                maupun profesional—berhak mendapatkan akses belajar yang
+                personal dan relevan.
                 <br />
-                Dengan pendekatan <strong>mentoring 1-on-1, bootcamp terstruktur, short class, hingga latihan berbasis studi kasus nyata</strong>, kami hadir untuk menemani perjalanan belajarmu dengan bimbingan mentor berpengalaman langsung
-                dari industri.
+                Dengan pendekatan{" "}
+                <strong>
+                  mentoring 1-on-1, bootcamp terstruktur, E-Learning, All You
+                  Can Learn, hingga latihan berbasis studi kasus nyata
+                </strong>
+                , kami hadir untuk menemani perjalanan belajarmu dengan
+                bimbingan mentor berpengalaman langsung dari industri.
                 <br />
-                <span className="font-semibold text-gray-900">Belajar data science jadi lebih terarah, fleksibel, dan berdampak.</span>
+                <span className="font-semibold text-emerald-600">
+                  Belajar data science jadi lebih terarah, fleksibel, dan
+                  berdampak.
+                </span>
               </p>
             </div>
           </div>

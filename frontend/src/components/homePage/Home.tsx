@@ -19,7 +19,7 @@ export default function Home() {
   return (
     <>
       <HeroSection />
-      <DiscountSection />
+      {/* <DiscountSection /> */}
       <BenefitsSection onClickCTA={scrollToLearningPath} />
       <ToolsSection />
       <LearningPathsSection ref={learningPathRef} />

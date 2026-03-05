@@ -26,7 +26,6 @@ export const ELearningCourseService = {
 
     const skip = (page - 1) * limit;
 
-    // Base where condition
     let whereCondition: any = {
       ...(category && { category }),
       ...(level && { level }),
@@ -38,21 +37,33 @@ export const ELearningCourseService = {
       }),
     };
 
-    // Filter berdasarkan role
+    /* ===== ROLE-BASED ACCESS ===== */
+
     if (user.roles.includes("admin")) {
-      // admin: lihat semua
+      // admin bebas
     } else if (user.roles.includes("mentor")) {
       whereCondition.mentorId = user.mentorProfileId;
     } else if (user.roles.includes("mentee")) {
-      const purchasedCourses = await prisma.eLearningPurchase.findMany({
-        where: { userId: user.userId },
-        select: { courseId: true },
-      });
-      const purchasedIds = purchasedCourses.map((p) => p.courseId);
+      const now = new Date();
 
-      whereCondition.id = {
-        in: purchasedIds.length > 0 ? purchasedIds : ["-"], // agar tidak kosong
-      };
+      const activeSubscription = await prisma.eLearningSubscription.findFirst({
+        where: {
+          userId: user.userId,
+          status: "confirmed",
+          startAt: { lte: now },
+          endAt: { gte: now },
+        },
+      });
+
+      if (!activeSubscription) {
+        throw {
+          status: 403,
+          message: "Akses ditolak. Anda tidak memiliki subscription aktif.",
+        };
+      }
+
+      // ❗ tidak perlu filter course
+      // mentee bisa lihat semua course
     }
 
     const [total, courses] = await Promise.all([
@@ -62,7 +73,12 @@ export const ELearningCourseService = {
         include: {
           mentorProfile: {
             include: {
-              user: { select: { fullName: true, profilePicture: true } },
+              user: {
+                select: {
+                  fullName: true,
+                  profilePicture: true,
+                },
+              },
             },
           },
         },
@@ -85,13 +101,15 @@ export const ELearningCourseService = {
     id: string,
     user: { userId: string; roles: string[]; mentorProfileId?: string }
   ) {
-    // Ambil kursus
+    /* ===== 1. AMBIL COURSE ===== */
     const course = await prisma.eLearningCourse.findUnique({
       where: { id },
       include: {
         mentorProfile: {
           include: {
-            user: { select: { fullName: true, profilePicture: true } },
+            user: {
+              select: { fullName: true, profilePicture: true },
+            },
           },
         },
         subChapters: {
@@ -110,19 +128,26 @@ export const ELearningCourseService = {
         },
         reviews: {
           include: {
-            user: { select: { fullName: true, profilePicture: true } },
+            user: {
+              select: { fullName: true, profilePicture: true },
+            },
           },
         },
       },
     });
 
-    if (!course) return null;
-
-    // Role-based access control
-    if (user.roles.includes("admin")) {
-      return course; // Admin bisa lihat semua
+    if (!course) {
+      throw { status: 404, message: "Kursus tidak ditemukan" };
     }
 
+    /* ===== 2. ROLE-BASED ACCESS ===== */
+
+    // ADMIN → bebas
+    if (user.roles.includes("admin")) {
+      return course;
+    }
+
+    // MENTOR → hanya course miliknya
     if (user.roles.includes("mentor")) {
       if (course.mentorId !== user.mentorProfileId) {
         throw {
@@ -133,23 +158,30 @@ export const ELearningCourseService = {
       return course;
     }
 
+    // MENTEE → HARUS ADA SUBSCRIPTION AKTIF
     if (user.roles.includes("mentee")) {
-      const purchased = await prisma.eLearningPurchase.findFirst({
+      const now = new Date();
+
+      const activeSubscription = await prisma.eLearningSubscription.findFirst({
         where: {
           userId: user.userId,
-          courseId: id,
+          status: "confirmed",
+          startAt: { lte: now },
+          endAt: { gte: now },
         },
       });
-      if (!purchased) {
+
+      if (!activeSubscription) {
         throw {
           status: 403,
-          message: "Akses ditolak: Anda belum membeli kursus ini",
+          message: "Akses ditolak: Anda tidak memiliki subscription aktif",
         };
       }
+
       return course;
     }
 
-    throw { status: 403, message: "Akses ditolak: Role tidak valid" };
+    throw { status: 403, message: "Akses ditolak: role tidak valid" };
   },
 
   async createCourse(data: any) {
@@ -173,7 +205,6 @@ export const ELearningCourseService = {
         title: data.title,
         description: data.description,
         thumbnailImages: data.thumbnailImages || [],
-        price: new Prisma.Decimal(data.price),
         category: data.category,
         tags: data.tags || [],
         targetAudience: data.targetAudience,
@@ -345,7 +376,12 @@ export const ELearningCourseService = {
       include: {
         mentorProfile: {
           include: {
-            user: { select: { fullName: true, profilePicture: true } },
+            user: {
+              select: {
+                fullName: true,
+                profilePicture: true,
+              },
+            },
           },
         },
         subChapters: {
@@ -361,48 +397,63 @@ export const ELearningCourseService = {
           },
         },
         reviews: true,
-        purchases: true,
         certificates: true,
       },
     });
 
-    if (!course || !course.isActive) return null;
+    if (!course || !course.isActive) {
+      return null;
+    }
 
-    // Statistik dasar
+    /* ===== STATISTIK DASAR (TANPA PURCHASE) ===== */
+    const totalSubChapters = course.subChapters.length;
+    const totalSubBabs = course.subChapters.reduce(
+      (acc, ch) => acc + ch.subBabs.length,
+      0
+    );
+
+    const averageRating =
+      course.reviews.length > 0
+        ? course.reviews.reduce((sum, r) => sum + r.rating.toNumber(), 0) /
+          course.reviews.length
+        : null;
+
     const stats = {
-      totalSubChapters: course.subChapters.length,
-      totalSubBabs: course.subChapters.reduce(
-        (acc, ch) => acc + ch.subBabs.length,
-        0
-      ),
-      totalStudents: course.purchases.length,
-      averageRating:
-        course.reviews.length > 0
-          ? course.reviews.reduce((sum, r) => sum + r.rating, 0) /
-            course.reviews.length
-          : null,
+      totalSubChapters,
+      totalSubBabs,
+      averageRating,
     };
 
-    return { ...course, stats };
+    return {
+      ...course,
+      stats,
+    };
   },
 
   async getCourseStatistics(
     courseId: string,
     user: { userId: string; roles: string[]; mentorProfileId?: string }
   ) {
-    // Ambil course beserta subChapters, subBabs, progresses, purchases, reviews
     const course = await prisma.eLearningCourse.findUnique({
       where: { id: courseId },
       select: {
         id: true,
         mentorId: true,
-        purchases: true,
-        reviews: true,
+        reviews: {
+          select: {
+            rating: true,
+          },
+        },
         subChapters: {
           select: {
             subBabs: {
               select: {
-                progresses: true, // di dalam progresses ada isCompleted
+                progresses: {
+                  select: {
+                    userId: true,
+                    isCompleted: true,
+                  },
+                },
               },
             },
           },
@@ -412,40 +463,56 @@ export const ELearningCourseService = {
 
     if (!course) return null;
 
+    /* ===== ROLE CHECK ===== */
     if (
       user.roles.includes("mentor") &&
       course.mentorId !== user.mentorProfileId
     ) {
-      return null; // mentor akses bukan kursusnya
+      throw { status: 403, message: "Akses ditolak" };
     }
 
-    // Total pembeli
-    const totalPurchases = course.purchases.length;
+    /* ===== TOTAL STUDENTS (UNIQUE USER PROGRESS) ===== */
+    const studentSet = new Set<string>();
 
-    // Average rating
-    const averageRating =
-      course.reviews.length > 0
-        ? course.reviews.reduce((sum, r) => sum + r.rating, 0) /
-          course.reviews.length
-        : 0;
-
-    // Hitung average progress: setiap progress isCompleted true = 100%, false = 0%
-    let allProgressValues: number[] = [];
     course.subChapters.forEach((sub) =>
       sub.subBabs.forEach((bab) =>
         bab.progresses.forEach((p) => {
-          allProgressValues.push(p.isCompleted ? 100 : 0);
+          studentSet.add(p.userId);
+        })
+      )
+    );
+
+    const totalStudents = studentSet.size;
+
+    /* ===== AVERAGE RATING ===== */
+    const averageRating =
+      course.reviews.length > 0
+        ? course.reviews.reduce((sum, r) => sum + r.rating.toNumber(), 0) /
+          course.reviews.length
+        : 0;
+
+    /* ===== AVERAGE PROGRESS ===== */
+    const progressValues: number[] = [];
+
+    course.subChapters.forEach((sub) =>
+      sub.subBabs.forEach((bab) =>
+        bab.progresses.forEach((p) => {
+          progressValues.push(p.isCompleted ? 100 : 0);
         })
       )
     );
 
     const averageProgress =
-      allProgressValues.length > 0
-        ? allProgressValues.reduce((sum, val) => sum + val, 0) /
-          allProgressValues.length
+      progressValues.length > 0
+        ? progressValues.reduce((sum, val) => sum + val, 0) /
+          progressValues.length
         : 0;
 
-    return { totalPurchases, averageRating, averageProgress };
+    return {
+      totalStudents,
+      averageRating,
+      averageProgress,
+    };
   },
 
   async exportCoursesToFile(
@@ -465,7 +532,6 @@ export const ELearningCourseService = {
             },
           },
         },
-        purchases: true,
         reviews: true,
       },
     });
@@ -474,7 +540,6 @@ export const ELearningCourseService = {
       ID: course.id,
       Title: course.title,
       Description: course.description || "-",
-      Price: course.price.toString(),
       Category: course.category || "-",
       Tags: course.tags.join(", "),
       Level: course.level || "-",
@@ -483,10 +548,9 @@ export const ELearningCourseService = {
       ToolsUsed: course.toolsUsed || "-",
       TargetAudience: course.targetAudience || "-",
       IsActive: course.isActive ? "Yes" : "No",
-      TotalPurchases: course.purchases.length,
       AverageRating:
         course.reviews.length > 0
-          ? course.reviews.reduce((sum, r) => sum + r.rating, 0) /
+          ? course.reviews.reduce((sum, r) => sum + r.rating.toNumber(), 0) /
             course.reviews.length
           : 0,
       MentorID: course.mentorProfile.id,
@@ -574,21 +638,13 @@ export const ELearningCourseService = {
       ToolsUsed: m.toolsUsed || "-",
       TargetAudience: m.targetAudience || "-",
       IsActive: m.isActive ? "Yes" : "No",
-      Mentors: m.mentors
-        .map((x) => x.mentorProfile.user.fullName)
-        .join(", "),
-      CreatedAt: formatDate(
-        m.createdAt ?? new Date(),
-        "yyyy-MM-dd HH:mm:ss"
-      ),
-      UpdatedAt: formatDate(
-        m.updatedAt ?? new Date(),
-        "yyyy-MM-dd HH:mm:ss"
-      ),
+      Mentors: m.mentors.map((x) => x.mentorProfile.user.fullName).join(", "),
+      CreatedAt: formatDate(m.createdAt ?? new Date(), "yyyy-MM-dd HH:mm:ss"),
+      UpdatedAt: formatDate(m.updatedAt ?? new Date(), "yyyy-MM-dd HH:mm:ss"),
     }));
 
     // =========================
-    // FETCH E-LEARNING
+    // FETCH E-LEARNING (SUBSCRIPTION BASED)
     // =========================
     const courses = await prisma.eLearningCourse.findMany({
       include: {
@@ -597,42 +653,37 @@ export const ELearningCourseService = {
             user: true,
           },
         },
-        purchases: true,
         reviews: true,
       },
     });
 
-    const elearningRows = courses.map((c) => ({
-      TYPE: "E-LEARNING",
-      ID: c.id,
-      Name: c.title,
-      Description: c.description || "-",
-      ServiceType: "course",
-      Price: c.price.toString(),
-      MaxParticipants: "-",
-      DurationDays: c.estimatedDuration || "-",
-      Benefits: c.benefits || "-",
-      ToolsUsed: c.toolsUsed || "-",
-      TargetAudience: c.targetAudience || "-",
-      IsActive: c.isActive ? "Yes" : "No",
-      Mentors: c.mentorProfile.user.fullName,
-      TotalPurchases: c.purchases.length,
-      AverageRating:
+    const elearningRows = courses.map((c) => {
+      const avgRating =
         c.reviews.length > 0
           ? (
-              c.reviews.reduce((s, r) => s + r.rating, 0) /
+              c.reviews.reduce((sum, r) => sum + r.rating.toNumber(), 0) /
               c.reviews.length
             ).toFixed(2)
-          : "0",
-      CreatedAt: formatDate(
-        c.createdAt ?? new Date(),
-        "yyyy-MM-dd HH:mm:ss"
-      ),
-      UpdatedAt: formatDate(
-        c.updatedAt ?? new Date(),
-        "yyyy-MM-dd HH:mm:ss"
-      ),
-    }));
+          : "0";
+
+      return {
+        TYPE: "E-LEARNING",
+        ID: c.id,
+        Name: c.title,
+        Description: c.description || "-",
+        ServiceType: "course",
+        MaxParticipants: "-",
+        DurationDays: c.estimatedDuration || "-",
+        Benefits: c.benefits || "-",
+        ToolsUsed: c.toolsUsed || "-",
+        TargetAudience: c.targetAudience || "-",
+        IsActive: c.isActive ? "Yes" : "No",
+        Mentors: c.mentorProfile.user.fullName,
+        AverageRating: avgRating,
+        CreatedAt: formatDate(c.createdAt ?? new Date(), "yyyy-MM-dd HH:mm:ss"),
+        UpdatedAt: formatDate(c.updatedAt ?? new Date(), "yyyy-MM-dd HH:mm:ss"),
+      };
+    });
 
     // =========================
     // GABUNG DATA

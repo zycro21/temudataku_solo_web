@@ -11,7 +11,7 @@ const prisma = new PrismaClient();
 export const createMentoringServiceController = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -47,7 +47,7 @@ export const createMentoringServiceController = async (
 export const getAllMentoringServicesController = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { page, limit, search, sort_by, order } = req.validatedQuery!;
@@ -72,7 +72,7 @@ export const getAllMentoringServicesController = async (
 export const getMentoringServiceDetailController = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { id } = req.validatedParams!;
@@ -83,9 +83,8 @@ export const getMentoringServiceDetailController = async (
       return;
     }
 
-    const service = await MentorServiceService.getMentoringServiceDetailById(
-      id
-    );
+    const service =
+      await MentorServiceService.getMentoringServiceDetailById(id);
 
     if (!service) {
       res.status(404).json({ message: "Mentoring service not found" });
@@ -107,7 +106,7 @@ export const getMentoringServiceDetailController = async (
 export const updateMentoringServiceController = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -139,6 +138,9 @@ export const updateMentoringServiceController = async (
       targetAudience,
       schedule,
       alumniPortfolio,
+      category,
+      level,
+      testimonials,
     } = req.validatedBody;
 
     const updatedService =
@@ -158,6 +160,9 @@ export const updateMentoringServiceController = async (
         targetAudience,
         schedule,
         alumniPortfolio,
+        category,
+        level,
+        testimonials,
       });
 
     if (rolesLog.includes("admin") && adminId) {
@@ -186,7 +191,7 @@ export const updateMentoringServiceController = async (
 export const deleteMentoringServiceController = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -219,14 +224,14 @@ export const deleteMentoringServiceController = async (
     // Tambahkan log error (opsional)
     console.error(
       `Error deleting mentoring service with id ${req.validatedParams?.id}:`,
-      err
+      err,
     );
 
     // Pastikan error yang dilempar memiliki pesan yang jelas
     if (
       err instanceof Error &&
       err.message.includes(
-        "Cannot delete service with scheduled or ongoing sessions"
+        "Cannot delete service with scheduled or ongoing sessions",
       )
     ) {
       res.status(400).json({
@@ -242,7 +247,7 @@ export const deleteMentoringServiceController = async (
 export const exportMentoringServicesController = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -259,9 +264,8 @@ export const exportMentoringServicesController = async (
       return;
     }
 
-    const file = await MentorServiceService.exportMentoringServicesToFile(
-      format
-    );
+    const file =
+      await MentorServiceService.exportMentoringServicesToFile(format);
 
     if (rolesLog.includes("admin") && adminId) {
       await logActivity({
@@ -275,7 +279,7 @@ export const exportMentoringServicesController = async (
 
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename=${file.filename}`
+      `attachment; filename=${file.filename}`,
     );
     res.setHeader("Content-Type", file.mimetype);
 
@@ -288,7 +292,7 @@ export const exportMentoringServicesController = async (
 export const getMentoringServicesByMentorController = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const mentorId = req.user?.userId; // Mendapatkan mentorId dari user yang sudah login
@@ -299,9 +303,8 @@ export const getMentoringServicesByMentorController = async (
     }
 
     // Ambil semua mentoring services yang terkait dengan mentor
-    const services = await MentorServiceService.getMentoringServicesByMentor(
-      mentorId
-    );
+    const services =
+      await MentorServiceService.getMentoringServicesByMentor(mentorId);
 
     // Mengembalikan response dengan data mentoring services
     res.status(200).json({
@@ -317,7 +320,7 @@ export const getMentoringServicesByMentorController = async (
 export const getMentoringServiceDetailForMentorController = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { id: serviceId } = req.validatedParams!;
@@ -326,7 +329,7 @@ export const getMentoringServiceDetailForMentorController = async (
     const detail =
       await MentorServiceService.getMentoringServiceDetailForMentor(
         serviceId,
-        userId
+        userId,
       );
 
     if (!detail) {
@@ -341,7 +344,7 @@ export const getMentoringServiceDetailForMentorController = async (
   } catch (error) {
     console.error(
       "Error in getMentoringServiceDetailForMentorController:",
-      error
+      error,
     );
     next(error);
   }
@@ -350,21 +353,23 @@ export const getMentoringServiceDetailForMentorController = async (
 export const getPublicMentoringServicesController = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const {
       page = "1",
-      limit = "10",
+      limit = "50",
       search,
       expertise,
+      serviceType,
     } = req.validatedQuery || {};
 
     const result = await MentorServiceService.getPublicMentoringServices(
       Number(page),
       Number(limit),
       search,
-      expertise
+      expertise,
+      serviceType,
     );
 
     res.status(200).json({
@@ -381,10 +386,78 @@ export const getPublicMentoringServicesController = async (
   }
 };
 
+export const getPublicBootcampsController = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const {
+      page = "1",
+      limit = "50",
+      search,
+      category,
+      level,
+      expertise,
+    } = req.validatedQuery || {};
+
+    const result = await MentorServiceService.getPublicBootcamps(
+      Number(page),
+      Number(limit),
+      search,
+      category,
+      level,
+      expertise,
+    );
+
+    res.status(200).json({
+      data: result.data,
+      pagination: {
+        totalData: result.totalData,
+        totalPage: result.totalPage,
+        currentPage: result.currentPage,
+      },
+    });
+  } catch (error) {
+    console.error("Error in getPublicBootcampsController:", error);
+    next(error);
+  }
+};
+
+export const getRecommendedBootcampsController = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const menteeId = req.user?.userId;
+    const currentServiceId = req.validatedParams?.currentServiceId;
+
+    if (!menteeId || !currentServiceId) {
+      res.status(400).json({
+        message: "Invalid request",
+      });
+      return;
+    }
+
+    const data = await MentorServiceService.getRecommendedBootcamps(
+      menteeId,
+      currentServiceId,
+    );
+
+    res.status(200).json({
+      message: "Recommended bootcamps retrieved successfully",
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getPublicMentoringServiceDetailController = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { id } = req.validatedParams!;
@@ -408,7 +481,7 @@ export const getPublicMentoringServiceDetailController = async (
 export const getNewServicesController = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {

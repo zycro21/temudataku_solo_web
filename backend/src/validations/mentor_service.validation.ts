@@ -16,18 +16,39 @@ export const createMentoringServiceSchema = z.object({
     serviceType: z.enum(allowedServiceTypes),
     maxParticipants: z.number().int().positive().optional(),
     durationDays: z.number().int().positive(),
-    mentorProfileIds: z
-      .array(
-        z.string().regex(/^mentor-\d{6}$/i, "Invalid mentorProfileId format")
-      )
-      .min(1),
+
+    mentorProfileIds: z.array(z.string().regex(/^mentor-\d{6}$/i)).optional(),
+
     benefits: z.string().max(1000).optional(),
     mechanism: z.string().max(1000).optional(),
-    syllabusPath: z.string().url("syllabusPath must be a valid URL").optional(),
+    syllabusPath: z.string().url().optional(),
     toolsUsed: z.string().max(500).optional(),
     targetAudience: z.string().max(500).optional(),
     schedule: z.string().max(1000).optional(),
-    alumniPortfolio: z.string().max(1000).optional(),
+    category: z.string().max(100).optional(),
+    level: z.string().max(100).optional(),
+    isActive: z.boolean().optional(),
+    alumniPortfolio: z
+      .array(
+        z.object({
+          thumbnail: z.string().nullable().optional(),
+          title: z.string(),
+          description: z.string(),
+          menteeName: z.string(),
+          projectLink: z.string().url(),
+        }),
+      )
+      .optional(),
+    testimonials: z
+      .array(
+        z.object({
+          photo: z.string().nullable().optional(),
+          name: z.string(),
+          status: z.string(),
+          comment: z.string(),
+        }),
+      )
+      .optional(),
   }),
 });
 
@@ -54,50 +75,57 @@ export const getMentoringServiceDetailSchema = z.object({
 
 export const updateMentoringServiceSchema = z.object({
   params: z.object({
-    id: z.string().regex(/^[a-z_-]+-\d+$/, {
+    id: z.string().regex(/^[a-z_]+-\d{6}$/i, {
       message: "Invalid mentoring service ID format",
     }),
   }),
   body: z
     .object({
-      serviceName: z.string().min(1, "Service name cannot be empty").optional(),
+      serviceName: z.string().min(1).optional(),
       description: z.string().nullable().optional(),
-      price: z
-        .number()
-        .nonnegative("Price must be a positive number")
-        .optional(),
-      maxParticipants: z
-        .number()
-        .int()
-        .nonnegative("Max participants must be positive")
-        .optional(),
-      durationDays: z
-        .number()
-        .int()
-        .positive("Duration days must be a positive integer")
-        .optional(),
+      price: z.number().nonnegative().optional(),
+      maxParticipants: z.number().int().nonnegative().optional(),
+      durationDays: z.number().int().positive().optional(),
       isActive: z.boolean().optional(),
-      mentorProfileIds: z
-        .array(z.string().min(1))
-        .min(1, "At least one mentor must be specified")
+
+      mentorProfileIds: z.array(z.string().regex(/^mentor-\d{6}$/i)).optional(),
+
+      serviceType: z
+        .enum(["one-on-one", "group", "bootcamp", "shortclass", "live class"])
         .optional(),
 
-      // Tambahan field baru:
-      serviceType: z.enum([
-        "one-on-one",
-        "group",
-        "bootcamp",
-        "shortclass",
-        "live class",
-      ]).optional(),
-      
       benefits: z.string().nullable().optional(),
       mechanism: z.string().nullable().optional(),
       syllabusPath: z.string().nullable().optional(),
       toolsUsed: z.string().nullable().optional(),
       targetAudience: z.string().nullable().optional(),
       schedule: z.string().nullable().optional(),
-      alumniPortfolio: z.string().nullable().optional(),
+
+      category: z.string().optional(),
+      level: z.string().optional(),
+
+      alumniPortfolio: z
+        .array(
+          z.object({
+            thumbnail: z.string(),
+            title: z.string(),
+            description: z.string(),
+            menteeName: z.string(),
+            projectLink: z.string(),
+          }),
+        )
+        .optional(),
+
+      testimonials: z
+        .array(
+          z.object({
+            photo: z.string(),
+            name: z.string(),
+            status: z.string(),
+            comment: z.string(),
+          }),
+        )
+        .optional(),
     })
     .refine((data) => Object.keys(data).length > 0, {
       message: "At least one field must be provided for update",
@@ -126,7 +154,7 @@ export const getMentoringServiceDetailValidatorSchema = z.object({
       .min(1, "Service ID is required")
       .regex(
         /^[a-zA-Z_]+-\d{6}$/,
-        "Invalid service ID format. Expected format: prefix-000001"
+        "Invalid service ID format. Expected format: prefix-000001",
       ),
   }),
 });
@@ -134,9 +162,28 @@ export const getMentoringServiceDetailValidatorSchema = z.object({
 export const PublicMentoringServiceQuery = z.object({
   query: z.object({
     page: z.string().optional().default("1"),
-    limit: z.string().optional().default("10"),
+    limit: z.string().optional().default("50"),
     search: z.string().optional(),
     expertise: z.string().optional(),
+
+    serviceType: z.enum(["one-on-one", "group", "bootcamp"]).optional(),
+  }),
+});
+
+export const PublicBootcampQuery = z.object({
+  query: z.object({
+    page: z.string().optional().default("1"),
+    limit: z.string().optional().default("50"),
+    search: z.string().optional(),
+    category: z.string().optional(),
+    level: z.string().optional(),
+    expertise: z.string().optional(),
+  }),
+});
+
+export const getRecommendedBootcampsSchema = z.object({
+  params: z.object({
+    currentServiceId: z.string().min(1, "Current service id is required"),
   }),
 });
 

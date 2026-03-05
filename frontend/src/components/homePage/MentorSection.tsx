@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import {
   Carousel,
   CarouselApi,
@@ -13,6 +14,8 @@ import React from "react";
 import Image from "next/image";
 
 const MentorSection = () => {
+  const router = useRouter();
+
   const [api, setApi] = React.useState<CarouselApi>();
   const [current, setCurrent] = React.useState(0);
   const [count, setCount] = React.useState(0);
@@ -30,49 +33,63 @@ const MentorSection = () => {
   const mentors = [
     {
       id: 1,
-      name: "Vania Frederica",
-      role: "Data Scientist di Lorem Ipsum",
-      experience: "2 Tahun Sebagai Data Scientist",
-      skills: "Python, Excel, BI, SQL",
-      image: "/assets/mentorPage/mentors/vania.svg",
+      name: "Jesselyn Mu",
+      role: "Mentor Data Scientist",
+      experience: "Teknik Informatika UPNV Jakarta",
+      skills:
+        "Python, SQL, Machine Learning, Statistical Analysis, Data Visualization (Tableau/Power BI), Predictive Modeling, Big Data Analytics, Deep Learning",
+      image: "/assets/mentor/jessely.png",
     },
     {
       id: 2,
-      name: "Mochamad Dimas Putra Hermawan",
-      role: "Data Scientist di Lorem Ipsum",
-      experience: "2 Tahun Sebagai Data Scientist",
-      skills: "Python, Excel, BI, SQL",
-      image: "/assets/mentorPage/mentors/dimas.svg",
+      name: "Vania Frederica",
+      role: "Mentor Data Analyst",
+      experience: "Statistika Institut Teknologi Sepuluh Nopember",
+      skills:
+        "SQL, Power BI, Tableau, Advanced Excel, Google Looker Studio, Data Storytelling, Exploratory Data Analysis (EDA)",
+      image: "/assets/mentor/vania.png",
     },
     {
       id: 3,
-      name: "Jesselyn Mu",
-      role: "Data Scientist di Lorem Ipsum",
-      experience: "3 Tahun Sebagai Data Scientist",
-      skills: "Python, Excel, BI, SQL",
-      image: "/assets/mentorPage/mentors/jesselyn.svg",
+      name: "Muhamad Ali",
+      role: "Mentor AI Engineer",
+      experience: "S2 Data Science for Business Utel University",
+      skills:
+        "Deep Learning, PyTorch, TensorFlow, Computer Vision, NLP, MLOps, Cloud Computing, LLM",
+      image: "/assets/mentor/ali.png",
     },
     {
       id: 4,
-      name: "M. Iqbal Purba",
-      role: "Data Scientist di Lorem Ipsum",
-      experience: "3 Tahun Sebagai Data Scientist",
-      skills: "Python, Excel, BI, SQL",
-      image: "/assets/mentorPage/mentors/iqbal.svg",
+      name: "Mochamad Dimas Putra Hermawan",
+      role: "Mentor Machine Learning Engineer",
+      experience: "Teknologi Informasi Universitas Brawijaya",
+      skills:
+        "Python, Machine Learning Model, Docker, Kubernetes, MLOps Pipeline, Model Deployment, CI/CD for ML",
+      image: "/assets/mentor/dimas.png",
     },
     {
       id: 5,
-      name: "Muhamad Ali",
-      role: "Data Scientist di Lorem Ipsum",
-      experience: "3 Tahun Sebagai Data Scientist",
-      skills: "Python, Excel, BI, SQL",
-      image: "/assets/mentorPage/mentors/ali.svg",
+      name: "Verren Angelina Saputra",
+      role: "Mentor AI Engineer",
+      experience: "Teknik Informatika Binus University",
+      skills:
+        "Python, TensorFlow, PyTorch, OpenCV, Deep Learning, Computer Vision, Natural Language Processing (NLP), LLM",
+      image: "/assets/mentor/verren.png",
+    },
+    {
+      id: 6,
+      name: "Muchammad Anang Setianto",
+      role: "Mentor Data Engineer",
+      experience: "Sistem Informasi Binus University",
+      skills:
+        "Apache Airflow, Spark, Hadoop, PostgreSQL, BigQuery, Snowflake, Data Warehousing, ETL/ELT Pipeline, Database Schema Design",
+      image: "/assets/mentor/anang.png",
     },
   ];
 
   return (
-    <section className="py-8 md:py-16">
-      <div className="max-w-[88rem] mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="pb-8 md:pb-16">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center mb-8">
           <div>
             <p className="text-sm font-semibold text-[#243A77] mb-2">Mentor</p>
@@ -104,34 +121,39 @@ const MentorSection = () => {
                   className="pl-2 md:pl-4 basis-[85%] sm:basis-[65%] md:basis-1/2 lg:basis-1/3"
                 >
                   <div className="bg-white rounded-lg overflow-hidden shadow-none h-full">
-                    <div className=" relative h-64 sm:h-72 md:h-80 bg-gradient-to-br from-gray-100 to-gray-200 flex-shrink-0">
+                    <div className="relative h-64 sm:h-72 md:h-80 bg-white flex items-center justify-center">
                       <Image
                         src={mentor.image}
                         alt={mentor.name}
                         width={400}
-                        height={320}
-                        className="w-full h-full object-cover"
+                        height={310}
+                        className="w-full h-full object-contain"
                       />
                     </div>
                     <div className="p-6">
-                      <h3 className="text-xl font-bold text-gray-900 mb-2">
+                      <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
                         {mentor.name}
                       </h3>
                       <div className="space-y-2 mb-4">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Briefcase className="w-4 h-4" />
+                        <div className="flex items-center gap-3 text-base text-gray-700">
+                          <Briefcase className="w-5 h-5" />
                           <span>{mentor.role}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Calendar className="w-4 h-4" />
+                        <div className="flex items-center gap-3 text-base text-gray-700">
+                          <Calendar className="w-5 h-5" />
                           <span>{mentor.experience}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Code className="w-4 h-4" />
-                          <span>{mentor.skills}</span>
+                        <div className="flex items-start gap-3 text-base text-gray-700">
+                          <Code className="w-5 h-5 shrink-0 mt-1" />
+                          <span className="leading-relaxed break-words">
+                            {mentor.skills}
+                          </span>
                         </div>
                       </div>
-                      <button className="text-[#0CA678] font-medium text-sm hover:underline">
+                      <button
+                        onClick={() => router.push("/mentor")}
+                        className="text-[#0CA678] font-semibold text-base hover:underline hover:cursor-pointer"
+                      >
                         Lihat Profil Lengkap
                       </button>
                     </div>

@@ -9,6 +9,8 @@ import {
   exportMentoringServicesSchema,
   getMentoringServiceDetailValidatorSchema,
   PublicMentoringServiceQuery,
+  PublicBootcampQuery,
+  getRecommendedBootcampsSchema,
   PublicMentoringServiceIdParamSchema,
   getNewServicesSchema,
 } from "../validations/mentor_service.validation.js";
@@ -160,7 +162,7 @@ router.post(
   authenticate,
   authorizeRoles("admin"),
   validate(createMentoringServiceSchema),
-  MentorServiceController.createMentoringServiceController
+  MentorServiceController.createMentoringServiceController,
 );
 
 /**
@@ -267,7 +269,7 @@ router.get(
   authenticate,
   authorizeRoles("admin"),
   validate(getAllMentoringServicesSchema),
-  MentorServiceController.getAllMentoringServicesController
+  MentorServiceController.getAllMentoringServicesController,
 );
 
 /**
@@ -449,7 +451,7 @@ router.get(
   authenticate,
   authorizeRoles("admin"),
   validate(getMentoringServiceDetailSchema),
-  MentorServiceController.getMentoringServiceDetailController
+  MentorServiceController.getMentoringServiceDetailController,
 );
 
 /**
@@ -621,7 +623,7 @@ router.patch(
   authenticate,
   authorizeRoles("admin"),
   validate(updateMentoringServiceSchema),
-  MentorServiceController.updateMentoringServiceController
+  MentorServiceController.updateMentoringServiceController,
 );
 
 /**
@@ -678,7 +680,7 @@ router.delete(
   authenticate,
   authorizeRoles("admin"),
   validate(deleteMentoringServiceSchema),
-  MentorServiceController.deleteMentoringServiceController
+  MentorServiceController.deleteMentoringServiceController,
 );
 
 /**
@@ -723,7 +725,7 @@ router.get(
   authenticate,
   authorizeRoles("admin"),
   validate(exportMentoringServicesSchema),
-  MentorServiceController.exportMentoringServicesController
+  MentorServiceController.exportMentoringServicesController,
 );
 
 /**
@@ -760,7 +762,7 @@ router.get(
  *                       price:
  *                         type: number
  *                       serviceType:
- *                         type: string 
+ *                         type: string
  *                         nullable: true
  *                       maxParticipants:
  *                         type: integer
@@ -844,7 +846,7 @@ router.get(
   "/mentor/mentoring-services",
   authenticate,
   authorizeRoles("mentor"),
-  MentorServiceController.getMentoringServicesByMentorController
+  MentorServiceController.getMentoringServicesByMentorController,
 );
 
 /**
@@ -978,7 +980,7 @@ router.get(
   authenticate,
   authorizeRoles("mentor"),
   validate(getMentoringServiceDetailValidatorSchema),
-  MentorServiceController.getMentoringServiceDetailForMentorController
+  MentorServiceController.getMentoringServiceDetailForMentorController,
 );
 
 /**
@@ -1061,7 +1063,113 @@ router.get(
 router.get(
   "/public-mentoring-services",
   validate(PublicMentoringServiceQuery),
-  MentorServiceController.getPublicMentoringServicesController
+  MentorServiceController.getPublicMentoringServicesController,
+);
+
+/**
+ * @swagger
+ * /api/mentorService/public-bootcamps:
+ *   get:
+ *     summary: List bootcamp publik (filtered by quota & session date)
+ *     tags: [MentorService]
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: level
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: expertise
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Bootcamp list retrieved successfully
+ */
+router.get(
+  "/public-bootcamps",
+  validate(PublicBootcampQuery),
+  MentorServiceController.getPublicBootcampsController,
+);
+
+/**
+ * @swagger
+ * /api/mentorService/recommended-bootcamps/{currentServiceId}:
+ *   get:
+ *     summary: Get recommended bootcamps for mentee
+ *     tags: [MentorService]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: currentServiceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         example: bootcamp-000012
+ *     responses:
+ *       200:
+ *         description: Recommended bootcamps retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Recommended bootcamps retrieved successfully
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         example: bootcamp-000045
+ *                       serviceName:
+ *                         type: string
+ *                         example: Advanced UI/UX Bootcamp
+ *                       price:
+ *                         type: number
+ *                         example: 250000
+ *                       category:
+ *                         type: string
+ *                         example: Design
+ *                       level:
+ *                         type: string
+ *                         example: Intermediate
+ *                       toolsUsed:
+ *                         type: string
+ *                         example: Figma, FigJam
+ *                       availableSlots:
+ *                         type: integer
+ *                         example: 12
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+router.get(
+  "/recommended-bootcamps/:currentServiceId",
+  authenticate,
+  validate(getRecommendedBootcampsSchema),
+  MentorServiceController.getRecommendedBootcampsController,
 );
 
 /**
@@ -1130,17 +1238,20 @@ router.get(
 router.get(
   "/public-mentoring-services/:id",
   validate(PublicMentoringServiceIdParamSchema),
-  MentorServiceController.getPublicMentoringServiceDetailController
+  MentorServiceController.getPublicMentoringServiceDetailController,
 );
 
 /**
  * @swagger
  * /api/mentorService/new-services:
  *   get:
- *     summary: Mendapatkan daftar layanan baru yang belum pernah dibeli atau dibooking oleh mentee
+ *     summary: Mendapatkan daftar layanan booking (One-on-One, Group, Bootcamp) dan Practice yang belum pernah dibeli
  *     description: >
- *       Endpoint ini mengembalikan gabungan **MentoringService** dan **Practice** yang belum pernah dibeli (dari `practice_purchases`) atau dibooking (dari `bookings`) oleh mentee yang sedang login.
- *       <br>Digunakan untuk menampilkan rekomendasi layanan baru di homepage.
+ *       Mengembalikan MentoringService dengan serviceType:
+ *       - one-on-one
+ *       - group
+ *       - bootcamp
+ *       Liveclass dan shortclass menggunakan sistem subscription dan tidak termasuk di endpoint ini.
  *     tags: [Homepage]
  *     security:
  *       - bearerAuth: []
@@ -1201,7 +1312,7 @@ router.get(
   "/new-services",
   authenticate,
   validate(getNewServicesSchema),
-  MentorServiceController.getNewServicesController
+  MentorServiceController.getNewServicesController,
 );
 
 export default router;

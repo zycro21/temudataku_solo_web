@@ -35,8 +35,8 @@ export default function ToolsSection() {
   const duplicatedTools = [...tools, ...tools];
 
   return (
-    <section className="py-16 mb-5 bg-white overflow-hidden">
-      <div className="container mx-auto px-8 md:px-[100px]">
+    <section className="py-20 mb-5 bg-white overflow-hidden">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-12">
           <p className="text-sm font-semibold text-[#243A77] mb-2">Tools</p>
@@ -52,8 +52,18 @@ export default function ToolsSection() {
           <div className="scroll-wrapper overflow-hidden relative">
             <div className="flex scroll-track animate-scroll-left hover:pause-scroll">
               {duplicatedTools.map((tool, index) => (
-                <div key={`${tool.id}-${index}`} className="flex-shrink-0 mx-8 flex items-center justify-center" style={{ minWidth: "100px" }}>
-                  <Image src={tool.logo} alt={`${tool.name} logo`} width={80} height={80} className="h-12 md:h-16 w-auto object-contain opacity-70 hover:opacity-100 transition-opacity duration-300" />
+                <div
+                  key={`${tool.id}-${index}`}
+                  className="flex-shrink-0 mx-8 flex items-center justify-center"
+                  style={{ minWidth: "100px" }}
+                >
+                  <Image
+                    src={tool.logo}
+                    alt={`${tool.name} logo`}
+                    width={80}
+                    height={80}
+                    className="h-12 md:h-16 w-auto object-contain opacity-70 hover:opacity-100 transition-opacity duration-300"
+                  />
                 </div>
               ))}
             </div>

@@ -44,53 +44,69 @@ const MentorSection = () => {
   const mentors = [
     {
       id: 1,
-      name: "Vania Frederica",
-      role: "Data Scientist di Lorem Ipsum",
-      experience: "2 Tahun",
-      skills: "Python, Excel, BI, SQL",
+      name: "Jesselyn Mu",
+      role: "Mentor Data Scientist",
+      experience: "Teknik Informatika UPNV Jakarta",
+      skills:
+        "Python, SQL, Machine Learning, Statistical Analysis, Data Visualization (Tableau/Power BI), Predictive Modeling, Big Data Analytics, Deep Learning",
       biography:
-        "Lorem ipsum dolor sit amet consectetur. Congue iaculis eget at risus sagittis etiam lorem. Posuere sed eget metus gravida vitae venenatis quis. Lobortis erat est quisque etiam et. Morbi adipiscing arcu malesuada tempor id volutpat.",
-      image: "/assets/mentorPage/mentors/vania.svg",
+        "Jesselyn adalah praktisi Data Science dengan pengalaman mengerjakan berbagai project machine learning dan analytics di industri. Ia fokus pada implementasi model yang scalable dan business-oriented.",
+      image: "/assets/mentor/jessely.png",
     },
     {
       id: 2,
-      name: "Mochamad Dimas Putra Hermawan",
-      role: "Data Scientist di Lorem Ipsum",
-      experience: "2 Tahun",
-      skills: "Python, Excel, BI, SQL",
+      name: "Vania Frederica",
+      role: "Mentor Data Analyst",
+      experience: "Statistika Institut Teknologi Sepuluh Nopember",
+      skills:
+        "SQL, Power BI, Tableau, Advanced Excel, Google Looker Studio, Data Storytelling, Exploratory Data Analysis (EDA)",
       biography:
-        "Lorem ipsum dolor sit amet consectetur. Congue iaculis eget at risus sagittis etiam lorem. Posuere sed eget metus gravida vitae venenatis quis. Lobortis erat est quisque etiam et. Morbi adipiscing arcu malesuada tempor id volutpat.",
-      image: "/assets/mentorPage/mentors/dimas.svg",
+        "Vania memiliki spesialisasi dalam data visualization dan storytelling. Ia membantu mentee memahami bagaimana mengubah data mentah menjadi insight yang actionable.",
+      image: "/assets/mentor/vania.png",
     },
     {
       id: 3,
-      name: "Muhammad Iqbal Purba",
-      role: "Data Scientist di Lorem Ipsum",
-      experience: "3 Tahun",
-      skills: "Python, Excel, BI, SQL",
+      name: "Muhamad Ali",
+      role: "Mentor AI Engineer",
+      experience: "S2 Data Science for Business Utel University",
+      skills:
+        "Deep Learning, PyTorch, TensorFlow, Computer Vision, NLP, MLOps, Cloud Computing, LLM",
       biography:
-        "Lorem ipsum dolor sit amet consectetur. Congue iaculis eget at risus sagittis etiam lorem. Posuere sed eget metus gravida vitae venenatis quis. Lobortis erat est quisque etiam et. Morbi adipiscing arcu malesuada tempor id volutpat.",
-      image: "/assets/mentorPage/mentors/iqbal.svg",
+        "Ali fokus pada deep learning dan AI production system. Ia berpengalaman dalam deployment model dan pengembangan solusi AI berbasis cloud.",
+      image: "/assets/mentor/ali.png",
     },
     {
       id: 4,
-      name: "Jesselyn Mu",
-      role: "Data Engineer",
-      experience: "4 Tahun",
-      skills: "Python, Spark",
+      name: "Mochamad Dimas Putra Hermawan",
+      role: "Mentor Machine Learning Engineer",
+      experience: "Teknologi Informasi Universitas Brawijaya",
+      skills:
+        "Python, Machine Learning Model, Docker, Kubernetes, MLOps Pipeline, Model Deployment, CI/CD for ML",
       biography:
-        "Lorem ipsum dolor sit amet consectetur. Congue iaculis eget at risus sagittis etiam lorem. Posuere sed eget metus gravida vitae venenatis quis. Lobortis erat est quisque etiam et. Morbi adipiscing arcu malesuada tempor id volutpat.",
-      image: "/assets/mentorPage/mentors/jesselyn.svg",
+        "Dimas berpengalaman membangun ML pipeline end-to-end dari experimentation hingga deployment menggunakan best practice MLOps.",
+      image: "/assets/mentor/dimas.png",
     },
     {
       id: 5,
-      name: "Muhammad ALi",
-      role: "ML Engineer",
-      experience: "2 Tahun",
-      skills: "TensorFlow, Python",
+      name: "Verren Angelina Saputra",
+      role: "Mentor AI Engineer",
+      experience: "Teknik Informatika Binus University",
+      skills:
+        "Python, TensorFlow, PyTorch, OpenCV, Deep Learning, Computer Vision, Natural Language Processing (NLP), LLM",
       biography:
-        "Lorem ipsum dolor sit amet consectetur. Congue iaculis eget at risus sagittis etiam lorem. Posuere sed eget metus gravida vitae venenatis quis. Lobortis erat est quisque etiam et. Morbi adipiscing arcu malesuada tempor id volutpat.",
-      image: "/assets/mentorPage/mentors/ali.svg",
+        "Verren memiliki spesialisasi di Computer Vision dan NLP. Ia aktif mengembangkan solusi AI berbasis deep learning.",
+      image: "/assets/mentor/verren.png",
+    },
+    {
+      id: 6,
+      name: "Muchammad Anang Setianto",
+      role: "Mentor Data Engineer",
+      experience: "Sistem Informasi Binus University",
+      skills:
+        "Apache Airflow, Spark, Hadoop, PostgreSQL, BigQuery, Snowflake, Data Warehousing, ETL/ELT Pipeline, Database Schema Design",
+      biography:
+        "Anang adalah Data Engineer dengan pengalaman membangun data pipeline skala besar dan arsitektur data warehouse modern.",
+      image: "/assets/mentor/anang.png",
     },
   ];
 
@@ -108,7 +124,7 @@ const MentorSection = () => {
 
   return (
     <section id="mentorSection" className="py-10 md:py-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-[1150px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center mb-8">
           <div>
             <p className="text-sm font-semibold text-[#243A77] mb-2">Mentor</p>
@@ -135,35 +151,62 @@ const MentorSection = () => {
                   {group.map((mentor) => (
                     <div
                       key={mentor.id}
-                      className="bg-white rounded-lg shadow-lg overflow-hidden h-full"
+                      className="
+    bg-white rounded-2xl 
+    border border-gray-200 
+    overflow-hidden h-full
+    transition-all duration-300
+    hover:-translate-y-2
+    hover:shadow-2xl
+    hover:border-emerald-300
+    group
+  "
                     >
-                      <div className="relative h-64 bg-gradient-to-br from-gray-100 to-gray-200">
+                      {/* IMAGE SECTION */}
+                      <div className="relative h-64 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center overflow-hidden">
+                        {/* Decorative Soft Circle */}
+                        <div className="absolute w-72 h-72 bg-emerald-100 rounded-full blur-3xl opacity-40 group-hover:opacity-60 transition duration-500"></div>
+
                         <Image
                           src={mentor.image}
                           alt={mentor.name}
                           width={500}
                           height={500}
-                          className="w-full h-full object-cover"
+                          className="
+      relative z-10 
+      max-h-[85%] 
+      w-auto 
+      object-contain
+    "
                         />
                       </div>
+
+                      {/* ROLE BADGE (Floating Below Image) */}
+                      <div className="flex justify-center">
+                        <div className="mt-4 bg-white px-5 py-2 rounded-full text-xs font-semibold text-emerald-600 shadow-md border border-gray-200">
+                          {mentor.role}
+                        </div>
+                      </div>
+
+                      {/* CONTENT SECTION */}
                       <div className="p-6">
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">
+                        <h3 className="text-xl font-bold text-gray-900 leading-snug mb-1">
                           {mentor.name}
                         </h3>
-                        <div className="space-y-2 mb-4">
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Briefcase className="w-4 h-4" />
-                            <span>{mentor.role}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Calendar className="w-4 h-4" />
-                            <span>{mentor.experience}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Code className="w-4 h-4" />
-                            <span>{mentor.skills}</span>
+
+                        <p className="text-sm text-gray-500 mb-4">
+                          {mentor.experience}
+                        </p>
+
+                        <div className="space-y-3 mb-4">
+                          <div className="flex items-start gap-3 text-sm text-gray-700">
+                            <Code className="w-4 h-4 shrink-0 mt-1 text-emerald-500" />
+                            <span className="leading-relaxed line-clamp-3">
+                              {mentor.skills}
+                            </span>
                           </div>
                         </div>
+
                         <Dialog>
                           <DialogTrigger asChild>
                             <button
@@ -171,12 +214,15 @@ const MentorSection = () => {
                                 setSelectedMentor(mentor);
                                 setIsDialogOpen(true);
                               }}
-                              className="text-[#0CA678] font-medium text-sm hover:underline hover:cursor-pointer"
+                              className="text-[#0CA678] font-semibold text-base hover:underline hover:cursor-pointer"
                             >
                               Lihat Profil Lengkap
                             </button>
                           </DialogTrigger>
-                          <DialogContent className="max-w-lg">
+                          <DialogContent
+                            className="max-w-lg"
+                            onPointerDownOutside={(e) => e.preventDefault()}
+                          >
                             <DialogHeader>
                               <VisuallyHidden>
                                 <DialogTitle>
@@ -185,38 +231,48 @@ const MentorSection = () => {
                               </VisuallyHidden>
                               <DialogDescription asChild>
                                 <div className="mt-4">
-                                  <div className="w-full flex justify-center bg-white rounded-t-md mb-4">
-                                    <Image
-                                      width={500}
-                                      height={500}
-                                      src={selectedMentor?.image}
-                                      alt={selectedMentor?.name}
-                                      className="max-h-60 w-auto object-contain"
-                                    />
-                                  </div>
-                                  <div className="mb-4">
-                                    <span className="text-xl font-bold text-gray-900 mb-2">
+                                  {/* Header Section */}
+                                  <div className="relative bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl p-6 mb-6 text-white text-center">
+                                    <div className="flex justify-center mb-4">
+                                      <Image
+                                        width={120}
+                                        height={120}
+                                        src={selectedMentor?.image}
+                                        alt={selectedMentor?.name}
+                                        className="rounded-full border-4 border-white shadow-lg object-contain bg-white"
+                                      />
+                                    </div>
+                                    <h3 className="text-2xl font-bold">
                                       {selectedMentor?.name}
-                                    </span>
+                                    </h3>
+                                    <p className="text-base opacity-90">
+                                      {selectedMentor?.role}
+                                    </p>
                                   </div>
-                                  <div className="flex items-center gap-2 text-sm">
-                                    <Briefcase className="w-4 h-4" />
-                                    <span>{selectedMentor?.role}</span>
+
+                                  {/* Detail Section */}
+                                  <div className="space-y-4">
+                                    <div className="flex items-center gap-3 text-base text-gray-700">
+                                      <Calendar className="w-5 h-5 text-emerald-500" />
+                                      <span>{selectedMentor?.experience}</span>
+                                    </div>
+
+                                    <div className="flex items-start gap-3 text-base text-gray-700">
+                                      <Code className="w-5 h-5 text-emerald-500 shrink-0 mt-1" />
+                                      <span className="leading-relaxed break-words">
+                                        {selectedMentor?.skills}
+                                      </span>
+                                    </div>
+
+                                    <div className="mt-6 p-4 bg-gray-50 rounded-lg border">
+                                      <p className="text-base font-semibold mb-2">
+                                        Biografi
+                                      </p>
+                                      <p className="text-base text-gray-700 leading-relaxed">
+                                        {selectedMentor?.biography}
+                                      </p>
+                                    </div>
                                   </div>
-                                  <div className="flex items-center gap-2 text-sm ">
-                                    <Calendar className="w-4 h-4" />
-                                    <span>{selectedMentor?.experience}</span>
-                                  </div>
-                                  <div className="flex items-center gap-2 text-sm ">
-                                    <Code className="w-4 h-4" />
-                                    <span>{selectedMentor?.skills}</span>
-                                  </div>
-                                  <p className="text-sm font-bold mt-4">
-                                    Biografi :
-                                  </p>
-                                  <p className="text-sm">
-                                    {selectedMentor?.biography}
-                                  </p>
                                 </div>
                               </DialogDescription>
                             </DialogHeader>

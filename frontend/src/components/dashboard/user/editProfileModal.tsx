@@ -150,6 +150,7 @@ export default function EditProfileModal({
                   alt="Foto Mentee"
                   width={80}
                   height={80}
+                  unoptimized
                   className="object-cover w-full h-full"
                 />
               </div>

@@ -53,6 +53,9 @@ const router = Router();
  *                 additionalProperties: true
  *               hourlyRate:
  *                 type: number
+ *               linkedin:
+ *                 type: string
+*                  description: URL LinkedIn mentor
  *             example:
  *               userId: "user-123"  # Hanya untuk admin
  *               expertise: "Software Engineering"

@@ -1,4 +1,5 @@
 "use client";
+
 import {
   Carousel,
   CarouselApi,
@@ -7,7 +8,6 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import Image from "next/image";
 import React, { useRef, useEffect, useState } from "react";
 
 const TestimonialSection = () => {
@@ -15,72 +15,117 @@ const TestimonialSection = () => {
   const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
 
+  // State untuk track testimonial yang di-expand
   const [expanded, setExpanded] = useState<{ [key: number]: boolean }>({});
+
+  // State untuk track apakah tombol load more perlu ditampilkan
   const [showButton, setShowButton] = useState<{ [key: number]: boolean }>({});
+
   const testimonialRefs = useRef<{
     [key: number]: HTMLParagraphElement | null;
   }>({});
 
+  useEffect(() => {
+    if (!api) return;
+
+    setCount(testimonials.length);
+
+    const updateCurrent = () => {
+      const selected = api.selectedScrollSnap();
+      setCurrent(selected + 1);
+    };
+
+    updateCurrent();
+    api.on("select", updateCurrent);
+
+    return () => {
+      api.off("select", updateCurrent);
+    };
+  }, [api]);
+
   const testimonials = [
     {
       id: 1,
-      name: "Hidieo Riz’n",
-      status: "Fresh Graduate",
+      name: "Hidieo Rizan",
+      status: "Mahasiswa Teknik Informatika",
       testimonial:
-        "Ikut Short Class All You Need to Know for Data Scientist di TemuDataku daging banget dan materinya mudah dipahami.",
+        "Ikut Short Class 'All You Need to Know for Data Scientist' di TemuDataku daging banget! Materinya mudah dipahami dan sangat membantu saya memetakan skill yang harus dipelajari pertama kali.",
     },
     {
       id: 2,
-      name: "Riani Purnamasari",
-      status: "Career Switcher",
+      name: "Riani Purnamasari Eka Putri",
+      status: "Career Switcher (Background Akuntansi)",
       testimonial:
-        "Keren banget programnya, materinya daging dan penjelasannya disusun sistematis sehingga mudah dipahami bahkan untuk level pemula seperti saya. Hands on nya dan project bermanfaat utk buat portofolio. Wajib ikutan lagi sih kalau ada program dari TemuDataku.",
+        "Program Bootcamp-nya keren banget. Penjelasannya sistematis sehingga mudah dipahami bahkan untuk pemula seperti saya. Hands-on project-nya sangat bermanfaat untuk portofolio kerja. Wajib ikut lagi sih!",
     },
     {
       id: 3,
       name: "Ega Adit Laksono",
-      status: "Mahasiswa",
+      status: "Mahasiswa Sistem Informasi",
       testimonial:
-        "Pengalaman yang aku dapatkan sangat seru karena bisa tahu banyak hal terkait bagaimana caranya menjadi data scientist lewat pemrograman python dan diajarkan beberapa hal yang belum pernah kutemui bersama TemuDataku.",
+        "Pengalaman belajar bareng TemuDataku seru sekali! Saya jadi tahu cara implementasi Python untuk Data Science dan diajarkan banyak hal teknis yang belum pernah saya dapatkan di kampus.",
     },
     {
       id: 4,
-      name: "Johan 2",
-      status: "Mahasiswa",
+      name: "Setya Araryo Kalingga",
+      status: "Mahasiswa Statistika",
       testimonial:
-        "Lorem ipsum dolor sit amet consectetur. Elementum augue eget leo ut commodo morbi. Eget scelerisque aliquam turpis elementum in eu mattis posuere. Aliquam elit egestas est odio aenean mattis bibendum lorem.",
+        "Sesi mentoring-nya sangat membantu saya memahami konsep machine learning yang sebelumnya terasa sulit. Sekarang saya lebih percaya diri mengerjakan project analisis data.",
+    },
+    {
+      id: 5,
+      name: "Siti Aminah Nurhayati",
+      status: "Fresh Graduate",
+      testimonial:
+        "Group Mentoring-nya interaktif! Meskipun belajar bareng-bareng, tiap orang tetap dapat giliran untuk review code. Sangat efektif buat yang ingin belajar kolaborasi tim di GitHub.",
+    },
+    {
+      id: 6,
+      name: "Hendra Albert Kusuma",
+      status: "Fresh Graduate",
+      testimonial:
+        "Materi visualisasi data di Bootcamp ini sangat mendalam. Tidak cuma belajar cara pakai tools-nya, tapi juga diajarkan storytelling agar insight mudah dipahami stakeholder.",
+    },
+    {
+      id: 7,
+      name: "Bagas Wiratama",
+      status: "Mahasiswa Teknik Komputer",
+      testimonial:
+        "Mentoring privat di sini bener-bener membuka wawasan saya tentang deployment model dan praktik nyata di industri. Insight yang diberikan sangat aplikatif dan tidak hanya teori.",
     },
   ];
 
   useEffect(() => {
-    if (!api) return;
+    const checkOverflow = () => {
+      const updatedState: { [key: number]: boolean } = {};
 
-    setCount(api.scrollSnapList().length);
-    setCurrent(api.selectedScrollSnap() + 1);
+      testimonials.forEach((t) => {
+        const el = testimonialRefs.current[t.id];
+        if (el) {
+          const computed = window.getComputedStyle(el);
+          const lineHeight = parseFloat(computed.lineHeight);
+          const maxHeight = lineHeight * 5; // 🔥 kita pakai 5 baris sesuai requirement
 
-    api.on("select", () => {
-      setCurrent(api.selectedScrollSnap() + 1);
-    });
-  }, [api]);
+          updatedState[t.id] = el.scrollHeight > maxHeight + 1;
+        }
+      });
 
-  useEffect(() => {
-    testimonials.forEach((t) => {
-      const el = testimonialRefs.current[t.id];
-      if (el) {
-        const lineHeight = parseInt(getComputedStyle(el).lineHeight, 10);
-        const maxHeight = lineHeight * 6; // line-clamp-6
-        setShowButton((prev) => ({
-          ...prev,
-          [t.id]: el.scrollHeight > maxHeight,
-        }));
-      }
-    });
-  }, [testimonialRefs.current]);
+      setShowButton(updatedState);
+    };
+
+    const timeout = setTimeout(checkOverflow, 100); // tunggu layout settle
+    window.addEventListener("resize", checkOverflow);
+
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener("resize", checkOverflow);
+    };
+  }, []);
 
   return (
-    <section className="py-16 bg-[#E5E7EB] relative overflow-hidden">
-      <div className="container mx-auto px-8 md:px-[100px] relative z-10">
-        <div className="flex justify-between items-center mb-8">
+    <section className="py-16 mt-10 bg-[#E5E7EB] relative overflow-hidden">
+      <div className="max-w-[1150px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="flex justify-between items-center mb-4">
           <div>
             <p className="text-sm font-semibold text-[#243A77] mb-2">
               Testimoni
@@ -89,6 +134,7 @@ const TestimonialSection = () => {
               Apa Kata Mereka?
             </h2>
           </div>
+          <div className="hidden md:flex gap-2"></div>
         </div>
 
         <Carousel
@@ -105,6 +151,7 @@ const TestimonialSection = () => {
             {testimonials.map((person) => {
               const isExpanded = expanded[person.id] ?? false;
               const needsButton = showButton[person.id];
+
               return (
                 <CarouselItem
                   key={person.id}
@@ -116,7 +163,7 @@ const TestimonialSection = () => {
                         testimonialRefs.current[person.id] = el;
                       }}
                       className={`text-gray-700 text-lg leading-relaxed mb-4 ${
-                        !isExpanded ? "line-clamp-6" : ""
+                        !isExpanded ? "line-clamp-5" : ""
                       }`}
                     >
                       &ldquo;{person.testimonial}&rdquo;
@@ -134,13 +181,11 @@ const TestimonialSection = () => {
                         {isExpanded ? "Load Less" : "Load More"}
                       </button>
                     )}
-                    <div className="mt-4 flex items-center gap-3">
-                      <div>
-                        <h3 className="text-base font-semibold text-gray-900 mb-1">
-                          {person.name}
-                        </h3>
-                        <p className="text-sm text-gray-600">{person.status}</p>
-                      </div>
+                    <div className="mt-4">
+                      <h3 className="text-base font-semibold text-gray-900 mb-1">
+                        {person.name}
+                      </h3>
+                      <p className="text-sm text-gray-600">{person.status}</p>
                     </div>
                   </div>
                 </CarouselItem>

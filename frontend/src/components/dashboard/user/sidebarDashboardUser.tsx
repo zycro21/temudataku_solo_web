@@ -42,12 +42,12 @@ const menuItems = [
     icon: "/assets/dashboard/user/sertifikat.svg",
     activeIcon: "/assets/dashboard/user/whitesertifikat.svg",
   },
-  {
-    name: "Practice",
-    href: "/dashboard/user/practice",
-    icon: "/assets/dashboard/user/practice.svg",
-    activeIcon: "/assets/dashboard/user/whitepractice.svg",
-  },
+  // {
+  //   name: "Practice",
+  //   href: "/dashboard/user/practice",
+  //   icon: "/assets/dashboard/user/practice.svg",
+  //   activeIcon: "/assets/dashboard/user/whitepractice.svg",
+  // },
   {
     name: "Histori Transaksi",
     href: "/dashboard/user/transaction",

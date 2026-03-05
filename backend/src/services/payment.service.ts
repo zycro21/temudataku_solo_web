@@ -32,39 +32,83 @@ export const createDuitkuPayment = async ({
   paymentMethod,
   email,
   phoneNumber,
+  customerVaName,
+  material,
+  expectedOutput,
+  supportDocument,
 }: {
   referenceId: string;
-  paymentMethod: string;
+  paymentMethod?: string;
   email: string;
   phoneNumber: string;
+  customerVaName: string;
+  material?: string;
+  expectedOutput?: string;
+  supportDocument?: string;
 }) => {
   console.log("MC:", MERCHANT_CODE);
   console.log("API:", API_KEY);
 
-  // 1. Cari payment existing
+  /**
+   * 1️⃣ Ambil payment
+   */
   const payment = await prisma.payment.findUnique({
     where: { id: referenceId },
   });
 
+  /**
+   * 2️⃣ VALIDASI STATE PAYMENT (WAJIB)
+   */
   if (!payment) {
-    throw new Error("Payment not found.");
+    throw { status: 404, message: "Payment not found." };
   }
 
-  const amount = payment.amount.toNumber();
-  const invoiceNumber = `INV-${Date.now()}`;
-  const type = payment.bookingId ? "booking" : "practice";
-  const timestamp = moment().tz("Asia/Jakarta").valueOf();
+  if (payment.status === "confirmed") {
+    throw { status: 400, message: "Payment already completed." };
+  }
 
+  if (payment.merchantOrderId && payment.status === "pending") {
+    const paymentUrl =
+      process.env.NODE_ENV === "production"
+        ? `https://passport.duitku.com/topup/v2/inquiry/${payment.merchantOrderId}`
+        : `https://sandbox.duitku.com/topup/v2/inquiry/${payment.merchantOrderId}`;
+
+    return {
+      paymentUrl,
+      reference: payment.transactionId,
+    };
+  }
+
+  /**
+   * 3️⃣ Tentukan tipe payment
+   */
+  let type = "payment";
+  if (payment.bookingId) type = "booking";
+  else if (payment.practicePurchaseId) type = "practice";
+  else if (payment.eLearningSubscriptionId) type = "elearning";
+
+  /**
+   * 4️⃣ Generate invoice (merchantOrderId)
+   */
+  const amount = payment.amount.toNumber();
+  const invoiceNumber = `INV-${referenceId}`;
+
+  /**
+   * 5️⃣ Generate signature Duitku
+   */
   const signatureRaw = `${MERCHANT_CODE}${invoiceNumber}${amount}${API_KEY}`;
   const signature = crypto.createHash("md5").update(signatureRaw).digest("hex");
 
+  /**
+   * 6️⃣ Payload ke Duitku
+   */
   const payload: any = {
     merchantCode: MERCHANT_CODE,
     paymentAmount: amount,
     merchantOrderId: invoiceNumber,
     productDetails: `Pembayaran ${type}`,
     email,
-    customerVaName: "Nama Customer",
+    customerVaName,
     phoneNumber,
     ...(paymentMethod && { paymentMethod }),
     returnUrl: `${process.env.FRONTEND_URL}/payment/success`,
@@ -81,32 +125,90 @@ export const createDuitkuPayment = async ({
   };
 
   console.log({
-    merchantCode: MERCHANT_CODE,
-    timestamp,
+    invoiceNumber,
     signatureRaw,
     signature,
     payload,
   });
 
+  /**
+   * 7️⃣ Call API Duitku
+   */
   try {
     const response = await axios.post(DUITKU_URL, payload, { headers });
 
-    await prisma.payment.update({
-      where: { id: referenceId },
-      data: {
-        ...(paymentMethod && { paymentMethod }),
-        transactionId: response.data.reference,
-        status: "pending",
-      },
+    /**
+     * 8️⃣ Update payment (WAJIB SIMPAN merchantOrderId)
+     */
+    await prisma.$transaction(async (tx) => {
+      await tx.payment.update({
+        where: { id: referenceId },
+        data: {
+          merchantOrderId: invoiceNumber,
+          ...(paymentMethod && { paymentMethod }),
+          transactionId: response.data.reference,
+          status: "pending",
+        },
+      });
     });
 
     return response.data;
   } catch (error: any) {
     console.error("Error response:", error.response?.data || error.message);
-    throw new Error(
-      error.response?.data?.message || "Failed to create payment."
-    );
+    throw {
+      status: 500,
+      message: error.response?.data?.message || "Failed to create payment.",
+    };
   }
+};
+
+export const getPaymentStatus = async (
+  merchantOrderId: string,
+  userId: string,
+) => {
+  const payment = await prisma.payment.findFirst({
+    where: {
+      merchantOrderId,
+    },
+    include: {
+      booking: true,
+      practicePurchase: true,
+      eLearningSubscription: true,
+    },
+  });
+
+  if (!payment) {
+    throw { status: 404, message: "Payment not found." };
+  }
+
+  /**
+   * 🔥 SECURITY CHECK
+   * Pastikan user hanya bisa cek payment miliknya
+   */
+
+  const ownerId =
+    payment.booking?.menteeId ||
+    payment.practicePurchase?.userId ||
+    payment.eLearningSubscription?.userId;
+
+  if (ownerId !== userId) {
+    throw { status: 403, message: "Forbidden." };
+  }
+
+  return {
+    id: payment.id,
+    merchantOrderId: payment.merchantOrderId,
+    status: payment.status,
+    amount: payment.amount.toNumber(),
+    paymentDate: payment.paymentDate,
+    type: payment.booking
+      ? "booking"
+      : payment.practicePurchase
+        ? "practice"
+        : payment.eLearningSubscription
+          ? "elearning"
+          : "unknown",
+  };
 };
 
 export const processDuitkuCallback = async ({
@@ -125,29 +227,97 @@ export const processDuitkuCallback = async ({
   signature: string;
 }) => {
   const API_KEY = process.env.DUITKU_API_KEY!;
-  const prisma = new PrismaClient();
 
-  const ourSignatureRaw = `${merchantCode}${amount}${merchantOrderId}${API_KEY}`;
-  const ourSignature = crypto
-    .createHash("md5")
-    .update(ourSignatureRaw)
-    .digest("hex");
+  /* 1️⃣ VALIDATE SIGNATURE */
+  const raw = `${merchantCode}${amount}${merchantOrderId}${API_KEY}`;
+  const expectedSignature = crypto.createHash("md5").update(raw).digest("hex");
 
-  if (signature !== ourSignature) {
+  if (signature !== expectedSignature) {
     throw new Error("Invalid signature");
   }
 
+  /* 2️⃣ GET PAYMENT */
+  const payment = await prisma.payment.findFirst({
+    where: { merchantOrderId },
+  });
+
+  if (!payment) {
+    throw new Error("Payment not found");
+  }
+
+  /* 🔥 IDEMPOTENCY */
+  if (payment.status === "confirmed") {
+    return;
+  }
+
   const isSuccess = resultCode === "00";
-  const status = isSuccess ? "confirmed" : "failed";
   const now = new Date();
 
-  await prisma.payment.updateMany({
-    where: { transactionId: reference },
-    data: {
-      status,
-      paymentDate: now,
-      updatedAt: now,
-    },
+  /* 3️⃣ TRANSACTION */
+  await prisma.$transaction(async (tx) => {
+    await tx.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: isSuccess ? "confirmed" : "failed",
+        paymentDate: isSuccess ? now : null,
+        updatedAt: now,
+      },
+    });
+
+    if (!isSuccess) return;
+
+    if (payment.bookingId) {
+      await tx.booking.update({
+        where: { id: payment.bookingId },
+        data: { status: "confirmed", updatedAt: now },
+      });
+    }
+
+    if (payment.practicePurchaseId) {
+      await tx.practicePurchase.update({
+        where: { id: payment.practicePurchaseId },
+        data: { status: "confirmed", updatedAt: now },
+      });
+    }
+
+    // 🔥 INI YANG DIGANTI (SATU-SATUNYA)
+    if (payment.eLearningSubscriptionId) {
+      const subscription = await tx.eLearningSubscription.findUnique({
+        where: { id: payment.eLearningSubscriptionId },
+        include: {
+          plan: true,
+        },
+      });
+
+      if (!subscription) {
+        throw new Error("Subscription not found");
+      }
+
+      const lastActiveSubscription = await tx.eLearningSubscription.findFirst({
+        where: {
+          userId: subscription.userId,
+          status: "confirmed",
+        },
+        orderBy: { endAt: "desc" },
+      });
+
+      const startAt = lastActiveSubscription
+        ? lastActiveSubscription.endAt!
+        : now;
+
+      const endAt = new Date(startAt);
+      endAt.setDate(endAt.getDate() + subscription.plan.durationDay);
+
+      await tx.eLearningSubscription.update({
+        where: { id: subscription.id },
+        data: {
+          status: "confirmed",
+          startAt,
+          endAt,
+          updatedAt: now,
+        },
+      });
+    }
   });
 };
 
@@ -187,13 +357,13 @@ export const getPayments = async ({
         practicePurchase: {
           include: {
             user: { select: { id: true, fullName: true, email: true } },
-            practice: true, // <--- tambahkan agar frontend bisa ambil title
+            practice: true,
           },
         },
-        eLearningPurchase: {
+        eLearningSubscription: {
           include: {
             user: { select: { id: true, fullName: true, email: true } },
-            course: true, // <--- tambahkan agar frontend bisa ambil title
+            plan: true, // agar frontend bisa ambil nama paket
           },
         },
       },
@@ -209,7 +379,7 @@ export const getPayments = async ({
     const user =
       payment.booking?.mentee ??
       payment.practicePurchase?.user ??
-      payment.eLearningPurchase?.user;
+      payment.eLearningSubscription?.user;
 
     return {
       id: payment.id,
@@ -227,10 +397,10 @@ export const getPayments = async ({
       },
       bookingId: payment.bookingId,
       practicePurchaseId: payment.practicePurchaseId,
-      eLearningPurchaseId: payment.eLearningPurchaseId,
+      eLearningSubscriptionId: payment.eLearningSubscriptionId,
       booking: payment.booking,
       practicePurchase: payment.practicePurchase,
-      eLearningPurchase: payment.eLearningPurchase,
+      eLearningSubscription: payment.eLearningSubscription,
     };
   });
 
@@ -329,7 +499,7 @@ export const getPaymentDetailById = async (id: string) => {
 
 export const exportPaymentsToFile = async (
   format: "csv" | "excel",
-  status?: string
+  status?: string,
 ) => {
   const where = status ? { status } : {};
 
@@ -442,6 +612,7 @@ export const getPaymentsByUser = async ({
     }) as Promise<
       {
         id: string;
+        merchantOrderId: string | null;
         amount: any;
         status: string | null;
         paymentMethod: string | null;
@@ -468,6 +639,7 @@ export const getPaymentsByUser = async ({
 
     return {
       id: p.id,
+      merchantOrderId: p.merchantOrderId,
       type: isBooking ? "booking" : "practice",
       title: isBooking
         ? p.booking?.mentoringService?.serviceName
@@ -549,8 +721,8 @@ export const getUserPaymentDetail = async ({
     id: payment.id,
     type: isBooking ? "booking" : "practice",
     title: isBooking
-      ? payment.booking?.mentoringService?.serviceName ?? "-"
-      : payment.practicePurchase?.practice?.title ?? "-",
+      ? (payment.booking?.mentoringService?.serviceName ?? "-")
+      : (payment.practicePurchase?.practice?.title ?? "-"),
     amount: payment.amount,
     status: payment.status,
     paymentMethod: payment.paymentMethod,

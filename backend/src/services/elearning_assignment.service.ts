@@ -129,11 +129,23 @@ export class ELearningAssignmentService {
         throw new Error("Mentor tidak memiliki izin mengakses assignment ini");
       }
     } else if (isMentee) {
-      // cek apakah mentee membeli course
-      const purchased = await prisma.eLearningPurchase.findFirst({
-        where: { userId: user.userId, courseId },
+      const now = new Date();
+
+      // cek apakah mentee punya subscription aktif
+      const activeSubscription = await prisma.eLearningSubscription.findFirst({
+        where: {
+          userId: user.userId,
+          status: {
+            in: ["active", "confirmed", "completed"],
+          }, // sesuaikan jika enum / value berbeda
+          startAt: { lte: now },
+          endAt: { gte: now },
+        },
       });
-      if (!purchased) throw new Error("Mentee belum membeli course ini");
+
+      if (!activeSubscription) {
+        throw new Error("Mentee tidak memiliki subscription aktif");
+      }
     } else {
       throw new Error("Akses ditolak");
     }
@@ -439,7 +451,6 @@ export class ELearningAssignmentService {
                 course: {
                   include: {
                     mentorProfile: true,
-                    purchases: true,
                   },
                 },
               },
@@ -472,17 +483,23 @@ export class ELearningAssignmentService {
         throw new Error("Mentor tidak memiliki izin mengakses assignment ini");
       }
     } else if (user.roles.includes("mentee")) {
-      // Cek apakah mentee membeli course ini
-      const purchased = await prisma.eLearningPurchase.findFirst({
+      const now = new Date();
+
+      // Cek apakah mentee memiliki subscription aktif
+      const activeSubscription = await prisma.eLearningSubscription.findFirst({
         where: {
           userId: user.userId,
-          courseId: courseId,
+          status: {
+            in: ["active", "confirmed", "completed"],
+          }, // sesuaikan jika enum / value berbeda
+          startAt: { lte: now },
+          endAt: { gte: now },
         },
       });
 
-      if (!purchased) {
+      if (!activeSubscription) {
         throw new Error(
-          "Mentee tidak memiliki akses karena belum membeli course ini"
+          "Mentee tidak memiliki akses karena tidak ada subscription aktif"
         );
       }
     } else {

@@ -40,7 +40,7 @@ const generateReferralCodeId = async (): Promise<string> => {
   }
 
   throw new Error(
-    "Failed to generate unique referral code ID after multiple attempts"
+    "Failed to generate unique referral code ID after multiple attempts",
   );
 };
 
@@ -81,11 +81,11 @@ export const createReferralCodeService = async ({
   }
 
   const hasAffiliatorRole = user.userRoles.some(
-    (userRole) => userRole.role.roleName === "affiliator"
+    (userRole) => userRole.role.roleName === "affiliator",
   );
   if (!hasAffiliatorRole) {
     throw new Error(
-      "User must have the 'affiliator' role to own a referral code"
+      "User must have the 'affiliator' role to own a referral code",
     );
   }
 
@@ -234,7 +234,7 @@ export const updateReferralCodeService = async (
     isActive?: boolean;
     discountPercentage?: number;
     commissionPercentage?: number;
-  }
+  },
 ) => {
   const referralCode = await prisma.referralCode.update({
     where: { id },
@@ -293,9 +293,11 @@ export const useReferralCodeService = async ({
 }: {
   userId: string;
   code: string;
-  context: "booking" | "practice_purchase";
+  context: "booking" | "practice_purchase" | "elearning_subscription";
 }) => {
-  // Validasi kode referral
+  /* ================================
+   * 1. VALIDASI REFERRAL CODE
+   * ================================ */
   const referralCode = await prisma.referralCode.findUnique({
     where: { code },
     select: {
@@ -318,7 +320,11 @@ export const useReferralCodeService = async ({
     throw new Error("Referral code has expired");
   }
 
-  // Cek apakah pengguna sudah pernah menggunakan kode ini
+  /* ================================
+   * 2. CEK APAKAH USER SUDAH PERNAH
+   *    MENGGUNAKAN KODE INI
+   *    (FUTURE-PROOF)
+   * ================================ */
   const existingUsage = await prisma.referralUsage.findUnique({
     where: {
       userId_referralCodeId: {
@@ -326,13 +332,25 @@ export const useReferralCodeService = async ({
         referralCodeId: referralCode.id,
       },
     },
+    include: {
+      booking: true,
+      practicePurchase: true,
+      eLearningSubscription: true,
+    },
   });
 
+  /**
+   * Jika sudah ada referralUsage,
+   * artinya user sudah pernah "claim" kode ini,
+   * baik sudah dipakai atau belum
+   */
   if (existingUsage) {
     throw new Error("Referral code has already been used by this user");
   }
 
-  // Buat record ReferralUsage
+  /* ================================
+   * 3. CREATE REFERRAL USAGE
+   * ================================ */
   const referralUsage = await prisma.referralUsage.create({
     data: {
       userId,
@@ -344,10 +362,221 @@ export const useReferralCodeService = async ({
     },
   });
 
+  /* ================================
+   * 4. RESPONSE
+   * ================================ */
   return {
     referralUsageId: referralUsage.id,
     discountPercentage: referralCode.discountPercentage,
   };
+};
+
+export const applyReferralToBookingService = async ({
+  userId,
+  bookingId,
+  code,
+}: {
+  userId: string;
+  bookingId: string;
+  code: string;
+}) => {
+  return await prisma.$transaction(async (tx) => {
+    /* ===============================
+       1️⃣ Ambil booking + payment
+    =============================== */
+    const booking = await tx.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        mentoringService: true,
+        payment: true,
+      },
+    });
+
+    if (!booking) {
+      throw { status: 404, message: "Booking tidak ditemukan." };
+    }
+
+    if (booking.menteeId !== userId) {
+      throw { status: 403, message: "Bukan booking milik anda." };
+    }
+
+    if (booking.status !== "pending") {
+      throw { status: 400, message: "Referral hanya bisa saat pending." };
+    }
+
+    if (!booking.payment) {
+      throw { status: 400, message: "Payment tidak ditemukan." };
+    }
+
+    if (booking.referralUsageId) {
+      throw { status: 400, message: "Referral sudah digunakan." };
+    }
+
+    /* ===============================
+       2️⃣ Gunakan referral
+    =============================== */
+    const referralResult = await useReferralCodeService({
+      userId,
+      code,
+      context: "booking",
+    });
+
+    const referralUsageId = referralResult.referralUsageId;
+
+    const referral = await tx.referralCode.findUnique({
+      where: { code },
+    });
+
+    if (!referral) {
+      throw { status: 404, message: "Referral tidak ditemukan." };
+    }
+
+    const discountPercentage = referral.discountPercentage.toNumber();
+    const commissionPercentage = referral.commissionPercentage.toNumber();
+
+    const originalPrice = booking.mentoringService.price.toNumber();
+
+    /* ===============================
+       3️⃣ Hitung Harga Setelah Diskon
+    =============================== */
+    const finalPrice = Math.round(
+      originalPrice * (1 - discountPercentage / 100),
+    );
+
+    /* ===============================
+       4️⃣ Hitung Komisi (DARI HARGA AWAL)
+    =============================== */
+    const commissionAmount = Math.round(
+      originalPrice * (commissionPercentage / 100),
+    );
+
+    /* ===============================
+       5️⃣ Update booking
+    =============================== */
+    await tx.booking.update({
+      where: { id: bookingId },
+      data: { referralUsageId },
+    });
+
+    /* ===============================
+       6️⃣ Update payment
+    =============================== */
+    await tx.payment.update({
+      where: { bookingId },
+      data: {
+        amount: finalPrice,
+        updatedAt: new Date(),
+      },
+    });
+
+    /* ===============================
+       7️⃣ Create commission
+    =============================== */
+    await tx.referralCommisions.create({
+      data: {
+        referralCodeId: referral.id,
+        transactionId: booking.payment.id,
+        amount: commissionAmount, // 🔥 sekarang dari harga awal
+        created_at: new Date(),
+      },
+    });
+
+    return {
+      originalPrice,
+      discountPercentage,
+      finalPrice,
+      commissionPercentage,
+      commissionAmount,
+    };
+  });
+};
+
+export const applyReferralToELearningService = async ({
+  userId,
+  subscriptionId,
+  code,
+}: {
+  userId: string;
+  subscriptionId: string;
+  code: string;
+}) => {
+  return await prisma.$transaction(async (tx) => {
+    const subscription = await tx.eLearningSubscription.findUnique({
+      where: { id: subscriptionId },
+      include: {
+        plan: true,
+        payment: true,
+      },
+    });
+
+    if (!subscription) {
+      throw { status: 404, message: "Subscription tidak ditemukan." };
+    }
+
+    if (subscription.userId !== userId) {
+      throw { status: 403, message: "Bukan subscription milik anda." };
+    }
+
+    if (subscription.status !== "pending") {
+      throw {
+        status: 400,
+        message: "Referral hanya bisa saat pending.",
+      };
+    }
+
+    if (!subscription.payment) {
+      throw { status: 400, message: "Payment tidak ditemukan." };
+    }
+
+    if (subscription.referralUsageId) {
+      throw { status: 400, message: "Referral sudah digunakan." };
+    }
+
+    const referralResult = await useReferralCodeService({
+      userId,
+      code,
+      context: "elearning_subscription",
+    });
+
+    const referral = await tx.referralCode.findUnique({
+      where: { code },
+    });
+
+    const discountPercentage = referral!.discountPercentage.toNumber();
+    const commissionPercentage = referral!.commissionPercentage.toNumber();
+
+    const originalPrice = subscription.plan.price.toNumber();
+
+    const finalPrice = originalPrice * (1 - discountPercentage / 100);
+
+    await tx.eLearningSubscription.update({
+      where: { id: subscriptionId },
+      data: { referralUsageId: referralResult.referralUsageId },
+    });
+
+    await tx.payment.update({
+      where: { eLearningSubscriptionId: subscriptionId },
+      data: { amount: finalPrice },
+    });
+
+    // FIX DI SINI — commission dari harga awal
+    const commissionAmount = originalPrice * (commissionPercentage / 100);
+
+    await tx.referralCommisions.create({
+      data: {
+        referralCodeId: referral!.id,
+        transactionId: subscription.payment.id,
+        amount: commissionAmount,
+        created_at: new Date(),
+      },
+    });
+
+    return {
+      originalPrice,
+      discountPercentage,
+      finalPrice,
+    };
+  });
 };
 
 export const getReferralCommissions = async (input: {
@@ -448,7 +677,7 @@ export const getReferralCommissions = async (input: {
         ...commission,
         payment: payment || null,
       };
-    })
+    }),
   );
 
   // Hitung total komisi untuk pagination
@@ -536,7 +765,7 @@ export const getAffiliatorReferralCodes = async (input: {
 export const getReferralUsages = async (input: {
   referralCodeId: string;
   ownerId: string;
-  context?: "booking" | "practice_purchase";
+  context?: "booking" | "practice_purchase" | "elearning_subscription";
   page: number;
   limit: number;
 }) => {
@@ -565,10 +794,10 @@ export const getReferralUsages = async (input: {
     };
   }
 
-  // Hitung offset untuk pagination
+  // Pagination
   const skip = (page - 1) * limit;
 
-  // Bangun where clause untuk filter
+  // Filter
   const where: any = {
     referralCodeId,
   };
@@ -577,7 +806,7 @@ export const getReferralUsages = async (input: {
     where.context = context;
   }
 
-  // Ambil data penggunaan kode referral
+  // Query utama
   const usages = await prisma.referralUsage.findMany({
     where,
     skip,
@@ -612,10 +841,17 @@ export const getReferralUsages = async (input: {
           status: true,
         },
       },
+      eLearningSubscription: {
+        select: {
+          id: true,
+          startAt: true,
+          endAt: true,
+          status: true,
+        },
+      },
     },
   });
 
-  // Hitung total penggunaan untuk pagination
   const total = await prisma.referralUsage.count({ where });
 
   return {
@@ -741,7 +977,7 @@ export const getReferralCommissionsByCode = async (input: {
         ...commission,
         payment: payment || null,
       };
-    })
+    }),
   );
 
   const total = await prisma.referralCommisions.count({ where });

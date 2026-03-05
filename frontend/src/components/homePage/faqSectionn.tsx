@@ -41,28 +41,23 @@ export default function FAQPage() {
   ];
 
   return (
-    <div id="faq" className="bg-white py-20 pb-18 px-4 scroll-smooth">
-      <div className="max-w-3xl mx-auto">
+    <div id="faq" className="bg-white py-20 pb-18 mt-10 px-4 scroll-smooth">
+      <div className="max-w-[1000px] mx-auto px-4 sm:px-6 lg:px-8">
         <h1 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-12">
           Frequently Asked Questions (FAQ)
         </h1>
 
-        <Accordion
-          type="single"
-          collapsible
-          defaultValue="item-1"
-          className="space-y-4"
-        >
+        <Accordion type="single" collapsible className="space-y-4">
           {faqs.map((faq) => (
             <AccordionItem
               key={faq.id}
               value={faq.id}
               className="bg-gray-100 rounded-lg shadow-sm overflow-hidden"
             >
-              <AccordionTrigger className="px-6 py-6 mb-1 text-left font-bold text-gray-900 hover:no-underline hover:bg-gray-200 rounded-lg">
+              <AccordionTrigger className="px-6 py-6 mb-1 text-left text-lg md:text-xl font-semibold text-gray-900 hover:no-underline hover:bg-gray-200 rounded-lg">
                 {faq.question}
               </AccordionTrigger>
-              <AccordionContent className="px-6 pb-6 text-gray-700 leading-relaxed">
+              <AccordionContent className="px-6 pb-6 pt-3 text-base md:text-lg text-gray-700 leading-relaxed">
                 {faq.answer}
               </AccordionContent>
             </AccordionItem>

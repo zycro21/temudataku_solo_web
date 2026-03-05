@@ -1,73 +1,276 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { toast } from "sonner";
 
-export default function CheckoutTerms() {
+export default function CheckoutTerms({
+  bookingId,
+  onReferralApplied,
+  priceSummary,
+  onTermsChange,
+}: any) {
   const [isChecked, setIsChecked] = useState(false);
   const [coupon, setCoupon] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [isVoucherApplied, setIsVoucherApplied] = useState(false); // NEW
 
-  const terms = [
-    "Pembayaran yang telah dilakukan tidak dapat dikembalikan dengan alasan apapun, kecuali bootcamp dibatalkan oleh penyelenggara.",
-    "Materi mentoring hanya boleh digunakan untuk kepentingan pribadi dan dilarang untuk diperbanyak atau dikomersialkan tanpa izin tertulis dari penyelenggara.",
-    "Dilarang keras merekam, mendistribusikan, atau mempublikasikan materi tanpa izin resmi.",
-  ];
+  const handleApplyCoupon = async () => {
+    if (!bookingId) {
+      toast.error("Booking tidak ditemukan.");
+      return;
+    }
 
-  const handleApplyCoupon = () => {
-    // TODO: handle apply coupon
-    alert(`Kode kupon: ${coupon || "(kosong)"}`);
+    if (!coupon.trim()) {
+      toast.warning("Silakan masukkan kode kupon.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const res = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/referral/booking/${bookingId}/apply-referral`,
+        { code: coupon },
+        { withCredentials: true },
+      );
+
+      onReferralApplied(res.data.data);
+
+      toast.success("Referral berhasil diterapkan", {
+        description: `Harga baru: Rp ${res.data.data.finalPrice.toLocaleString()}`,
+      });
+
+      setIsVoucherApplied(true); // ✅ lock setelah sukses
+      setCoupon(res.data.data.code || coupon); // opsional: tampilkan kode yg dipakai
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message || "Gagal menerapkan referral.";
+
+      toast.error("Gagal menerapkan referral", {
+        description: message,
+      });
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    if (priceSummary) {
+      setIsVoucherApplied(true);
+    }
+  }, [priceSummary]);
 
   return (
     <div className="mt-0 p-6 pl-6 md:pl-10 space-y-5 max-w-[60rem]">
       <h2 className="text-2xl font-bold">Syarat dan Ketentuan</h2>
 
-      {/* Baris Kode Kupon (nyambung input + tombol) */}
       <div className="border rounded-xl px-3 py-4 md:px-5 md:py-5 flex items-center gap-3 w-full">
         <span className="shrink-0 text-base md:text-lg font-semibold">
           Kode Kupon
         </span>
 
-        <div className="flex items-stretch ml-2 flex-1 w-full">
+        <div className="flex items-stretch ml-2 flex-1 w-full relative group">
+          {/* INPUT */}
           <input
             type="text"
             value={coupon}
             onChange={(e) => setCoupon(e.target.value)}
-            placeholder="Temu1"
-            className="rounded-l-full border border-r-0 bg-transparent px-4 py-2 text-sm shadow-xs outline-none
-           focus-visible:border-green-500 focus-visible:ring-green-500/50 focus-visible:ring-[1px] flex-1"
+            placeholder="XXXX-9267"
+            disabled={isVoucherApplied} // ✅ disable jika sudah dipakai
+            className={`rounded-l-full border border-r-0 bg-transparent px-4 py-2 text-sm outline-none flex-1
+              ${isVoucherApplied ? "cursor-not-allowed bg-gray-100" : ""}`}
           />
+
+          {/* BUTTON */}
           <button
             type="button"
             onClick={handleApplyCoupon}
-            className="rounded-r-full bg-green-600 text-white text-sm font-medium
-           px-5 py-2 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed border border-green-600"
-            disabled={!coupon.trim()}
+            disabled={!coupon.trim() || loading || isVoucherApplied}
+            className="rounded-r-full bg-green-600 text-white text-sm font-medium px-5 py-2 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Gunakan Kupon
+            {loading ? "Memproses..." : "Gunakan Kupon"}
           </button>
+
+          {/* TOOLTIP */}
+          {isVoucherApplied && (
+            <div className="absolute -top-10 left-0 bg-black text-white text-xs px-3 py-1 rounded opacity-0 group-hover:opacity-100 transition pointer-events-none">
+              Anda telah menggunakan voucher di pembelian ini
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Box bisa discroll untuk Terms */}
-      <div className="border rounded-md p-4 h-32 overflow-y-auto text-sm space-y-2 scroll-thin">
-        {terms.map((term, idx) => (
-          <p key={idx}>
-            {idx + 1}. {term}
-          </p>
-        ))}
+      {/* Terms Scroll Box */}
+      <div className="border rounded-md p-5 h-96 overflow-y-auto text-sm space-y-4 scroll-thin leading-relaxed">
+        <p className="font-bold text-xl md:text-2xl tracking-tight">
+          SYARAT DAN KETENTUAN UMUM TEMUDATAKU
+        </p>
+
+        <p>
+          <span className="skew-x-[-8deg] inline-block text-base md:text-lg text-gray-600">
+            (Terakhir diperbarui: 03 Maret 2026)
+          </span>
+        </p>
+
+        <p>
+          Dokumen ini merupakan{" "}
+          <span className="font-semibold">
+            perjanjian yang mengikat secara hukum
+          </span>{" "}
+          antara Anda (“Peserta”) dan{" "}
+          <span className="underline">TemuDataku</span> (“Kami”) terkait
+          penggunaan serta pembelian seluruh produk dan layanan yang tersedia.
+        </p>
+
+        <p className="font-medium">
+          Dengan melakukan pembayaran atas produk TemuDataku, Anda dianggap
+          telah membaca, memahami, dan menyetujui seluruh isi Syarat dan
+          Ketentuan ini.
+        </p>
+
+        <p className="font-semibold text-base md:text-lg mt-5">
+          1. Ruang Lingkup Layanan
+        </p>
+        <p>
+          Berlaku untuk seluruh produk dan layanan termasuk:
+          <br />• Mentoring 1-on-1
+          <br />• Mentoring Group
+          <br />• Bootcamp
+          <br />• All You Can Learn (AYCL)
+          <br />• E-Learning
+          <br />• Program digital lainnya
+        </p>
+
+        <p className="font-semibold text-base md:text-lg mt-5">
+          2. Pendaftaran dan Akurasi Data
+        </p>
+        <p>
+          Peserta wajib memberikan data yang{" "}
+          <span className="font-semibold">benar, lengkap, dan akurat</span>.
+          TemuDataku tidak bertanggung jawab atas kesalahan data yang diinput
+          oleh Peserta. Kami berhak menolak atau membatalkan pendaftaran apabila
+          ditemukan pelanggaran kebijakan.
+        </p>
+
+        <p className="font-semibold text-base md:text-lg mt-5">3. Pembayaran</p>
+        <p>
+          Pembayaran dianggap sah setelah dana diterima secara penuh. Slot
+          mengikuti sistem{" "}
+          <span className="underline">first paid, first secured</span>.
+          Keterlambatan cicilan dapat mengakibatkan penghentian akses tanpa
+          refund.
+        </p>
+
+        <p className="font-semibold text-base md:text-lg mt-5">
+          4. Kebijakan Pembatalan dan Refund
+        </p>
+        <p>
+          Seluruh pembayaran bersifat{" "}
+          <span className="font-bold">final dan non-refundable</span>, kecuali
+          program dibatalkan oleh TemuDataku.
+        </p>
+
+        <p className="font-semibold text-base md:text-lg mt-5">
+          5. Akses dan Masa Berlaku
+        </p>
+        <p>
+          Akses diberikan sesuai durasi masing-masing produk. Setelah masa
+          berlaku berakhir, akses dapat dinonaktifkan secara otomatis.
+        </p>
+
+        <p className="font-semibold text-base md:text-lg mt-5">
+          6. Penjadwalan Ulang
+        </p>
+        <p>
+          Mentoring 1-on-1 dapat dijadwalkan ulang maksimal satu kali dengan
+          pemberitahuan minimal 24 jam. Permintaan di bawah 24 jam dianggap
+          hangus.
+        </p>
+
+        <p className="font-semibold text-base md:text-lg mt-5">
+          7. Hak Kekayaan Intelektual
+        </p>
+        <p>
+          Seluruh materi merupakan hak milik eksklusif TemuDataku. Peserta
+          dilarang:
+          <br />• Membagikan akun
+          <br />• Merekam atau mendistribusikan ulang materi
+          <br />• Menjual kembali materi
+          <br />• Menggunakan materi untuk kepentingan komersial tanpa izin
+          tertulis
+        </p>
+
+        <p className="font-semibold text-base md:text-lg mt-5">
+          8. Etika dan Perilaku Peserta
+        </p>
+        <p>
+          Peserta wajib menjaga komunikasi profesional. Pelanggaran dapat
+          mengakibatkan penghentian akses tanpa pengembalian dana.
+        </p>
+
+        <p className="font-semibold text-base md:text-lg mt-5">9. Sertifikat</p>
+        <p>
+          Sertifikat diberikan sesuai ketentuan masing-masing program dan
+          mengikuti data yang diinput saat pendaftaran.
+        </p>
+
+        <p className="font-semibold text-base md:text-lg mt-5">
+          10. Perubahan Program
+        </p>
+        <p>
+          TemuDataku berhak melakukan perubahan terhadap jadwal, mentor,
+          kurikulum, maupun metode penyampaian.
+        </p>
+
+        <p className="font-semibold text-base md:text-lg mt-5">
+          11. Batasan Tanggung Jawab
+        </p>
+        <p>
+          TemuDataku tidak menjamin hasil pekerjaan atau keberhasilan karir
+          tertentu. Hasil bergantung pada komitmen Peserta.
+        </p>
+
+        <p className="font-semibold text-base md:text-lg mt-5">
+          12. Keadaan Kahar (Force Majeure)
+        </p>
+        <p>
+          Tidak bertanggung jawab atas kegagalan layanan akibat kejadian di luar
+          kendali wajar seperti bencana alam atau kebijakan pemerintah.
+        </p>
+
+        <p className="font-semibold text-base md:text-lg mt-5">
+          13. Hukum yang Berlaku
+        </p>
+        <p>
+          Diatur berdasarkan hukum Republik Indonesia dan diselesaikan melalui
+          musyawarah atau Pengadilan Negeri sesuai domisili TemuDataku.
+        </p>
+
+        <p className="font-semibold text-base md:text-lg mt-5">
+          14. Persetujuan
+        </p>
+        <p className="font-medium">
+          Dengan melakukan pembayaran, Peserta menyatakan telah membaca,
+          memahami, dan menyetujui seluruh isi Syarat dan Ketentuan ini secara
+          sadar dan tanpa paksaan.
+        </p>
       </div>
 
-      {/* Checkbox persetujuan (native) */}
+      {/* Checkbox */}
       <div className="flex items-center gap-2">
         <input
           type="checkbox"
           id="terms"
           checked={isChecked}
-          onChange={(e) => setIsChecked(e.target.checked)}
+          onChange={(e) => {
+            setIsChecked(e.target.checked);
+            if (onTermsChange) onTermsChange(e.target.checked);
+          }}
           className="w-4 h-4 accent-green-600"
         />
         <label htmlFor="terms" className="text-sm cursor-pointer">
-          saya setuju dengan ketentuan dan syarat
+          Saya setuju dengan ketentuan dan syarat
         </label>
       </div>
     </div>

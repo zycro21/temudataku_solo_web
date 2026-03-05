@@ -31,17 +31,26 @@ export class ELearningSubmissionService {
     });
     if (!assignment) throw new Error("Assignment tidak ditemukan");
 
-    const courseId = assignment.subBab.subChapter.course.id;
+    // pastikan user memiliki subscription aktif
+    const now = new Date();
 
-    // pastikan user sudah membeli course
-    const purchase = await prisma.eLearningPurchase.findFirst({
+    const activeSubscription = await prisma.eLearningSubscription.findFirst({
       where: {
         userId,
-        courseId,
+        status: {
+          in: ["active", "confirmed", "completed"],
+        },
+        startAt: {
+          lte: now,
+        },
+        endAt: {
+          gte: now,
+        },
       },
     });
-    if (!purchase) {
-      throw new Error("Anda belum membeli course ini");
+
+    if (!activeSubscription) {
+      throw new Error("Anda belum memiliki subscription aktif");
     }
 
     // cek duplikasi submission
@@ -95,13 +104,26 @@ export class ELearningSubmissionService {
 
     const courseId = assignment.subBab.subChapter.course.id;
 
-    // 2. cek apakah user sudah membeli course
-    const purchase = await prisma.eLearningPurchase.findFirst({
-      where: { userId, courseId },
+    // 🔥 DIGANTI: cek apakah user memiliki subscription aktif
+    const now = new Date();
+
+    const activeSubscription = await prisma.eLearningSubscription.findFirst({
+      where: {
+        userId,
+        status: {
+          in: ["active", "confirmed", "completed"],
+        },
+        startAt: {
+          lte: now,
+        },
+        endAt: {
+          gte: now,
+        },
+      },
     });
 
-    if (!purchase) {
-      throw new Error("Anda belum membeli course ini");
+    if (!activeSubscription) {
+      throw new Error("Anda belum memiliki subscription aktif");
     }
 
     // 3. ambil submission user
@@ -465,16 +487,26 @@ export class ELearningSubmissionService {
       }
     }
 
-    // Mentee → hanya submission miliknya ATAU course yang dia beli
+    // 🔥 DIGANTI: Mentee → submission miliknya ATAU subscription aktif
     else if (user.roles.includes("mentee")) {
-      const purchase = await prisma.eLearningPurchase.findFirst({
+      const now = new Date();
+
+      const activeSubscription = await prisma.eLearningSubscription.findFirst({
         where: {
           userId: user.userId,
-          courseId,
+          status: {
+            in: ["active", "confirmed", "completed"],
+          },
+          startAt: {
+            lte: now,
+          },
+          endAt: {
+            gte: now,
+          },
         },
       });
 
-      if (submission.userId !== user.userId && !purchase) {
+      if (submission.userId !== user.userId && !activeSubscription) {
         throw new Error("Mentee tidak memiliki akses ke submission ini");
       }
     } else {

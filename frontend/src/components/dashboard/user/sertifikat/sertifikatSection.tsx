@@ -25,6 +25,49 @@ export default function SertifikatSection({
   title,
   sertifikats,
 }: SertifikatSectionProps) {
+  function parseDescription(text: string) {
+    const lines = text.split("/n");
+
+    return lines.map((line, lineIndex) => {
+      const parts = line.split(/(\*\*.*?\*\*|\*.*?\*|_.*?_)/g);
+
+      return (
+        <span key={lineIndex}>
+          {parts.map((part, i) => {
+            if (part.startsWith("**") && part.endsWith("**")) {
+              return <strong key={i}>{part.slice(2, -2)}</strong>;
+            }
+
+            if (part.startsWith("_") && part.endsWith("_")) {
+              return (
+                <span key={i} className="underline">
+                  {part.slice(1, -1)}
+                </span>
+              );
+            }
+
+            if (part.startsWith("*") && part.endsWith("*")) {
+              return (
+                <span
+                  key={i}
+                  style={{
+                    display: "inline-block",
+                    transform: "inline-block skewX(-8deg)",
+                  }}
+                >
+                  {part.slice(1, -1)}
+                </span>
+              );
+            }
+
+            return <span key={i}>{part}</span>;
+          })}
+          {lineIndex < lines.length - 1 && <br />}
+        </span>
+      );
+    });
+  }
+
   return (
     <div className="mb-6 mt-0">
       <h2 className="text-lg font-semibold text-gray-800 mb-4">{title}</h2>
@@ -53,8 +96,8 @@ export default function SertifikatSection({
                 <h3 className="text-lg font-bold text-gray-800">
                   {sertifikat.title}
                 </h3>
-                <p className="text-sm text-gray-600">
-                  {sertifikat.description}
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  {parseDescription(sertifikat.description)}
                 </p>
 
                 {/* Status sertifikat */}

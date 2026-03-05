@@ -32,7 +32,7 @@ const router = express.Router();
  *     description: >
  *       Admin dapat melihat semua sub-bab dari sub-chapter manapun.
  *       Mentor hanya bisa melihat sub-bab dari course yang dia ampu.
- *       Mentee hanya bisa melihat sub-bab dari course yang sudah dibeli.
+ *       Mentee anya dapat melihat sub-bab jika memiliki subscription aktif.
  *       Mendukung pagination, search, dan sorting berdasarkan orderNumber.
  *     tags: [E-Learning SubBabs]
  *     security:
@@ -92,7 +92,7 @@ router.get(
  *     description: >
  *       Admin dapat melihat sub-bab dari course manapun.
  *       Mentor hanya bisa melihat sub-bab dari course yang dia ampu.
- *       Mentee hanya bisa melihat sub-bab dari course yang sudah dibeli.
+ *       Mentee anya dapat melihat sub-bab jika memiliki subscription aktif..
  *     tags: [E-Learning SubBabs]
  *     security:
  *       - bearerAuth: []

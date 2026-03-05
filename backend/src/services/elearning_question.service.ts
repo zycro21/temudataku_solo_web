@@ -107,7 +107,9 @@ export class ELearningQuestionService {
         subBab: {
           include: {
             subChapter: {
-              include: { course: { include: { purchases: true } } },
+              include: {
+                course: true, // ⬅️ TIDAK lagi include purchases
+              },
             },
           },
         },
@@ -127,12 +129,29 @@ export class ELearningQuestionService {
     }
 
     if (isMentee) {
-      const hasPurchased = course.purchases.some(
-        (p) => p.userId === user.userId
-      );
-      if (!hasPurchased) {
+      const now = new Date();
+
+      const activeSubscription = await prisma.eLearningSubscription.findFirst({
+        where: {
+          userId: user.userId,
+          status: {
+            in: ["active", "confirmed", "completed"],
+          },
+          startAt: {
+            lte: now,
+          },
+          endAt: {
+            gt: now,
+          },
+        },
+        orderBy: {
+          endAt: "desc",
+        },
+      });
+
+      if (!activeSubscription) {
         throw new Error(
-          "Akses ditolak: Anda belum membeli course yang berisi quiz ini"
+          "Akses ditolak: Anda tidak memiliki subscription aktif"
         );
       }
     }
@@ -181,9 +200,7 @@ export class ELearningQuestionService {
               include: {
                 subChapter: {
                   include: {
-                    course: {
-                      include: { purchases: true },
-                    },
+                    course: true,
                   },
                 },
               },
@@ -206,14 +223,24 @@ export class ELearningQuestionService {
       throw new Error("Akses ditolak: pertanyaan ini bukan dari course Anda");
     }
 
-    // 🔹 Mentee hanya boleh akses jika sudah beli course terkait
+    // 🔹 Mentee hanya boleh akses jika punya subscription aktif
     if (isMentee) {
-      const hasPurchased = course.purchases.some(
-        (p) => p.userId === user.userId
-      );
-      if (!hasPurchased) {
+      const now = new Date();
+
+      const activeSubscription = await prisma.eLearningSubscription.findFirst({
+        where: {
+          userId: user.userId,
+          status: {
+            in: ["active", "confirmed", "completed"],
+          },
+          startAt: { lte: now },
+          endAt: { gte: now },
+        },
+      });
+
+      if (!activeSubscription) {
         throw new Error(
-          "Akses ditolak: Anda belum membeli course yang berisi pertanyaan ini"
+          "Akses ditolak: Anda tidak memiliki subscription aktif"
         );
       }
     }

@@ -13,6 +13,7 @@ import {
   getMentorEarningsValidator,
   getMentorBookingsValidator,
   getCompletedProgramsSchema,
+  updateBookingContentSchema,
 } from "../validations/booking.validation.js";
 import { validate } from "../middlewares/validate.js";
 import { authenticate } from "../middlewares/authenticate.js";
@@ -32,7 +33,8 @@ const router = Router();
  * @swagger
  * /api/booking/createBooking:
  *   post:
- *     summary: Buat booking baru
+ *     summary: Buat booking baru (Hanya untuk One-on-One, Group, dan Bootcamp)
+ *     description: Endpoint ini hanya berlaku untuk layanan dengan tipe one-on-one, group, dan bootcamp. Live class dan shortclass tidak lagi menggunakan sistem booking.
  *     tags: [Booking]
  *     security:
  *       - bearerAuth: []
@@ -181,12 +183,53 @@ router.post(
 
 /**
  * @swagger
+ * /api/booking/{id}/content:
+ *   patch:
+ *     summary: Update material, expectedOutput, dan upload support document
+ *     tags: [Booking]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Booking ID
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               material:
+ *                 type: string
+ *               expectedOutput:
+ *                 type: string
+ *               supportDocument:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ */
+router.patch(
+  "/:id/content",
+  authenticate,
+  handleSupportDocumentUpload("supportDocument", true),
+  validate(updateBookingContentSchema),
+  BookingController.updateBookingContentController
+);
+
+/**
+ * @swagger
  * /api/booking/mentee/bookings:
  *   get:
- *     summary: Ambil semua booking milik mentee (dengan pagination, filter, sorting, feedback, dan status submission project)
+ *     summary: Ambil semua booking milik mentee (One-on-One, Group, dan Bootcamp saja)
  *     description: >
- *       Endpoint ini mengembalikan semua booking yang dimiliki oleh mentee tertentu, lengkap dengan informasi mentoring service, proyek, submission milik mentee, sesi mentoring, profil mentor, serta feedback yang sudah diberikan untuk setiap sesi.
- *       <br>Tambahan: setiap project kini memiliki field `status` (Belum Dikumpulkan, Sudah Dikumpulkan, Perlu Revisi, atau Sudah Direview) berdasarkan kondisi submission mentee.
+ *       Endpoint ini mengembalikan semua booking milik mentee untuk layanan dengan tipe one-on-one, group, dan bootcamp.
+ *       Live class dan shortclass tidak lagi termasuk dalam sistem booking.
+ *       <br>Tambahan: setiap project memiliki field `status` (Belum Dikumpulkan, Sudah Dikumpulkan, Perlu Revisi, atau Sudah Direview) berdasarkan kondisi submission mentee.
  *     tags: [Booking]
  *     security:
  *       - bearerAuth: []
@@ -340,7 +383,11 @@ router.get(
  * @swagger
  * /api/booking/mentee/bookings/{id}:
  *   get:
- *     summary: Ambil detail booking mentee
+ *     summary: Ambil detail booking mentee (One-on-One, Group, dan Bootcamp saja)
+ *     description: >
+ *       Endpoint ini mengembalikan detail booking milik mentee
+ *       untuk layanan dengan tipe one-on-one, group, dan bootcamp.
+ *       Liveclass dan shortclass tidak lagi termasuk dalam sistem booking.
  *     tags: [Booking]
  *     security:
  *       - bearerAuth: []
@@ -433,7 +480,11 @@ router.get(
  * @swagger
  * /api/booking/mentee/completed-programs:
  *   get:
- *     summary: Ambil semua program yang telah dilakukan oleh mentee (berdasarkan durasi program)
+ *     summary: Ambil semua program booking (One-on-One, Group, dan Bootcamp) yang telah selesai
+ *     description: >
+ *       Endpoint ini mengembalikan semua program booking milik mentee
+ *       dengan tipe one-on-one, group, dan bootcamp yang telah melewati durasi program.
+ *       Liveclass dan shortclass tidak lagi termasuk dalam sistem booking.
  *     tags: [Booking]
  *     security:
  *       - bearerAuth: []
@@ -504,7 +555,11 @@ router.get(
  * @swagger
  * /api/booking/mentee/bookings/{id}:
  *   patch:
- *     summary: Update booking mentee
+ *     summary: Update booking mentee (One-on-One, Group, dan Bootcamp saja)
+ *     description: >
+ *       Endpoint ini hanya berlaku untuk layanan dengan tipe
+ *       one-on-one, group, dan bootcamp.
+ *       Liveclass dan shortclass tidak lagi termasuk dalam sistem booking.
  *     tags: [Booking]
  *     security:
  *       - bearerAuth: []
@@ -590,7 +645,11 @@ router.patch(
  * @swagger
  * /api/booking/mentee/bookings/{id}:
  *   delete:
- *     summary: Batalkan booking
+ *     summary: Batalkan booking (One-on-One, Group, dan Bootcamp saja)
+ *     description: >
+ *       Endpoint ini hanya berlaku untuk layanan dengan tipe
+ *       one-on-one, group, dan bootcamp.
+ *       Liveclass dan shortclass tidak lagi termasuk dalam sistem booking.
  *     tags: [Booking]
  *     security:
  *       - bearerAuth: []
@@ -647,7 +706,11 @@ router.delete(
  * @swagger
  * /api/booking/admin/bookings:
  *   get:
- *     summary: Ambil semua booking (admin only)
+ *     summary: Ambil semua booking (admin only - One-on-One, Group, Bootcamp)
+ *     description: >
+ *       Endpoint ini hanya menampilkan booking untuk layanan
+ *       one-on-one, group, dan bootcamp.
+ *       Liveclass dan shortclass sudah menggunakan sistem subscription.
  *     tags: [Booking]
  *     security:
  *       - bearerAuth: []
@@ -774,7 +837,11 @@ router.get(
  * @swagger
  * /api/booking/admin/bookings/{id}:
  *   get:
- *     summary: Ambil detail booking oleh admin
+ *     summary: Ambil detail booking oleh admin (One-on-One, Group, Bootcamp saja)
+ *     description: >
+ *       Endpoint ini hanya berlaku untuk booking dengan serviceType
+ *       one-on-one, group, dan bootcamp.
+ *       Liveclass dan shortclass menggunakan sistem subscription.
  *     tags: [Booking]
  *     security:
  *       - bearerAuth: []
@@ -859,7 +926,10 @@ router.get(
  * /api/booking/admin/bookings/{id}:
  *   patch:
  *     summary: Update status booking (admin)
- *     tags: [Booking]
+ *     description: >
+ *       Endpoint ini hanya berlaku untuk booking dengan serviceType
+ *       one-on-one, group, dan bootcamp.
+ *       Liveclass dan shortclass menggunakan sistem subscription.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -930,7 +1000,11 @@ router.patch(
  * @swagger
  * /api/booking/adminExportBook:
  *   get:
- *     summary: Export data booking (admin) termasuk kolom baru seperti material, expectedOutput, supportDocument
+ *     summary: Export data booking (admin) - One-on-One, Group, Bootcamp saja
+ *     description: >
+ *       Endpoint ini hanya mengekspor booking dengan serviceType
+ *       one-on-one, group, dan bootcamp.
+ *       Liveclass dan shortclass tidak termasuk karena menggunakan sistem subscription.
  *     tags: [Booking]
  *     security:
  *       - bearerAuth: []
@@ -982,8 +1056,11 @@ router.get(
  * @swagger
  * /api/booking/menteeParticipants/bookings/{id}:
  *   get:
- *     summary: Ambil peserta dari booking mentee
- *     tags: [Booking]
+ *     summary: Ambil peserta dari booking mentee (One-on-One, Group, Bootcamp saja)
+ *     description: >
+ *       Endpoint ini hanya berlaku untuk booking dengan serviceType
+ *       one-on-one, group, dan bootcamp.
+ *       Liveclass dan shortclass menggunakan sistem subscription.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -1169,10 +1246,12 @@ router.get(
  * @swagger
  * /api/booking/mentor/bookings:
  *   get:
- *     summary: Ambil daftar booking yang berkaitan dengan mentor (beserta participants)
+ *     summary: Ambil daftar booking mentor (One-on-One, Group, Bootcamp saja)
  *     description: >
- *       - Mentor hanya bisa melihat booking miliknya sendiri (service yang dia handle).
- *       - Admin bisa melihat booking semua mentor (opsional pakai query `mentorId`).
+ *       - Hanya berlaku untuk serviceType: one-on-one, group, bootcamp.
+ *       - Liveclass dan shortclass menggunakan sistem subscription.
+ *       - Mentor hanya bisa melihat booking miliknya sendiri.
+ *       - Admin bisa melihat semua booking.
  *     tags: [Booking]
  *     security:
  *       - bearerAuth: []
@@ -1274,10 +1353,12 @@ router.get(
  * @swagger
  * /api/booking/mentorStat/bookings:
  *   get:
- *     summary: Ambil jumlah mentee per tipe service
+ *     summary: Ambil jumlah mentee per tipe service (One-on-One, Group, Bootcamp saja)
  *     description: >
- *       - Mentor hanya bisa melihat rekap jumlah mentee dari service yang dia handle.
- *       - Admin bisa melihat semua mentor (opsional pakai query `mentorId` untuk filter).
+ *       - Hanya menghitung serviceType: one-on-one, group, bootcamp.
+ *       - Liveclass dan shortclass menggunakan sistem subscription.
+ *       - Mentor hanya bisa melihat service yang dia handle.
+ *       - Admin bisa melihat semua mentor.
  *     tags: [Booking]
  *     security:
  *       - bearerAuth: []

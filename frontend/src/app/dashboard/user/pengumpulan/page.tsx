@@ -54,10 +54,20 @@ export default function PengumpulanDashboardUserPage() {
       try {
         const res = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/booking/mentee/bookings`,
-          { withCredentials: true }
+
+          {
+            params: { page: 1, limit: 1000 },
+            withCredentials: true,
+          },
         );
 
-        const bookings = res.data?.data?.data || [];
+        const bookingsRaw = res.data?.data?.data || [];
+
+        const bookings = bookingsRaw.filter((b: any) =>
+          ["confirmed", "completed"].includes(
+            (b.status || "").toLowerCase().trim(),
+          ),
+        );
 
         const mappedProjects: Project[] = bookings.flatMap((booking: any) => {
           const service = booking.mentoringService;

@@ -80,9 +80,9 @@ export default function ScheduleSection() {
         const res = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/booking/mentee/bookings`,
           {
-            params: { page: 1, limit: 100 },
+            params: { page: 1, limit: 100, status: "confirmed" },
             withCredentials: true,
-          }
+          },
         );
 
         const bookings = res.data.data.data;
@@ -97,7 +97,7 @@ export default function ScheduleSection() {
 
             const start = new Date(session.startTime).toLocaleTimeString(
               "id-ID",
-              { hour: "2-digit", minute: "2-digit" }
+              { hour: "2-digit", minute: "2-digit" },
             );
             const end = new Date(session.endTime).toLocaleTimeString("id-ID", {
               hour: "2-digit",
@@ -236,7 +236,7 @@ export default function ScheduleSection() {
                     window.open(link, "_blank", "noopener,noreferrer");
                   } else {
                     toast.warning(
-                      "Link meeting belum tersedia, Silahkan hubungi admin."
+                      "Link meeting belum tersedia, Silahkan hubungi admin.",
                     );
                   }
                 }}

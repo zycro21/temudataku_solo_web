@@ -24,11 +24,11 @@ const availabilityScheduleSchema = z.object(
         .array(
           z.string().regex(timeRangeRegex, {
             message: "Invalid time format (e.g. 08.00 - 10.00)",
-          })
+          }),
         )
         .optional(),
-    ])
-  )
+    ]),
+  ),
 );
 
 const hourlyRateSchema = z
@@ -58,6 +58,7 @@ export const createMentorProfileSchema = z.object({
         message: "Hourly rate must be a valid number",
       })
       .optional(),
+    linkedin: z.string().url().optional(),
   }),
 });
 
@@ -68,6 +69,7 @@ export const updateMentorProfileSchema = z.object({
     experience: z.string().optional(),
     availabilitySchedule: availabilityScheduleSchema.optional(),
     hourlyRate: hourlyRateSchema.optional(),
+    linkedin: z.string().url().optional(),
   }),
 });
 
@@ -99,13 +101,13 @@ export const getPublicMentorsSchema = z.object({
     limit: z
       .string()
       .optional()
-      .default("10")
+      .default("100")
       .refine(
         (val) => {
           const num = parseInt(val);
           return !isNaN(num) && num > 0 && num <= 100;
         },
-        { message: "Limit must be a number between 1 and 100" }
+        { message: "Limit must be a number between 1 and 100" },
       ),
     search: z.string().optional(),
     province: z.string().optional(),

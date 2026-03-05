@@ -36,7 +36,7 @@ export default function BenefitsSection({
   onClickCTA?: () => void;
 }) {
   return (
-    <section className="py-16 bg-[#E5E7EB] relative overflow-hidden">
+    <section className="py-16 mt-16 bg-[#E5E7EB] relative overflow-hidden">
       {/* Background decorative elements */}
       <div className="absolute top-20 right-0 w-40 h-40 ">
         <Image
@@ -57,21 +57,21 @@ export default function BenefitsSection({
         />
       </div>
 
-      <div className="container mx-auto px-8 md:px-[100px] relative z-10">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid lg:grid-cols-2 gap-12 items-start">
           {/* Left side - Text content */}
           <div className="space-y-6">
             <div>
-              <p className="text-sm font-semibold text-blue-900 mb-4">
+              <p className="text-base font-semibold text-blue-900 mb-4">
                 Nilai <span className="font-bold">Plus</span>
               </p>
-              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">
+              <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
                 Kenapa Belajar di <br />
                 <span className="bg-gradient-to-r from-emerald-500 to-teal-600 bg-clip-text text-transparent">
                   TemuDataku?
                 </span>
               </h1>
-              <p className="text-lg md:text-xl text-gray-600 leading-loose mb-10 max-w-2xl">
+              <p className="text-xl md:text-2xl text-gray-600 leading-loose mb-10 max-w-2xl">
                 TemuDataku hadir untuk mempercepat karier kamu di dunia Data &
                 AI. Kami fokus memberikan bimbingan yang tepat, menghubungkan
                 kamu dengan mentor industri, dan membekali kamu dengan
@@ -82,7 +82,7 @@ export default function BenefitsSection({
 
             <Button
               onClick={onClickCTA}
-              className="bg-[#0CA678] hover:bg-[#08916C] text-white px-8 py-3 rounded-md font-medium"
+              className="bg-[#0CA678] hover:bg-[#08916C] text-white px-10 py-4 rounded-md font-semibold text-lg"
             >
               Lihat Jalur Belajar
             </Button>
@@ -97,20 +97,20 @@ export default function BenefitsSection({
               >
                 <CardContent className="p-6 pt-0 pb-2">
                   <div className="mb-4">
-                    <div className="w-12 h-12 flex items-center justify-center">
+                    <div className="w-14 h-14 flex items-center justify-center">
                       <Image
                         src="/assets/homePage/greenbook.svg"
                         alt="icon benefit"
-                        width={26}
-                        height={26}
+                        width={32}
+                        height={32}
                         className="object-contain"
                       />
                     </div>
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-3">
                     {benefit.title}
                   </h3>
-                  <p className="text-gray-500 text-xs leading-relaxed">
+                  <p className="text-gray-600 text-sm leading-relaxed">
                     {benefit.description}
                   </p>
                 </CardContent>

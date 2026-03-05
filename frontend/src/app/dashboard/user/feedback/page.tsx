@@ -75,10 +75,16 @@ export default function FeedbackDashboardUserPage() {
         {
           params: { page: 1, limit: 1000 },
           withCredentials: true,
-        }
+        },
       );
 
-      const bookings = res.data.data.data;
+      const bookingsRaw = res.data.data.data || [];
+
+      const bookings = bookingsRaw.filter((b: any) =>
+        ["confirmed", "completed"].includes(
+          (b.status || "").toLowerCase().trim(),
+        ),
+      );
 
       const transformed = bookings.flatMap((booking: any) => {
         const service = booking.mentoringService;
@@ -88,11 +94,11 @@ export default function FeedbackDashboardUserPage() {
           const { formattedDate, formattedTime } = formatDateAndTime(
             session.date,
             session.startTime,
-            session.endTime
+            session.endTime,
           );
 
           return {
-            id: session.id,
+            id: `${booking.id}-${session.id}`, // FIX
             title: session.notes || "Sesi Mentoring",
             description: service.description || "",
             program: service.serviceType || "Mentoring",

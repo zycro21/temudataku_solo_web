@@ -12,7 +12,7 @@ const prisma = new PrismaClient();
 export const createBookingController = async (
   req: AuthenticatedRequestBooking,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -29,7 +29,7 @@ export const createBookingController = async (
     let supportDocument: string[] | null = null;
     if (req.files && Array.isArray(req.files)) {
       supportDocument = (req.files as Express.Multer.File[]).map((file) =>
-        path.join("supportDocuments", file.filename).replace(/\\/g, "/")
+        path.join("supportDocuments", file.filename).replace(/\\/g, "/"),
       );
     }
 
@@ -52,10 +52,56 @@ export const createBookingController = async (
   }
 };
 
+export const updateBookingContentController = async (
+  req: AuthenticatedRequestBooking,
+  res: Response,
+) => {
+  try {
+    if (!req.user?.userId) {
+      res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+      return;
+    }
+
+    const bookingId = req.params.id;
+
+    let supportDocument: string[] | null = null;
+
+    if (req.files && Array.isArray(req.files)) {
+      supportDocument = (req.files as Express.Multer.File[]).map((file) =>
+        path.join("supportDocuments", file.filename).replace(/\\/g, "/"),
+      );
+    }
+
+    const result = await BookingService.updateBookingContent(
+      bookingId,
+      req.user.userId,
+      {
+        material: req.body.material,
+        expectedOutput: req.body.expectedOutput,
+        supportDocument,
+      },
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Booking content updated successfully.",
+      data: result,
+    });
+  } catch (error: any) {
+    res.status(error.status || 500).json({
+      success: false,
+      message: error.message || "Internal server error",
+    });
+  }
+};
+
 export const getMenteeBookingsController = async (
   req: AuthenticatedRequestBooking,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -65,7 +111,7 @@ export const getMenteeBookingsController = async (
 
     const bookings = await BookingService.getMenteeBookings(
       req.user.userId,
-      req.validatedQuery!
+      req.validatedQuery!,
     );
 
     res.status(200).json({
@@ -80,7 +126,7 @@ export const getMenteeBookingsController = async (
 export const getMenteeBookingDetailController = async (
   req: AuthenticatedRequestBooking,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -96,7 +142,7 @@ export const getMenteeBookingDetailController = async (
 
     const result = await BookingService.getMenteeBookingDetail(
       req.user.userId,
-      bookingId
+      bookingId,
     );
 
     res.status(200).json({
@@ -113,7 +159,7 @@ export const getMenteeBookingDetailController = async (
 export const getCompletedProgramsController = async (
   req: AuthenticatedRequestBooking,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -123,7 +169,7 @@ export const getCompletedProgramsController = async (
 
     const completedPrograms = await BookingService.getCompletedPrograms(
       req.user.userId,
-      req.validatedQuery!
+      req.validatedQuery!,
     );
 
     res.status(200).json({
@@ -138,7 +184,7 @@ export const getCompletedProgramsController = async (
 export const updateMenteeBookingController = async (
   req: AuthenticatedRequestBooking,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -158,7 +204,7 @@ export const updateMenteeBookingController = async (
     const updatedBooking = await BookingService.updateMenteeBooking(
       req.user.userId,
       bookingId,
-      { specialRequests, participantIds, material, expectedOutput }
+      { specialRequests, participantIds, material, expectedOutput },
     );
 
     res.status(200).json({
@@ -173,7 +219,7 @@ export const updateMenteeBookingController = async (
 export const cancelMenteeBookingController = async (
   req: AuthenticatedRequestBooking,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -190,7 +236,7 @@ export const cancelMenteeBookingController = async (
 
     const cancelledBooking = await BookingService.cancelMenteeBooking(
       req.user.userId,
-      bookingId
+      bookingId,
     );
 
     res.status(200).json({
@@ -205,7 +251,7 @@ export const cancelMenteeBookingController = async (
 export const getAdminBookingsController = async (
   req: AuthenticatedRequestBooking,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.validatedQuery) {
@@ -254,7 +300,7 @@ export const getAdminBookingsController = async (
 export const getAdminBookingDetailController = async (
   req: AuthenticatedRequestBooking,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.validatedParams) {
@@ -285,7 +331,7 @@ export const getAdminBookingDetailController = async (
 export const updateAdminBookingStatusController = async (
   req: AuthenticatedRequestBooking,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.validatedParams || !req.validatedBody) {
@@ -334,7 +380,7 @@ export const updateAdminBookingStatusController = async (
 export const exportAdminBookings = async (
   req: AuthenticatedRequestBooking,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.roles?.includes("admin")) {
@@ -369,7 +415,7 @@ export const exportAdminBookings = async (
 export const getBookingParticipantsController = async (
   req: AuthenticatedRequestBooking,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const bookingId = req.validatedParams!.id;
@@ -377,7 +423,7 @@ export const getBookingParticipantsController = async (
 
     const participants = await BookingService.getBookingParticipants(
       bookingId,
-      menteeId
+      menteeId,
     );
     res.json({ participants });
   } catch (error) {
@@ -388,7 +434,7 @@ export const getBookingParticipantsController = async (
 export const getMentorEarningsController = async (
   req: AuthenticatedRequestBooking,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.validatedQuery) throw new Error("Query belum divalidasi");
@@ -429,7 +475,7 @@ export const getMentorEarningsController = async (
 export const getMentorBookingsController = async (
   req: AuthenticatedRequestBooking,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.validatedQuery) throw new Error("Query belum divalidasi");
@@ -463,7 +509,7 @@ export const getMentorBookingsController = async (
 export const getMentorStatBookingsController = async (
   req: AuthenticatedRequestBooking,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.validatedQuery) throw new Error("Query belum divalidasi");
