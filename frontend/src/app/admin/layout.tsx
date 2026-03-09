@@ -50,6 +50,33 @@ export default function AdminLayout({
   const logout = useLogout();
   const { currentUser } = useAuth();
 
+  const roles: string[] =
+    currentUser?.userRoles?.map((r: any) => r.role.roleName.toLowerCase()) ||
+    [];
+
+  const permissions = {
+    admin: [
+      "Overview",
+      "Mentee",
+      "Mentor",
+      "Kelola Mentoring",
+      "E-Learning",
+      "Transaksi",
+      "Produk & Event",
+      "History",
+    ],
+    cm: ["Kelola Mentoring", "Produk & Event"],
+    curdev: ["Produk & Event", "E-Learning"],
+  };
+
+  const allowedMenus = new Set<string>();
+
+  roles.forEach((r) => {
+    permissions[r as keyof typeof permissions]?.forEach((menu) => {
+      allowedMenus.add(menu);
+    });
+  });
+
   const avatarUrl =
     currentUser?.profilePicture && currentUser.profilePicture !== "default.jpg"
       ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${currentUser.profilePicture}`
@@ -136,6 +163,12 @@ export default function AdminLayout({
     //   icon: "/assets/dashboard/user/materi.svg",
     //   activeIcon: "/assets/dashboard/user/whitemateri.svg",
     // },
+    {
+      name: "E-Learning",
+      href: "/dashboard/user/practice",
+      icon: "/assets/dashboard/user/practice.svg",
+      activeIcon: "/assets/dashboard/user/whitepractice.svg",
+    },
     {
       name: "Transaksi",
       href: "/admin/transaksi",
@@ -258,7 +291,7 @@ export default function AdminLayout({
           headers: {
             "Content-Type": "multipart/form-data",
           },
-        }
+        },
       );
 
       if (res.data.success) {
@@ -271,7 +304,7 @@ export default function AdminLayout({
                 phone,
                 avatarUrl: selectedFile ? preview : prev.avatarUrl,
               }
-            : prev
+            : prev,
         );
         setIsEditAdminOpen(false);
         toast.success("Profil berhasil diperbarui!");
@@ -282,7 +315,7 @@ export default function AdminLayout({
       console.error(err);
       toast.error(
         err.response?.data?.message ||
-          "Terjadi kesalahan saat memperbarui profil"
+          "Terjadi kesalahan saat memperbarui profil",
       );
     }
   };
@@ -308,99 +341,112 @@ export default function AdminLayout({
 
             {/* MENU */}
             <nav className="space-y-1 px-6">
-              {adminMenu.map((item) => {
-                const isActive =
-                  !item.hasSubmenu &&
-                  (pathname === item.href || pathname === item.href + "/");
+              {adminMenu
+                .filter((item) => {
+                  const alwaysAllowed = ["Overview"];
 
-                return (
-                  <Fragment key={item.name}>
-                    {/* ----- MENU TANPA SUBMENU ----- */}
-                    {!item.hasSubmenu ? (
-                      <Link
-                        href={item.href}
-                        className={`flex items-center gap-x-4 px-4 py-2 rounded-lg text-sm font-medium transition-colors w-full ${
-                          isActive
-                            ? "bg-emerald-500 text-white"
-                            : "text-gray-600 hover:bg-emerald-50 hover:text-emerald-600"
-                        }`}
-                      >
-                        <Image
-                          src={isActive ? item.activeIcon : item.icon}
-                          alt={item.name}
-                          width={18}
-                          height={18}
-                          unoptimized
-                        />
-                        <span>{item.name}</span>
-                      </Link>
-                    ) : (
-                      /* ----- MENU PARENT (PUNYA SUBMENU) ----- */
-                      <button
-                        onClick={() =>
-                          setOpenDropdown(
-                            openDropdown === item.name ? null : item.name
-                          )
-                        }
-                        className={`flex items-center justify-between w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                          openDropdown === item.name
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "text-gray-600 hover:bg-emerald-50 hover:text-emerald-600"
-                        }`}
-                      >
-                        <div className="flex items-center gap-x-4">
+                  // ADMIN boleh lihat semua menu
+                  if (roles.includes("admin")) return true;
+
+                  if (alwaysAllowed.includes(item.name)) return true;
+
+                  return allowedMenus.has(item.name);
+                })
+                .map((item) => {
+                  const isActive =
+                    !item.hasSubmenu &&
+                    (pathname === item.href || pathname === item.href + "/");
+
+                  return (
+                    <Fragment key={item.name}>
+                      {/* ----- MENU TANPA SUBMENU ----- */}
+                      {!item.hasSubmenu ? (
+                        <Link
+                          href={item.href}
+                          className={`flex items-center gap-x-4 px-4 py-2 rounded-lg text-sm font-medium transition-colors w-full ${
+                            isActive
+                              ? "bg-emerald-500 text-white"
+                              : "text-gray-600 hover:bg-emerald-50 hover:text-emerald-600"
+                          }`}
+                        >
                           <Image
-                            src={item.icon}
+                            src={isActive ? item.activeIcon : item.icon}
                             alt={item.name}
                             width={18}
                             height={18}
                             unoptimized
                           />
                           <span>{item.name}</span>
-                        </div>
-
-                        <ChevronDown
-                          className={`w-4 h-4 transition-transform ${
-                            openDropdown === item.name ? "rotate-180" : ""
+                        </Link>
+                      ) : (
+                        /* ----- MENU PARENT (PUNYA SUBMENU) ----- */
+                        <button
+                          onClick={() =>
+                            setOpenDropdown(
+                              openDropdown === item.name ? null : item.name,
+                            )
+                          }
+                          className={`flex items-center justify-between w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            openDropdown === item.name
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "text-gray-600 hover:bg-emerald-50 hover:text-emerald-600"
                           }`}
-                        />
-                      </button>
-                    )}
+                        >
+                          <div className="flex items-center gap-x-4">
+                            <Image
+                              src={item.icon}
+                              alt={item.name}
+                              width={18}
+                              height={18}
+                              unoptimized
+                            />
+                            <span>{item.name}</span>
+                          </div>
 
-                    {/* ----- SUBMENU ----- */}
-                    {item.hasSubmenu && openDropdown === item.name && (
-                      <div className="ml-10 mt-1 space-y-1">
-                        {item.children.map((child) => {
-                          const isChildActive = pathname === child.href;
+                          <ChevronDown
+                            className={`w-4 h-4 transition-transform ${
+                              openDropdown === item.name ? "rotate-180" : ""
+                            }`}
+                          />
+                        </button>
+                      )}
 
-                          return (
-                            <Link
-                              key={child.name}
-                              href={child.href}
-                              className={`flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                                isChildActive
-                                  ? "bg-emerald-500 text-white"
-                                  : "text-gray-600 hover:bg-emerald-50 hover:text-emerald-600"
-                              }`}
-                            >
-                              <Image
-                                src={
-                                  isChildActive ? child.activeIcon : child.icon
-                                }
-                                alt={child.name}
-                                width={14}
-                                height={14}
-                                unoptimized
-                              />
-                              <span>{child.name}</span>
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </Fragment>
-                );
-              })}
+                      {/* ----- SUBMENU ----- */}
+                      {item.hasSubmenu && openDropdown === item.name && (
+                        <div className="ml-10 mt-1 space-y-1">
+                          {item.children.map((child) => {
+                            const isChildActive = pathname === child.href;
+
+                            return (
+                              <Link
+                                key={child.name}
+                                href={child.href}
+                                className={`flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                  isChildActive
+                                    ? "bg-emerald-500 text-white"
+                                    : "text-gray-600 hover:bg-emerald-50 hover:text-emerald-600"
+                                }`}
+                              >
+                                <Image
+                                  src={
+                                    isChildActive
+                                      ? child.activeIcon
+                                      : child.icon
+                                  }
+                                  alt={child.name}
+                                  width={14}
+                                  height={14}
+                                  unoptimized
+                                />
+                                <span>{child.name}</span>
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </Fragment>
+                  );
+                })}
             </nav>
           </div>
 
@@ -461,7 +507,7 @@ export default function AdminLayout({
                 <button
                   onClick={() =>
                     setOpenDropdown(
-                      openDropdown === "user-menu" ? null : "user-menu"
+                      openDropdown === "user-menu" ? null : "user-menu",
                     )
                   }
                   className="flex items-center gap-2 focus:outline-none"

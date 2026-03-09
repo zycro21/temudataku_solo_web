@@ -84,8 +84,16 @@ export const registerUser = async (data: {
   });
 
   if (existingUser) {
-    // Cek password untuk user lama
+    // Jika user tidak punya password (Google account)
+    if (!existingUser.passwordHash) {
+      throw new HttpError(
+        "This account was registered using Google. Please login with Google.",
+        400,
+      );
+    }
+
     const isMatch = await comparePassword(password, existingUser.passwordHash);
+
     if (!isMatch) {
       throw new HttpError("Incorrect password for existing account", 401);
     }
@@ -259,10 +267,23 @@ export const loginUser = async (email: string, password: string) => {
     },
   });
 
-  if (!user) throw new HttpError("User not found", 404);
+  if (!user) {
+    throw new HttpError("User not found", 404);
+  }
+
+  // Jika akun dibuat via Google (tidak punya password)
+  if (!user.passwordHash) {
+    throw new HttpError(
+      "This account was registered using Google. Please login with Google.",
+      400,
+    );
+  }
 
   const isMatch = await comparePassword(password, user.passwordHash);
-  if (!isMatch) throw new HttpError("Invalid credentials", 401);
+
+  if (!isMatch) {
+    throw new HttpError("Invalid credentials", 401);
+  }
 
   if (!user.isEmailVerified) {
     throw new HttpError("Please verify your email before logging in", 403);
@@ -340,7 +361,7 @@ export const verifyRefreshToken = async (refreshToken: string) => {
     // Verifikasi refresh token
     const decoded = jwt.verify(
       refreshToken,
-      process.env.JWT_REFRESH_SECRET!
+      process.env.JWT_REFRESH_SECRET!,
     ) as {
       userId: string;
       roles: string[];
@@ -435,7 +456,6 @@ export const getUserByEmail = async (email: string) => {
 
 export const updatePassword = async (userId: string, plainPassword: string) => {
   try {
-    // Ambil password lama
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { passwordHash: true },
@@ -445,10 +465,13 @@ export const updatePassword = async (userId: string, plainPassword: string) => {
       throw new Error("User not found");
     }
 
-    // Cek apakah password baru sama dengan yang lama
-    const isSame = await comparePassword(plainPassword, user.passwordHash);
-    if (isSame) {
-      throw new Error("New password must be different from the old password");
+    // Jika user sudah punya password, cek apakah sama
+    if (user.passwordHash) {
+      const isSame = await comparePassword(plainPassword, user.passwordHash);
+
+      if (isSame) {
+        throw new Error("New password must be different from the old password");
+      }
     }
 
     // Hash password baru
@@ -473,7 +496,7 @@ export const updatePassword = async (userId: string, plainPassword: string) => {
 export const changePassword = async (
   userId: string,
   oldPassword: string,
-  newPassword: string
+  newPassword: string,
 ) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -486,14 +509,25 @@ export const changePassword = async (
     throw error;
   }
 
-  const isMatch = await comparePassword(oldPassword, user.passwordHash);
+  // Jika user tidak punya password (akun OAuth)
+  if (!user.passwordHash) {
+    const error = new Error(
+      "This account does not have a password. Please set a password instead.",
+    );
+    (error as any).status = 400;
+    throw error;
+  }
+
+  const currentHash = user.passwordHash;
+
+  const isMatch = await comparePassword(oldPassword, currentHash);
   if (!isMatch) {
     const error = new Error("Old password is incorrect");
     (error as any).status = 400;
     throw error;
   }
 
-  const isSame = await comparePassword(newPassword, user.passwordHash);
+  const isSame = await comparePassword(newPassword, currentHash);
   if (isSame) {
     const error = new Error("New password must be different from the old one");
     (error as any).status = 400;
@@ -501,6 +535,7 @@ export const changePassword = async (
   }
 
   const newHashed = await hashPassword(newPassword);
+
   await prisma.user.update({
     where: { id: userId },
     data: {
@@ -508,4 +543,109 @@ export const changePassword = async (
       updatedAt: new Date(),
     },
   });
+};
+
+async function generateUserId(tx: Prisma.TransactionClient): Promise<string> {
+  const lastUser = await tx.user.findFirst({
+    orderBy: { id: "desc" },
+  });
+
+  let newIdNumber = 1;
+
+  if (lastUser && /^\d+$/.test(lastUser.id)) {
+    newIdNumber = parseInt(lastUser.id) + 1;
+  }
+
+  return String(newIdNumber).padStart(6, "0");
+}
+
+interface GoogleLoginInput {
+  email: string;
+  fullName: string;
+  googleId: string;
+  picture?: string;
+}
+
+export const googleLogin = async ({
+  email,
+  fullName,
+  googleId,
+  picture,
+}: GoogleLoginInput) => {
+  let user = await prisma.user.findUnique({
+    where: { email },
+    include: {
+      userRoles: {
+        include: {
+          role: true,
+        },
+      },
+      mentorProfile: {
+        select: { id: true },
+      },
+    },
+  });
+
+  if (user) {
+    return user;
+  }
+
+  const role = await prisma.role.findUnique({
+    where: { roleName: "mentee" },
+  });
+
+  if (!role) {
+    throw new Error("Role mentee tidak ditemukan");
+  }
+
+  const MAX_RETRY = 5;
+
+  for (let attempt = 0; attempt < MAX_RETRY; attempt++) {
+    try {
+      const result = await prisma.$transaction(async (tx) => {
+        const userId = await generateUserId(tx);
+
+        return await tx.user.create({
+          data: {
+            id: userId,
+            email,
+            fullName,
+            googleId,
+            profilePicture: picture,
+            isEmailVerified: true,
+            userRoles: {
+              create: {
+                id: `mentee-${nanoid(10)}`,
+                roleId: role.id,
+              },
+            },
+          },
+          include: {
+            userRoles: {
+              include: {
+                role: true,
+              },
+            },
+            mentorProfile: {
+              select: { id: true },
+            },
+          },
+        });
+      });
+
+      return result;
+    } catch (error: any) {
+      if (error.code === "P2002") {
+        if (attempt === MAX_RETRY - 1) {
+          throw new Error("Gagal membuat user setelah beberapa percobaan");
+        }
+
+        continue;
+      }
+
+      throw error;
+    }
+  }
+
+  throw new Error("Google login gagal");
 };

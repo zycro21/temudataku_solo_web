@@ -1004,7 +1004,7 @@ router.get(
 router.get(
   "/admin/feedbacks",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(getAdminFeedbacksSchema),
   FeedbackController.getAllFeedbacksForAdmin
 );
@@ -1118,7 +1118,7 @@ router.get(
 router.patch(
   "/admin/feedbacks/:id/visibility",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(patchFeedbackVisibilitySchema),
   FeedbackController.updateFeedbackVisibility
 );
@@ -1191,7 +1191,7 @@ router.patch(
 router.get(
   "/admin/feedbacks/export",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(exportFeedbackQuerySchema),
   FeedbackController.exportFeedbacks
 );
@@ -1403,7 +1403,7 @@ router.get(
 router.put(
   "/adminFeedbacks/:id",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(updateFeedbackAdminSchema),
   FeedbackController.updateFeedbackByAdmin
 );

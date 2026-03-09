@@ -247,7 +247,7 @@ router.post(
 router.get(
   "/admin/certificates",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(getAllCertificatesSchema),
   CertificateController.getAllCertificates
 );
@@ -403,7 +403,7 @@ router.get(
 router.patch(
   "/admin/certificates/:id",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(updateCertificateSchema),
   CertificateController.updateCertificate
 );
@@ -873,7 +873,7 @@ router.get(
 router.get(
   "/certificatesExport",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(exportCertificateSchema),
   CertificateController.exportCertificatesController
 );

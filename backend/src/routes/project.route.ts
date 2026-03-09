@@ -1731,7 +1731,7 @@ router.put(
 router.patch(
   "/mentors/submissions/:id",
   authenticate,
-  authorizeRoles("mentor", "admin"),
+  authorizeRoles("mentor", "admin", "cm", "curdev"),
   validate(reviewSubmissionSchema),
   ProjectController.reviewSubmission
 );
@@ -1877,7 +1877,7 @@ router.patch(
 router.get(
   "/admin/submissions",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(getAdminSubmissionListSchema),
   ProjectController.getAdminSubmissions
 );
@@ -2087,7 +2087,7 @@ router.get(
 router.get(
   "/adminSubmissionsExport",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(exportSubmissionSchema),
   ProjectController.exportAdminSubmissions
 );
@@ -2812,7 +2812,7 @@ router.get(
 router.get(
   "/adminprojectsstats",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(getProjectStatsSchema),
   ProjectController.getProjectStatsHandler
 );
@@ -2854,7 +2854,7 @@ router.get(
 router.delete(
   "/mentors/submissions/:id",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(deleteSubmissionSchema),
   ProjectController.deleteSubmission
 );

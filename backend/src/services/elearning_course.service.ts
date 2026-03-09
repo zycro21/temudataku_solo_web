@@ -12,14 +12,14 @@ const prisma = new PrismaClient();
 export const ELearningCourseService = {
   async getAllCourses(
     filters: any,
-    user: { userId: string; roles: string[]; mentorProfileId?: string }
+    user: { userId: string; roles: string[]; mentorProfileId?: string },
   ) {
     const {
       category,
       level,
       search,
       page = 1,
-      limit = 10,
+      limit = 1000,
       sortBy = "createdAt",
       order = "desc",
     } = filters;
@@ -39,11 +39,21 @@ export const ELearningCourseService = {
 
     /* ===== ROLE-BASED ACCESS ===== */
 
-    if (user.roles.includes("admin")) {
-      // admin bebas
-    } else if (user.roles.includes("mentor")) {
+    const roles = user.roles || [];
+
+    // admin-like roles
+    const adminLikeRoles = ["admin", "cm", "curdev"];
+    const isAdminLike = roles.some((role) => adminLikeRoles.includes(role));
+
+    const isMentor = roles.includes("mentor");
+    const isMentee = roles.includes("mentee");
+
+    if (isAdminLike) {
+      // admin / cm / curdev bebas melihat semua course
+    } else if (isMentor) {
+      // mentor hanya melihat course miliknya
       whereCondition.mentorId = user.mentorProfileId;
-    } else if (user.roles.includes("mentee")) {
+    } else if (isMentee) {
       const now = new Date();
 
       const activeSubscription = await prisma.eLearningSubscription.findFirst({
@@ -62,8 +72,7 @@ export const ELearningCourseService = {
         };
       }
 
-      // ❗ tidak perlu filter course
-      // mentee bisa lihat semua course
+      // mentee bisa melihat semua course jika subscription aktif
     }
 
     const [total, courses] = await Promise.all([
@@ -99,7 +108,7 @@ export const ELearningCourseService = {
 
   async getCourseById(
     id: string,
-    user: { userId: string; roles: string[]; mentorProfileId?: string }
+    user: { userId: string; roles: string[]; mentorProfileId?: string },
   ) {
     /* ===== 1. AMBIL COURSE ===== */
     const course = await prisma.eLearningCourse.findUnique({
@@ -222,7 +231,7 @@ export const ELearningCourseService = {
   async updateCourse(
     id: string,
     data: any,
-    user: { userId: string; roles: string[]; mentorProfileId?: string }
+    user: { userId: string; roles: string[]; mentorProfileId?: string },
   ) {
     const course = await prisma.eLearningCourse.findUnique({
       where: { id },
@@ -232,39 +241,49 @@ export const ELearningCourseService = {
       throw { status: 404, message: "Kursus tidak ditemukan" };
     }
 
-    const isAdmin = user.roles.includes("admin");
-    const isMentor = user.roles.includes("mentor");
+    const roles = user.roles || [];
 
-    // Role-based authorization
-    if (isMentor && course.mentorId !== user.mentorProfileId) {
+    // Role yang diperlakukan seperti admin
+    const adminLikeRoles = ["admin", "cm", "curdev"];
+    const isAdminLike = roles.some((role) => adminLikeRoles.includes(role));
+    const isMentor = roles.includes("mentor");
+
+    // Jika mentor tapi bukan pemilik kursus
+    if (isMentor && !isAdminLike && course.mentorId !== user.mentorProfileId) {
       throw { status: 403, message: "Akses ditolak: bukan pemilik kursus ini" };
     }
 
-    // Jika mentor, tidak boleh ubah mentorId
-    if (isMentor && data.mentorId && data.mentorId !== course.mentorId) {
+    // Mentor tidak boleh ubah mentorId
+    if (
+      isMentor &&
+      !isAdminLike &&
+      data.mentorId &&
+      data.mentorId !== course.mentorId
+    ) {
       throw {
         status: 403,
         message: "Mentor tidak dapat mengubah mentorId kursus",
       };
     }
 
-    // Jika admin mengubah mentorId, pastikan mentorId valid
-    if (isAdmin && data.mentorId) {
+    // Admin / CM / Curdev boleh mengubah mentorId tapi harus valid
+    if (isAdminLike && data.mentorId) {
       const mentorExists = await prisma.mentorProfile.findUnique({
         where: { id: data.mentorId },
       });
+
       if (!mentorExists) {
         throw { status: 400, message: "Mentor baru tidak ditemukan" };
       }
     }
 
-    // Hapus thumbnail lama jika ada file baru diunggah
+    // Hapus thumbnail lama jika upload baru
     if (data.thumbnailImages && course.thumbnailImages?.length > 0) {
       try {
         for (const oldImagePath of course.thumbnailImages) {
           const absolutePath = path.join(
             elearningThumbnailPath,
-            path.basename(oldImagePath)
+            path.basename(oldImagePath),
           );
 
           if (fs.existsSync(absolutePath)) {
@@ -277,7 +296,6 @@ export const ELearningCourseService = {
       }
     }
 
-    // Update data kursus
     const updated = await prisma.eLearningCourse.update({
       where: { id },
       data: {
@@ -336,7 +354,7 @@ export const ELearningCourseService = {
       search?: string;
     },
     page = 1,
-    limit = 10
+    limit = 10,
   ) {
     const skip = (page - 1) * limit;
 
@@ -409,7 +427,7 @@ export const ELearningCourseService = {
     const totalSubChapters = course.subChapters.length;
     const totalSubBabs = course.subChapters.reduce(
       (acc, ch) => acc + ch.subBabs.length,
-      0
+      0,
     );
 
     const averageRating =
@@ -432,7 +450,7 @@ export const ELearningCourseService = {
 
   async getCourseStatistics(
     courseId: string,
-    user: { userId: string; roles: string[]; mentorProfileId?: string }
+    user: { userId: string; roles: string[]; mentorProfileId?: string },
   ) {
     const course = await prisma.eLearningCourse.findUnique({
       where: { id: courseId },
@@ -478,8 +496,8 @@ export const ELearningCourseService = {
       sub.subBabs.forEach((bab) =>
         bab.progresses.forEach((p) => {
           studentSet.add(p.userId);
-        })
-      )
+        }),
+      ),
     );
 
     const totalStudents = studentSet.size;
@@ -498,8 +516,8 @@ export const ELearningCourseService = {
       sub.subBabs.forEach((bab) =>
         bab.progresses.forEach((p) => {
           progressValues.push(p.isCompleted ? 100 : 0);
-        })
-      )
+        }),
+      ),
     );
 
     const averageProgress =
@@ -516,7 +534,7 @@ export const ELearningCourseService = {
   },
 
   async exportCoursesToFile(
-    exportFormat: "csv" | "excel"
+    exportFormat: "csv" | "excel",
   ): Promise<{ buffer: Buffer; filename: string; mimetype: string }> {
     const courses = await prisma.eLearningCourse.findMany({
       include: {
@@ -558,11 +576,11 @@ export const ELearningCourseService = {
       MentorEmail: course.mentorProfile.user.email,
       CreatedAt: formatDate(
         course.createdAt ?? new Date(),
-        "yyyy-MM-dd HH:mm:ss"
+        "yyyy-MM-dd HH:mm:ss",
       ),
       UpdatedAt: formatDate(
         course.updatedAt ?? new Date(),
-        "yyyy-MM-dd HH:mm:ss"
+        "yyyy-MM-dd HH:mm:ss",
       ),
     }));
 
@@ -606,7 +624,7 @@ export const ELearningCourseService = {
   },
 
   async exportProductEventToFile(
-    format: "csv" | "excel"
+    format: "csv" | "excel",
   ): Promise<{ buffer: Buffer; filename: string; mimetype: string }> {
     // =========================
     // FETCH MENTORING

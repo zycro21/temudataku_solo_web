@@ -11,7 +11,7 @@ const prisma = new PrismaClient();
 export const createMentorProfile = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -79,7 +79,7 @@ export const createMentorProfile = async (
 export const getOwnMentorProfile = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const userId = req.user!.userId;
@@ -107,7 +107,7 @@ export const getOwnMentorProfile = async (
 export const updateMentorProfile = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -161,9 +161,29 @@ export const updateMentorProfile = async (
 export const getAllMentorProfiles = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({
+        message: "Unauthorized",
+      });
+      return;
+    }
+
+    const roles = req.user.roles || [];
+
+    // Role yang diperlakukan seperti admin
+    const adminLikeRoles = ["admin", "cm", "curdev"];
+    const isAdminLike = roles.some((role) => adminLikeRoles.includes(role));
+
+    if (!isAdminLike) {
+      res.status(403).json({
+        message: "Forbidden. Admin, CM, atau Curdev only.",
+      });
+      return;
+    }
+
     const {
       page = 1,
       limit = 10000,
@@ -196,7 +216,7 @@ export const getAllMentorProfiles = async (
 export const verifyMentorProfile = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -246,7 +266,7 @@ export const verifyMentorProfile = async (
 export const getPublicMentors = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const {
@@ -286,7 +306,7 @@ export const getPublicMentors = async (
 export const getMentorProfileById = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -331,7 +351,7 @@ export const getMentorProfileById = async (
 export const getById = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { id } = req.validatedParams!;
@@ -359,7 +379,7 @@ export const getById = async (
 export const deleteMentorProfile = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { id } = req.validatedParams!;
@@ -385,13 +405,15 @@ export const deleteMentorProfile = async (
 export const getMentorsByService = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { serviceId } = (req as any).validatedParams;
+    const roles = req.user?.roles || [];
 
     const result = await MentorService.getMentorsByService({
       serviceId,
+      roles,
     });
 
     res.json(result);

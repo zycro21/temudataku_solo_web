@@ -254,6 +254,23 @@ export const getAdminBookingsController = async (
   next: NextFunction,
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+
+    const roles = req.user.roles || [];
+
+    const adminLikeRoles = ["admin", "cm", "curdev"];
+    const isAdminLike = roles.some((role) => adminLikeRoles.includes(role));
+
+    if (!isAdminLike) {
+      res.status(403).json({
+        message: "Forbidden. Admin/CM/Curdev only.",
+      });
+      return;
+    }
+
     if (!req.validatedQuery) {
       throw new Error("Query belum divalidasi");
     }

@@ -828,7 +828,7 @@ router.delete(
 router.get(
   "/admin/bookings",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(getAdminBookingsValidator),
   BookingController.getAdminBookingsController
 );
@@ -916,7 +916,7 @@ router.get(
 router.get(
   "/admin/bookings/:id",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(getAdminBookingDetailValidator),
   BookingController.getAdminBookingDetailController
 );
@@ -1047,7 +1047,7 @@ router.patch(
 router.get(
   "/adminExportBook",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(exportAdminBookingsValidator),
   BookingController.exportAdminBookings
 );

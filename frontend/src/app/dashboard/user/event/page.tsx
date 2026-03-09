@@ -61,7 +61,7 @@ export default function EventDashboardUserPage() {
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentorService/new-services?page=1&limit=9`,
           {
             withCredentials: true,
-          }
+          },
         );
 
         const fetched = res.data.data.data;
@@ -72,15 +72,17 @@ export default function EventDashboardUserPage() {
           title: item.title,
           description: item.description ?? "-",
           category: Number(item.price) === 0 ? "Gratis" : "Berbayar",
-          dateStart: formatDate(item.dateStart),
-          dateEnd: formatDate(item.dateEnd),
+
+          dateStart: item.dateStart,
+          dateEnd: item.dateEnd,
+
           schedule: item.schedule ?? "TBA",
           location:
             item.type === "mentoring"
               ? `Online Mentoring (${item.serviceType ?? "General"})`
               : "Online Practice",
           image: "/assets/dashboard/user/kokok.png",
-          type: item.type
+          type: item.type,
         }));
 
         setEvents(mapped);
@@ -96,31 +98,16 @@ export default function EventDashboardUserPage() {
 
   // Filter kategori + pencarian
   const filteredEvents = useMemo(() => {
-    const now = new Date();
-
     return events.filter((e) => {
-      // 🔹 Filter kategori & pencarian
       const matchCategory =
         categoryFilter === "Semua" || e.category === categoryFilter;
+
       const matchSearch =
         searchQuery === "" ||
         e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         e.description.toLowerCase().includes(searchQuery.toLowerCase());
 
-      // Konversi kembali dateStart untuk filter waktu
-      const rawDateStart = e.dateStart?.toLowerCase().includes("jadwal")
-        ? null
-        : new Date(e.dateStart);
-      const rawDateEnd = e.dateEnd?.toLowerCase().includes("jadwal")
-        ? null
-        : new Date(e.dateEnd);
-
-      const isUpcoming =
-        !rawDateStart || isNaN(rawDateStart.getTime()) // jadwal menyusul
-          ? true
-          : rawDateStart >= now; // hanya event yang belum lewat
-
-      return matchCategory && matchSearch && isUpcoming;
+      return matchCategory && matchSearch;
     });
   }, [events, categoryFilter, searchQuery]);
 

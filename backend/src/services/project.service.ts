@@ -46,12 +46,12 @@ export const createProject = async ({
 
   if (!isAdmin) {
     const isAuthorizedMentor = service.mentors.some(
-      (m) => m.mentorProfile.userId === userId
+      (m) => m.mentorProfile.userId === userId,
     );
 
     if (!isAuthorizedMentor) {
       throw new Error(
-        "Anda tidak memiliki akses untuk membuat project di service ini"
+        "Anda tidak memiliki akses untuk membuat project di service ini",
       );
     }
   }
@@ -114,11 +114,11 @@ export const updateProject = async ({
 
   if (!isAdmin) {
     const isAuthorizedMentor = project.mentoringService.mentors.some(
-      (m) => m.mentorProfile.userId === userId
+      (m) => m.mentorProfile.userId === userId,
     );
     if (!isAuthorizedMentor) {
       throw new Error(
-        "Anda tidak memiliki akses untuk memperbarui project ini"
+        "Anda tidak memiliki akses untuk memperbarui project ini",
       );
     }
   }
@@ -248,7 +248,7 @@ export const getProjectDetail = async (projectId: string) => {
 export const getMentorProjects = async (
   userId: string,
   page: number,
-  limit: number
+  limit: number,
 ) => {
   const mentorProfile = await prisma.mentorProfile.findUnique({
     where: { userId },
@@ -304,7 +304,7 @@ export const getMentorProjects = async (
 
 export const getMentorProjectDetail = async (
   userId: string,
-  projectId: string
+  projectId: string,
 ) => {
   // Ambil mentor profile
   const mentorProfile = await prisma.mentorProfile.findUnique({
@@ -360,7 +360,7 @@ export const getMentorProjectDetail = async (
 
   if (!project) {
     throw new Error(
-      "Proyek tidak ditemukan atau tidak termasuk dalam service mentoring Anda"
+      "Proyek tidak ditemukan atau tidak termasuk dalam service mentoring Anda",
     );
   }
 
@@ -652,7 +652,7 @@ export const submit = async ({
   });
   if (existing) {
     throw new Error(
-      "Kamu sudah pernah mengumpulkan submission untuk proyek ini."
+      "Kamu sudah pernah mengumpulkan submission untuk proyek ini.",
     );
   }
 
@@ -674,7 +674,7 @@ export const submit = async ({
   const extensions = filePaths.map((file) => path.extname(file).toLowerCase());
   if (extensions.some((ext) => !validExtensions.includes(ext))) {
     throw new Error(
-      "Format file tidak didukung. Gunakan salah satu dari: png, pdf, psd, xls, csv, docx, ipynb, pptx."
+      "Format file tidak didukung. Gunakan salah satu dari: png, pdf, psd, xls, csv, docx, ipynb, pptx.",
     );
   }
 
@@ -778,7 +778,7 @@ export const reviewSubmission = async ({
   submissionId: string;
   mentorId: string;
   userId: string;
-  role: string;
+  role: string[];
   score?: number;
   briefScore?: string;
   technicalScore?: string;
@@ -805,12 +805,15 @@ export const reviewSubmission = async ({
   if (!submission) throw new Error("Submission tidak ditemukan.");
 
   const isMentorOfService = submission.project.mentoringService.mentors.some(
-    (m) => m.mentorProfile?.id === mentorId
+    (m) => m.mentorProfile?.id === mentorId,
   );
 
-  const isAdmin = Array.isArray(role) && role.includes("admin");
+  const privilegedRoles = ["admin", "cm", "curdev"];
 
-  if (!(isMentorOfService || isAdmin)) {
+  const isPrivileged =
+    Array.isArray(role) && role.some((r) => privilegedRoles.includes(r));
+
+  if (!(isMentorOfService || isPrivileged)) {
     throw new Error("Kamu tidak berhak menilai submission ini.");
   }
 
@@ -1115,7 +1118,7 @@ export const getMentorProjectSubmissionsService = async ({
   }
 
   const allowedServiceIds = mentorProfile.mentoringServices.map(
-    (ms) => ms.mentoringService.id
+    (ms) => ms.mentoringService.id,
   );
 
   const project = await prisma.project.findUnique({
@@ -1125,7 +1128,7 @@ export const getMentorProjectSubmissionsService = async ({
 
   if (!project || !allowedServiceIds.includes(project.serviceId)) {
     throw new Error(
-      "You are not authorized to access this project's submissions"
+      "You are not authorized to access this project's submissions",
     );
   }
 
@@ -1201,12 +1204,12 @@ export const getMentorServiceSubmissionsService = async ({
   }
 
   const allowedServiceIds = mentorProfile.mentoringServices.map(
-    (ms) => ms.mentoringService.id
+    (ms) => ms.mentoringService.id,
   );
 
   if (!allowedServiceIds.includes(serviceId)) {
     throw new Error(
-      "You are not authorized to access this service's submissions"
+      "You are not authorized to access this service's submissions",
     );
   }
 
@@ -1618,12 +1621,14 @@ export const deleteSubmission = async ({
   const isMentorOfService =
     mentorId &&
     submission.project.mentoringService.mentors.some(
-      (m) => m.mentorProfile?.id === mentorId
+      (m) => m.mentorProfile?.id === mentorId,
     );
 
-  const isAdmin = role.includes("admin");
+  const privilegedRoles = ["admin", "cm", "curdev"];
 
-  if (!(isMentorOfService || isAdmin)) {
+  const isPrivileged = role.some((r) => privilegedRoles.includes(r));
+
+  if (!(isMentorOfService || isPrivileged)) {
     throw new Error("Kamu tidak berhak menghapus submission ini.");
   }
 

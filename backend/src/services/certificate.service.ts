@@ -79,7 +79,7 @@ async function generateCertificatePDF({
     doc.registerFont("Poppins-Bold", path.join(fontDir, "Poppins-Bold.ttf"));
     doc.registerFont(
       "Poppins-SemiBold",
-      path.join(fontDir, "Poppins-SemiBold.ttf")
+      path.join(fontDir, "Poppins-SemiBold.ttf"),
     );
 
     // Colors
@@ -200,7 +200,7 @@ async function generateCertificatePDF({
         {
           width: 150,
           align: "center",
-        }
+        },
       );
 
     // ---------------------------
@@ -231,7 +231,7 @@ async function generateCertificatePDF({
       y: number,
       values: string[],
       bold = false,
-      isHeader = false
+      isHeader = false,
     ) => {
       doc
         .font(bold ? fontSemiBold : fontRegular)
@@ -282,7 +282,7 @@ async function generateCertificatePDF({
       tableTop,
       ["No", "Project Title", "Grade", "Mentor Feedback", "Mentor"],
       true,
-      true
+      true,
     );
 
     // Rows
@@ -436,7 +436,7 @@ export const generateCertificateService = async ({
   const uploadedFile = await uploadToGoogleDrive(
     pdfPath,
     pdfFileName,
-    "16dqTiqyEhFhrfzfoX5upUkgkNoUGNnI9" // Google Drive folder ID
+    "16dqTiqyEhFhrfzfoX5upUkgkNoUGNnI9", // Google Drive folder ID
   );
 
   console.log("Uploaded to Google Drive:", uploadedFile.webViewLink);
@@ -573,7 +573,7 @@ export const updateCertificateService = async ({
 
   if (removeCertificate && regenerateCertificate) {
     throw new Error(
-      "Cannot remove and regenerate certificate at the same time"
+      "Cannot remove and regenerate certificate at the same time",
     );
   }
 
@@ -584,8 +584,13 @@ export const updateCertificateService = async ({
       include: { userRoles: { include: { role: true } } },
     });
 
-    if (!admin || !admin.userRoles.some((r) => r.role.roleName === "admin")) {
-      throw new Error("VerifiedBy user must have admin role");
+    const adminLikeRoles = ["admin", "cm", "curdev"];
+
+    if (
+      !admin ||
+      !admin.userRoles.some((r) => adminLikeRoles.includes(r.role.roleName))
+    ) {
+      throw new Error("VerifiedBy user must have admin-like role");
     }
   }
 
@@ -618,7 +623,7 @@ export const updateCertificateService = async ({
     const uploadedFile = await uploadToGoogleDrive(
       pdfPath,
       pdfFileName,
-      "16dqTiqyEhFhrfzfoX5upUkgkNoUGNnI9"
+      "16dqTiqyEhFhrfzfoX5upUkgkNoUGNnI9",
     );
 
     newCertificatePath = `/certificates/${pdfFileName}`;
@@ -702,7 +707,7 @@ export const getMenteeCertificatesService = async ({
 export const getCertificateDetailService = async (
   certificateId: string,
   userId: string,
-  userRole: string
+  userRole: string,
 ) => {
   const certificate = await prisma.certificate.findUnique({
     where: { id: certificateId },
@@ -729,7 +734,7 @@ export const getCertificateDetailService = async (
 
   if (!certificate.user || !certificate.mentoringService) {
     throw new Error(
-      "Certificate data is incomplete: user or mentoring service not found"
+      "Certificate data is incomplete: user or mentoring service not found",
     );
   }
 
@@ -782,7 +787,7 @@ export const getCertificateDetailService = async (
 export const downloadCertificate = async (
   certificateId: string,
   userId: string,
-  roles: string[]
+  roles: string[],
 ): Promise<string> => {
   const certificate = await prisma.certificate.findUnique({
     where: { id: certificateId },
@@ -808,7 +813,7 @@ export const downloadCertificate = async (
   const fullPath = path.resolve(
     __dirname,
     "../../uploads/certificate",
-    fileName
+    fileName,
   );
 
   console.log("Looking for file at:", fullPath);
@@ -830,7 +835,7 @@ export const downloadCertificate = async (
 };
 
 export const exportCertificates = async (
-  format: "csv" | "excel"
+  format: "csv" | "excel",
 ): Promise<{ buffer: Buffer; filename: string; contentType: string }> => {
   const certificates = await prisma.certificate.findMany({
     include: {

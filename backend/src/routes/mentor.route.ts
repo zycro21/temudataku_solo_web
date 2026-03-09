@@ -351,7 +351,7 @@ router.patch(
 router.get(
   "/admin/mentor-profiles",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(getMentorProfilesSchema),
   MentorController.getAllMentorProfiles
 );
@@ -722,7 +722,7 @@ router.get(
 router.get(
   "/admin/mentor-profiles/:id",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(getMentorProfileByIdSchema),
   MentorController.getMentorProfileById
 );
@@ -915,7 +915,7 @@ router.delete(
 router.get(
   "/admin/mentor-profiles/by-service/:serviceId",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(getMentorsByServiceSchema),
   MentorController.getMentorsByService
 );

@@ -54,8 +54,8 @@ import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 import swaggerOptions from "./swagger/swaggerOptions.js";
 
-import dotenv from "dotenv";
-dotenv.config();
+// import dotenv from "dotenv";
+// dotenv.config();
 
 // Mendapatkan direktori saat ini
 const __filename = fileURLToPath(import.meta.url);

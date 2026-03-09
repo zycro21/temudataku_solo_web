@@ -188,7 +188,7 @@ const router = Router();
 router.post(
   "/admin/mentoring-sessions",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(createMentoringSessionSchema),
   MentoringSessionController.createMentoringSessionController
 );
@@ -352,7 +352,7 @@ router.post(
 router.get(
   "/admin/mentoring-sessions",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(getMentoringSessionsSchema),
   MentoringSessionController.getMentoringSessionsController
 );
@@ -505,7 +505,7 @@ router.get(
 router.get(
   "/admin/mentoring-sessions/:id",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(getMentoringSessionByIdSchema),
   MentoringSessionController.getMentoringSessionByIdController
 );
@@ -606,7 +606,7 @@ router.get(
 router.patch(
   "/admin/mentoring-sessions/:id",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(updateMentoringSessionSchema),
   MentoringSessionController.updateMentoringSessionController
 );
@@ -675,7 +675,7 @@ router.patch(
 router.patch(
   "/admin/mentoring-sessions/:id/status",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(updateMentoringSessionStatusSchema),
   MentoringSessionController.updateStatusController
 );
@@ -768,7 +768,7 @@ router.patch(
 router.patch(
   "/admin/mentoring-sessions/:id/mentors",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(updateSessionMentorsSchema),
   MentoringSessionController.updateSessionMentorsController
 );
@@ -818,7 +818,7 @@ router.patch(
 router.delete(
   "/admin/mentoring-sessions/:id",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(deleteMentoringSessionSchema),
   MentoringSessionController.deleteSessionController
 );
@@ -1473,7 +1473,7 @@ router.get(
 router.get(
   "/admin/export",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(exportMentoringSessionsSchema),
   MentoringSessionController.exportSessionsController
 );

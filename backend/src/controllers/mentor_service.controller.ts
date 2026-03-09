@@ -18,19 +18,25 @@ export const createMentoringServiceController = async (
       res.status(401).json({ message: "Unauthorized. User ID not found." });
       return;
     }
-    const adminId = req.user.userId;
-    const rolesLog = req.user?.roles || [];
+
+    const userId = req.user.userId;
+    const roles = req.user?.roles || [];
+
+    // admin-like roles
+    const adminLikeRoles = ["admin", "cm", "curdev"];
+    const isAdminLike = roles.some((role) => adminLikeRoles.includes(role));
 
     const input = req.validatedBody ?? req.body;
 
     const result = await MentorServiceService.createMentoringService(input);
 
-    if (rolesLog.includes("admin") && adminId) {
+    // sekarang cm dan curdev juga tercatat log
+    if (isAdminLike && userId) {
       await logActivity({
-        userId: req.user.userId,
+        userId: userId,
         action: "CREATE_MENTORING_SERVICE",
         type: "CREATE",
-        description: `Admin membuat mentoring service baru: ${result.serviceName}`,
+        description: `Admin/CM/Curdev membuat mentoring service baru: ${result.serviceName}`,
         req,
       });
     }
@@ -50,6 +56,26 @@ export const getAllMentoringServicesController = async (
   next: NextFunction,
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({
+        message: "Unauthorized",
+      });
+      return;
+    }
+
+    const roles = req.user.roles || [];
+
+    // Role yang diperlakukan seperti admin
+    const adminLikeRoles = ["admin", "cm", "curdev"];
+    const isAdminLike = roles.some((role) => adminLikeRoles.includes(role));
+
+    if (!isAdminLike) {
+      res.status(403).json({
+        message: "Forbidden. Admin, CM, atau Curdev only.",
+      });
+      return;
+    }
+
     const { page, limit, search, sort_by, order } = req.validatedQuery!;
 
     const result = await MentorServiceService.getAllMentoringServices({
@@ -165,12 +191,15 @@ export const updateMentoringServiceController = async (
         testimonials,
       });
 
-    if (rolesLog.includes("admin") && adminId) {
+    const allowedRoles = ["admin", "cm", "curdev"];
+    const hasPrivilege = rolesLog.some((role) => allowedRoles.includes(role));
+
+    if (hasPrivilege && adminId) {
       await logActivity({
         userId: req.user.userId,
         action: "UPDATE_MENTORING_SERVICE",
         type: "UPDATE",
-        description: `Admin mengupdate mentoring service ID: ${id}`,
+        description: `User dengan role ${rolesLog.join(", ")} mengupdate mentoring service ID: ${id}`,
         req,
       });
     }
@@ -198,36 +227,38 @@ export const deleteMentoringServiceController = async (
       res.status(401).json({ message: "Unauthorized. User ID not found." });
       return;
     }
-    const adminId = req.user.userId;
-    const rolesLog = req.user?.roles || [];
+
+    const userId = req.user.userId;
+    const roles = req.user?.roles || [];
 
     const { id } = req.validatedParams!;
+
+    // admin-like roles
+    const adminLikeRoles = ["admin", "cm", "curdev"];
+    const isAdminLike = roles.some((role) => adminLikeRoles.includes(role));
 
     // Panggil service untuk menghapus mentoring service
     await MentorServiceService.deleteMentoringServiceById(id);
 
-    if (rolesLog.includes("admin") && adminId) {
+    if (isAdminLike) {
       await logActivity({
-        userId: req.user.userId,
+        userId,
         action: "DELETE_MENTORING_SERVICE",
         type: "DELETE",
-        description: `Admin menghapus mentoring service ID: ${id}`,
+        description: `User dengan role ${roles.join(", ")} menghapus mentoring service ID: ${id}`,
         req,
       });
     }
 
-    // Berikan response sukses jika berhasil
     res.status(200).json({
       message: "Mentoring service deleted successfully",
     });
   } catch (err) {
-    // Tambahkan log error (opsional)
     console.error(
       `Error deleting mentoring service with id ${req.validatedParams?.id}:`,
       err,
     );
 
-    // Pastikan error yang dilempar memiliki pesan yang jelas
     if (
       err instanceof Error &&
       err.message.includes(
@@ -237,8 +268,11 @@ export const deleteMentoringServiceController = async (
       res.status(400).json({
         message: err.message,
       });
+    } else if (err instanceof Error && err.message.includes("not found")) {
+      res.status(404).json({
+        message: err.message,
+      });
     } else {
-      // Untuk error lainnya, delegasikan ke error handling middleware
       next(err);
     }
   }

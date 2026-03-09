@@ -103,9 +103,9 @@ export default function ChooseSessionSection() {
 
               <div className="mb-6">
                 <div className="text-sm text-gray-500 line-through">
-                  Rp 45.000
+                  Rp 100.000
                 </div>
-                <div className="text-3xl font-bold">Rp 40.000</div>
+                <div className="text-3xl font-bold">Rp 99.000</div>
               </div>
 
               <div className="space-y-3 mb-8">
@@ -149,9 +149,9 @@ export default function ChooseSessionSection() {
 
               <div className="mb-6">
                 <div className="text-sm text-gray-500 line-through">
-                  Rp 99.000
+                  Rp 270.000
                 </div>
-                <div className="text-3xl font-bold">Rp 70.000</div>
+                <div className="text-3xl font-bold">Rp 249.000</div>
               </div>
 
               <div className="space-y-3 mb-8">

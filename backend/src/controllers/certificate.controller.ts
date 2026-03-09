@@ -12,7 +12,7 @@ const prisma = new PrismaClient();
 export const generateCertificate = async (
   req: AuthenticatedRequestCertificate,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -55,15 +55,28 @@ export const generateCertificate = async (
 export const getAllCertificates = async (
   req: AuthenticatedRequestCertificate,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
       res.status(401).json({ message: "Unauthorized. User ID not found." });
       return;
     }
-    const adminId = req.user.userId;
+
+    const userId = req.user.userId;
     const roles = req.user?.roles || [];
+
+    // role yang diperlakukan seperti admin
+    const adminLikeRoles = ["admin", "cm", "curdev"];
+    const isAdminLike = roles.some((role) => adminLikeRoles.includes(role));
+
+    if (!isAdminLike) {
+      res.status(403).json({
+        success: false,
+        message: "Forbidden: Admin access only",
+      });
+      return;
+    }
 
     const { page, limit, search, status, serviceId, startDate, endDate } =
       req.validatedQuery as {
@@ -99,7 +112,7 @@ export const getAllCertificates = async (
 export const updateCertificate = async (
   req: AuthenticatedRequestCertificate,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -107,10 +120,14 @@ export const updateCertificate = async (
       return;
     }
 
-    const adminId = req.user.userId;
+    const userId = req.user.userId;
     const roles = req.user.roles || [];
 
+    const adminLikeRoles = ["admin", "cm", "curdev"];
+    const isAdminLike = roles.some((role) => adminLikeRoles.includes(role));
+
     const { id } = req.validatedParams as { id: string };
+
     const {
       status,
       verifiedBy,
@@ -132,19 +149,19 @@ export const updateCertificate = async (
       note,
       removeCertificate,
       regenerateCertificate,
-      adminId,
+      adminId: userId,
     });
 
-    if (roles.includes("admin")) {
+    if (isAdminLike) {
       await logActivity({
-        userId: adminId,
+        userId: userId,
         action: "ADMIN_UPDATE_CERTIFICATE",
         type: "UPDATE",
         description: regenerateCertificate
-          ? `Admin regenerate sertifikat id=${id}`
+          ? `User regenerate sertifikat id=${id}`
           : removeCertificate
-          ? `Admin menghapus file sertifikat id=${id}`
-          : `Admin update metadata sertifikat id=${id}`,
+          ? `User menghapus file sertifikat id=${id}`
+          : `User update metadata sertifikat id=${id}`,
         req,
       });
     }
@@ -162,7 +179,7 @@ export const updateCertificate = async (
 export const getMenteeCertificatesController = async (
   req: AuthenticatedRequestCertificate,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { page, limit, status, serviceId } = req.query as {
@@ -195,7 +212,7 @@ export const getMenteeCertificatesController = async (
 export const getCertificateDetailController = async (
   req: AuthenticatedRequestCertificate,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { id } = req.validatedParams; // Ambil id dari validatedParams
@@ -205,7 +222,7 @@ export const getCertificateDetailController = async (
     const certificate = await CertificateService.getCertificateDetailService(
       id,
       userId,
-      userRole
+      userRole,
     );
 
     res.status(200).json({
@@ -221,7 +238,7 @@ export const getCertificateDetailController = async (
 export const downloadCertificateController = async (
   req: AuthenticatedRequestCertificate,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { id } = req.validatedParams;
@@ -231,7 +248,7 @@ export const downloadCertificateController = async (
     const filePath = await CertificateService.downloadCertificate(
       id,
       userId,
-      roles
+      roles,
     );
 
     return res.download(filePath);
@@ -243,27 +260,33 @@ export const downloadCertificateController = async (
 export const exportCertificatesController = async (
   req: AuthenticatedRequestCertificate,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
       res.status(401).json({ message: "Unauthorized. User ID not found." });
       return;
     }
-    const adminId = req.user.userId;
+
+    const userId = req.user.userId;
     const roles = req.user?.roles || [];
+
+    const adminLikeRoles = ["admin", "cm", "curdev"];
+    const isAdminLike = roles.some((role) => adminLikeRoles.includes(role));
 
     const { format } = req.validatedQuery as { format: "csv" | "excel" };
 
     const { buffer, filename, contentType } =
       await CertificateService.exportCertificates(format);
 
-    if (roles.includes("admin") && adminId) {
+    if (isAdminLike) {
       await logActivity({
-        userId: adminId,
+        userId: userId,
         action: "ADMIN_EXPORT_CERTIFICATE",
         type: "EXPORT",
-        description: `Admin mengekspor data booking dalam format ${format}.`,
+        description: `User dengan role ${roles.join(
+          ", ",
+        )} mengekspor data sertifikat dalam format ${format}.`,
         req,
       });
     }

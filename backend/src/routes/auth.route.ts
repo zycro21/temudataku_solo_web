@@ -501,4 +501,6 @@ router.post("/logout", (req, res) => {
   return;
 });
 
+router.post("/google", AuthController.googleAuth);
+
 export default router;

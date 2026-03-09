@@ -9,13 +9,15 @@ import fs from "fs";
 import { uploadPath } from "../middlewares/uploadImage.js";
 import { PrismaClient } from "@prisma/client";
 import { logActivity } from "../utils/logActivtiy.js";
+import { OAuth2Client } from "google-auth-library";
 
 const prisma = new PrismaClient();
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export const register = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const {
@@ -78,8 +80,8 @@ export const register = async (
         status === "new_user"
           ? "User registered successfully. Please verify your email."
           : status === "role_added"
-          ? "Role added successfully."
-          : "Role already exists.",
+            ? "Role added successfully."
+            : "Role already exists.",
       status,
       user: {
         id: user.id,
@@ -98,7 +100,7 @@ export const register = async (
 export const login = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { email, password } = req.body;
@@ -123,7 +125,7 @@ export const login = async (
         fullName: user.fullName,
       },
       process.env.JWT_SECRET!,
-      { expiresIn: "1d" }
+      { expiresIn: "1d" },
     );
 
     // Generate refresh token
@@ -137,7 +139,7 @@ export const login = async (
         fullName: user.fullName,
       },
       process.env.JWT_REFRESH_SECRET!,
-      { expiresIn: "7d" }
+      { expiresIn: "7d" },
     );
 
     // Set kedua token di cookie
@@ -189,7 +191,7 @@ export const login = async (
 export const verifyAccount = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { token } = req.query;
@@ -211,7 +213,7 @@ export const verifyAccount = async (
 export const resendVerification = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { email } = req.body;
@@ -231,7 +233,7 @@ export const resendVerification = async (
 export const refreshToken = (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const refresh_token = req.cookies.refresh_token;
@@ -245,7 +247,7 @@ export const refreshToken = (
 
     const decoded = jwt.verify(
       refresh_token,
-      process.env.JWT_REFRESH_SECRET!
+      process.env.JWT_REFRESH_SECRET!,
     ) as {
       userId: string;
       roles: string[];
@@ -255,7 +257,7 @@ export const refreshToken = (
     const newAccessToken = jwt.sign(
       { userId: decoded.userId, roles: decoded.roles },
       process.env.JWT_SECRET!,
-      { expiresIn: "1d" }
+      { expiresIn: "1d" },
     );
 
     // Kirim token baru
@@ -279,7 +281,7 @@ export const refreshToken = (
 export const getCurrentUser = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { userId } = req.user!;
@@ -299,7 +301,7 @@ export const getCurrentUser = async (
 export const forgotPassword = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { email } = req.body;
@@ -318,7 +320,7 @@ export const forgotPassword = async (
     const resetToken = jwt.sign(
       { userId: user.id },
       process.env.JWT_RESET_PASSWORD_SECRET!,
-      { expiresIn: "1h" } // Token berlaku 1 jam
+      { expiresIn: "1h" }, // Token berlaku 1 jam
     );
 
     // Ambil semua role name
@@ -340,7 +342,7 @@ export const forgotPassword = async (
 export const resetPassword = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { password } = req.body;
@@ -389,7 +391,7 @@ export const resetPassword = async (
 export const changePassword = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { oldPassword, newPassword } = req.body;
@@ -405,6 +407,87 @@ export const changePassword = async (
     res.status(200).json({
       success: true,
       message: "Password changed successfully",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const googleAuth = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { token } = req.body;
+
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.OAUTH_GOOGLE_CLIENT_ID!,
+    });
+
+    const payload = ticket.getPayload();
+
+    if (!payload) {
+      throw new HttpError("Invalid Google token", 400);
+    }
+
+    const user = await AuthService.googleLogin({
+      email: payload.email!,
+      fullName: payload.name!,
+      googleId: payload.sub,
+      picture: payload.picture,
+    });
+
+    const roles = user.userRoles.map((ur) => ({
+      role_id: ur.roleId,
+      role_name: ur.role.roleName,
+    }));
+
+    const mentorProfileId = user.mentorProfile?.id ?? undefined;
+
+    const accessToken = jwt.sign(
+      {
+        userId: user.id,
+        roles: roles.map((r) => r.role_name),
+        mentorProfileId,
+        email: user.email,
+        fullName: user.fullName,
+      },
+      process.env.JWT_SECRET!,
+      { expiresIn: "1d" },
+    );
+
+    const refreshToken = jwt.sign(
+      {
+        userId: user.id,
+        roles: roles.map((r) => r.role_name),
+        mentorProfileId,
+        email: user.email,
+        fullName: user.fullName,
+      },
+      process.env.JWT_REFRESH_SECRET!,
+      { expiresIn: "7d" },
+    );
+
+    res.cookie("token", accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 1000 * 60 * 60 * 24,
+    });
+
+    res.cookie("refresh_token", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 1000 * 60 * 60 * 24 * 7,
+    });
+
+    res.status(200).json({
+      message: "Google login successful",
+      user,
+      token: accessToken,
     });
   } catch (err) {
     next(err);

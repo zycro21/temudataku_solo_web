@@ -136,7 +136,7 @@ const router = Router();
 router.get(
   "/mentor/reports",
   authenticate,
-  authorizeRoles("admin", "mentor"),
+  authorizeRoles("admin", "mentor", "cm", "curdev"),
   validate(getMentorReportListSchema),
   MentorReportController.getMentorReports
 );
@@ -560,7 +560,7 @@ router.put(
 router.delete(
   "/mentor/reports/:id",
   authenticate,
-  authorizeRoles("admin", "mentor"),
+  authorizeRoles("admin", "mentor", "cm", "curdev"),
   validate(mentorReportIdSchema),
   MentorReportController.deleteMentorReport
 );
@@ -609,7 +609,7 @@ router.delete(
 router.get(
   "/mentor/reportsExport",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(exportMentorReportQuerySchema),
   MentorReportController.exportMentorReports
 );
@@ -782,7 +782,7 @@ router.get(
 router.get(
   "/mentorReportStats",
   authenticate,
-  authorizeRoles("admin", "mentor"),
+  authorizeRoles("admin", "mentor", "cm", "curdev"),
   validate(getMentorReportStatsSchema),
   MentorReportController.getMentorReportStats
 );

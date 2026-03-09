@@ -1,6 +1,9 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import Image from "next/image";
+import { User } from "lucide-react";
 
 export default function HeroSection({
   onScrollToChooseSession,
@@ -43,6 +46,21 @@ export default function HeroSection({
       image:
         "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
     },
+  ];
+
+  const avatarColors = [
+    "bg-emerald-100 text-emerald-700",
+    "bg-blue-100 text-blue-700",
+    "bg-purple-100 text-purple-700",
+    "bg-orange-100 text-orange-700",
+    "bg-pink-100 text-pink-700",
+    "bg-indigo-100 text-indigo-700",
+    "bg-teal-100 text-teal-700",
+    "bg-cyan-100 text-cyan-700",
+    "bg-lime-100 text-lime-700",
+    "bg-amber-100 text-amber-700",
+    "bg-rose-100 text-rose-700",
+    "bg-sky-100 text-sky-700",
   ];
 
   return (
@@ -112,11 +130,13 @@ export default function HeroSection({
                 {/* Avatar Stack */}
                 <div className="flex gap-2 flex-wrap">
                   {mentors.map((mentor, index) => (
-                    <Avatar key={mentor.id} className="w-12 h-12 shadow-md">
-                      <AvatarImage src={mentor.image} alt={mentor.name} />
-                      <AvatarFallback className="bg-emerald-200 text-emerald-700 font-medium">
-                        M{index + 1}
-                      </AvatarFallback>
+                    <Avatar
+                      key={mentor.id}
+                      className={`w-12 h-12 shadow-md flex items-center justify-center ${
+                        avatarColors[index % avatarColors.length]
+                      }`}
+                    >
+                      <User className="w-6 h-6" />
                     </Avatar>
                   ))}
                 </div>

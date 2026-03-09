@@ -48,6 +48,12 @@ const menuItems = [
   //   icon: "/assets/dashboard/user/practice.svg",
   //   activeIcon: "/assets/dashboard/user/whitepractice.svg",
   // },
+  // {
+  //   name: "E-Learning",
+  //   href: "/dashboard/user/practice",
+  //   icon: "/assets/dashboard/user/practice.svg",
+  //   activeIcon: "/assets/dashboard/user/whitepractice.svg",
+  // },
   {
     name: "Histori Transaksi",
     href: "/dashboard/user/transaction",
@@ -112,7 +118,7 @@ export default function Sidebar() {
 
       {/* Footer */}
       <div className="px-6 mb-16 space-y-2">
-        <Link
+        {/* <Link
           href="/bantuan"
           className="flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-emerald-50 hover:text-emerald-600"
         >
@@ -123,7 +129,7 @@ export default function Sidebar() {
             height={18}
           />
           Butuh bantuan?
-        </Link>
+        </Link> */}
         <button
           onClick={() => logout("/")} // pakai hook logout
           className="flex items-center gap-3 px-4 py-2 w-full rounded-lg text-sm font-medium text-gray-600 hover:bg-red-50 hover:text-red-600"

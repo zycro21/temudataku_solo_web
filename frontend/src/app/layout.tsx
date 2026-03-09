@@ -5,6 +5,7 @@ import { Toaster } from "sonner";
 import { AuthProvider } from "@/context/AuthContext";
 import ClientTrackerWrapper from "@/components/ClientTrackerWrapper";
 import MaintenanceGuard from "@/components/MaintenanceGuardFix";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -38,12 +39,16 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthProvider>
-          <ClientTrackerWrapper />
-          <MaintenanceGuard /> 
-          {children}
-          <Toaster position="top-right" richColors />
-        </AuthProvider>
+        <GoogleOAuthProvider
+          clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}
+        >
+          <AuthProvider>
+            <ClientTrackerWrapper />
+            <MaintenanceGuard />
+            {children}
+            <Toaster position="top-right" richColors />
+          </AuthProvider>
+        </GoogleOAuthProvider>
       </body>
     </html>
   );

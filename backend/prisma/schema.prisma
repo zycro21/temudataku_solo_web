@@ -1191,7 +1191,8 @@ model UserRole {
 model User {
   id                         String              @id @default(cuid())
   email                      String              @unique @db.VarChar
-  passwordHash               String              @db.VarChar @map("password_hash")
+  passwordHash               String?              @db.VarChar @map("password_hash")
+  googleId                   String?             @unique
   fullName                   String              @db.VarChar @map("full_name")
   phoneNumber                String?             @db.VarChar @map("phone_number")
   profilePicture             String?             @db.VarChar @map("profile_picture")

@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
+import { GoogleLogin } from "@react-oauth/google";
 
 export default function LoginModal({
   isOpen,
@@ -43,13 +44,13 @@ export default function LoginModal({
       await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/login`,
         { email, password },
-        { withCredentials: true }
+        { withCredentials: true },
       );
 
       // 2. Fetch user detail dari /me
       const me = await axios.get(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/me`,
-        { withCredentials: true }
+        { withCredentials: true },
       );
       const user = me.data?.data;
 
@@ -60,15 +61,17 @@ export default function LoginModal({
 
       // 4. Redirect sesuai role
       const roles: string[] = (user?.userRoles || []).map((r: any) =>
-        r?.role?.roleName?.toLowerCase()
+        r?.role?.roleName?.toLowerCase(),
       );
+
+      const adminRoles = ["admin", "curdev", "cm"];
 
       setCurrentUser(user);
       setIsOpen(false);
       toast.success("Login berhasil, selamat datang kembali!");
 
       setTimeout(() => {
-        if (roles.includes("admin")) {
+        if (roles.some((r) => adminRoles.includes(r))) {
           router.push("/admin");
         } else if (roles.includes("mentor")) {
           router.push("/dashboard/mentor");
@@ -201,7 +204,7 @@ export default function LoginModal({
               <div className="text-center text-gray-500">atau</div>
 
               {/* Google login */}
-              <Button
+              {/* <Button
                 type="button"
                 variant="outline"
                 className="w-full border-[#0CA678] text-[#0CA678] hover:bg-[#f2f1f1] hover:text-[#0CA678]"
@@ -214,7 +217,52 @@ export default function LoginModal({
                   className="mr-2"
                 />
                 Gunakan Akun Google
-              </Button>
+              </Button> */}
+
+              <GoogleLogin
+                onSuccess={async (credentialResponse) => {
+                  try {
+                    await axios.post(
+                      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/google`,
+                      {
+                        token: credentialResponse.credential,
+                      },
+                      { withCredentials: true },
+                    );
+
+                    // ambil data user
+                    const me = await axios.get(
+                      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/me`,
+                      { withCredentials: true },
+                    );
+
+                    const user = me.data?.data;
+
+                    setCurrentUser(user);
+
+                    const roles: string[] = (user?.userRoles || []).map(
+                      (r: any) => r?.role?.roleName?.toLowerCase(),
+                    );
+
+                    const adminRoles = ["admin", "curdev", "cm"];
+
+                    setIsOpen(false);
+                    toast.success("Login Google berhasil");
+
+                    if (roles.some((r) => adminRoles.includes(r))) {
+                      router.push("/admin");
+                    } else if (roles.includes("mentor")) {
+                      router.push("/dashboard/mentor");
+                    } else {
+                      router.push("/");
+                    }
+                  } catch (err) {
+                    console.error(err);
+                    toast.error("Login Google gagal");
+                  }
+                }}
+                onError={() => toast.error("Login Google gagal")}
+              />
 
               <p className="text-sm text-gray-500 text-center mt-4">
                 Belum punya akun?{" "}

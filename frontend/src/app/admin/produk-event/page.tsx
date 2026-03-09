@@ -507,7 +507,7 @@ export default function AdminMentorPage() {
           maxParticipants: Number(addFormData.maxParticipants),
           durationDays: Number(addFormData.durationDays),
 
-          mentorProfileIds: selectedMentorIds, // ⚠️ WAJIB ARRAY
+          mentorProfileIds: selectedMentorIds, // WAJIB ARRAY
           benefits: addFormData.benefits || undefined,
           mechanism: addFormData.mechanism || undefined,
           syllabusPath: addFormData.syllabusPath || undefined,

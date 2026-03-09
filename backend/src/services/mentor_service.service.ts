@@ -1537,6 +1537,16 @@ export const getPublicMentoringServiceDetail = async (id: string) => {
   };
 };
 
+function parseSessionDate(dateStr: string) {
+  const clean = dateStr.trim();
+  const [day, month, year] = clean.split("-").map(Number);
+
+  const d = new Date(year, month - 1, day);
+  d.setHours(0, 0, 0, 0);
+
+  return d;
+}
+
 export const getNewServices = async (
   userId: string,
   {
@@ -1552,22 +1562,27 @@ export const getNewServices = async (
   const skip = (page - 1) * limit;
 
   // 🔹 Ambil semua practiceId & mentoringServiceId yang sudah dibeli/dibooking
-  const purchasedPractices = await prisma.practicePurchase.findMany({
-    where: { userId },
-    select: { practiceId: true },
-  });
+
+  // const purchasedPractices = await prisma.practicePurchase.findMany({
+  //   where: { userId },
+  //   select: { practiceId: true },
+  // });
 
   const bookedServices = await prisma.booking.findMany({
-    where: { menteeId: userId },
+    where: {
+      menteeId: userId,
+      status: "confirmed",
+    },
     select: { mentoringServiceId: true },
   });
 
-  const purchasedPracticeIds = purchasedPractices.map((p) => p.practiceId);
+  // const purchasedPracticeIds = purchasedPractices.map((p) => p.practiceId);
   const bookedServiceIds = bookedServices.map((b) => b.mentoringServiceId);
 
   // ======================================================
   // 🔹 Ambil MentoringService
   // ======================================================
+
   const mentoringWhere: Prisma.MentoringServiceWhereInput = {
     isActive: true,
     id: { notIn: bookedServiceIds },
@@ -1595,43 +1610,65 @@ export const getNewServices = async (
     },
   });
 
-  // ======================================================
-  // 🔹 Ambil Practice
-  // ======================================================
-  const practiceWhere: Prisma.PracticeWhereInput = {
-    isActive: true,
-    id: { notIn: purchasedPracticeIds },
-    ...(search && {
-      title: { contains: search, mode: "insensitive" },
-    }),
-  };
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  const practices = await prisma.practice.findMany({
-    where: practiceWhere,
-    select: {
-      id: true,
-      title: true,
-      description: true,
-      price: true,
-      category: true,
-      mentorId: true,
-      createdAt: true,
-    },
+  const validMentoringServices = mentoringServices.filter((m) => {
+    if (!m.mentoringSessions.length) return false;
+
+    const sortedSessions = [...m.mentoringSessions].sort((a, b) => {
+      return (
+        parseSessionDate(a.date).getTime() - parseSessionDate(b.date).getTime()
+      );
+    });
+
+    const firstSession = parseSessionDate(sortedSessions[0].date);
+
+    return firstSession.getTime() >= today.getTime();
   });
 
   // ======================================================
-  // 🔹 Gabungkan dan mapping hasil
+  // 🔹 Ambil Practice (TIDAK DIPAKAI LAGI)
   // ======================================================
 
-  const mentoringMapped = mentoringServices.map((m) => {
+  // const practiceWhere: Prisma.PracticeWhereInput = {
+  //   isActive: true,
+  //   id: { notIn: purchasedPracticeIds },
+  //   ...(search && {
+  //     title: { contains: search, mode: "insensitive" },
+  //   }),
+  // };
+
+  // const practices = await prisma.practice.findMany({
+  //   where: practiceWhere,
+  //   select: {
+  //     id: true,
+  //     title: true,
+  //     description: true,
+  //     price: true,
+  //     category: true,
+  //     mentorId: true,
+  //     createdAt: true,
+  //   },
+  // });
+
+  // ======================================================
+  // 🔹 Mapping hasil
+  // ======================================================
+
+  const mentoringMapped = validMentoringServices.map((m) => {
+    const sortedSessions = [...m.mentoringSessions].sort((a, b) => {
+      return (
+        parseSessionDate(a.date).getTime() - parseSessionDate(b.date).getTime()
+      );
+    });
+
     let dateStart: string | null = null;
     let dateEnd: string | null = null;
 
-    if (m.mentoringSessions.length > 0) {
-      const first = m.mentoringSessions[0].date;
-      const last = m.mentoringSessions[m.mentoringSessions.length - 1].date;
-      dateStart = first;
-      dateEnd = last;
+    if (sortedSessions.length > 0) {
+      dateStart = sortedSessions[0].date;
+      dateEnd = sortedSessions[sortedSessions.length - 1].date;
     }
 
     return {
@@ -1643,31 +1680,32 @@ export const getNewServices = async (
       durationDays: m.durationDays,
       benefits: m.benefits,
       serviceType: m.serviceType,
-      dateStart: dateStart ?? null,
-      dateEnd: dateEnd ?? dateStart ?? null,
+      dateStart,
+      dateEnd,
       schedule: "Online",
       createdAt: m.createdAt,
     };
   });
 
-  const practiceMapped = practices.map((p) => ({
-    type: "practice",
-    id: p.id,
-    title: p.title,
-    description: p.description ?? "-",
-    price: p.price,
-    category: p.category,
-    mentorId: p.mentorId,
-    dateStart: p.createdAt?.toISOString() ?? null,
-    dateEnd: p.createdAt?.toISOString() ?? null,
-    schedule: "Tugas Online",
-    createdAt: p.createdAt,
-  }));
+  // const practiceMapped = practices.map((p) => ({
+  //   type: "practice",
+  //   id: p.id,
+  //   title: p.title,
+  //   description: p.description ?? "-",
+  //   price: p.price,
+  //   category: p.category,
+  //   mentorId: p.mentorId,
+  //   dateStart: p.createdAt?.toISOString() ?? null,
+  //   dateEnd: p.createdAt?.toISOString() ?? null,
+  //   schedule: "Tugas Online",
+  //   createdAt: p.createdAt,
+  // }));
 
   // ======================================================
-  // 🔹 Gabung semua dan sorting
+  // 🔹 Sorting
   // ======================================================
-  const combined = [...mentoringMapped, ...practiceMapped].sort((a, b) => {
+
+  const combined = mentoringMapped.sort((a, b) => {
     const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
     const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
     return dateB - dateA;

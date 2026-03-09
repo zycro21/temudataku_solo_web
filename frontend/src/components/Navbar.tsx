@@ -47,6 +47,18 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const profileImage = (() => {
+    if (!currentUser?.profilePicture) {
+      return "/assets/dashboard/user/avatar.png";
+    }
+
+    if (currentUser.profilePicture.startsWith("http")) {
+      return currentUser.profilePicture;
+    }
+
+    return `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${currentUser.profilePicture}`;
+  })();
+
   return (
     <nav className="h-[88px] w-full flex items-center justify-between px-6 md:px-16 bg-white sticky top-0 z-50">
       {/* Logo */}
@@ -123,7 +135,8 @@ export default function Navbar() {
                   Praktik
                 </Link>
               </li> */}
-              <li>
+              
+              {/* <li>
                 <Link
                   href="/elearning"
                   className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100"
@@ -131,7 +144,7 @@ export default function Navbar() {
                   <MdMenuBook className="text-gray-500 text-md" />
                   E-Learning
                 </Link>
-              </li>
+              </li> */}
             </ul>
           )}
         </li>
@@ -174,12 +187,7 @@ export default function Navbar() {
               className="flex items-center gap-3"
             >
               <Image
-                src={
-                  currentUser.profilePicture &&
-                  currentUser.profilePicture !== "default.jpg"
-                    ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${currentUser.profilePicture}`
-                    : "/assets/dashboard/user/avatar.png"
-                }
+                src={profileImage}
                 alt="Avatar"
                 width={40}
                 height={40}
@@ -267,7 +275,8 @@ export default function Navbar() {
                     Transaksi Saya
                   </Link>
                 </li>
-                <li>
+
+                {/* <li>
                   <Link
                     href="/dashboard"
                     className="flex items-center gap-4 px-4 py-2 hover:bg-gray-100"
@@ -281,7 +290,8 @@ export default function Navbar() {
                     />
                     Pengaturan
                   </Link>
-                </li>
+                </li> */}
+
                 <li>
                   <button
                     onClick={() => logout("/")} // gunakan hook logout

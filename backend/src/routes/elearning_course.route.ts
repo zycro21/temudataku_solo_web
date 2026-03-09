@@ -94,7 +94,7 @@ const router = express.Router();
 router.get(
   "/courses",
   authenticate,
-  authorizeRoles("admin", "mentor", "mentee"),
+  authorizeRoles("admin", "mentor", "mentee", "cm", "curdev"),
   validate(getAllCoursesSchema),
   ELearningCourseController.getAllCourses
 );
@@ -127,7 +127,7 @@ router.get(
 router.get(
   "/courses/:id",
   authenticate,
-  authorizeRoles("admin", "mentor", "mentee"),
+  authorizeRoles("admin", "mentor", "mentee", "cm", "curdev"),
   validate(getCourseByIdSchema),
   ELearningCourseController.getCourseById
 );
@@ -205,7 +205,7 @@ router.get(
 router.post(
   "/courses",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   handleElearningThumbnailUpload("thumbnailImages", true),
   validate(createCourseSchema),
   ELearningCourseController.createCourse
@@ -292,7 +292,7 @@ router.post(
 router.put(
   "/courses/:id",
   authenticate,
-  authorizeRoles("admin", "mentor"),
+  authorizeRoles("admin", "mentor", "cm", "curdev"),
   handleElearningThumbnailUpload("thumbnailImages", true),
   validate(updateCourseSchema),
   ELearningCourseController.updateCourse
@@ -338,7 +338,7 @@ router.put(
 router.patch(
   "/courses/:id/status",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(toggleStatusSchema),
   ELearningCourseController.toggleStatus
 );
@@ -371,7 +371,7 @@ router.patch(
 router.delete(
   "/courses/:id",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(deleteCourseSchema),
   ELearningCourseController.deleteCourse
 );
@@ -567,7 +567,7 @@ router.get(
 router.get(
   "/exportProductEvent",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(exportProductEventSchema),
   ELearningCourseController.exportProductEvent
 );

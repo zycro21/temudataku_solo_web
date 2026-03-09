@@ -727,12 +727,12 @@ export const getMenteeBookings = async (
 
   const total = await prisma.booking.count({ where: whereClause });
 
-  if (status && bookings.length === 0) {
-    throw {
-      status: 404,
-      message: `Tidak ditemukan booking dengan status "${status}".`,
-    };
-  }
+  // if (status && bookings.length === 0) {
+  //   throw {
+  //     status: 404,
+  //     message: `Tidak ditemukan booking dengan status "${status}".`,
+  //   };
+  // }
 
   // 🔹 Tambahkan status project + ukuran file submission
   const enrichedBookings = bookings.map((booking) => {

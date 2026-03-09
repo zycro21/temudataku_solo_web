@@ -15,6 +15,10 @@ uploads/practice/submissions/*
 !uploads/practice/submissions/.gitkeep
 uploads/elearning/submissions/*
 !uploads/elearning/submissions/.gitkeep
+uploads/elearning/videos/*
+!uploads/elearning/videos/.gitkeep
+uploads/elearning_certificate/*
+!uploads/elearning_certificate/.gitkeep
 
 images/*
 !images/.gitkeep

@@ -11,7 +11,7 @@ const prisma = new PrismaClient();
 export const createFeedbackController = async (
   req: AuthenticatedRequestFeedback,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const userId = req.user!.userId;
@@ -40,7 +40,7 @@ export const createFeedbackController = async (
 export const updateFeedbackController = async (
   req: AuthenticatedRequestFeedback,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const feedbackId = req.validatedParams.id;
@@ -65,12 +65,16 @@ export const updateFeedbackController = async (
 export const deleteFeedbackController = async (
   req: AuthenticatedRequestFeedback,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const feedbackId = req.validatedParams.id;
     const userId = req.user!.userId;
-    const isAdmin = req.user!.roles.includes("admin");
+    const adminRoles = ["admin", "cm", "curdev"];
+
+    const isAdmin = req.user!.roles.some((role) =>
+      adminRoles.includes(role.toLowerCase()),
+    );
 
     await FeedbackService.deleteFeedback({
       feedbackId,
@@ -91,7 +95,7 @@ export const deleteFeedbackController = async (
 export const getMyFeedbacksController = async (
   req: AuthenticatedRequestFeedback,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     // Validate req.user existence
@@ -120,7 +124,7 @@ export const getMyFeedbacksController = async (
 export const getPublicFeedbacksByServiceId = async (
   req: AuthenticatedRequestFeedback,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { id: serviceId } = req.validatedParams;
@@ -145,7 +149,7 @@ export const getPublicFeedbacksByServiceId = async (
 export const getMentorFeedbacks = async (
   req: AuthenticatedRequestFeedback,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const {
@@ -195,7 +199,7 @@ export const getMentorFeedbacks = async (
 export const getAllFeedbacksForAdmin = async (
   req: AuthenticatedRequestFeedback,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const {
@@ -236,7 +240,7 @@ export const getAllFeedbacksForAdmin = async (
 export const updateFeedbackVisibility = async (
   req: AuthenticatedRequestFeedback,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -251,7 +255,7 @@ export const updateFeedbackVisibility = async (
 
     const result = await FeedbackService.updateFeedbackVisibility(
       feedbackId,
-      isVisible
+      isVisible,
     );
 
     const responseData: any = {
@@ -286,7 +290,7 @@ export const updateFeedbackVisibility = async (
 export const exportFeedbacks = async (
   req: AuthenticatedRequestFeedback,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -322,7 +326,7 @@ export const exportFeedbacks = async (
 export const getFeedbackStatistics = async (
   req: AuthenticatedRequestFeedback,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { startDate, endDate } = req.validatedQuery;
@@ -345,15 +349,22 @@ export const getFeedbackStatistics = async (
 export const updateFeedbackByAdmin = async (
   req: AuthenticatedRequestFeedback,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
       res.status(401).json({ message: "Unauthorized. User ID not found." });
       return;
     }
+
     const adminId = req.user.userId;
     const roles = req.user?.roles || [];
+
+    const adminRoles = ["admin", "cm", "curdev"];
+
+    const isAdminLevel = roles.some((role) =>
+      adminRoles.includes(role.toLowerCase()),
+    );
 
     const { id } = req.validatedParams;
     const { isVisible, rating, comment } = req.validatedBody;
@@ -365,12 +376,13 @@ export const updateFeedbackByAdmin = async (
       comment,
     });
 
-     if (roles.includes("admin") && adminId) {
+    // Semua admin-level akan tercatat log
+    if (isAdminLevel) {
       await logActivity({
-        userId: req.user.userId,
+        userId: adminId,
         action: "ADMIN_UPDATE_FEEDBACKS",
-        type: "EXPORT",
-        description: `Admin melakukan update Feedback dengan ID: ${id}`,
+        type: "UPDATE",
+        description: `Admin-level (${roles.join(", ")}) melakukan update Feedback dengan ID: ${id}`,
         req,
       });
     }

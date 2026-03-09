@@ -29,6 +29,49 @@ export default function EventSection({ events }: EventSectionProps) {
   );
 }
 
+function renderDescription(text: string) {
+  const lines = text.split("/n");
+
+  return lines.map((line, index) => {
+    const parts = line.split(/(\*\*.*?\*\*|_.*?_|(\*[^*]+\*))/g);
+
+    return (
+      <span key={index}>
+        {parts.map((part, i) => {
+          if (!part) return null;
+
+          if (part.startsWith("**") && part.endsWith("**")) {
+            return <strong key={i}>{part.slice(2, -2)}</strong>;
+          }
+
+          if (part.startsWith("_") && part.endsWith("_")) {
+            return (
+              <span key={i} className="underline">
+                {part.slice(1, -1)}
+              </span>
+            );
+          }
+
+          if (
+            part.startsWith("*") &&
+            part.endsWith("*") &&
+            !part.startsWith("**")
+          ) {
+            return (
+              <span key={i} className="inline-block skew-x-[-8deg]">
+                {part.slice(1, -1)}
+              </span>
+            );
+          }
+
+          return <span key={i}>{part}</span>;
+        })}
+        <br />
+      </span>
+    );
+  });
+}
+
 function EventCard({ event }: { event: EventItem }) {
   const [showFull, setShowFull] = useState(false);
   const router = useRouter(); // untuk navigasi
@@ -38,7 +81,7 @@ function EventCard({ event }: { event: EventItem }) {
     if (event.type === "practice") {
       router.push("/practice");
     } else if (event.type === "mentoring") {
-      router.push("/mentoring");
+      router.push("/programs");
     } else {
       console.warn("Tipe event tidak dikenali:", event.type);
     }
@@ -77,7 +120,7 @@ function EventCard({ event }: { event: EventItem }) {
               showFull ? "" : "line-clamp-3"
             }`}
           >
-            {event.description}
+            {renderDescription(event.description)}
           </p>
           {event.description.length > 100 && (
             <button
@@ -95,16 +138,19 @@ function EventCard({ event }: { event: EventItem }) {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <Calendar className="w-4 h-4 text-black" />
-              <span>Dari</span>
-              <span className="ml-35">Sampai</span>
+              <span>Tanggal</span>
             </div>
-            <div className="flex items-center gap-14 ml-6">
-              <span className="text-gray-800 font-semibold">
-                {event.dateStart}
-              </span>
-              <span className="text-gray-800 font-semibold">
-                {event.dateEnd}
-              </span>
+
+            <div className="grid grid-cols-2 ml-6">
+              <div>
+                <span className="text-xs text-gray-400">Mulai</span>
+                <p className="text-gray-800 font-semibold">{event.dateStart}</p>
+              </div>
+
+              <div>
+                <span className="text-xs text-gray-400">Sampai</span>
+                <p className="text-gray-800 font-semibold">{event.dateEnd}</p>
+              </div>
             </div>
           </div>
 

@@ -105,7 +105,7 @@ export const updateMentorProfile = async (data: {
   experience?: string;
   availabilitySchedule?: any;
   hourlyRate?: number;
-  linkedin?: string; 
+  linkedin?: string;
 }) => {
   const { userId, ...updateData } = data;
 
@@ -266,7 +266,7 @@ export const getAllMentorProfiles = async ({
 
 export const toggleVerificationStatus = async (
   userId: string,
-  isVerified: boolean
+  isVerified: boolean,
 ) => {
   const mentor = await prisma.mentorProfile.findUnique({
     where: { userId },
@@ -289,7 +289,7 @@ export const toggleVerificationStatus = async (
 
   if (mentor.isVerified === isVerified) {
     const error = new Error(
-      `Mentor profile is already ${isVerified ? "verified" : "unverified"}`
+      `Mentor profile is already ${isVerified ? "verified" : "unverified"}`,
     );
     (error as any).statusCode = 400;
     throw error;
@@ -578,9 +578,22 @@ export const deleteMentorProfile = async (id: string) => {
 
 export const getMentorsByService = async ({
   serviceId,
+  roles,
 }: {
   serviceId: string;
+  roles: string[];
 }) => {
+  const adminRoles = ["admin", "cm", "curdev"];
+
+  const normalizedRoles = roles.map((r) => r.toLowerCase());
+
+  const isAdminLike = normalizedRoles.some((role) => adminRoles.includes(role));
+
+  // Untuk endpoint ini logicnya sama, tapi disiapkan jika nanti ada beda behaviour
+  if (!isAdminLike) {
+    throw new Error("Forbidden");
+  }
+
   const data = await prisma.mentorProfile.findMany({
     where: {
       isVerified: true,
@@ -604,7 +617,7 @@ export const getMentorsByService = async ({
 
   return {
     data: data.map((mentor) => ({
-      id: mentor.id, // mentorProfileId
+      id: mentor.id,
       fullName: mentor.user.fullName,
     })),
   };

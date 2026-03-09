@@ -35,17 +35,24 @@ export default function DashboardHeader() {
   };
 
   // fallback kalau data belum ada
-  const avatarUrl =
-    currentUser?.profilePicture && currentUser.profilePicture !== "default.jpg"
-      ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${currentUser.profilePicture}`
-      : "/assets/dashboard/user/avatar.png";
+  const avatarUrl = (() => {
+    if (!currentUser?.profilePicture) {
+      return "/assets/dashboard/user/avatar.png";
+    }
+
+    if (currentUser.profilePicture.startsWith("http")) {
+      return currentUser.profilePicture;
+    }
+
+    return `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${currentUser.profilePicture}`;
+  })();
 
   const fullName = currentUser?.fullName || "Guest";
   const roles =
     currentUser?.userRoles
       ?.map(
         (r: any) =>
-          r.role.roleName.charAt(0).toUpperCase() + r.role.roleName.slice(1)
+          r.role.roleName.charAt(0).toUpperCase() + r.role.roleName.slice(1),
       )
       .join(", ") || "User";
 

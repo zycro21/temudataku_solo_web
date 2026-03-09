@@ -6,7 +6,7 @@ export const ELearningCourseController = {
   async getAllCourses(
     req: AuthenticatedRequestElearning,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedQuery, user } = req;
@@ -22,7 +22,7 @@ export const ELearningCourseController = {
       // cukup kirim validatedQuery + user ke service
       const result = await ELearningCourseService.getAllCourses(
         validatedQuery,
-        user
+        user,
       );
 
       res.status(200).json({
@@ -38,7 +38,7 @@ export const ELearningCourseController = {
   async getCourseById(
     req: AuthenticatedRequestElearning,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, user } = req;
@@ -53,7 +53,7 @@ export const ELearningCourseController = {
 
       const course = await ELearningCourseService.getCourseById(
         validatedParams.id,
-        user
+        user,
       );
 
       if (!course) {
@@ -77,12 +77,12 @@ export const ELearningCourseController = {
   async createCourse(
     req: AuthenticatedRequestElearning,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
-      const { validatedBody } = req;
+      const { validatedBody, user } = req;
 
-      if (!validatedBody) {
+      if (!validatedBody || !user) {
         res.status(400).json({
           success: false,
           message: "Data request tidak valid",
@@ -90,9 +90,25 @@ export const ELearningCourseController = {
         return;
       }
 
+      // role yang diperlakukan seperti admin
+      const adminLikeRoles = ["admin", "cm", "curdev"];
+
+      // karena user bisa punya banyak role
+      const isAdminLike = user.roles?.some((role) =>
+        adminLikeRoles.includes(role),
+      );
+
+      if (!isAdminLike) {
+        res.status(403).json({
+          success: false,
+          message: "Hanya admin/cm/curdev yang dapat membuat kursus",
+        });
+        return;
+      }
+
       const uploadedImages = req.files
         ? (req.files as Express.Multer.File[]).map(
-            (file) => `/images/elearningThumbnail/${file.filename}`
+            (file) => `/images/elearningThumbnail/${file.filename}`,
           )
         : [];
 
@@ -114,7 +130,7 @@ export const ELearningCourseController = {
   async updateCourse(
     req: AuthenticatedRequestElearning,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedBody, validatedParams, user } = req;
@@ -129,7 +145,7 @@ export const ELearningCourseController = {
 
       const uploadedImages = req.files
         ? (req.files as Express.Multer.File[]).map(
-            (file) => `/images/elearningThumbnail/${file.filename}`
+            (file) => `/images/elearningThumbnail/${file.filename}`,
           )
         : [];
 
@@ -141,7 +157,7 @@ export const ELearningCourseController = {
       const updatedCourse = await ELearningCourseService.updateCourse(
         validatedParams.id,
         updatedData,
-        user
+        user,
       );
 
       res.status(200).json({
@@ -157,7 +173,7 @@ export const ELearningCourseController = {
   async toggleStatus(
     req: AuthenticatedRequestElearning,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, validatedBody, user } = req;
@@ -181,7 +197,7 @@ export const ELearningCourseController = {
 
       const updatedCourse = await ELearningCourseService.toggleCourseStatus(
         validatedParams.id,
-        validatedBody.isActive // sudah pasti boolean sekarang
+        validatedBody.isActive, // sudah pasti boolean sekarang
       );
 
       if (!updatedCourse) {
@@ -208,7 +224,7 @@ export const ELearningCourseController = {
   async deleteCourse(
     req: AuthenticatedRequestElearning,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, user } = req;
@@ -221,17 +237,23 @@ export const ELearningCourseController = {
         return;
       }
 
-      // Hanya admin, authorizeRoles sudah ngecek
-      if (!user?.roles.includes("admin")) {
+      const roles = user?.roles || [];
+
+      // Role yang diperlakukan seperti admin
+      const adminLikeRoles = ["admin", "cm", "curdev"];
+      const isAdminLike = roles.some((role) => adminLikeRoles.includes(role));
+
+      if (!isAdminLike) {
         res.status(403).json({
           success: false,
-          message: "Akses ditolak: hanya admin yang bisa menghapus kursus",
+          message:
+            "Akses ditolak: hanya admin, cm, atau curdev yang bisa menghapus kursus",
         });
         return;
       }
 
       const deletedCourse = await ELearningCourseService.deleteCourse(
-        validatedParams.id
+        validatedParams.id,
       );
 
       if (!deletedCourse) {
@@ -256,7 +278,7 @@ export const ELearningCourseController = {
   async listCourses(
     req: AuthenticatedRequestElearning,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedQuery } = req;
@@ -276,7 +298,7 @@ export const ELearningCourseController = {
       const courses = await ELearningCourseService.listCourses(
         filters,
         page,
-        limit
+        limit,
       );
 
       res.status(200).json({
@@ -293,7 +315,7 @@ export const ELearningCourseController = {
   async getCourseDetail(
     req: AuthenticatedRequestElearning,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams } = req;
@@ -307,7 +329,7 @@ export const ELearningCourseController = {
       }
 
       const course = await ELearningCourseService.getCourseDetail(
-        validatedParams.id
+        validatedParams.id,
       );
 
       if (!course) {
@@ -331,7 +353,7 @@ export const ELearningCourseController = {
   async getCourseStatistics(
     req: AuthenticatedRequestElearning,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, user } = req;
@@ -346,7 +368,7 @@ export const ELearningCourseController = {
 
       const stats = await ELearningCourseService.getCourseStatistics(
         validatedParams.id,
-        user
+        user,
       );
 
       if (!stats) {
@@ -370,7 +392,7 @@ export const ELearningCourseController = {
   async exportCourses(
     req: AuthenticatedRequestElearning,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedQuery } = req;
@@ -388,7 +410,7 @@ export const ELearningCourseController = {
 
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename=${file.filename}`
+        `attachment; filename=${file.filename}`,
       );
       res.setHeader("Content-Type", file.mimetype);
 
@@ -401,9 +423,33 @@ export const ELearningCourseController = {
   async exportProductEvent(
     req: AuthenticatedRequestElearning,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
+      const { user } = req;
+
+      if (!user?.userId) {
+        res.status(401).json({
+          success: false,
+          message: "Unauthorized",
+        });
+        return;
+      }
+
+      const roles = user.roles || [];
+
+      // role yang diperlakukan seperti admin
+      const adminLikeRoles = ["admin", "cm", "curdev"];
+      const isAdminLike = roles.some((role) => adminLikeRoles.includes(role));
+
+      if (!isAdminLike) {
+        res.status(403).json({
+          success: false,
+          message: "Akses ditolak: hanya admin, cm, atau curdev",
+        });
+        return;
+      }
+
       const format = req.validatedQuery?.format;
 
       if (!format || (format !== "csv" && format !== "excel")) {
@@ -414,11 +460,12 @@ export const ELearningCourseController = {
         return;
       }
 
-      const file = await ELearningCourseService.exportProductEventToFile(format);
+      const file =
+        await ELearningCourseService.exportProductEventToFile(format);
 
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename=${file.filename}`
+        `attachment; filename=${file.filename}`,
       );
       res.setHeader("Content-Type", file.mimetype);
 

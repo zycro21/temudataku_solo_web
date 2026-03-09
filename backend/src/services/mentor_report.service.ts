@@ -16,7 +16,7 @@ export const createMentorReport = async (
     commonQuestions?: string;
     nextFocus?: string;
     additionalNotes?: string;
-  }
+  },
 ) => {
   // Cari profil mentor berdasarkan userId
   const mentorProfile = await prisma.mentorProfile.findUnique({
@@ -37,11 +37,11 @@ export const createMentorReport = async (
 
   // Cek apakah mentor ini memang menangani sesi tersebut
   const isMentorAssigned = session.mentors.some(
-    (m) => m.mentorProfileId === mentorProfile.id
+    (m) => m.mentorProfileId === mentorProfile.id,
   );
   if (!isMentorAssigned) {
     throw new Error(
-      "Anda tidak memiliki akses untuk membuat laporan pada sesi ini"
+      "Anda tidak memiliki akses untuk membuat laporan pada sesi ini",
     );
   }
 
@@ -78,24 +78,32 @@ export const getMentorReports = async (
   limit: number,
   filters?: {
     sessionId?: string;
-    search?: string; // bisa untuk searching di kolom tertentu
+    search?: string;
   },
   sort?: {
     field?: "createdAt" | "updatedAt";
     order?: "asc" | "desc";
-  }
+  },
 ) => {
   const skip = (page - 1) * limit;
 
   let where: any = {};
-  // jika mentor → filter berdasarkan mentorProfileId
-  if (roles.includes("mentor")) {
+
+  const adminRoles = ["admin", "cm", "curdev"];
+  const isAdminLevel = roles.some((role) =>
+    adminRoles.includes(role.toLowerCase()),
+  );
+
+  // Jika bukan admin-level dan dia mentor → hanya lihat miliknya sendiri
+  if (!isAdminLevel && roles.includes("mentor")) {
     const mentorProfile = await prisma.mentorProfile.findUnique({
       where: { userId },
     });
+
     if (!mentorProfile) {
       throw new Error("Profil mentor tidak ditemukan");
     }
+
     where.mentorProfileId = mentorProfile.id;
   }
 
@@ -103,6 +111,7 @@ export const getMentorReports = async (
   if (filters?.sessionId) {
     where.sessionId = filters.sessionId;
   }
+
   if (filters?.search) {
     where.OR = [
       { understanding: { contains: filters.search, mode: "insensitive" } },
@@ -124,12 +133,12 @@ export const getMentorReports = async (
       include: {
         mentorProfile: {
           include: {
-            user: true, // ⬅️ biar fullName aman
+            user: true,
           },
         },
         session: {
           include: {
-            mentoringService: true, // ⬅️ INI PENTING
+            mentoringService: true,
           },
         },
       },
@@ -154,7 +163,7 @@ export const getMentorReports = async (
 export const getMentorReportById = async (
   userId: string,
   roles: string[],
-  id: string
+  id: string,
 ) => {
   // kalau admin → ambil report apa saja
   if (roles.includes("admin")) {
@@ -179,7 +188,7 @@ export const getMentorReportById = async (
     });
     if (!report) {
       throw new Error(
-        "Laporan mentor tidak ditemukan atau Anda tidak memiliki akses"
+        "Laporan mentor tidak ditemukan atau Anda tidak memiliki akses",
       );
     }
     return report;
@@ -198,7 +207,7 @@ export const updateMentorReport = async (
     commonQuestions?: string;
     nextFocus?: string;
     additionalNotes?: string;
-  }>
+  }>,
 ) => {
   // Cari profil mentor
   const mentorProfile = await prisma.mentorProfile.findUnique({
@@ -219,7 +228,7 @@ export const updateMentorReport = async (
 
   // Validasi apakah mentor memang bagian dari sesi
   const isMentorAssigned = report.session.mentors.some(
-    (m) => m.mentorProfileId === mentorProfile.id
+    (m) => m.mentorProfileId === mentorProfile.id,
   );
   if (!isMentorAssigned) {
     throw new Error("Anda tidak memiliki akses untuk memperbarui laporan ini");
@@ -235,39 +244,58 @@ export const updateMentorReport = async (
 export const deleteMentorReport = async (
   userId: string,
   roles: string[],
-  reportId: string
+  reportId: string,
 ) => {
-  // kalau admin, langsung hapus report apapun
-  if (roles.includes("admin")) {
+  const adminRoles = ["admin", "cm", "curdev"];
+
+  const isAdminLevel = roles.some((role) =>
+    adminRoles.includes(role.toLowerCase()),
+  );
+
+  // kalau admin-level → langsung hapus report apapun
+  if (isAdminLevel) {
     const report = await prisma.mentorReport.findUnique({
       where: { id: reportId },
     });
+
     if (!report) {
       throw new Error("Laporan mentor tidak ditemukan");
     }
-    await prisma.mentorReport.delete({ where: { id: reportId } });
+
+    await prisma.mentorReport.delete({
+      where: { id: reportId },
+    });
+
     return { message: "Laporan mentor berhasil dihapus (oleh admin)" };
   }
 
-  // kalau mentor, cek kepemilikan
+  // kalau mentor → cek kepemilikan
   if (roles.includes("mentor")) {
     const mentorProfile = await prisma.mentorProfile.findUnique({
       where: { userId },
     });
+
     if (!mentorProfile) {
       throw new Error("Profil mentor tidak ditemukan");
     }
 
     const report = await prisma.mentorReport.findFirst({
-      where: { id: reportId, mentorProfileId: mentorProfile.id },
+      where: {
+        id: reportId,
+        mentorProfileId: mentorProfile.id,
+      },
     });
+
     if (!report) {
       throw new Error(
-        "Laporan mentor tidak ditemukan atau Anda tidak memiliki akses"
+        "Laporan mentor tidak ditemukan atau Anda tidak memiliki akses",
       );
     }
 
-    await prisma.mentorReport.delete({ where: { id: reportId } });
+    await prisma.mentorReport.delete({
+      where: { id: reportId },
+    });
+
     return { message: "Laporan mentor berhasil dihapus (oleh mentor)" };
   }
 
@@ -346,7 +374,7 @@ export const exportMentorReportsToFile = async (formatType: string) => {
 export const getMentorReportsBySessionId = async (
   userId: string,
   roles: string[],
-  sessionId: string
+  sessionId: string,
 ) => {
   // kalau admin → ambil semua laporan mentor untuk sessionId
   if (roles.includes("admin")) {
@@ -379,7 +407,7 @@ export const getMentorReportsBySessionId = async (
     });
     if (!reports.length) {
       throw new Error(
-        "Laporan mentor tidak ditemukan atau Anda tidak memiliki akses"
+        "Laporan mentor tidak ditemukan atau Anda tidak memiliki akses",
       );
     }
     return reports;
@@ -390,7 +418,7 @@ export const getMentorReportsBySessionId = async (
 
 export const getMentorReportsByMentorProfileId = async (
   roles: string[],
-  mentorProfileId: string
+  mentorProfileId: string,
 ) => {
   // hanya admin yang boleh
   if (!roles.includes("admin")) {
@@ -416,8 +444,13 @@ export const getMentorReportsByMentorProfileId = async (
 export const getMentorReportStats = async (userId: string, roles: string[]) => {
   let mentorProfileId: string | undefined;
 
-  // jika mentor → ambil mentorProfileId
-  if (roles.includes("mentor")) {
+  const normalizedRoles = roles.map((r) => r.toLowerCase());
+  const adminRoles = ["admin", "cm", "curdev"];
+
+  const isAdmin = normalizedRoles.some((role) => adminRoles.includes(role));
+
+  // jika mentor dan bukan admin-like → filter berdasarkan mentorProfile
+  if (!isAdmin && normalizedRoles.includes("mentor")) {
     const mentorProfile = await prisma.mentorProfile.findUnique({
       where: { userId },
     });
@@ -448,7 +481,6 @@ export const getMentorReportStats = async (userId: string, roles: string[]) => {
 
   /** ===============================
    * 3. Mentoring session yang BELUM ada report
-   * (punya mentor, tapi tidak ada mentor_report)
    * =============================== */
   const unreportedSessionsCount = await prisma.mentoringSession.count({
     where: {
@@ -459,13 +491,13 @@ export const getMentorReportStats = async (userId: string, roles: string[]) => {
             },
           }
         : {
-            some: {}, // admin → semua session yang punya mentor
+            some: {}, // admin, cm, curdev → semua session
           },
       id: {
         notIn:
           reportedSessionIdList.length > 0
             ? reportedSessionIdList
-            : ["___dummy___"], // avoid empty notIn
+            : ["___dummy___"],
       },
     },
   });

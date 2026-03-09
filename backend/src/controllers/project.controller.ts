@@ -12,7 +12,7 @@ const prisma = new PrismaClient();
 export const createProjectHandler = async (
   req: AuthenticatedRequestProject,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -55,7 +55,7 @@ export const createProjectHandler = async (
 export const updateProjectHandler = async (
   req: AuthenticatedRequestProject,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -117,7 +117,7 @@ export const updateProjectHandler = async (
 export const deleteProjectHandler = async (
   req: AuthenticatedRequestProject,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -152,7 +152,7 @@ export const deleteProjectHandler = async (
 export const getAllProjectsHandler = async (
   req: AuthenticatedRequestProject,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const {
@@ -185,7 +185,7 @@ export const getAllProjectsHandler = async (
 export const getProjectDetailHandler = async (
   req: AuthenticatedRequestProject,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { id } = req.validatedParams;
@@ -204,7 +204,7 @@ export const getProjectDetailHandler = async (
 export const getMentorProjectService = async (
   req: AuthenticatedRequestProject,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const userId = req.user?.userId!;
@@ -215,7 +215,7 @@ export const getMentorProjectService = async (
     const result = await ProjectService.getMentorProjects(
       userId,
       currentPage,
-      perPage
+      perPage,
     );
 
     res.status(200).json({
@@ -230,7 +230,7 @@ export const getMentorProjectService = async (
 export const getMentorProjectDetail = async (
   req: AuthenticatedRequestProject,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const userId = req.user?.userId!;
@@ -238,7 +238,7 @@ export const getMentorProjectDetail = async (
 
     const project = await ProjectService.getMentorProjectDetail(
       userId,
-      projectId
+      projectId,
     );
 
     res.status(200).json({
@@ -253,7 +253,7 @@ export const getMentorProjectDetail = async (
 export const getUniqueMenteesService = async (
   req: AuthenticatedRequestProject,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const userId = req.user?.userId!;
@@ -272,7 +272,7 @@ export const getUniqueMenteesService = async (
 export const getMenteeProjects = async (
   req: AuthenticatedRequestProject,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const userId = req.user?.userId!;
@@ -308,7 +308,7 @@ export const getMenteeProjects = async (
 export const getMenteeProjectDetail = async (
   req: AuthenticatedRequestProject,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const userId = req.user?.userId!;
@@ -331,7 +331,7 @@ export const getMenteeProjectDetail = async (
 export const exportProjects = async (
   req: AuthenticatedRequestProject,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -367,7 +367,7 @@ export const exportProjects = async (
 export const submitProject = async (
   req: AuthenticatedRequestProject,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { id: projectId } = req.validatedParams;
@@ -384,7 +384,7 @@ export const submitProject = async (
     const filePaths =
       uploadedFiles && uploadedFiles.length > 0
         ? uploadedFiles.map((file) =>
-            path.join("submissions", file.filename).replace(/\\/g, "/")
+            path.join("submissions", file.filename).replace(/\\/g, "/"),
           )
         : [];
 
@@ -412,7 +412,7 @@ export const submitProject = async (
 export const reviseSubmission = async (
   req: AuthenticatedRequestProject,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { submissionId } = req.validatedParams;
@@ -423,7 +423,7 @@ export const reviseSubmission = async (
     const filePaths =
       uploadedFiles && uploadedFiles.length > 0
         ? uploadedFiles.map((file) =>
-            path.join("submissions", file.filename).replace(/\\/g, "/")
+            path.join("submissions", file.filename).replace(/\\/g, "/"),
           )
         : [];
 
@@ -447,7 +447,7 @@ export const reviseSubmission = async (
 export const reviewSubmission = async (
   req: AuthenticatedRequestProject,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -465,12 +465,19 @@ export const reviewSubmission = async (
       ...req.validatedBody,
     });
 
-    if (rolesLog.includes("admin") && adminId) {
+    const privilegedRoles = ["admin", "cm", "curdev"];
+    const hasPrivilege = rolesLog.some((role) =>
+      privilegedRoles.includes(role),
+    );
+
+    if (hasPrivilege && adminId) {
       await logActivity({
         userId: adminId,
         action: "REVIEW_SUBMISSION",
         type: "UPDATE",
-        description: `Memberikan review untuk submission ID: ${req.params.id}`,
+        description: `User dengan role ${rolesLog.join(
+          ", ",
+        )} memberikan review untuk submission ID: ${req.params.id}`,
         req,
       });
     }
@@ -487,9 +494,17 @@ export const reviewSubmission = async (
 export const getAdminSubmissions = async (
   req: AuthenticatedRequestProject,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+
+    const rolesLog = req.user.roles || [];
+    const userId = req.user.userId;
+
     const {
       search,
       projectId,
@@ -529,6 +544,24 @@ export const getAdminSubmissions = async (
       limit: limitNum,
     });
 
+    // cek role privileged
+    const privilegedRoles = ["admin", "cm", "curdev"];
+    const hasPrivilege = rolesLog.some((role) =>
+      privilegedRoles.includes(role)
+    );
+
+    if (hasPrivilege) {
+      await logActivity({
+        userId,
+        action: "GET_ADMIN_SUBMISSIONS",
+        type: "READ",
+        description: `User dengan role ${rolesLog.join(
+          ", "
+        )} melihat daftar submissions`,
+        req,
+      });
+    }
+
     res.status(200).json({
       message: "Daftar submission berhasil diambil",
       ...data,
@@ -541,7 +574,7 @@ export const getAdminSubmissions = async (
 export const getAdminSubmissionDetail = async (
   req: AuthenticatedRequestProject,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { id } = req.validatedParams;
@@ -569,7 +602,7 @@ export const getAdminSubmissionDetail = async (
 export const exportAdminSubmissions = async (
   req: AuthenticatedRequestProject,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -584,12 +617,19 @@ export const exportAdminSubmissions = async (
     const { fileBuffer, filename, contentType } =
       await ProjectService.exportAdminSubmissions({ format });
 
-    if (rolesLog.includes("admin") && adminId) {
+    const privilegedRoles = ["admin", "cm", "curdev"];
+    const hasPrivilege = rolesLog.some((role) =>
+      privilegedRoles.includes(role),
+    );
+
+    if (hasPrivilege && adminId) {
       await logActivity({
         userId: adminId,
         action: "EXPORT_ADMIN_SUBMISSIONS",
         type: "EXPORT",
-        description: `Admin mengekspor submissions format: ${format}`,
+        description: `User dengan role ${rolesLog.join(
+          ", ",
+        )} mengekspor submissions format: ${format}`,
         req,
       });
     }
@@ -605,7 +645,7 @@ export const exportAdminSubmissions = async (
 export const getMentorProjectSubmissions = async (
   req: AuthenticatedRequestProject,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const projectId = req.params.id;
@@ -615,7 +655,7 @@ export const getMentorProjectSubmissions = async (
       {
         projectId,
         mentorProfileId,
-      }
+      },
     );
 
     res.status(200).json({ success: true, data: submissions });
@@ -628,7 +668,7 @@ export const getMentorProjectSubmissions = async (
 export const getMentorServiceSubmissions = async (
   req: AuthenticatedRequestProject,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const serviceId = req.params.serviceId;
@@ -638,7 +678,7 @@ export const getMentorServiceSubmissions = async (
       {
         serviceId,
         mentorProfileId,
-      }
+      },
     );
 
     res.status(200).json({ success: true, data: submissions });
@@ -651,7 +691,7 @@ export const getMentorServiceSubmissions = async (
 export const getMentorSubmissionDetail = async (
   req: AuthenticatedRequestProject,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const submissionId = req.params.id;
@@ -672,7 +712,7 @@ export const getMentorSubmissionDetail = async (
 export const getMenteeSubmissions = async (
   req: AuthenticatedRequestProject,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const menteeId = req.user?.userId; // ← sesuai interface kamu
@@ -696,7 +736,7 @@ export const getMenteeSubmissions = async (
 export const getMenteeSubmissionDetail = async (
   req: AuthenticatedRequestProject,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const menteeId = req.user?.userId;
@@ -716,7 +756,7 @@ export const getMenteeSubmissionDetail = async (
 export const getProjectStatsHandler = async (
   req: AuthenticatedRequestProject,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const stats = await ProjectService.getProjectStats();
@@ -733,7 +773,7 @@ export const getProjectStatsHandler = async (
 export const deleteSubmission = async (
   req: AuthenticatedRequestProject,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -749,12 +789,19 @@ export const deleteSubmission = async (
       role: req.user.roles,
     });
 
-    if (rolesLog.includes("admin")) {
+    const privilegedRoles = ["admin", "cm", "curdev"];
+    const hasPrivilege = rolesLog.some((role) =>
+      privilegedRoles.includes(role),
+    );
+
+    if (hasPrivilege) {
       await logActivity({
         userId: req.user.userId,
         action: "DELETE_SUBMISSION",
         type: "DELETE",
-        description: `Menghapus submission ID: ${req.params.id}`,
+        description: `User dengan role ${rolesLog.join(
+          ", ",
+        )} menghapus submission ID: ${req.params.id}`,
         req,
       });
     }

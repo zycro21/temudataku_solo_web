@@ -6,7 +6,7 @@ import { logActivity } from "../utils/logActivtiy.js";
 export const createMentorReport = async (
   req: AuthenticatedRequestMentorReport,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     // hanya role mentor yang bisa
@@ -59,7 +59,7 @@ export const createMentorReport = async (
 export const getMentorReports = async (
   req: AuthenticatedRequestMentorReport,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user) {
@@ -88,7 +88,7 @@ export const getMentorReports = async (
       currentPage,
       perPage,
       { sessionId, search },
-      { field: sortField as any, order: sortOrder as any }
+      { field: sortField as any, order: sortOrder as any },
     );
 
     res.status(200).json({
@@ -104,7 +104,7 @@ export const getMentorReports = async (
 export const getMentorReportById = async (
   req: AuthenticatedRequestMentorReport,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user) {
@@ -124,7 +124,7 @@ export const getMentorReportById = async (
     const result = await MentorReportService.getMentorReportById(
       userId,
       roles,
-      id
+      id,
     );
 
     res.status(200).json({
@@ -140,7 +140,7 @@ export const getMentorReportById = async (
 export const updateMentorReport = async (
   req: AuthenticatedRequestMentorReport,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     // hanya mentor yang boleh
@@ -167,7 +167,7 @@ export const updateMentorReport = async (
     const result = await MentorReportService.updateMentorReport(
       userId,
       id,
-      req.validatedBody
+      req.validatedBody,
     );
 
     res.status(200).json({
@@ -182,7 +182,7 @@ export const updateMentorReport = async (
 export const deleteMentorReport = async (
   req: AuthenticatedRequestMentorReport,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -209,15 +209,21 @@ export const deleteMentorReport = async (
     const result = await MentorReportService.deleteMentorReport(
       userId,
       roles,
-      id
+      id,
     );
 
-    if (rolesLog.includes("admin") && adminId) {
+    const adminRoles = ["admin", "cm", "curdev"];
+
+    const isAdminLevel = rolesLog.some((role) =>
+      adminRoles.includes(role.toLowerCase()),
+    );
+
+    if (isAdminLevel && adminId) {
       await logActivity({
         userId: req.user.userId,
         action: "DELETE_MENTOR_REPORT",
         type: "DELETE",
-        description: `Admin menghapus laporan mentor dengan ID: ${id}`,
+        description: `Admin-level (${rolesLog.join(", ")}) menghapus laporan mentor dengan ID: ${id}`,
         req,
       });
     }
@@ -232,27 +238,37 @@ export const deleteMentorReport = async (
 export const exportMentorReports = async (
   req: AuthenticatedRequestMentorReport,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
       res.status(401).json({ message: "Unauthorized. User ID not found." });
       return;
     }
+
     const adminId = req.user.userId;
     const rolesLog = req.user?.roles || [];
+
+    const adminRoles = ["admin", "cm", "curdev"];
+
+    const isAdminLevel = rolesLog.some((role) =>
+      adminRoles.includes(role.toLowerCase())
+    );
 
     const format = req.validatedQuery?.format === "excel" ? "excel" : "csv";
 
     const { buffer, fileName, mimeType } =
       await MentorReportService.exportMentorReportsToFile(format);
 
-    if (rolesLog.includes("admin") && adminId) {
+    // log untuk semua admin-level roles
+    if (isAdminLevel && adminId) {
       await logActivity({
         userId: adminId,
         action: "EXPORT_MENTOR_REPORTS",
         type: "EXPORT",
-        description: `Admin melakukan export laporan mentor dalam format: ${format}`,
+        description: `Admin-level (${rolesLog.join(
+          ", "
+        )}) melakukan export laporan mentor dalam format: ${format}`,
         req,
       });
     }
@@ -268,7 +284,7 @@ export const exportMentorReports = async (
 export const getMentorReportsBySessionId = async (
   req: AuthenticatedRequestMentorReport,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user) {
@@ -288,7 +304,7 @@ export const getMentorReportsBySessionId = async (
     const reports = await MentorReportService.getMentorReportsBySessionId(
       userId,
       roles,
-      sessionId
+      sessionId,
     );
 
     res.status(200).json({
@@ -304,7 +320,7 @@ export const getMentorReportsBySessionId = async (
 export const getMentorReportsByMentorProfileId = async (
   req: AuthenticatedRequestMentorReport,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user) {
@@ -324,7 +340,7 @@ export const getMentorReportsByMentorProfileId = async (
 
     const reports = await MentorReportService.getMentorReportsByMentorProfileId(
       roles,
-      mentorProfileId
+      mentorProfileId,
     );
 
     res.status(200).json({
@@ -339,7 +355,7 @@ export const getMentorReportsByMentorProfileId = async (
 export const getMentorReportStats = async (
   req: AuthenticatedRequestMentorReport,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user) {

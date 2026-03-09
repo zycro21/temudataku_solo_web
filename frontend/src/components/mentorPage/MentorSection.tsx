@@ -10,7 +10,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import { Briefcase, Calendar, Code } from "lucide-react";
+import { Briefcase, Calendar, Code, Linkedin } from "lucide-react";
 import React from "react";
 import Image from "next/image";
 import {
@@ -49,6 +49,7 @@ const MentorSection = () => {
       experience: "Teknik Informatika UPNV Jakarta",
       skills:
         "Python, SQL, Machine Learning, Statistical Analysis, Data Visualization (Tableau/Power BI), Predictive Modeling, Big Data Analytics, Deep Learning",
+      linkedin: "https://www.linkedin.com/in/jesselyn-mu/",
       biography:
         "Jesselyn adalah praktisi Data Science dengan pengalaman mengerjakan berbagai project machine learning dan analytics di industri. Ia fokus pada implementasi model yang scalable dan business-oriented.",
       image: "/assets/mentor/jessely.png",
@@ -60,6 +61,7 @@ const MentorSection = () => {
       experience: "Statistika Institut Teknologi Sepuluh Nopember",
       skills:
         "SQL, Power BI, Tableau, Advanced Excel, Google Looker Studio, Data Storytelling, Exploratory Data Analysis (EDA)",
+      linkedin: "https://www.linkedin.com/in/vania-frederica/",
       biography:
         "Vania memiliki spesialisasi dalam data visualization dan storytelling. Ia membantu mentee memahami bagaimana mengubah data mentah menjadi insight yang actionable.",
       image: "/assets/mentor/vania.png",
@@ -71,6 +73,7 @@ const MentorSection = () => {
       experience: "S2 Data Science for Business Utel University",
       skills:
         "Deep Learning, PyTorch, TensorFlow, Computer Vision, NLP, MLOps, Cloud Computing, LLM",
+      linkedin: "https://www.linkedin.com/in/ngodingyo/",
       biography:
         "Ali fokus pada deep learning dan AI production system. Ia berpengalaman dalam deployment model dan pengembangan solusi AI berbasis cloud.",
       image: "/assets/mentor/ali.png",
@@ -82,6 +85,7 @@ const MentorSection = () => {
       experience: "Teknologi Informasi Universitas Brawijaya",
       skills:
         "Python, Machine Learning Model, Docker, Kubernetes, MLOps Pipeline, Model Deployment, CI/CD for ML",
+      linkedin: "https://www.linkedin.com/in/mochamaddimasputrahermawan/",
       biography:
         "Dimas berpengalaman membangun ML pipeline end-to-end dari experimentation hingga deployment menggunakan best practice MLOps.",
       image: "/assets/mentor/dimas.png",
@@ -93,6 +97,7 @@ const MentorSection = () => {
       experience: "Teknik Informatika Binus University",
       skills:
         "Python, TensorFlow, PyTorch, OpenCV, Deep Learning, Computer Vision, Natural Language Processing (NLP), LLM",
+      linkedin: "https://www.linkedin.com/in/verrenangelinasaputra/",
       biography:
         "Verren memiliki spesialisasi di Computer Vision dan NLP. Ia aktif mengembangkan solusi AI berbasis deep learning.",
       image: "/assets/mentor/verren.png",
@@ -104,6 +109,7 @@ const MentorSection = () => {
       experience: "Sistem Informasi Binus University",
       skills:
         "Apache Airflow, Spark, Hadoop, PostgreSQL, BigQuery, Snowflake, Data Warehousing, ETL/ELT Pipeline, Database Schema Design",
+      linkedin: "https://www.linkedin.com/in/masetianto/",
       biography:
         "Anang adalah Data Engineer dengan pengalaman membangun data pipeline skala besar dan arsitektur data warehouse modern.",
       image: "/assets/mentor/anang.png",
@@ -262,6 +268,18 @@ const MentorSection = () => {
                                       <span className="leading-relaxed break-words">
                                         {selectedMentor?.skills}
                                       </span>
+                                    </div>
+
+                                    <div className="flex items-center gap-3 text-base text-gray-700">
+                                      <Linkedin className="w-5 h-5 text-emerald-500" />
+                                      <a
+                                        href={selectedMentor?.linkedin}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-emerald-600 hover:underline break-all"
+                                      >
+                                        Linkedin
+                                      </a>
                                     </div>
 
                                     <div className="mt-6 p-4 bg-gray-50 rounded-lg border">

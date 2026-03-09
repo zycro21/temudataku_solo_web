@@ -160,7 +160,7 @@ const router = Router();
 router.post(
   "/mentoring-services",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(createMentoringServiceSchema),
   MentorServiceController.createMentoringServiceController,
 );
@@ -267,7 +267,7 @@ router.post(
 router.get(
   "/admin/mentoring-services",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(getAllMentoringServicesSchema),
   MentorServiceController.getAllMentoringServicesController,
 );
@@ -449,7 +449,7 @@ router.get(
 router.get(
   "/admin/mentoring-services/:id",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(getMentoringServiceDetailSchema),
   MentorServiceController.getMentoringServiceDetailController,
 );
@@ -621,7 +621,7 @@ router.get(
 router.patch(
   "/admin/mentoring-services/:id",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(updateMentoringServiceSchema),
   MentorServiceController.updateMentoringServiceController,
 );
@@ -678,7 +678,7 @@ router.patch(
 router.delete(
   "/admin/mentoring-services/:id",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(deleteMentoringServiceSchema),
   MentorServiceController.deleteMentoringServiceController,
 );

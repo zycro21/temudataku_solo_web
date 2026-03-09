@@ -13,6 +13,9 @@ import { Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 import axios from "axios";
 import { toast } from "sonner";
+import { GoogleLogin } from "@react-oauth/google";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 export default function RegisterModal({
   isOpen,
@@ -23,6 +26,9 @@ export default function RegisterModal({
   setIsOpen: (open: boolean) => void;
   openLogin: () => void;
 }) {
+  const { setCurrentUser } = useAuth();
+  const router = useRouter();
+
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -53,7 +59,7 @@ export default function RegisterModal({
       const res = await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/register`,
         formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
+        { headers: { "Content-Type": "multipart/form-data" } },
       );
 
       const { status, message } = res.data;
@@ -215,8 +221,10 @@ export default function RegisterModal({
 
               <div className="text-center text-gray-500">atau</div>
 
-              <Button
+              {/* <Button
+                type="button"
                 variant="outline"
+                onClick={() => loginGoogle()}
                 className="w-full border-[#0CA678] text-[#0CA678] hover:bg-[#f2f1f1] hover:text-[#0CA678]"
               >
                 <Image
@@ -227,7 +235,53 @@ export default function RegisterModal({
                   className="mr-2"
                 />
                 Gunakan Akun Google
-              </Button>
+              </Button> */}
+
+              <GoogleLogin
+                onSuccess={async (credentialResponse) => {
+                  try {
+                    await axios.post(
+                      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/google`,
+                      {
+                        token: credentialResponse.credential,
+                      },
+                      { withCredentials: true },
+                    );
+
+                    // ambil user
+                    const me = await axios.get(
+                      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/me`,
+                      { withCredentials: true },
+                    );
+
+                    const user = me.data?.data;
+
+                    if (!user) throw new Error("Gagal mengambil user");
+
+                    setCurrentUser(user);
+
+                    const roles: string[] = (user?.userRoles || []).map(
+                      (r: any) => r?.role?.roleName?.toLowerCase(),
+                    );
+
+                    const adminRoles = ["admin", "curdev", "cm"];
+
+                    setIsOpen(false);
+                    toast.success("Login Google berhasil");
+
+                    if (roles.some((r) => adminRoles.includes(r))) {
+                      router.push("/admin");
+                    } else if (roles.includes("mentor")) {
+                      router.push("/dashboard/mentor");
+                    } else {
+                      router.push("/");
+                    }
+                  } catch (err) {
+                    console.error(err);
+                    toast.error("Login Google gagal");
+                  }
+                }}
+              />
 
               <p className="text-sm text-gray-500 text-center mt-0">
                 Sudah punya akun?{" "}

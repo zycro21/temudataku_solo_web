@@ -12,7 +12,7 @@ const prisma = new PrismaClient();
 export const createMentoringSessionController = async (
   req: AuthenticatedRequestForMentoringSession,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const data = req.validatedBody!;
@@ -45,9 +45,28 @@ export const createMentoringSessionController = async (
 export const getMentoringSessionsController = async (
   req: AuthenticatedRequestForMentoringSession,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+
+    const userId = req.user.userId;
+    const roles = req.user.roles || [];
+
+    // role yang diperlakukan seperti admin
+    const adminLikeRoles = ["admin", "cm", "curdev"];
+    const isAdminLike = roles.some((role) => adminLikeRoles.includes(role));
+
+    if (!isAdminLike) {
+      res.status(403).json({
+        message: "Forbidden. Admin/CM/Curdev only.",
+      });
+      return;
+    }
+
     const query = req.validatedQuery!;
 
     const sessions = await MentoringSessionService.getMentoringSessions({
@@ -76,7 +95,7 @@ export const getMentoringSessionsController = async (
 export const getMentoringSessionByIdController = async (
   req: AuthenticatedRequestForMentoringSession,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { id } = req.validatedParams!;
@@ -95,23 +114,33 @@ export const getMentoringSessionByIdController = async (
 export const updateMentoringSessionController = async (
   req: AuthenticatedRequestForMentoringSession,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { id } = req.validatedParams!;
     const data = req.validatedBody!;
     const userId = req.user?.userId!;
+    const roles = req.user?.roles || [];
+
+    const adminRoles = ["admin", "cm", "curdev"];
+    const normalizedRoles = roles.map((r) => r.toLowerCase());
+
+    const isAdminLike = normalizedRoles.some((role) =>
+      adminRoles.includes(role),
+    );
 
     const updatedSession = await MentoringSessionService.updateMentoringSession(
       id,
-      data
+      data,
     );
 
     await logActivity({
       userId,
       action: "UPDATE MENTORING SESSION",
       type: "UPDATE",
-      description: `Admin mengupdate sesi mentoring id=${id}`,
+      description: `${
+        isAdminLike ? "Admin/CM/CurDev" : "User"
+      } mengupdate sesi mentoring id=${id}`,
       req,
     });
 
@@ -127,23 +156,31 @@ export const updateMentoringSessionController = async (
 export const updateStatusController = async (
   req: AuthenticatedRequestForMentoringSession,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { id } = req.validatedParams!;
     const { status } = req.validatedBody!;
     const userId = req.user?.userId!;
+    const roles = req.user?.roles || [];
+
+    const adminRoles = ["admin", "cm", "curdev"];
+    const isAdminLevel = roles.some((role) =>
+      adminRoles.includes(role.toLowerCase()),
+    );
 
     const updated = await MentoringSessionService.updateMentoringSessionStatus(
       id,
-      status
+      status,
     );
 
     await logActivity({
       userId,
       action: "UPDATE MENTORING SESSION STATUS",
       type: "UPDATE",
-      description: `Admin mengubah status sesi mentoring id=${id} menjadi "${status}"`,
+      description: `${
+        isAdminLevel ? "Admin-level user" : "User"
+      } mengubah status sesi mentoring id=${id} menjadi "${status}"`,
       req,
     });
 
@@ -159,24 +196,32 @@ export const updateStatusController = async (
 export const updateSessionMentorsController = async (
   req: AuthenticatedRequestForMentoringSession,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { id } = req.validatedParams!;
     const { mentorProfileIds } = req.validatedBody!;
     const userId = req.user?.userId!;
+    const roles = req.user?.roles || [];
+
+    const adminRoles = ["admin", "cm", "curdev"];
+    const isAdminLevel = roles.some((role) =>
+      adminRoles.includes(role.toLowerCase()),
+    );
 
     const updated = await MentoringSessionService.updateMentoringSessionMentors(
       id,
-      mentorProfileIds
+      mentorProfileIds,
     );
 
     await logActivity({
       userId,
       action: "UPDATE_MENTORING_SESSION_MENTORS",
       type: "UPDATE",
-      description: `Admin memperbarui daftar mentor pada sesi mentoring id=${id} menjadi [${mentorProfileIds.join(
-        ", "
+      description: `${
+        isAdminLevel ? "Admin-level user" : "User"
+      } memperbarui daftar mentor pada sesi mentoring id=${id} menjadi [${mentorProfileIds.join(
+        ", ",
       )}]`,
       req,
     });
@@ -193,21 +238,29 @@ export const updateSessionMentorsController = async (
 export const deleteSessionController = async (
   req: AuthenticatedRequestForMentoringSession,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { id } = req.validatedParams!;
     const userId = req.user?.userId!;
+    const roles = req.user?.roles || [];
 
     await MentoringSessionService.deleteMentoringSession(id);
 
-    await logActivity({
-      userId,
-      action: "DELETE_MENTORING_SESSION",
-      type: "DELETE",
-      description: `Admin menghapus sesi mentoring id=${id}`,
-      req,
-    });
+    const privilegedRoles = ["admin", "cm", "curdev"];
+    const hasPrivilege = roles.some((role) => privilegedRoles.includes(role));
+
+    if (hasPrivilege) {
+      await logActivity({
+        userId,
+        action: "DELETE_MENTORING_SESSION",
+        type: "DELETE",
+        description: `User dengan role ${roles.join(
+          ", ",
+        )} menghapus sesi mentoring id=${id}`,
+        req,
+      });
+    }
 
     res.status(200).json({
       message: "Sesi mentoring berhasil dihapus",
@@ -220,16 +273,44 @@ export const deleteSessionController = async (
 export const exportSessionsController = async (
   req: AuthenticatedRequestForMentoringSession,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+
+    const userId = req.user.userId;
+    const roles = req.user.roles || [];
+
+    const adminLikeRoles = ["admin", "cm", "curdev"];
+    const isAdminLike = roles.some((role) => adminLikeRoles.includes(role));
+
+    if (!isAdminLike) {
+      res.status(403).json({
+        success: false,
+        message: "Forbidden. Admin/CM/Curdev only.",
+      });
+      return;
+    }
+
     const formatQuery = req.query.format === "csv" ? "csv" : "xlsx";
+
     const { buffer, mimeType, fileExtension } =
       await MentoringSessionService.exportMentoringSessions(formatQuery);
 
-    // Gunakan timestamp lengkap agar filename unik setiap kali download
     const timestamp = format(new Date(), "yyyyMMdd-HHmmss");
     const filename = `mentoring-sessions-${timestamp}.${fileExtension}`;
+
+    // optional logging
+    await logActivity({
+      userId,
+      action: "ADMIN_EXPORT_MENTORING_SESSIONS",
+      type: "EXPORT",
+      description: `User export mentoring sessions dalam format ${formatQuery}`,
+      req,
+    });
 
     res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
     res.setHeader("Content-Type", mimeType);
@@ -242,7 +323,7 @@ export const exportSessionsController = async (
 export const getMentorSessionsController = async (
   req: AuthenticatedRequestForMentoringSession,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const mentorId = req.user?.mentorProfileId;
@@ -251,9 +332,8 @@ export const getMentorSessionsController = async (
       return;
     }
 
-    const sessions = await MentoringSessionService.getOwnMentorSessions(
-      mentorId
-    );
+    const sessions =
+      await MentoringSessionService.getOwnMentorSessions(mentorId);
     res.json(sessions);
   } catch (error) {
     next(error);
@@ -263,7 +343,7 @@ export const getMentorSessionsController = async (
 export const getMentorSessionDetailController = async (
   req: AuthenticatedRequestForMentoringSession,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const mentorId = req.user?.mentorProfileId;
@@ -281,7 +361,7 @@ export const getMentorSessionDetailController = async (
 
     const session = await MentoringSessionService.getMentorSessionDetail(
       sessionId,
-      mentorId
+      mentorId,
     );
 
     if (!session) {
@@ -300,7 +380,7 @@ export const getMentorSessionDetailController = async (
 export const updateMentorSessionController = async (
   req: AuthenticatedRequestForMentoringSession,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const mentorProfileId = req.user?.mentorProfileId;
@@ -349,7 +429,7 @@ export const updateMentorSessionController = async (
 export const publicMentoringSessionController = async (
   req: AuthenticatedRequestForMentoringSession,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const serviceId = req.validatedParams?.serviceId!;
@@ -404,14 +484,13 @@ export const publicMentoringSessionController = async (
 export const publicGetMentoringSessionByIdController = async (
   req: AuthenticatedRequestForMentoringSession,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { id } = req.validatedParams!;
 
-    const session = await MentoringSessionService.getPublicMentoringSessionById(
-      id
-    );
+    const session =
+      await MentoringSessionService.getPublicMentoringSessionById(id);
 
     res.status(200).json({
       message: "Berhasil mengambil detail sesi mentoring",
