@@ -652,7 +652,7 @@ export interface AuthenticatedRequestQuiz extends Request {
 }
 
 export interface AuthenticatedRequestQuestion extends Request {
-  user: {
+  user?: {
     userId: string;
     roles: string[];
     mentorProfileId?: string;

@@ -17,7 +17,7 @@ export const ELearningSubBabService = {
       limit?: number;
       search?: string;
       sort?: "asc" | "desc";
-    }
+    },
   ) {
     const { page = 1, limit = 10, search, sort = "asc" } = options;
 
@@ -48,7 +48,7 @@ export const ELearningSubBabService = {
     else if (user.roles.includes("mentor")) {
       if (user.mentorProfileId !== course.mentorId) {
         throw new Error(
-          "Mentor hanya bisa melihat sub-bab dari course yang dia ampu"
+          "Mentor hanya bisa melihat sub-bab dari course yang dia ampu",
         );
       }
     }
@@ -76,7 +76,7 @@ export const ELearningSubBabService = {
 
       if (!activeSubscription) {
         throw new Error(
-          "Mentee hanya bisa melihat sub-bab jika memiliki subscription aktif"
+          "Mentee hanya bisa melihat sub-bab jika memiliki subscription aktif",
         );
       }
     }
@@ -117,7 +117,7 @@ export const ELearningSubBabService = {
 
   async getSubBabById(
     id: string,
-    user: { userId: string; roles: string[]; mentorProfileId?: string }
+    user: { userId: string; roles: string[]; mentorProfileId?: string },
   ) {
     const now = new Date();
 
@@ -151,7 +151,7 @@ export const ELearningSubBabService = {
     if (user.roles.includes("mentor")) {
       if (user.mentorProfileId !== course.mentorId) {
         throw new Error(
-          "Mentor hanya bisa melihat sub-bab dari course yang dia ampu"
+          "Mentor hanya bisa melihat sub-bab dari course yang dia ampu",
         );
       }
     }
@@ -178,7 +178,7 @@ export const ELearningSubBabService = {
 
       if (!activeSubscription) {
         throw new Error(
-          "Akses ditolak. Anda tidak memiliki subscription aktif."
+          "Akses ditolak. Anda tidak memiliki subscription aktif.",
         );
       }
     }
@@ -209,7 +209,7 @@ export const ELearningSubBabService = {
   async createSubBab(
     subChapterId: string,
     data: { title: string; estimatedTime?: string },
-    user: { userId: string; roles: string[]; mentorProfileId?: string }
+    user: { userId: string; roles: string[]; mentorProfileId?: string },
   ) {
     return await prisma.$transaction(async (prismaTx) => {
       // Cek sub-chapter
@@ -225,7 +225,7 @@ export const ELearningSubBabService = {
         user.mentorProfileId !== subChapter.course.mentorId
       ) {
         throw new Error(
-          "Akses ditolak: Mentor hanya bisa menambahkan sub-bab ke course yang dia ampu"
+          "Akses ditolak: Mentor hanya bisa menambahkan sub-bab ke course yang dia ampu",
         );
       }
 
@@ -262,7 +262,7 @@ export const ELearningSubBabService = {
   async updateSubBab(
     id: string,
     data: { title?: string; estimatedTime?: string; orderNumber?: number },
-    user: { userId: string; roles: string[]; mentorProfileId?: string }
+    user: { userId: string; roles: string[]; mentorProfileId?: string },
   ) {
     return await prisma.$transaction(async (prismaTx) => {
       // 🔹 Cek apakah sub-bab ada
@@ -283,7 +283,7 @@ export const ELearningSubBabService = {
       if (user.roles.includes("mentor")) {
         if (user.mentorProfileId !== course.mentorId) {
           throw new Error(
-            "Akses ditolak: Mentor hanya bisa mengedit sub-bab dari course yang dia ampu"
+            "Akses ditolak: Mentor hanya bisa mengedit sub-bab dari course yang dia ampu",
           );
         }
       }
@@ -299,7 +299,7 @@ export const ELearningSubBabService = {
         });
         if (duplicate) {
           throw new Error(
-            `Order number ${data.orderNumber} sudah digunakan oleh sub-bab lain`
+            `Order number ${data.orderNumber} sudah digunakan oleh sub-bab lain`,
           );
         }
       }
@@ -380,7 +380,7 @@ export const ELearningSubBabService = {
     sourceSubBabId: string,
     targetSubChapterId: string,
     newTitle: string | undefined,
-    user: { userId: string; roles: string[]; mentorProfileId?: string }
+    user: { userId: string; roles: string[]; mentorProfileId?: string },
   ) {
     return await prisma.$transaction(async (prismaTx) => {
       // 🔹 Ambil subbab sumber beserta relasi lengkap
@@ -391,7 +391,11 @@ export const ELearningSubBabService = {
             include: { course: true },
           },
           videos: true,
-          texts: true,
+          texts: {
+            include: {
+              blocks: true,
+            },
+          },
           quiz: { include: { questions: true } },
           assignment: true,
         },
@@ -412,12 +416,12 @@ export const ELearningSubBabService = {
       if (user.roles.includes("mentor")) {
         if (user.mentorProfileId !== source.subChapter.course.mentorId) {
           throw new Error(
-            "Akses ditolak: Anda bukan mentor dari course sumber"
+            "Akses ditolak: Anda bukan mentor dari course sumber",
           );
         }
         if (user.mentorProfileId !== targetSubChapter.course.mentorId) {
           throw new Error(
-            "Akses ditolak: Anda bukan mentor dari course tujuan"
+            "Akses ditolak: Anda bukan mentor dari course tujuan",
           );
         }
       }
@@ -457,7 +461,6 @@ export const ELearningSubBabService = {
             title: video.title,
             videoUrl: video.videoUrl,
             durationSeconds: video.durationSeconds,
-            orderNumber: video.orderNumber,
             isPreview: video.isPreview,
           },
         });
@@ -465,14 +468,23 @@ export const ELearningSubBabService = {
 
       // Text
       for (const text of source.texts) {
-        await prismaTx.eLearningText.create({
+        const newText = await prismaTx.eLearningText.create({
           data: {
             subBabId: newSubBab.id,
             title: text.title,
-            textContent: text.textContent,
             orderNumber: text.orderNumber,
           },
         });
+
+        for (const block of text.blocks) {
+          await prismaTx.eLearningTextBlock.create({
+            data: {
+              textId: newText.id,
+              content: block.content,
+              order: block.order,
+            },
+          });
+        }
       }
 
       // Quiz
@@ -524,7 +536,7 @@ export const ELearningSubBabService = {
   async reorderSubBabs(
     subChapterId: string,
     updates: { subBabId: string; newOrderNumber: number }[],
-    user: { userId: string; roles: string[] }
+    user: { userId: string; roles: string[] },
   ) {
     if (!user.roles.includes("admin")) {
       throw new Error("Akses ditolak: hanya admin yang dapat mengubah urutan");
@@ -552,7 +564,7 @@ export const ELearningSubBabService = {
         // Sisipkan ke posisi baru
         const targetIndex = Math.max(
           0,
-          Math.min(newOrderNumber - 1, reordered.length)
+          Math.min(newOrderNumber - 1, reordered.length),
         );
         reordered.splice(targetIndex, 0, movedItem);
       }
@@ -629,7 +641,7 @@ export const ELearningSubBabService = {
   },
 
   async exportSubBabsToFile(
-    exportFormat: "csv" | "excel"
+    exportFormat: "csv" | "excel",
   ): Promise<{ buffer: Buffer; filename: string; mimetype: string }> {
     const subBabs = await prisma.eLearningSubBab.findMany({
       include: {
@@ -673,7 +685,7 @@ export const ELearningSubBabService = {
       const chars =
         "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
       return Array.from({ length }, () =>
-        chars.charAt(Math.floor(Math.random() * chars.length))
+        chars.charAt(Math.floor(Math.random() * chars.length)),
       ).join("");
     }
 
