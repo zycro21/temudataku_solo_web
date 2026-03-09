@@ -191,7 +191,7 @@ export default function Navbar() {
                 alt="Avatar"
                 width={40}
                 height={40}
-                unoptimized
+                // unoptimized
                 className="rounded-full object-cover"
               />
               <span className="text-base font-semibold text-gray-700">

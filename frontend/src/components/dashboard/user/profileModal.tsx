@@ -57,10 +57,18 @@ export default function ProfileModal({
   };
 
   // avatar fallback
-  const avatarUrl =
-    currentUser?.profilePicture && currentUser.profilePicture !== "default.jpg"
-      ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${currentUser.profilePicture}`
-      : "/assets/dashboard/user/avatar.png";
+  // avatar fallback (support google + backend + default)
+  const avatarUrl = (() => {
+    if (!currentUser?.profilePicture) {
+      return "/assets/dashboard/user/avatar.png";
+    }
+
+    if (currentUser.profilePicture.startsWith("http")) {
+      return currentUser.profilePicture;
+    }
+
+    return `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${currentUser.profilePicture}`;
+  })();
 
   // safe phone display: cek string & trim sebelum split
   const phoneDisplay =
@@ -95,7 +103,7 @@ export default function ProfileModal({
                 alt="Foto Mentee"
                 width={400}
                 height={250}
-                unoptimized
+                // unoptimized
                 className="object-cover w-full h-full"
               />
             </div>

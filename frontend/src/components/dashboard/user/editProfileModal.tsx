@@ -34,7 +34,7 @@ export default function EditProfileModal({
 
   // foto profil
   const [preview, setPreview] = useState(
-    "/assets/dashboard/user/viewprofile.png"
+    "/assets/dashboard/user/viewprofile.png",
   );
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -55,10 +55,18 @@ export default function EditProfileModal({
           setPhoneNumber(data?.phoneNumber || "-");
           setEmail(data?.email || "-");
 
-          const avatarUrl =
-            data?.profilePicture && data?.profilePicture !== "default.jpg"
-              ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${data.profilePicture}`
-              : "/assets/dashboard/user/avatar.png";
+          // fallback avatar (support google + backend + default)
+          const avatarUrl = (() => {
+            if (!data?.profilePicture) {
+              return "/assets/dashboard/user/avatar.png";
+            }
+
+            if (data.profilePicture.startsWith("http")) {
+              return data.profilePicture;
+            }
+
+            return `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${data.profilePicture}`;
+          })();
 
           setPreview(avatarUrl);
         })
@@ -84,7 +92,7 @@ export default function EditProfileModal({
         {
           withCredentials: true,
           headers: { "Content-Type": "multipart/form-data" },
-        }
+        },
       );
 
       onOpenChange(false);
@@ -94,7 +102,7 @@ export default function EditProfileModal({
       console.error("Update profile error:", err);
       alert(
         err.response?.data?.message ||
-          "Gagal memperbarui profil. Coba lagi nanti."
+          "Gagal memperbarui profil. Coba lagi nanti.",
       );
     }
   };
@@ -150,7 +158,7 @@ export default function EditProfileModal({
                   alt="Foto Mentee"
                   width={80}
                   height={80}
-                  unoptimized
+                  // unoptimized
                   className="object-cover w-full h-full"
                 />
               </div>
