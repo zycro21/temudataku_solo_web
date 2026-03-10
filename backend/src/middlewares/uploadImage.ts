@@ -15,7 +15,14 @@ const normalizedImagePath = path.normalize(imageUploadPath);
 const correctPath = normalizedImagePath.replace(/^\\/, "");
 
 if (!fs.existsSync(correctPath)) {
-  fs.mkdirSync(correctPath, { recursive: true });
+  try {
+    fs.mkdirSync(correctPath, { recursive: true });
+    console.log("[UPLOAD] Created images directory:", correctPath);
+  } catch (err) {
+    console.error("[UPLOAD] Failed to create directory:", err);
+  }
+} else {
+  console.log("[UPLOAD] Images directory exists:", correctPath);
 }
 
 export const handleUpload = (

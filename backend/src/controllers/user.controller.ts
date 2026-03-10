@@ -16,6 +16,11 @@ export const updateProfile = async (
   next: NextFunction
 ) => {
   try {
+    console.log("========== UPDATE PROFILE ==========");
+    console.log("req.body:", req.body);
+    console.log("req.file:", req.file);
+    console.log("req.headers:", req.headers["content-type"]);
+
     const authUserId = req.user?.userId;
     const roles = req.user?.roles || [];
 
