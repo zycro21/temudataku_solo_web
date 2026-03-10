@@ -62,11 +62,23 @@ export default function EditProfileMentorModal({
       hourlyRate,
     };
 
+    // 🔹 Hapus field kosong dari payload
+    Object.keys(payload).forEach((key) => {
+      if (
+        payload[key] === "" ||
+        payload[key] === 0 ||
+        payload[key] === null ||
+        payload[key] === undefined
+      ) {
+        delete payload[key];
+      }
+    });
+
     try {
       // Cek dulu apakah mentor profile sudah ada
       const res = await axios.get(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentor/ownProfile`,
-        { withCredentials: true }
+        { withCredentials: true },
       );
       const profileExists = !!res.data.data;
 
@@ -74,14 +86,14 @@ export default function EditProfileMentorModal({
         await axios.patch(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentor/profile`,
           payload,
-          { withCredentials: true }
+          { withCredentials: true },
         );
         toast.success("Profil mentor berhasil diperbarui!");
       } else {
         await axios.post(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentor/mentor/profile`,
           payload,
-          { withCredentials: true }
+          { withCredentials: true },
         );
         toast.success("Profil mentor berhasil dibuat!");
       }
@@ -92,7 +104,7 @@ export default function EditProfileMentorModal({
     } catch (err: any) {
       console.error("Save mentor profile error:", err);
       toast.error(
-        err.response?.data?.message || "Gagal menyimpan profil mentor."
+        err.response?.data?.message || "Gagal menyimpan profil mentor.",
       );
     }
   };

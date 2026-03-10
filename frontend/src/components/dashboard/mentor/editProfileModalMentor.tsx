@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import SuccessModal from "./profileMentorSuccessModal";
+import { toast } from "sonner";
 
 interface EditProfileMentorModalProps {
   open: boolean;
@@ -34,7 +35,7 @@ export default function EditProfileMentorModal({
 
   // foto profil
   const [preview, setPreview] = useState(
-    "/assets/dashboard/user/viewprofile.png"
+    "/assets/dashboard/user/viewprofile.png",
   );
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -70,27 +71,41 @@ export default function EditProfileMentorModal({
   const handleSave = async () => {
     try {
       const formData = new FormData();
-      formData.append("phoneNumber", phoneNumber);
-      formData.append("email", email);
-      if (selectedFile) formData.append("profilePicture", selectedFile);
+
+      if (phoneNumber) {
+        formData.append("phoneNumber", phoneNumber);
+      }
+
+      if (email) {
+        formData.append("email", email);
+      }
+
+      if (selectedFile) {
+        formData.append("profilePicture", selectedFile);
+      }
 
       await axios.put(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/update`, // bisa disesuaikan endpoint khusus mentor
         formData,
         {
           withCredentials: true,
-          headers: { "Content-Type": "multipart/form-data" },
-        }
+          // headers: { "Content-Type": "multipart/form-data" },
+        },
       );
 
       onOpenChange(false);
       setSuccessOpen(true);
       router.refresh(); // refresh halaman biar data terbaru kebawa
     } catch (err: any) {
-      console.error("Update profile error:", err);
-      alert(
+      // Tambahin ini buat debug
+      console.error("Full error:", {
+        status: err.response?.status,
+        data: err.response?.data,
+        message: err.message,
+      });
+      toast.error(
         err.response?.data?.message ||
-          "Gagal memperbarui profil. Coba lagi nanti."
+          "Terjadi kesalahan saat memperbarui profil",
       );
     }
   };
@@ -113,7 +128,7 @@ export default function EditProfileMentorModal({
       reader.onloadend = () => setPreview(reader.result as string);
       reader.readAsDataURL(file);
     } else {
-      alert("Hanya file JPG, JPEG, atau PNG yang diperbolehkan.");
+      toast.error("Hanya file JPG, JPEG, atau PNG yang diperbolehkan.");
     }
   };
 

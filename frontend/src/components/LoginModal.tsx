@@ -219,50 +219,54 @@ export default function LoginModal({
                 Gunakan Akun Google
               </Button> */}
 
-              <GoogleLogin
-                onSuccess={async (credentialResponse) => {
-                  try {
-                    await axios.post(
-                      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/google`,
-                      {
-                        token: credentialResponse.credential,
-                      },
-                      { withCredentials: true },
-                    );
+              <div className="flex justify-center">
+                <div className="w-full max-w-md">
+                  <GoogleLogin
+                    onSuccess={async (credentialResponse) => {
+                      try {
+                        await axios.post(
+                          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/google`,
+                          {
+                            token: credentialResponse.credential,
+                          },
+                          { withCredentials: true },
+                        );
 
-                    // ambil data user
-                    const me = await axios.get(
-                      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/me`,
-                      { withCredentials: true },
-                    );
+                        // ambil data user
+                        const me = await axios.get(
+                          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/me`,
+                          { withCredentials: true },
+                        );
 
-                    const user = me.data?.data;
+                        const user = me.data?.data;
 
-                    setCurrentUser(user);
+                        setCurrentUser(user);
 
-                    const roles: string[] = (user?.userRoles || []).map(
-                      (r: any) => r?.role?.roleName?.toLowerCase(),
-                    );
+                        const roles: string[] = (user?.userRoles || []).map(
+                          (r: any) => r?.role?.roleName?.toLowerCase(),
+                        );
 
-                    const adminRoles = ["admin", "curdev", "cm"];
+                        const adminRoles = ["admin", "curdev", "cm"];
 
-                    setIsOpen(false);
-                    toast.success("Login Google berhasil");
+                        setIsOpen(false);
+                        toast.success("Login Google berhasil");
 
-                    if (roles.some((r) => adminRoles.includes(r))) {
-                      router.push("/admin");
-                    } else if (roles.includes("mentor")) {
-                      router.push("/dashboard/mentor");
-                    } else {
-                      router.push("/");
-                    }
-                  } catch (err) {
-                    console.error(err);
-                    toast.error("Login Google gagal");
-                  }
-                }}
-                onError={() => toast.error("Login Google gagal")}
-              />
+                        if (roles.some((r) => adminRoles.includes(r))) {
+                          router.push("/admin");
+                        } else if (roles.includes("mentor")) {
+                          router.push("/dashboard/mentor");
+                        } else {
+                          router.push("/");
+                        }
+                      } catch (err) {
+                        console.error(err);
+                        toast.error("Login Google gagal");
+                      }
+                    }}
+                    onError={() => toast.error("Login Google gagal")}
+                  />
+                </div>
+              </div>
 
               <p className="text-sm text-gray-500 text-center mt-4">
                 Belum punya akun?{" "}
