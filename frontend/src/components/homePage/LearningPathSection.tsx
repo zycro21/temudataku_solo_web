@@ -189,7 +189,7 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
     {
       id: 1,
       title: "Mentoring 1 on 1",
-      originalPrice: "Rp 100.000",
+      originalPrice: "Rp 199.000",
       price: "Rp 99.000",
       badge: "BEST SESSION",
       type: "one-on-one",
