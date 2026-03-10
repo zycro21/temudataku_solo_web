@@ -210,11 +210,22 @@ export default function CheckoutSummary({
       try {
         if (
           formData.province !== booking?.user?.province ||
-          formData.city !== booking?.user?.city
+          formData.city !== booking?.user?.city ||
+          formData.phone !== booking?.user?.phoneNumber
         ) {
           const userFormData = new FormData();
-          userFormData.append("province", formData.province);
-          userFormData.append("city", formData.city);
+
+          if (formData.province !== booking?.user?.province) {
+            userFormData.append("province", formData.province);
+          }
+
+          if (formData.city !== booking?.user?.city) {
+            userFormData.append("city", formData.city);
+          }
+
+          if (formData.phone !== booking?.user?.phoneNumber) {
+            userFormData.append("phoneNumber", formData.phone);
+          }
 
           await axios.put(
             `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/update`,

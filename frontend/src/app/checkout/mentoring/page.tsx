@@ -1,13 +1,18 @@
+import { Suspense } from "react";
 import CheckoutMentoringPage from "@/components/checkout/mentoring/CheckoutMentoring";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
-export default function mentoringCheckoutPage() {
-    return (
-      <>
-        <Navbar />
+export default function MentoringCheckoutPage() {
+  return (
+    <>
+      <Navbar />
+
+      <Suspense fallback={<div className="p-10 text-center">Loading checkout...</div>}>
         <CheckoutMentoringPage />
-        <Footer />
-      </>
-  )
+      </Suspense>
+
+      <Footer />
+    </>
+  );
 }

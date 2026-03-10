@@ -124,6 +124,7 @@ export default function GenericEventDetailDialog({
                   alt={mentor?.name || "Mentor"}
                   width={40}
                   height={40}
+                  unoptimized
                   className="object-cover"
                 />
               </div>
