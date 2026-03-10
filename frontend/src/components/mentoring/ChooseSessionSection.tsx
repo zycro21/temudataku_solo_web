@@ -8,6 +8,7 @@ import Image from "next/image";
 import { useState } from "react";
 import axios from "axios";
 import MentorSelectionModal from "./MentorSelectionModal";
+import { toast } from "sonner";
 
 type ServiceType = "one-on-one" | "group";
 
@@ -50,7 +51,7 @@ export default function ChooseSessionSection() {
       const services = response.data?.data || [];
 
       if (services.length === 0) {
-        alert("Service belum tersedia.");
+        toast.error("Service belum tersedia.");
         return;
       }
 
@@ -61,7 +62,7 @@ export default function ChooseSessionSection() {
       setIsModalOpen(true);
     } catch (error) {
       console.error("Gagal mengambil service:", error);
-      alert("Terjadi kesalahan saat mengambil layanan.");
+      toast.error("Terjadi kesalahan saat mengambil layanan.");
     } finally {
       setLoading(false);
     }
