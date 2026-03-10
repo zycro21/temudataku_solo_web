@@ -21,6 +21,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import MentorSelectionModal from "../mentoring/MentorSelectionModal";
+import { toast } from "sonner";
 
 const tabs = [
   { id: "mentoring", label: "Mentoring" },
@@ -236,7 +237,7 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
       const services = response.data?.data || [];
 
       if (services.length === 0) {
-        alert("Service belum tersedia.");
+        toast.error("Service belum tersedia.");
         return;
       }
 
@@ -246,7 +247,7 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
       setIsModalOpen(true);
     } catch (error) {
       console.error("Gagal mengambil service:", error);
-      alert("Terjadi kesalahan saat mengambil layanan.");
+      toast.error("Terjadi kesalahan saat mengambil layanan.");
     } finally {
       setLoading(false);
     }
