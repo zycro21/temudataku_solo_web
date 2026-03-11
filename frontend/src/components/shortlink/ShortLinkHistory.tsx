@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
+import { DayPicker } from "react-day-picker";
+import "react-day-picker/dist/style.css";
 
 export default function ShortLinkHistory() {
   const router = useRouter();
@@ -14,6 +16,11 @@ export default function ShortLinkHistory() {
   const itemsPerPage = 10;
   const [totalPages, setTotalPages] = useState(1);
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedLink, setSelectedLink] = useState<any | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [updating, setUpdating] = useState(false);
+
   const fetchLinks = async () => {
     try {
       const res = await axios.get(
@@ -24,7 +31,7 @@ export default function ShortLinkHistory() {
             limit: itemsPerPage,
           },
           withCredentials: true,
-        }
+        },
       );
 
       setLinks(res.data.data || []);
@@ -46,7 +53,7 @@ export default function ShortLinkHistory() {
           router.push("/shorten-link");
         }
         return Promise.reject(error);
-      }
+      },
     );
 
     fetchLinks();
@@ -58,6 +65,44 @@ export default function ShortLinkHistory() {
     return <p className="text-gray-500 text-sm">Memuat data short links...</p>;
 
   if (error) return <p className="text-red-500 text-sm mt-2">❌ {error}</p>;
+
+  const openEditExpiry = (link: any) => {
+    setSelectedLink(link);
+
+    if (link.expiresAt) {
+      setSelectedDate(new Date(link.expiresAt));
+    } else {
+      setSelectedDate(undefined);
+    }
+
+    setIsModalOpen(true);
+  };
+
+  const handleUpdateExpiry = async () => {
+    if (!selectedLink || !selectedDate) return;
+
+    try {
+      setUpdating(true);
+
+      await axios.put(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/shortlink/shortlinks/${selectedLink.id}`,
+        {
+          expiresAt: selectedDate.toISOString(),
+        },
+        {
+          withCredentials: true,
+        },
+      );
+
+      await fetchLinks();
+      setIsModalOpen(false);
+    } catch (err: any) {
+      console.error(err);
+      alert(err.response?.data?.message || "Gagal update tanggal kadaluarsa");
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   return (
     <div className="p-8 bg-white rounded-xl shadow-sm border">
@@ -127,12 +172,15 @@ export default function ShortLinkHistory() {
                                 day: "2-digit",
                                 month: "short",
                                 year: "numeric",
-                              }
+                              },
                             )
                           : "-"}
                       </td>
 
-                      <td className="py-3 px-4 text-center text-gray-600">
+                      <td
+                        className="py-3 px-4 text-center text-gray-600 cursor-pointer hover:text-emerald-600"
+                        onClick={() => openEditExpiry(link)}
+                      >
                         {link.expiresAt
                           ? new Date(link.expiresAt).toLocaleDateString(
                               "id-ID",
@@ -140,7 +188,7 @@ export default function ShortLinkHistory() {
                                 day: "2-digit",
                                 month: "short",
                                 year: "numeric",
-                              }
+                              },
                             )
                           : "—"}
                       </td>
@@ -167,7 +215,7 @@ export default function ShortLinkHistory() {
             </table>
           </div>
 
-          {/* Pagination */}
+                    {/* Pagination */}
           <div className="flex justify-between items-center mt-6 text-sm">
             <p className="text-gray-500">
               Halaman {currentPage} dari {totalPages}
@@ -194,6 +242,42 @@ export default function ShortLinkHistory() {
             </div>
           </div>
         </>
+      )}
+
+      {/* MODAL EDIT EXPIRY */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-[380px] shadow-lg">
+            <h3 className="text-lg font-semibold mb-4 text-gray-800">
+              Update Tanggal Kadaluarsa
+            </h3>
+
+            <div className="flex justify-center">
+              <DayPicker
+                mode="single"
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="px-4 py-2 rounded-lg border text-gray-600 hover:bg-gray-100"
+              >
+                Batal
+              </button>
+
+              <button
+                onClick={handleUpdateExpiry}
+                disabled={!selectedDate || updating}
+                className="px-4 py-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-40"
+              >
+                {updating ? "Menyimpan..." : "Konfirmasi"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

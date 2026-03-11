@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import SuccessModal from "./profileSuccessModal";
+import { toast } from "sonner";
 
 interface EditProfileModalProps {
   open: boolean;
@@ -24,6 +25,8 @@ export default function EditProfileModal({
   onOpenChange,
 }: EditProfileModalProps) {
   const router = useRouter();
+
+  const [loading, setLoading] = useState(false);
 
   // state untuk data user
   const [userData, setUserData] = useState<any>(null);
@@ -52,8 +55,8 @@ export default function EditProfileModal({
           const data = res.data?.data;
           setUserData(data);
 
-          setPhoneNumber(data?.phoneNumber || "-");
-          setEmail(data?.email || "-");
+          setPhoneNumber(data?.phoneNumber || "");
+          setEmail(data?.email || "");
 
           // fallback avatar (support google + backend + default)
           const avatarUrl = (() => {
@@ -80,30 +83,50 @@ export default function EditProfileModal({
   const handleSave = async () => {
     try {
       const formData = new FormData();
-      formData.append("phoneNumber", phoneNumber);
-      formData.append("email", email);
+
+      if (phoneNumber && phoneNumber !== userData?.phoneNumber) {
+        formData.append("phoneNumber", phoneNumber);
+      }
+
+      if (email && email !== userData?.email) {
+        formData.append("email", email);
+      }
+
       if (selectedFile) {
         formData.append("profilePicture", selectedFile);
       }
+
+      if (Array.from(formData.keys()).length === 0) {
+        toast.info("Tidak ada perubahan yang disimpan.");
+        return;
+      }
+
+      setLoading(true);
+
+      const toastId = toast.loading("Menyimpan perubahan...");
 
       await axios.put(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/update`,
         formData,
         {
           withCredentials: true,
-          headers: { "Content-Type": "multipart/form-data" },
         },
       );
 
+      toast.success("Profil berhasil diperbarui.", { id: toastId });
+
       onOpenChange(false);
       setSuccessOpen(true);
-      router.refresh(); // refresh halaman biar data terbaru kebawa
+      router.refresh();
     } catch (err: any) {
       console.error("Update profile error:", err);
-      alert(
+
+      toast.error(
         err.response?.data?.message ||
           "Gagal memperbarui profil. Coba lagi nanti.",
       );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -127,7 +150,7 @@ export default function EditProfileModal({
       };
       reader.readAsDataURL(file);
     } else {
-      alert("Hanya file JPG, JPEG, atau PNG yang diperbolehkan.");
+      toast.error("Hanya file JPG, JPEG, atau PNG yang diperbolehkan.");
     }
   };
 
@@ -250,11 +273,13 @@ export default function EditProfileModal({
               Batalkan Perubahan
             </Button>
             <Button
-              className="flex-1 max-w-[200px] bg-emerald-500 hover:bg-emerald-600 text-white"
+              disabled={loading}
+              className="flex-1 max-w-[200px] bg-emerald-500 hover:bg-emerald-600 text-white disabled:opacity-50"
               onClick={handleSave}
             >
-              Simpan Perubahan
+              {loading ? "Menyimpan..." : "Simpan Perubahan"}
             </Button>
+            F
           </div>
         </DialogContent>
       </Dialog>

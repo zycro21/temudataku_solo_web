@@ -249,6 +249,7 @@ export default function AdminLayout({
 
   const [preview, setPreview] = useState("/default-avatar.png");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -276,11 +277,30 @@ export default function AdminLayout({
     if (!currentAdmin) return;
 
     try {
+      setSaving(true);
+
+      const toastId = toast.loading("Menyimpan perubahan...");
+
       const formData = new FormData();
-      formData.append("email", email);
-      formData.append("phoneNumber", phone);
+
+      if (email && email !== currentAdmin.email) {
+        formData.append("email", email);
+      }
+
+      if (phone && phone !== currentAdmin.phone) {
+        formData.append("phoneNumber", phone);
+      }
+
       if (selectedFile) {
         formData.append("profilePicture", selectedFile);
+      }
+
+      // kalau tidak ada perubahan sama sekali
+      if (Array.from(formData.keys()).length === 0) {
+        toast.dismiss(toastId);
+        toast.info("Tidak ada perubahan yang disimpan");
+        setSaving(false);
+        return;
       }
 
       const res = await axios.put(
@@ -295,28 +315,34 @@ export default function AdminLayout({
       );
 
       if (res.data.success) {
-        // Update currentAdmin agar UI otomatis terupdate
+        toast.success("Profil berhasil diperbarui!", { id: toastId });
+
         setCurrentAdmin((prev) =>
           prev
             ? {
                 ...prev,
-                email,
-                phone,
+                email: email || prev.email,
+                phone: phone || prev.phone,
                 avatarUrl: selectedFile ? preview : prev.avatarUrl,
               }
             : prev,
         );
+
         setIsEditAdminOpen(false);
-        toast.success("Profil berhasil diperbarui!");
       } else {
-        toast.error(res.data.message || "Gagal memperbarui profil");
+        toast.error(res.data.message || "Gagal memperbarui profil", {
+          id: toastId,
+        });
       }
     } catch (err: any) {
       console.error(err);
+
       toast.error(
         err.response?.data?.message ||
           "Terjadi kesalahan saat memperbarui profil",
       );
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -678,6 +704,7 @@ export default function AdminLayout({
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
+                    disabled={saving}
                     onClick={() => fileInputRef.current?.click()}
                   >
                     Unggah Foto
@@ -768,10 +795,11 @@ export default function AdminLayout({
             </Button>
 
             <Button
-              className="flex-1 max-w-[200px] bg-emerald-500 hover:bg-emerald-600 text-white"
+              disabled={saving}
+              className="flex-1 max-w-[200px] bg-emerald-500 hover:bg-emerald-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handleSaveEdit}
             >
-              Simpan Perubahan
+              {saving ? "Menyimpan..." : "Simpan Perubahan"}
             </Button>
           </div>
         </DialogContent>

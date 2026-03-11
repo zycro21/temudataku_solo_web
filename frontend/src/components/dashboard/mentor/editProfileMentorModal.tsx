@@ -24,6 +24,8 @@ export default function EditProfileMentorModal({
 }: EditProfileMentorModalProps) {
   const router = useRouter();
 
+  const [loading, setLoading] = useState(false);
+
   const [mentorData, setMentorData] = useState<any>(null);
   const [expertise, setExpertise] = useState("");
   const [bio, setBio] = useState("");
@@ -62,7 +64,6 @@ export default function EditProfileMentorModal({
       hourlyRate,
     };
 
-    // 🔹 Hapus field kosong dari payload
     Object.keys(payload).forEach((key) => {
       if (
         payload[key] === "" ||
@@ -75,11 +76,15 @@ export default function EditProfileMentorModal({
     });
 
     try {
-      // Cek dulu apakah mentor profile sudah ada
+      setLoading(true);
+
+      const toastId = toast.loading("Menyimpan perubahan profil mentor...");
+
       const res = await axios.get(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentor/ownProfile`,
         { withCredentials: true },
       );
+
       const profileExists = !!res.data.data;
 
       if (profileExists) {
@@ -88,14 +93,16 @@ export default function EditProfileMentorModal({
           payload,
           { withCredentials: true },
         );
-        toast.success("Profil mentor berhasil diperbarui!");
+
+        toast.success("Profil mentor berhasil diperbarui!", { id: toastId });
       } else {
         await axios.post(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentor/mentor/profile`,
           payload,
           { withCredentials: true },
         );
-        toast.success("Profil mentor berhasil dibuat!");
+
+        toast.success("Profil mentor berhasil dibuat!", { id: toastId });
       }
 
       onOpenChange(false);
@@ -103,9 +110,12 @@ export default function EditProfileMentorModal({
       router.refresh();
     } catch (err: any) {
       console.error("Save mentor profile error:", err);
+
       toast.error(
         err.response?.data?.message || "Gagal menyimpan profil mentor.",
       );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -256,10 +266,11 @@ export default function EditProfileMentorModal({
               Batalkan Perubahan
             </Button>
             <Button
-              className="flex-1 max-w-[200px] bg-emerald-500 hover:bg-emerald-600 text-white"
+              disabled={loading}
+              className="flex-1 max-w-[200px] bg-emerald-500 hover:bg-emerald-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handleSave}
             >
-              Simpan Perubahan
+              {loading ? "Menyimpan..." : "Simpan Perubahan"}
             </Button>
           </div>
         </DialogContent>

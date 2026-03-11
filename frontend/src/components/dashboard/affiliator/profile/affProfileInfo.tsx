@@ -22,6 +22,9 @@ export default function AffProfileInfo() {
   const [loading, setLoading] = useState(true);
   const [totalPendapatan, setTotalPendapatan] = useState<number>(0);
   const [totalPenggunaKode, setTotalPenggunaKode] = useState<number>(0);
+
+  const [uploadLoading, setUploadLoading] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -30,7 +33,7 @@ export default function AffProfileInfo() {
         // 1. Ambil user
         const res = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/me`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
         if (res.data.success) {
           setUser(res.data.data);
@@ -39,7 +42,7 @@ export default function AffProfileInfo() {
         // 2. Ambil semua referral code affiliator
         const refRes = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/referral/affiliator/referral-codes`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
 
         if (
@@ -52,14 +55,14 @@ export default function AffProfileInfo() {
           const firstId = referralCodes[0].id;
           const comRes = await axios.get(
             `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/referral/affiliator/referral-codes-commissions/${firstId}`,
-            { withCredentials: true }
+            { withCredentials: true },
           );
 
           if (comRes.data.success) {
             const commissions = comRes.data.data.commissions || [];
             const total = commissions.reduce(
               (sum: number, c: any) => sum + (c.amount || 0),
-              0
+              0,
             );
             setTotalPendapatan(total);
           }
@@ -69,7 +72,7 @@ export default function AffProfileInfo() {
           for (const rc of referralCodes) {
             const usageRes = await axios.get(
               `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/referral/affiliator/referral-codes-usages/${rc.id}`,
-              { withCredentials: true }
+              { withCredentials: true },
             );
             if (usageRes.data.success) {
               totalUsage += usageRes.data.data.pagination?.total || 0;
@@ -94,7 +97,7 @@ export default function AffProfileInfo() {
       await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/resend-verification`,
         { email: user.email },
-        { withCredentials: true }
+        { withCredentials: true },
       );
       toast.success("Email verifikasi telah dikirim ulang!");
     } catch (err: any) {
@@ -111,6 +114,10 @@ export default function AffProfileInfo() {
     formData.append("profilePicture", file);
 
     try {
+      setUploadLoading(true);
+
+      const toastId = toast.loading("Mengupload foto profil...");
+
       const res = await axios.put(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/update`,
         formData,
@@ -119,30 +126,33 @@ export default function AffProfileInfo() {
           headers: {
             "Content-Type": "multipart/form-data",
           },
-        }
+        },
       );
 
       if (res.data.success) {
-        toast.success("Foto profil berhasil diperbarui!");
-        // Update UI dengan foto baru
+        toast.success("Foto profil berhasil diperbarui!", { id: toastId });
+
         setUser((prev) =>
           prev
             ? {
                 ...prev,
-                profilePicture: res.data.updatedFields.includes(
-                  "profilePicture"
+                profilePicture: res.data.updatedFields?.includes(
+                  "profilePicture",
                 )
                   ? file.name
                   : prev.profilePicture,
               }
-            : prev
+            : prev,
         );
       }
     } catch (err: any) {
       console.error(err);
+
       toast.error(
-        err.response?.data?.message || "Gagal memperbarui foto profil"
+        err.response?.data?.message || "Gagal memperbarui foto profil",
       );
+    } finally {
+      setUploadLoading(false);
     }
   };
 
@@ -192,7 +202,8 @@ export default function AffProfileInfo() {
 
           {/* Tombol Edit */}
           <button
-            className="absolute -bottom-7 left-1/2 transform -translate-x-1/2 text-xs text-emerald-600 flex items-center space-x-1 hover:underline"
+            disabled={uploadLoading}
+            className="absolute -bottom-7 left-1/2 transform -translate-x-1/2 text-xs text-emerald-600 flex items-center space-x-1 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={() => fileInputRef.current?.click()}
           >
             <Pencil className="w-3 h-3" />

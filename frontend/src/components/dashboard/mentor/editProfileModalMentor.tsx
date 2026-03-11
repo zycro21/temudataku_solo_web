@@ -26,6 +26,8 @@ export default function EditProfileMentorModal({
 }: EditProfileMentorModalProps) {
   const router = useRouter();
 
+  const [loading, setLoading] = useState(false);
+
   // state untuk data mentor
   const [mentorData, setMentorData] = useState<any>(null);
 
@@ -84,29 +86,36 @@ export default function EditProfileMentorModal({
         formData.append("profilePicture", selectedFile);
       }
 
+      if (!phoneNumber && !email && !selectedFile) {
+        toast.info("Tidak ada perubahan yang disimpan.");
+        return;
+      }
+
+      setLoading(true);
+
+      // toast loading
+      const toastId = toast.loading("Menyimpan perubahan...");
+
       await axios.put(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/update`, // bisa disesuaikan endpoint khusus mentor
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/update`,
         formData,
         {
           withCredentials: true,
-          // headers: { "Content-Type": "multipart/form-data" },
         },
       );
 
+      toast.success("Profil berhasil diperbarui.", { id: toastId });
+
       onOpenChange(false);
       setSuccessOpen(true);
-      router.refresh(); // refresh halaman biar data terbaru kebawa
+      router.refresh();
     } catch (err: any) {
-      // Tambahin ini buat debug
-      console.error("Full error:", {
-        status: err.response?.status,
-        data: err.response?.data,
-        message: err.message,
-      });
       toast.error(
         err.response?.data?.message ||
           "Terjadi kesalahan saat memperbarui profil",
       );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -250,10 +259,11 @@ export default function EditProfileMentorModal({
               Batalkan Perubahan
             </Button>
             <Button
-              className="flex-1 max-w-[200px] bg-emerald-500 hover:bg-emerald-600 text-white"
+              disabled={loading}
+              className="flex-1 max-w-[200px] bg-emerald-500 hover:bg-emerald-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handleSave}
             >
-              Simpan Perubahan
+              {loading ? "Menyimpan..." : "Simpan Perubahan"}
             </Button>
           </div>
         </DialogContent>
