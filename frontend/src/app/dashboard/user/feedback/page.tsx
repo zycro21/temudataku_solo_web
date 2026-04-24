@@ -150,36 +150,40 @@ export default function FeedbackDashboardUserPage() {
   }, [filteredFeedbacks]);
 
   return (
-    <div className="flex mb-8">
+    <div className="flex">
       <Sidebar />
-      <div className="flex-1 flex flex-col ml-72">
+
+      {/* Konten kanan */}
+      <div className="flex-1 flex flex-col ml-64 min-w-0">
         <DashboardHeader />
-        <main className="flex-1 p-6 pl-7 bg-gray-50 overflow-x-hidden">
-          <h1 className="text-3xl font-semibold text-gray-800 mb-6">
-            Feedback
-          </h1>
 
-          <FeedbackFilters
-            programFilter={programFilter}
-            searchQuery={searchQuery}
-            onProgramChange={setProgramFilter}
-            onSearchChange={setSearchQuery}
-          />
+        <main className="flex-1 px-5 py-4 bg-gray-50 overflow-x-hidden">
+          <h1 className="text-3xl font-semibold text-gray-800 mb-4">Feedback</h1>
 
-          {Object.keys(groupedFeedbacks).length === 0 ? (
-            <p className="text-gray-500">
-              Tidak ada feedback dalam kategori {programFilter}.
-            </p>
-          ) : (
-            Object.entries(groupedFeedbacks).map(([category, feedbacks]) => (
-              <FeedbackSection
-                key={category}
-                title={category}
-                feedbacks={feedbacks}
-                onFeedbackSubmitted={fetchFeedbacks}
-              />
-            ))
-          )}
+          <div className="space-y-4 min-w-0">
+            <FeedbackFilters
+              programFilter={programFilter}
+              searchQuery={searchQuery}
+              onProgramChange={setProgramFilter}
+              onSearchChange={setSearchQuery}
+            />
+
+            {Object.keys(groupedFeedbacks).length === 0 ? (
+              <p className="text-sm text-gray-500">
+                Tidak ada feedback dalam kategori {programFilter}.
+              </p>
+            ) : (
+              Object.entries(groupedFeedbacks).map(([category, feedbacks]) => (
+                <div key={category} className="min-w-0">
+                  <FeedbackSection
+                    title={category}
+                    feedbacks={feedbacks}
+                    onFeedbackSubmitted={fetchFeedbacks}
+                  />
+                </div>
+              ))
+            )}
+          </div>
         </main>
       </div>
     </div>

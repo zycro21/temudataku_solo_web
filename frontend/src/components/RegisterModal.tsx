@@ -102,37 +102,37 @@ export default function RegisterModal({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent
-        className="sm:min-w-[400px] md:min-w-[600px] lg:min-w-5xl w-full p-0 overflow-hidden"
+        className="sm:min-w-[360px] md:min-w-[520px] lg:min-w-4xl w-full p-0 overflow-hidden"
         onInteractOutside={(e) => e.preventDefault()}
       >
-        <div className="grid md:grid-cols-2 min-h-[500px]">
+        <div className="grid md:grid-cols-2 min-h-[440px]">
           {/* Left side - Illustration */}
-          <div className="hidden md:flex items-center justify-center bg-white pl-8 pr-0">
+          <div className="hidden md:flex items-center justify-center bg-white pl-5 pr-0">
             <Image
               src="/assets/auth/ilustration.svg"
               alt="3D Robot Illustration"
-              width={400}
-              height={400}
-              className="w-full h-full object-contain"
+              width={320}
+              height={320}
+              className="w-[85%] h-[85%] object-contain"
             />
           </div>
 
           {/* Right side - Form */}
-          <div className="p-8 relative bg-white flex flex-col justify-center">
+          <div className="p-5 relative bg-white flex flex-col justify-center">
             <DialogHeader>
               <DialogTitle>
-                <p className="text-3xl font-bold text-gray-900 mb-2 text-center">
+               <p className="text-xl font-bold text-gray-900 mb-1.5 text-center">
                   Buat Akun
                 </p>
-                <p className="text-sm text-gray-500 mb-6 text-center">
+                <p className="text-xs text-gray-500 mb-4 text-center">
                   Daftarkan diri Anda untuk mulai belajar
                 </p>
               </DialogTitle>
             </DialogHeader>
 
-            <form className="space-y-4" onSubmit={handleRegister}>
+            <form className="space-y-3" onSubmit={handleRegister}>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">
+                <label className="block text-[11px] font-medium text-gray-700 mb-1">
                   Nama Lengkap
                 </label>
                 <Input
@@ -141,11 +141,12 @@ export default function RegisterModal({
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   required
+                  className="h-8 text-xs px-2.5 placeholder:text-gray-400 placeholder:text-xs"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">
+                <label className="block text-[11px] font-medium text-gray-700 mb-1">
                   Email
                 </label>
                 <Input
@@ -154,11 +155,12 @@ export default function RegisterModal({
                   value={registerEmail}
                   onChange={(e) => setRegisterEmail(e.target.value)}
                   required
+                  className="h-8 text-xs px-2.5 placeholder:text-gray-400 placeholder:text-xs"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">
+                <label className="block text-[11px] font-medium text-gray-700 mb-1">
                   Kata Sandi
                 </label>
                 <div className="relative">
@@ -168,6 +170,7 @@ export default function RegisterModal({
                     value={registerPassword}
                     onChange={(e) => setRegisterPassword(e.target.value)}
                     required
+                    className="h-8 text-xs px-2.5 placeholder:text-gray-400 placeholder:text-xs"
                   />
                   <button
                     type="button"
@@ -177,16 +180,16 @@ export default function RegisterModal({
                     className="absolute right-3 top-1/2 -translate-y-1/2"
                   >
                     {showRegisterPassword ? (
-                      <EyeOff className="w-4 h-4" />
+                      <EyeOff className="w-3 h-3" />
                     ) : (
-                      <Eye className="w-4 h-4" />
+                      <Eye className="w-3 h-3" />
                     )}
                   </button>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">
+                <label className="block text-[11px] font-medium text-gray-700 mb-1">
                   Konfirmasi Kata Sandi
                 </label>
                 <div className="relative">
@@ -196,6 +199,7 @@ export default function RegisterModal({
                     value={registerConfirmPassword}
                     onChange={(e) => setRegisterConfirmPassword(e.target.value)}
                     required
+                    className="h-8 text-xs px-2.5 placeholder:text-gray-400 placeholder:text-xs"
                   />
                   <button
                     type="button"
@@ -203,9 +207,9 @@ export default function RegisterModal({
                     className="absolute right-3 top-1/2 -translate-y-1/2"
                   >
                     {showConfirmPassword ? (
-                      <EyeOff className="w-4 h-4" />
+                      <EyeOff className="w-3 h-3" />
                     ) : (
-                      <Eye className="w-4 h-4" />
+                      <Eye className="w-3 h-3" />
                     )}
                   </button>
                 </div>
@@ -214,12 +218,12 @@ export default function RegisterModal({
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#0CA678] hover:bg-[#08916C] text-white py-3"
+                className="w-full bg-[#0CA678] hover:bg-[#08916C] text-white py-1.5 text-xs"
               >
                 {loading ? "Mendaftar..." : "Daftar"}
               </Button>
 
-              <div className="text-center text-gray-500">atau</div>
+             <div className="text-center text-gray-500 text-xs">atau</div>
 
               {/* <Button
                 type="button"
@@ -238,56 +242,56 @@ export default function RegisterModal({
               </Button> */}
 
               <div className="flex justify-center">
-                <div className="w-full max-w-md">
-                <GoogleLogin
-                  onSuccess={async (credentialResponse) => {
-                    try {
-                      await axios.post(
-                        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/google`,
-                        {
-                          token: credentialResponse.credential,
-                        },
-                        { withCredentials: true },
-                      );
+                <div className="w-full max-w-sm">
+                  <GoogleLogin
+                    onSuccess={async (credentialResponse) => {
+                      try {
+                        await axios.post(
+                          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/google`,
+                          {
+                            token: credentialResponse.credential,
+                          },
+                          { withCredentials: true },
+                        );
 
-                      // ambil user
-                      const me = await axios.get(
-                        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/me`,
-                        { withCredentials: true },
-                      );
+                        // ambil user
+                        const me = await axios.get(
+                          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/me`,
+                          { withCredentials: true },
+                        );
 
-                      const user = me.data?.data;
+                        const user = me.data?.data;
 
-                      if (!user) throw new Error("Gagal mengambil user");
+                        if (!user) throw new Error("Gagal mengambil user");
 
-                      setCurrentUser(user);
+                        setCurrentUser(user);
 
-                      const roles: string[] = (user?.userRoles || []).map(
-                        (r: any) => r?.role?.roleName?.toLowerCase(),
-                      );
+                        const roles: string[] = (user?.userRoles || []).map(
+                          (r: any) => r?.role?.roleName?.toLowerCase(),
+                        );
 
-                      const adminRoles = ["admin", "curdev", "cm"];
+                        const adminRoles = ["admin", "curdev", "cm"];
 
-                      setIsOpen(false);
-                      toast.success("Login Google berhasil");
+                        setIsOpen(false);
+                        toast.success("Login Google berhasil");
 
-                      if (roles.some((r) => adminRoles.includes(r))) {
-                        router.push("/admin");
-                      } else if (roles.includes("mentor")) {
-                        router.push("/dashboard/mentor");
-                      } else {
-                        router.push("/");
+                        if (roles.some((r) => adminRoles.includes(r))) {
+                          router.push("/admin");
+                        } else if (roles.includes("mentor")) {
+                          router.push("/dashboard/mentor");
+                        } else {
+                          router.push("/");
+                        }
+                      } catch (err) {
+                        console.error(err);
+                        toast.error("Login Google gagal");
                       }
-                    } catch (err) {
-                      console.error(err);
-                      toast.error("Login Google gagal");
-                    }
-                  }}
-                />
+                    }}
+                  />
                 </div>
               </div>
 
-              <p className="text-sm text-gray-500 text-center mt-0">
+              <p className="text-xs text-gray-500 text-center mt-1">
                 Sudah punya akun?{" "}
                 <button
                   onClick={() => {

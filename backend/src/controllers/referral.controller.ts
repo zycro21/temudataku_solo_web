@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { AuthenticatedRequestReferralCode } from "../middlewares/authenticate.js";
 import { format } from "date-fns";
-import { HttpError } from "../utils/httpError";
+// import { HttpError } from "../utils/httpError";
 import * as ReferralService from "../services/referral.service.js";
 import { PrismaClient, Prisma } from "@prisma/client";
 import path from "path";
@@ -351,6 +351,44 @@ export const applyReferralToELearningController = async (
     next(err);
   }
 };
+
+export const applyReferralToAyclBookingController = async (
+  req: AuthenticatedRequestReferralCode,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    if (!req.user?.userId) {
+      throw { status: 401, message: "Unauthorized" };
+    }
+
+    const bookingId = req.validatedParams?.id;
+    const body = req.validatedBody as { code: string };
+
+    if (!bookingId) {
+      throw { status: 400, message: "Booking ID tidak valid." };
+    }
+
+    if (!body?.code) {
+      throw { status: 400, message: "Kode referral wajib diisi." };
+    }
+
+    const result =
+      await ReferralService.applyReferralToAyclBookingService({
+        userId: req.user.userId,
+        bookingId,
+        code: body.code,
+      });
+
+    res.status(200).json({
+      success: true,
+      message: "Referral berhasil diterapkan ke AYCL booking.",
+      data: result,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
 
 export const getReferralCommissionsController = async (
   req: AuthenticatedRequestReferralCode,

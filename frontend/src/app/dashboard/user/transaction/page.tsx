@@ -6,14 +6,14 @@ import TransactionSection from "@/components/dashboard/user/transaction/transact
 
 export default function TransactionDashboardUserPage() {
   return (
-    <div className="flex mb-8">
+    <div className="flex">
       <Sidebar />
       {/* Konten sebelah kanan */}
-      <div className="flex-1 flex flex-col ml-72">
+      <div className="flex-1 flex flex-col ml-64 min-w-0">
         <DashboardHeader />
         {/* Main content */}
-        <main className="flex-1 p-6 pl-7 bg-gray-50 overflow-x-hidden">
-          <h1 className="text-3xl font-semibold text-gray-800 mb-6">
+        <main className="flex-1 px-5 py-4 bg-gray-50 overflow-x-hidden min-w-0">
+          <h1 className="text-xl font-semibold text-gray-800 mb-4">
             Histori Transaksi
           </h1>
           <TransactionSection />

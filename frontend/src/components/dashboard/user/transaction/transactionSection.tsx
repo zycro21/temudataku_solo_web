@@ -24,7 +24,7 @@ import { ArrowUpDown, ArrowDown, ArrowUp } from "lucide-react";
 interface ApiPayment {
   id: string;
   merchantOrderId?: string;
-  type: "booking" | "practice";
+  type: "booking" | "aycl" | "elearning"; // ✅ hapus practice
   title: string;
   amount: number;
   status: string;
@@ -49,7 +49,6 @@ export default function TransactionSection() {
   const statusOptions = ["all", "confirmed", "pending", "failed"];
   const statusFilter = statusOptions[statusIndex];
 
-  // Fetch data transaksi user
   useEffect(() => {
     const fetchPayments = async () => {
       try {
@@ -57,7 +56,7 @@ export default function TransactionSection() {
         const res = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/payment/my/payments`,
           {
-            withCredentials: true, // 🔹 penting untuk cookie-based auth
+            withCredentials: true,
             params: { page: 1, limit: 100 },
           },
         );
@@ -65,12 +64,10 @@ export default function TransactionSection() {
         const data: ApiPayment[] = res.data.data.map((p: any) => {
           let title = p.title || "-";
 
-          // hapus "- angka" untuk group / one-on-one
           if (title) {
             title = title.replace(/\s-\s\d+$/, "");
           }
 
-          // status pending lebih dari 2 hari
           let status = p.status || "-";
           if (status === "pending") {
             const created = new Date(p.createdAt);
@@ -91,13 +88,10 @@ export default function TransactionSection() {
             amount: Number(p.amount),
             status,
             paymentMethod: p.paymentMethod || "-",
-
             paymentDate: p.paymentDate
               ? new Date(p.paymentDate).toLocaleDateString("id-ID")
               : new Date(p.createdAt).toLocaleDateString("id-ID"),
-
             transactionId: p.merchantOrderId || "Tidak Ada No Transaksi",
-
             createdAt: p.createdAt
               ? new Date(p.createdAt).toLocaleDateString("id-ID")
               : "-",
@@ -115,16 +109,14 @@ export default function TransactionSection() {
     fetchPayments();
   }, []);
 
-  // 🔹 Sorting
+  // SORT
   const sortedData = [...transactions].sort((a, b) => {
     if (!sortConfig || sortConfig.direction === "default") return 0;
     const { key, direction } = sortConfig;
 
     const getValue = (item: ApiPayment): string | number => {
       if (key === "price") return item.amount;
-
-      const value = item[key];
-      return value ?? "";
+      return item[key] ?? "";
     };
 
     if (getValue(a) < getValue(b)) return direction === "asc" ? -1 : 1;
@@ -132,7 +124,7 @@ export default function TransactionSection() {
     return 0;
   });
 
-  // 🔹 Filtering
+  // FILTER
   const filteredData = sortedData.filter(
     (t) =>
       (t.id.toLowerCase().includes(search.toLowerCase()) ||
@@ -141,14 +133,12 @@ export default function TransactionSection() {
       (statusFilter === "all" ? true : t.status === statusFilter),
   );
 
-  // 🔹 Pagination
   const totalPages = Math.ceil(filteredData.length / rowsPerPage);
   const paginatedData = filteredData.slice(
     (currentPage - 1) * rowsPerPage,
     currentPage * rowsPerPage,
   );
 
-  // 🔹 Sort toggle
   const toggleSort = (key: keyof ApiPayment | "price") => {
     setSortConfig((prev) => {
       if (!prev || prev.key !== key) return { key, direction: "asc" };
@@ -171,7 +161,8 @@ export default function TransactionSection() {
   };
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 min-w-0 mb-4">
+      {/* Search */}
       <div className="mb-4 flex gap-4">
         <Input
           placeholder="Cari berdasarkan ID, program dan status"
@@ -189,65 +180,44 @@ export default function TransactionSection() {
         </p>
       ) : (
         <>
-          {/* Table */}
-          <div className="overflow-x-auto rounded-lg border border-gray-300">
-            <Table>
+          {/* TABLE */}
+          <div className="overflow-x-auto rounded-lg border border-gray-300 min-w-0">
+            <Table className="table-fixed w-full">
               <TableHeader>
                 <TableRow>
                   <TableHead
                     onClick={() => toggleSort("id")}
-                    className={`cursor-pointer font-semibold py-4 px-3 ${
-                      sortConfig?.key === "id"
-                        ? "text-green-600"
-                        : "text-gray-500"
-                    }`}
+                    className="cursor-pointer font-semibold py-3 px-3"
                   >
                     No Transaksi {getSortIcon("id")}
                   </TableHead>
 
                   <TableHead
                     onClick={() => toggleSort("createdAt")}
-                    className={`cursor-pointer font-semibold py-4 ${
-                      sortConfig?.key === "createdAt"
-                        ? "text-green-600"
-                        : "text-gray-500"
-                    }`}
+                    className="cursor-pointer font-semibold py-3"
                   >
                     Tanggal Daftar {getSortIcon("createdAt")}
                   </TableHead>
 
                   <TableHead
                     onClick={() => toggleSort("title")}
-                    className={`cursor-pointer font-semibold py-4 ${
-                      sortConfig?.key === "title"
-                        ? "text-green-600"
-                        : "text-gray-500"
-                    }`}
+                    className="cursor-pointer font-semibold py-3"
                   >
                     Program {getSortIcon("title")}
                   </TableHead>
 
                   <TableHead
                     onClick={() => toggleSort("price")}
-                    className={`cursor-pointer font-semibold py-4 ${
-                      sortConfig?.key === "price"
-                        ? "text-green-600"
-                        : "text-gray-500"
-                    }`}
+                    className="cursor-pointer font-semibold py-3"
                   >
                     Harga {getSortIcon("price")}
                   </TableHead>
 
                   <TableHead
                     onClick={toggleStatusFilter}
-                    className="cursor-pointer text-gray-500 font-semibold py-4"
+                    className="cursor-pointer text-gray-500 font-semibold py-3"
                   >
                     Status Pembayaran
-                    {statusFilter !== "all" && (
-                      <span className="ml-2 text-xs text-green-600 font-semibold">
-                        - {statusFilter}
-                      </span>
-                    )}
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -255,17 +225,29 @@ export default function TransactionSection() {
               <TableBody>
                 {paginatedData.map((t, idx) => (
                   <TableRow key={idx} className="border-b border-gray-200">
-                    <TableCell className="py-3 px-3">
-                      {t.transactionId || "Tidak Ada No Transaksi"}
+                    {/* PERBAIKAN: 
+          - Menambahkan break-all agar ID panjang terpotong ke bawah 
+          - Mengatur min-width agar kolom tidak terlalu sempit
+      */}
+                    <TableCell className="py-3 px-3 break-all whitespace-normal w-[25%]">
+                      {t.transactionId}
                     </TableCell>
-                    <TableCell className="py-3">{t.paymentDate}</TableCell>
-                    <TableCell className="py-3">{t.title}</TableCell>
-                    <TableCell className="py-3">
+
+                    <TableCell className="py-3 whitespace-nowrap w-[15%]">
+                      {t.paymentDate}
+                    </TableCell>
+
+                    <TableCell className="py-3 break-all whitespace-normal w-[30%]">
+                      {t.title}
+                    </TableCell>
+
+                    <TableCell className="py-3 whitespace-nowrap w-[15%]">
                       Rp {t.amount.toLocaleString("id-ID")}
                     </TableCell>
-                    <TableCell className="py-3">
+
+                    <TableCell className="py-3 w-[15%]">
                       <span
-                        className={`px-2 py-1 rounded-md text-sm font-medium ${
+                        className={`px-2 py-1 rounded-md text-sm font-medium inline-block ${
                           t.status === "confirmed"
                             ? "bg-green-100 text-green-600"
                             : t.status === "pending"
@@ -273,7 +255,7 @@ export default function TransactionSection() {
                               : "bg-red-100 text-red-600"
                         }`}
                       >
-                        {t.status || "-"}
+                        {t.status}
                       </span>
                     </TableCell>
                   </TableRow>
@@ -282,7 +264,7 @@ export default function TransactionSection() {
             </Table>
           </div>
 
-          {/* Pagination */}
+          {/* PAGINATION */}
           <div className="flex items-center justify-between mt-4 text-sm text-gray-600">
             <p>
               Menampilkan {(currentPage - 1) * rowsPerPage + 1}–
@@ -322,7 +304,7 @@ export default function TransactionSection() {
                 }}
               >
                 <SelectTrigger className="w-[80px]">
-                  <SelectValue placeholder="10" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="5">5</SelectItem>

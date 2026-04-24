@@ -23,9 +23,9 @@ export default function DayEventsSection() {
   const dayEvents = events[formattedDate] || [];
 
   return (
-    <div className="flex flex-col pt-14 pl-0 pr-6 pb-6 h-full">
+    <div className="flex flex-col pt-10 pr-4 pb-4 h-full min-w-0">
       {/* Header section */}
-      <h2 className="text-lg font-semibold text-gray-800 mb-4">
+      <h2 className="text-base font-semibold text-gray-800 mb-3">
         {isToday
           ? "Hari Ini"
           : selectedDate.toLocaleDateString("id-ID", {
@@ -43,25 +43,25 @@ export default function DayEventsSection() {
             : "Tidak ada jadwal pada tanggal ini"}
         </div>
       ) : (
-        <div className="space-y-4 overflow-y-auto max-h-[500px] pr-1 scroll-thin">
+        <div className="space-y-3 overflow-y-auto max-h-[500px] pr-1 min-w-0 scroll-thin">
           {dayEvents.map((event, i) => (
             <div
               key={i}
-              className="grid grid-cols-2 gap-4 border border-gray-200 rounded-xl p-4 shadow-sm bg-white items-center"
+              className="grid grid-cols-1 sm:grid-cols-2 gap-3 border border-gray-200 rounded-lg p-3 shadow-sm bg-white items-center min-w-0"
             >
               {/* Kolom kiri: info event */}
               <div>
-                <p className="text-sm text-gray-400 mb-1">
+                <p className="text-xs text-gray-400 mb-1">
                   {isToday ? "Hari ini" : "Jadwal"}
                 </p>
-                <h3 className="text-base font-semibold text-gray-800 mb-3">
+                <h3 className="text-sm font-semibold text-gray-800 mb-2 break-words">
                   {event.title}
                 </h3>
 
                 {/* Detail Tanggal & Waktu */}
                 <div className="space-y-2">
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Calendar className="w-4 h-4 mr-2 text-gray-500" />
+                  <div className="flex items-center text-xs text-gray-600">
+                    <Calendar className="w-3.5 h-3.5 mr-1.5 text-gray-500 shrink-0" />
                     {selectedDate.toLocaleDateString("id-ID", {
                       weekday: "long",
                       day: "numeric",
@@ -70,15 +70,15 @@ export default function DayEventsSection() {
                     })}
                   </div>
                   {event.time && (
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Clock className="w-4 h-4 mr-2 text-gray-500" />
+                    <div className="flex items-center text-xs text-gray-600">
+                      <Clock className="w-3.5 h-3.5 mr-1.5 text-gray-500 shrink-0" />
                       {event.time}
                     </div>
                   )}
                 </div>
               </div>
 
-              <div className="flex flex-col space-y-2">
+              <div className="flex flex-col space-y-1.5">
                 <button
                   onClick={() => {
                     if (event.meetingLink) {
@@ -98,18 +98,18 @@ export default function DayEventsSection() {
                       window.open(link, "_blank", "noopener,noreferrer");
                     } else {
                       toast.warning(
-                        "Link meeting belum tersedia, Silahkan Hubungi Admin"
+                        "Link meeting belum tersedia, Silahkan Hubungi Admin",
                       );
                     }
                   }}
-                  className="bg-emerald-500 text-white py-1.5 rounded-md text-sm font-medium hover:bg-emerald-600 transition"
+                  className="bg-emerald-500 text-white py-1 px-2 rounded-md text-xs font-medium hover:bg-emerald-600 transition"
                 >
                   Join
                 </button>
 
                 <EventDetailDialog
                   trigger={
-                    <button className="border border-emerald-500 text-emerald-500 py-1.5 rounded-md text-sm font-medium hover:bg-emerald-50 transition">
+                    <button className="border border-emerald-500 text-emerald-500 py-1 px-2 rounded-md text-xs font-medium hover:bg-emerald-50 transition">
                       Lihat Detail
                     </button>
                   }

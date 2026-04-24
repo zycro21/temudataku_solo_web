@@ -22,6 +22,138 @@ model AdminActivityLog {
   @@map("activity_logs")
 }
 
+model AYCLBatch {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+
+  // HERO
+  headline    String   // "All You Can Learn • Data Analyst Program"
+  subHeadline String?  // "Upgrade skill Data Analyst..."
+  
+  description String?  // short intro
+
+  whatsappGroupLink String?
+
+  price       Decimal  @db.Decimal
+  startDate   DateTime?
+  endDate     DateTime?
+  isActive    Boolean  @default(true)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime? @updatedAt
+
+  schedules   AYCLSchedule[]
+  bookings    AYCLBooking[]
+  sections    AYCLSection[]
+  materials   AYCLMaterial[]
+
+  @@map("aycl_batches")
+}
+
+enum AYCLSectionType {
+  PROGRAM_INFO      // "Ini Program Apa?"
+  CHALLENGE         // "Biasanya Tantangannya..."
+  TARGET            // "Cocok untuk Siapa?"
+  DIFFERENTIATOR    // "Kenapa AYCL .... berbeda?"
+  BENEFIT           // "Apa yang kamu dapatkan?"
+  CLOSING           // penutup
+}
+
+model AYCLSection {
+  id        String   @id @default(cuid())
+  batchId   String
+  type      AYCLSectionType
+  title     String
+
+  /// JSON structure:
+  /// PROGRAM_INFO      => { text: string }
+  /// CHALLENGE         => { items: string[] }
+  /// TARGET            => { items: string[] }
+  /// DIFFERENTIATOR    => { items: { title: string, desc: string }[] }
+  /// BENEFIT           => { items: string[] }
+  /// CLOSING           => { text: string }
+  content   Json
+
+  order     Int
+
+  batch     AYCLBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@map("aycl_sections")
+  @@index([batchId, order])
+}
+
+model AYCLMaterial {
+  id        String @id @default(cuid())
+  batchId   String
+  title     String
+  description String?
+
+  batch     AYCLBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@map("aycl_materials")
+}
+
+model AYCLSchedule {
+  id          String   @id @default(cuid())
+  batchId     String
+  title       String
+  date        DateTime
+
+  startTime   DateTime
+  endTime     DateTime
+
+  googleMeetLink String?
+
+  quota       Int?
+  createdAt   DateTime @default(now())
+
+  batch       AYCLBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  participants AYCLParticipant[]
+
+  @@index([batchId])
+  @@map("aycl_schedules")
+}
+
+model AYCLBooking {
+  id              String   @id @default(cuid())
+  userId          String
+  batchId         String
+  referralUsageId String?  @unique
+  status          String   // pending, confirmed, completed, cancelled
+  createdAt       DateTime @default(now())
+
+  currentStatus   String?
+  institution     String?
+  studyProgram    String?
+  semester        String?
+  age             Int?
+  reason          String?  @db.Text
+  familiarity     String?
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  batch       AYCLBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  payment     Payment?
+  referralUsage ReferralUsage? @relation("ReferralUsageAYCL", fields: [referralUsageId], references: [id])
+
+  participants AYCLParticipant[]
+
+  @@map("aycl_bookings")
+}
+
+model AYCLParticipant {
+  id          String   @id @default(cuid())
+  bookingId   String
+  scheduleId  String
+  createdAt   DateTime @default(now())
+
+  booking     AYCLBooking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  schedule    AYCLSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@unique([bookingId, scheduleId])
+  @@map("aycl_participants")
+}
+
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model Booking {
   id                  String              @id @default(cuid())
@@ -124,6 +256,8 @@ model ELearningCourse {
   benefits          String?
   toolsUsed         String?
   isActive          Boolean?            @default(true) @map("is_active")
+  slug              String?              @unique
+  status            CourseStatus?        @default(DRAFT)
   createdAt         DateTime?           @default(now()) @db.Timestamp(6) @map("created_at")
   updatedAt         DateTime?           @db.Timestamp(6) @map("updated_at")
 
@@ -137,21 +271,37 @@ model ELearningCourse {
   @@map("e_learning_courses")
 }
 
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
 model ELearningSubChapter {
   id              String            @id @default(cuid())
   courseId        String            @map("course_id")
   title           String            @db.VarChar
+  coverImage      String?
   description     String?
   orderNumber     Int               @map("order_number")
   estimatedTime   String?           @db.VarChar
+  taskType        TaskType?         @map("task_type")
+  status          CourseStatus      @default(DRAFT)
   createdAt       DateTime?         @default(now()) @db.Timestamp(6) @map("created_at")
   updatedAt       DateTime?         @db.Timestamp(6) @map("updated_at")
 
   // Relations
   course          ELearningCourse   @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   subBabs         ELearningSubBab[]
+  progresses      ELearningSubChapterProgress[]
 
   @@map("e_learning_sub_chapters")
+}
+
+enum TaskType {
+  QUIZ
+  PROJECT
+  QUIZ_AND_PROJECT
 }
 
 model ELearningSubBab {
@@ -160,13 +310,13 @@ model ELearningSubBab {
   title           String            @db.VarChar
   orderNumber     Int?
   estimatedTime   String?           @db.VarChar
+  status          CourseStatus @default(DRAFT)
   createdAt       DateTime?         @default(now()) @db.Timestamp(6) @map("created_at")
   updatedAt       DateTime?         @db.Timestamp(6) @map("updated_at")
 
   // Relations
   subChapter      ELearningSubChapter @relation(fields: [subChapterId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  videos          ELearningVideo[]
-  texts           ELearningText[]      // deskripsi/penjelasan materi
+  texts           ELearningText[]      
   quiz            ELearningQuiz?
   assignment      ELearningAssignment?
   progresses      ELearningProgress[]
@@ -177,86 +327,249 @@ model ELearningSubBab {
 
 // Tabel baru untuk menyimpan teks/penjelasan materi per SubBab
 model ELearningText {
-  id           String          @id @default(cuid())
-  subBabId     String          @map("sub_bab_id")
-  title        String?         @db.VarChar
-
+  id           String @id @default(cuid())
+  subBabId     String @map("sub_bab_id")
+  title        String? @db.VarChar
   orderNumber  Int?
-  createdAt    DateTime?       @default(now())
-  updatedAt    DateTime?       @default(now()) @db.Timestamp(6)
+  status       CourseStatus @default(DRAFT)
 
-  subBab       ELearningSubBab @relation(fields: [subBabId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  createdAt    DateTime? @default(now())
+  updatedAt    DateTime? @default(now())
+
+  subBab       ELearningSubBab @relation(fields: [subBabId], references: [id], onDelete: Cascade)
   blocks       ELearningTextBlock[]
-  interactives ELearningTextInteractive[]
-  executableCodes ELearningExecutableCode[]
+  progresses   ELearningTextProgress[] 
 
+  @@index([subBabId])
   @@map("e_learning_texts")
 }
 
 model ELearningTextBlock {
   id        String   @id @default(cuid())
   textId    String   @map("text_id")
-  content   String   @db.Text
-  order     Int
-
+  orderNumber Int?
   createdAt DateTime? @default(now())
 
   text      ELearningText @relation(fields: [textId], references: [id], onDelete: Cascade)
-  anchors   ELearningTextContentAnchor[]
 
-  @@unique([textId, order])
+  contentBlocks     ELearningContentBlock[]
+  additionalContents ELearningAdditionalContent[]
+  progresses ELearningBlockProgress[]
+
+  @@unique([textId, orderNumber])
   @@map("e_learning_text_blocks")
 }
 
-model ELearningTextInteractive {
+model ELearningContentBlock {
   id          String   @id @default(cuid())
-  textId      String   @map("text_id")
+  blockId     String   @map("block_id")
 
-  type        ELearningInteractiveType
+  type        ContentBlockType
+  orderNumber Int?
 
   createdAt   DateTime? @default(now())
-  updatedAt   DateTime? @default(now())
 
-  text        ELearningText @relation(fields: [textId], references: [id], onDelete: Cascade)
+  block       ELearningTextBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
 
-  matching        ELearningMatchingQuestion?
+  headingContent     ELearningHeadingContent?
+  paragraphContent   ELearningParagraphContent?
+  accordionContent   ELearningAccordionContent?
+  carouselContent    ELearningCarouselContent?
+  contentCardContent ELearningContentCardContent?
+  tabContent         ELearningTabNavigationContent?
+  highlightContent   ELearningHighlightContent?
+  summaryContent     ELearningSummaryContent?
+
+  @@map("e_learning_content_blocks")
+}
+
+enum ContentBlockType {
+  HEADING
+  PARAGRAPH
+  ACCORDION
+  CAROUSEL
+  CONTENT_CARD
+  TAB_NAVIGATION
+  HIGHLIGHT
+  SUMMARY
+}
+
+model ELearningHeadingContent {
+  id          String @id @default(cuid())
+  contentId   String @unique
+
+  level       Int
+  text        String @db.Text
+
+  content     ELearningContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+}
+
+model ELearningParagraphContent {
+  id        String @id @default(cuid())
+  contentId String @unique
+
+  text      String @db.Text
+
+  content   ELearningContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+}
+
+model ELearningHighlightContent {
+  id        String @id @default(cuid())
+  contentId String @unique
+
+  text      String @db.VarChar(120)
+
+  content   ELearningContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+}
+
+// Accordion Content
+model ELearningAccordionContent {
+  id        String @id @default(cuid())
+  contentId String @unique
+
+  title       String
+  description String?
+
+  items ELearningAccordionItem[]
+
+  content ELearningContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+}
+
+model ELearningAccordionItem {
+  id          String @id @default(cuid())
+  accordionId String
+
+  title       String
+  content     String
+  orderNumber Int
+
+  accordion ELearningAccordionContent @relation(fields: [accordionId], references: [id], onDelete: Cascade)
+}
+
+// Carousel Content
+model ELearningCarouselContent {
+  id String @id @default(cuid())
+  contentId String @unique
+
+  title String
+  description String?
+  cardsPerSlide Int?
+
+  items ELearningCarouselItem[]
+
+  content ELearningContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+}
+
+model ELearningCarouselItem {
+  id String @id @default(cuid())
+  carouselId String
+
+  title String
+  image String?
+  content String?
+  orderNumber Int
+
+  carousel ELearningCarouselContent @relation(fields: [carouselId], references: [id], onDelete: Cascade)
+}
+
+// Content Card
+model ELearningContentCardContent {
+  id        String @id @default(cuid())
+  contentId String @unique
+
+  title       String
+  description String?
+
+  disableExpandableContent Boolean
+
+  items ELearningContentCardItem[]
+
+  content ELearningContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+}
+
+model ELearningContentCardItem {
+  id           String @id @default(cuid())
+  cardId       String
+
+  title        String
+  content      String
+  expandableContent String?
+
+  orderNumber  Int
+
+  card ELearningContentCardContent @relation(fields: [cardId], references: [id], onDelete: Cascade)
+}
+
+// Tab Navigation
+model ELearningTabNavigationContent {
+  id        String @id @default(cuid())
+  contentId String @unique
+
+  title       String
+  description String?
+
+  tabs ELearningTabItem[]
+
+  content ELearningContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+}
+
+model ELearningTabItem {
+  id        String @id @default(cuid())
+  tabId     String
+
+  title     String
+  content   String
+  orderNumber Int
+
+  tab ELearningTabNavigationContent @relation(fields: [tabId], references: [id], onDelete: Cascade)
+}
+
+// Summary
+model ELearningSummaryContent {
+  id        String @id @default(cuid())
+  contentId String @unique
+
+  comments ELearningSummaryComment[]
+
+  content ELearningContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+}
+
+model ELearningSummaryComment {
+  id         String @id @default(cuid())
+  summaryId  String
+
+  comment    String
+  orderNumber Int
+
+  summary ELearningSummaryContent @relation(fields: [summaryId], references: [id], onDelete: Cascade)
+}
+
+// Additional Content
+model ELearningAdditionalContent {
+  id        String @id @default(cuid())
+
+  blockId   String @map("block_id")
+
+  type      AdditionalContentType
+  position  AnchorPosition
+
+  orderNumber Int?
+
+  block ELearningTextBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+
+  video           ELearningImageVideoContent?
   multipleChoice  ELearningMultipleChoiceQuestion?
-  answers         ELearningInteractiveAnswer[]
-  attempts    ELearningTextInteractiveAttempt[]
+  matching        ELearningMatchingQuestion?
+  code            ELearningExecutableCode?
 
-  @@map("e_learning_text_interactives")
+  @@map("e_learning_additional_contents")
 }
 
-enum ELearningInteractiveType {
+enum AdditionalContentType {
+  IMAGE_VIDEO
+  MULTIPLE_CHOICE
   MATCHING
-  DRAG_DROP
-  TRUE_FALSE
-  FILL_BLANK
-  MULTIPLE_CHOICE // checkbox & radio
-}
-
-model ELearningTextContentAnchor {
-  id            String @id @default(cuid())
-  blockId       String @map("block_id")
-
-  contentType   ELearningAnchoredContentType
-  contentId     String @map("content_id")
-
-  orderNumber   Int?
-  position      AnchorPosition
-
-  createdAt     DateTime? @default(now())
-
-  block         ELearningTextBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
-
-  @@unique([blockId, contentType, contentId])
-  @@map("e_learning_text_content_anchors")
-}
-
-enum ELearningAnchoredContentType {
-  INTERACTIVE
-  VIDEO
-  CODE
+  INTERACTIVE_CODE
 }
 
 enum AnchorPosition {
@@ -266,21 +579,23 @@ enum AnchorPosition {
 }
 
 model ELearningMatchingQuestion {
-  id             String   @id @default(cuid())
-  interactiveId  String   @unique @map("interactive_id")
+  id String @id @default(cuid())
 
-  title          String?
-  instruction    String?
-  maxScore       Float?   @default(100)
+  additionalContentId String @unique @map("additional_content_id")
 
-  createdAt      DateTime? @default(now())
+  title String?
+  instruction String?
+  maxScore Float? @default(100)
+  explanation String? @db.Text
 
-  interactive    ELearningTextInteractive @relation(fields: [interactiveId], references: [id], onDelete: Cascade)
+  createdAt DateTime? @default(now())
 
-  items          ELearningMatchingItem[] // ⬅️ SATU SAJA
+  additionalContent ELearningAdditionalContent @relation(fields: [additionalContentId], references: [id], onDelete: Cascade)
+
+  items ELearningMatchingItem[]
 
   @@map("e_learning_matching_questions")
-} 
+}
 
 model ELearningMatchingItem {
   id          String   @id @default(cuid())
@@ -303,17 +618,15 @@ enum MatchingItemSide {
 }
 
 model ELearningMultipleChoiceQuestion {
-  id            String   @id @default(cuid())
-  interactiveId String   @unique
+  id String @id @default(cuid())
+  additionalContentId String @unique
+  question String @db.Text
+  description String?
+  allowMultiple Boolean @default(false)
+  explanation String?
 
-  question      String   @db.Text
-  allowMultiple Boolean  @default(false) // ⬅️ checkbox vs radio
-  maxScore      Float?   @default(100)
-
-  createdAt     DateTime @default(now())
-
-  interactive   ELearningTextInteractive @relation(fields: [interactiveId], references: [id], onDelete: Cascade)
-  options       ELearningMultipleChoiceOption[]
+  options ELearningMultipleChoiceOption[]
+  additionalContent ELearningAdditionalContent @relation(fields: [additionalContentId], references: [id], onDelete: Cascade)
 }
 
 model ELearningMultipleChoiceOption {
@@ -326,84 +639,46 @@ model ELearningMultipleChoiceOption {
   question    ELearningMultipleChoiceQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
 }
 
-model ELearningTextInteractiveAttempt {
- id            String   @id @default(cuid())
-  interactiveId String
-  userId        String
+model ELearningImageVideoContent {
+  id String @id @default(cuid())
+  additionalContentId String @unique
+  title String?
+  caption String?
+  description String?
+  mediaType MediaType
+  url String
+  thumbnailUrl String?
+  durationSeconds Int?
+  createdAt DateTime? @default(now())
 
-  attemptNumber Int   
-  totalScore    Float?
-  maxScore      Float?
-  isPassed      Boolean?
-
-  startedAt     DateTime @default(now())
-  submittedAt   DateTime?
-
-  interactive   ELearningTextInteractive @relation(fields: [interactiveId], references: [id])
-  user          User     @relation(fields: [userId], references: [id])
-
-  answers       ELearningInteractiveAnswer[]
-
-  @@unique([interactiveId, userId, attemptNumber])
-  @@map("e_learning_text_interactive_attempts")
+  additionalContent ELearningAdditionalContent @relation(fields: [additionalContentId], references: [id], onDelete: Cascade)
+  @@map("e_learning_image_video_contents")
 }
 
-model ELearningInteractiveAnswer {
-  id            String   @id @default(cuid())
-  attemptId     String   @map("attempt_id")
-  interactiveId String   @map("interactive_id")
-  userId        String   @map("user_id")
-
-  answers       Json     // { leftId: rightId } / [optionId] / text / dll
-  score         Float
-  maxScore      Float
-  isCorrect     Boolean
-
-  submittedAt   DateTime @default(now())
-
-  attempt       ELearningTextInteractiveAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  interactive   ELearningTextInteractive        @relation(fields: [interactiveId], references: [id], onDelete: Cascade)
-  user          User                            @relation(fields: [userId], references: [id])
-
-  @@index([attemptId])
-  @@index([interactiveId])
-  @@index([userId])
-  @@map("e_learning_interactive_answers")
-}
-
-model ELearningVideo {
-  id               String              @id @default(cuid())
-  subBabId         String              @map("sub_bab_id")
-  title            String              @db.VarChar
-  videoUrl         String              @db.VarChar
-  durationSeconds  Int?
-  isPreview        Boolean?            @default(false)
-  createdAt        DateTime?           @default(now()) @db.Timestamp(6) @map("created_at")
-  updatedAt        DateTime?           @db.Timestamp(6) @map("updated_at")
-
-  subBab           ELearningSubBab     @relation(fields: [subBabId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  @@map("e_learning_videos")
+enum MediaType {
+  IMAGE
+  VIDEO
 }
 
 model ELearningExecutableCode {
-  id              String   @id @default(cuid())
-  textId          String   @map("text_id")
+  id String @id @default(cuid())
 
-  title           String?  @db.VarChar
-  description     String?  @db.Text
+  additionalContentId String @unique @map("additional_content_id")
 
-  language        CodeLanguage
-  initialCode     String   @db.Text     // kode awal (template)
-  isEditable      Boolean  @default(true)
+  title String? @db.VarChar
+  description String? @db.Text
 
-  createdAt       DateTime? @default(now())
-  updatedAt       DateTime? @default(now())
+  language CodeLanguage
+  initialCode String @db.Text
+  isEditable Boolean @default(true)
+  expectedResult String? @db.Text
 
-  text            ELearningText @relation(fields: [textId], references: [id], onDelete: Cascade)
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now())
 
-  runs            ELearningCodeRun[]
+  additionalContent ELearningAdditionalContent @relation(fields: [additionalContentId], references: [id], onDelete: Cascade)
 
+  runs ELearningCodeRun[]
   @@map("e_learning_executable_codes")
 }
 
@@ -582,12 +857,77 @@ model ELearningProgress {
   isCompleted     Boolean?           @default(false)
   lastAccessed    DateTime?
   timeSpent       Int?               @default(0)
+  lastActivityAt  DateTime?
 
   user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   subBab           ELearningSubBab    @relation(fields: [subBabId], references: [id], onDelete: Cascade)
 
   @@unique([userId, subBabId])
   @@map("e_learning_progress")
+}
+
+model ELearningSubChapterProgress {
+  id              String   @id @default(cuid())
+
+  userId          String   @map("user_id")
+  subChapterId    String   @map("sub_chapter_id")
+
+  progressPercent Float    @default(0) // 0 - 100
+  lastActivityAt  DateTime? @map("last_activity_at")
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subChapter      ELearningSubChapter @relation(fields: [subChapterId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, subChapterId])
+  @@index([userId])
+  @@index([subChapterId])
+
+  @@map("e_learning_sub_chapter_progress")
+}
+
+model ELearningTextProgress {
+  id        String   @id @default(cuid())
+
+  userId    String   @map("user_id")
+  textId    String   @map("text_id")
+
+  progress  Float    @default(0) // 0 - 100
+
+  lastAccessedAt DateTime? @map("last_accessed_at")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  text      ELearningText   @relation(fields: [textId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, textId])
+  @@index([userId])
+  @@index([textId])
+
+  @@map("e_learning_text_progress")
+}
+
+model ELearningBlockProgress {
+  id String @id @default(cuid())
+  userId String
+  blockId String
+  progress Int @default(0)
+  isCompleted Boolean @default(false)
+  timeSpent       Int?               @default(0)
+  lastActivityAt DateTime? @default(now())
+
+  user User @relation(fields:[userId], references:[id], onDelete: Cascade)
+  block ELearningTextBlock @relation(fields:[blockId], references:[id], onDelete: Cascade)
+
+  @@unique([userId, blockId])
+  @@index([blockId])
+  @@map("e_learning_block_progress")
 }
 
 model ELearningReview {
@@ -840,6 +1180,7 @@ model Payment {
   bookingId             String?             @unique @map("booking_id")
   practicePurchaseId    String?             @unique @map("practice_purchase_id")
   eLearningSubscriptionId  String?          @unique @map("e_learning_subscription_id")
+  ayclBookingId         String?             @unique @map("aycl_booking_id")
   merchantOrderId       String?             @unique @map("merchant_order_id")
   amount                Decimal             @db.Decimal
   paymentDate           DateTime?           @db.Timestamp(6) @map("payment_date")
@@ -853,6 +1194,7 @@ model Payment {
   practicePurchase      PracticePurchase?    @relation("PracticePurchasePayment", fields: [practicePurchaseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   bookingParticipants   BookingParticipant[] @relation("ParticipantPayment")
   eLearningSubscription ELearningSubscription? @relation(fields: [eLearningSubscriptionId], references: [id], onDelete: Cascade)
+  ayclBooking           AYCLBooking?         @relation(fields: [ayclBookingId], references: [id])
 
   @@map("payments")
 }
@@ -1116,6 +1458,7 @@ model ReferralUsage {
   booking               Booking?           @relation("ReferralUsageBooking")
   practicePurchase      PracticePurchase?  @relation("ReferralUsagePracticePurchase")
   eLearningSubscription ELearningSubscription? @relation("ReferralUsageELearningSubscription")
+  ayclBooking           AYCLBooking?       @relation("ReferralUsageAYCL")
 
   @@unique([userId, referralCodeId])
   @@map("referral_usages")
@@ -1237,15 +1580,17 @@ model User {
   eLearningSubscriptions     ELearningSubscription[]
   eLearningReviews           ELearningReview[]
   eLearningProgress          ELearningProgress[]
+  eLearningSubChapterProgress ELearningSubChapterProgress[]
+  eLearningBlockProgress     ELearningBlockProgress[]
+  eLearningTextProgress      ELearningTextProgress[]
   quizAttempts               ELearningQuizAttempt[]
   eLearningSubmissions         ELearningSubmission[]     @relation("ELearningSubmittedBy")
   eLearningReviewedSubmissions ELearningSubmission[]     @relation("ELearningReviewedBy") // RENAMED to avoid conflict
   eLearningCertificates      ELearningCertificate[]
   eLearningDiscussions       ELearningDiscussion[]
   eLearningBookmarks         ELearningBookmark[]
-  interactiveAnswers         ELearningInteractiveAnswer[]
-  textInteractiveAttempts    ELearningTextInteractiveAttempt[]
   codeRuns                   ELearningCodeRun[] 
+  ayclBookings               AYCLBooking[]
 
   @@map("users")
 }

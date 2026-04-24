@@ -70,6 +70,9 @@ export default function ProfileModal({
     return `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${currentUser.profilePicture}`;
   })();
 
+  const isExternalImage =
+    avatarUrl.startsWith("http") || avatarUrl.startsWith("https");
+
   // safe phone display: cek string & trim sebelum split
   const phoneDisplay =
     typeof currentUser?.phoneNumber === "string" &&
@@ -81,49 +84,49 @@ export default function ProfileModal({
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
-          className="sm:max-w-2xl"
+          className="sm:max-w-xl w-full max-h-[90vh] overflow-y-auto p-4"
           onInteractOutside={(e) => e.preventDefault()}
         >
           {/* Header */}
-          <DialogHeader className="flex justify-between items-start">
+          <DialogHeader className="flex justify-between items-start mt-2">
             <DialogTitle>Detail Mentee</DialogTitle>
             <DialogClose />
           </DialogHeader>
 
-          <div className="border-b border-gray-200 my-1" />
+          <div className="border-b border-gray-200 mb-1" />
 
           {/* Foto Mentee */}
           <div>
             <p className="text-sm font-medium text-gray-600 mb-2">
               Foto Mentee
             </p>
-            <div className="w-full h-[220px] rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
+            <div className="w-full h-[160px] rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
               <Image
                 src={avatarUrl}
                 alt="Foto Mentee"
                 width={400}
                 height={250}
-                // unoptimized
+                unoptimized
                 className="object-cover w-full h-full"
               />
             </div>
           </div>
 
           {/* Detail */}
-          <div className="grid grid-cols-2 gap-6 text-sm mt-6">
+          <div className="grid grid-cols-2 gap-4 text-xs mt-4 min-w-0">
             {/* Kiri */}
             <div className="space-y-6">
               <div>
                 <p className="font-medium text-gray-600">ID Mentee</p>
-                <p className="font-semibold">{currentUser?.id || "-"}</p>
+                <p className="font-semibold break-words">{currentUser?.id || "-"}</p>
               </div>
               <div>
                 <p className="font-medium text-gray-600">No Telepon</p>
-                <p className="font-semibold">{phoneDisplay}</p>
+                <p className="font-semibold break-words">{phoneDisplay}</p>
               </div>
               <div>
                 <p className="font-medium text-gray-600">Peran</p>
-                <p className="font-semibold">
+                <p className="font-semibold break-words">
                   {currentUser?.userRoles?.[0]?.role?.roleName || "-"}
                 </p>
               </div>
@@ -133,15 +136,15 @@ export default function ProfileModal({
             <div className="space-y-6">
               <div>
                 <p className="font-medium text-gray-600">Nama Lengkap</p>
-                <p className="font-semibold">{currentUser?.fullName || "-"}</p>
+                <p className="font-semibold break-words">{currentUser?.fullName || "-"}</p>
               </div>
               <div>
                 <p className="font-medium text-gray-600">Email</p>
-                <p className="font-semibold">{currentUser?.email || "-"}</p>
+                <p className="font-semibold break-words">{currentUser?.email || "-"}</p>
               </div>
               <div>
                 <p className="font-medium text-gray-600">Status Akun</p>
-                <p className="font-semibold">
+                <p className="font-semibold break-words">
                   {currentUser?.isActive ? "Aktif" : "Tidak Aktif"}
                 </p>
               </div>
@@ -152,7 +155,7 @@ export default function ProfileModal({
           <div className="mt-6">
             <Button
               onClick={handleEditClick}
-              className="w-full bg-emerald-500 hover:bg-emerald-600 text-white"
+              className="w-full text-sm py-2 bg-emerald-500 hover:bg-emerald-600 text-white"
             >
               Edit
             </Button>

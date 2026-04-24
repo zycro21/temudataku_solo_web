@@ -10,7 +10,7 @@ export const ELearningSubChapterController = {
   async getSubChaptersByCourse(
     req: AuthenticatedRequestSubChapter,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { user, validatedParams, validatedQuery } = req;
@@ -35,7 +35,7 @@ export const ELearningSubChapterController = {
       const result = await ELearningSubChapterService.getSubChaptersByCourse(
         courseId,
         user,
-        { page, limit, search, orderNumber }
+        { page, limit, search, orderNumber },
       );
 
       res.status(200).json({ success: true, data: result });
@@ -47,7 +47,7 @@ export const ELearningSubChapterController = {
   async getSubChapterById(
     req: AuthenticatedRequestSubChapter,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { user, validatedParams } = req;
@@ -64,7 +64,7 @@ export const ELearningSubChapterController = {
 
       const subChapter = await ELearningSubChapterService.getSubChapterById(
         id,
-        user
+        user,
       );
 
       res.status(200).json({
@@ -79,17 +79,12 @@ export const ELearningSubChapterController = {
   async createSubChapter(
     req: AuthenticatedRequestSubChapter,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedBody, validatedParams, user } = req;
 
-      if (
-        !validatedBody ||
-        !validatedParams ||
-        !validatedParams.courseId ||
-        !user
-      ) {
+      if (!validatedBody || !validatedParams?.courseId || !user) {
         res.status(400).json({
           success: false,
           message: "Data request tidak valid",
@@ -97,10 +92,17 @@ export const ELearningSubChapterController = {
         return;
       }
 
+      const thumbnail = req.file
+        ? `/images/elearningThumbnail/${req.file.filename}`
+        : null;
+
       const newSubChapter = await ELearningSubChapterService.createSubChapter(
         validatedParams.courseId,
-        validatedBody,
-        user
+        {
+          ...validatedBody,
+          coverImage: thumbnail,
+        },
+        user,
       );
 
       res.status(201).json({
@@ -116,7 +118,7 @@ export const ELearningSubChapterController = {
   async updateSubChapter(
     req: AuthenticatedRequestSubChapter,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, validatedBody, user } = req;
@@ -129,11 +131,20 @@ export const ELearningSubChapterController = {
         return;
       }
 
+      const thumbnail = req.file
+        ? `/images/elearningThumbnail/${req.file.filename}`
+        : null;
+
+      const updatedData = {
+        ...validatedBody,
+        ...(thumbnail && { coverImage: thumbnail }), // ✅ hanya kalau upload baru
+      };
+
       const updatedSubChapter =
         await ELearningSubChapterService.updateSubChapter(
           validatedParams.id,
-          validatedBody,
-          user
+          updatedData,
+          user,
         );
 
       res.status(200).json({
@@ -155,7 +166,7 @@ export const ELearningSubChapterController = {
   async deleteSubChapter(
     req: AuthenticatedRequestSubChapter,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, user } = req;
@@ -170,7 +181,7 @@ export const ELearningSubChapterController = {
 
       const result = await ELearningSubChapterService.deleteSubChapter(
         validatedParams.id,
-        user
+        user,
       );
 
       res.status(200).json({
@@ -192,7 +203,7 @@ export const ELearningSubChapterController = {
   async reorderSubChapters(
     req: AuthenticatedRequestReorderSubChapter,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, validatedBody, user } = req;
@@ -208,7 +219,7 @@ export const ELearningSubChapterController = {
       const result = await ELearningSubChapterService.reorderSubChapters(
         validatedParams.courseId,
         validatedBody.newOrder,
-        user
+        user,
       );
 
       res.status(200).json({
@@ -228,14 +239,14 @@ export const ELearningSubChapterController = {
   },
 
   async duplicateSubChapter(
-    req: AuthenticatedRequestDuplicateSubChapter,
+    req: AuthenticatedRequestSubChapter,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
-      const { validatedParams, validatedBody, user } = req;
+      const { validatedParams, user } = req;
 
-      if (!validatedParams?.id || !validatedBody?.targetCourseId || !user) {
+      if (!validatedParams?.id || !user) {
         res.status(400).json({
           success: false,
           message: "Data request tidak valid",
@@ -243,16 +254,15 @@ export const ELearningSubChapterController = {
         return;
       }
 
-      const result = await ELearningSubChapterService.duplicateSubChapter(
+      const duplicated = await ELearningSubChapterService.duplicateSubChapter(
         validatedParams.id,
-        validatedBody.targetCourseId,
-        user
+        user,
       );
 
-      res.status(200).json({
+      res.status(201).json({
         success: true,
         message: "Sub-chapter berhasil diduplikasi",
-        data: result,
+        data: duplicated,
       });
     } catch (err: any) {
       if (err.message.includes("tidak ditemukan")) {
@@ -268,7 +278,7 @@ export const ELearningSubChapterController = {
   async listSubChapters(
     req: AuthenticatedRequestSubChapter,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedQuery, user } = req;
@@ -304,7 +314,7 @@ export const ELearningSubChapterController = {
   async exportSubChapters(
     req: AuthenticatedRequestSubChapter,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedQuery, user } = req;
@@ -326,13 +336,12 @@ export const ELearningSubChapterController = {
         return;
       }
 
-      const file = await ELearningSubChapterService.exportSubChaptersToFile(
-        format
-      );
+      const file =
+        await ELearningSubChapterService.exportSubChaptersToFile(format);
 
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename=${file.filename}`
+        `attachment; filename=${file.filename}`,
       );
       res.setHeader("Content-Type", file.mimetype);
 

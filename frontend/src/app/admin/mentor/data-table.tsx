@@ -101,7 +101,7 @@ export function DataTable<TData extends Mentor, TValue>({
       formData.append("email", editFormData.email);
 
       const photoInput = document.getElementById(
-        "upload-edit-photo"
+        "upload-edit-photo",
       ) as HTMLInputElement;
 
       if (photoInput?.files?.[0]) {
@@ -119,7 +119,7 @@ export function DataTable<TData extends Mentor, TValue>({
             "Content-Type": "multipart/form-data",
           },
           withCredentials: true,
-        }
+        },
       );
 
       // UPDATE PROFIL MENTOR
@@ -134,7 +134,7 @@ export function DataTable<TData extends Mentor, TValue>({
             userId: selectedMentee.id,
           },
           withCredentials: true,
-        }
+        },
       );
 
       toast.success("Perubahan mentor berhasil disimpan", {
@@ -197,22 +197,22 @@ export function DataTable<TData extends Mentor, TValue>({
 
   return (
     <div>
-      {/* Search Bar (UI seperti Mentee Table) */}
-      <div className="flex items-center pb-4">
-        <div className="relative w-full max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+      {/* Search Bar */}
+      <div className="flex items-center pb-3">
+        <div className="relative w-full max-w-xs">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
           <Input
-            placeholder="Cari Mentor berdasarkan Nama atau Email..."
+            placeholder="Cari Mentor..."
             value={globalFilter ?? ""}
             onChange={(e) => setGlobalFilter(e.target.value)}
-            className="pl-10 focus-visible:ring-green-500"
+            className="pl-8 py-1.5 text-sm focus-visible:ring-green-500"
           />
         </div>
       </div>
 
       {/* Table */}
-      <div className="rounded-md border">
-        <Table>
+      <div className="rounded-md border overflow-hidden">
+        <Table className="text-sm">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -220,19 +220,19 @@ export function DataTable<TData extends Mentor, TValue>({
                   <TableHead
                     key={header.id}
                     className={`
-    px-4 py-3 border-b
-    ${
-      header.column.getIsSorted()
-        ? "bg-emerald-100 text-emerald-700"
-        : "bg-gray-50 text-gray-700"
-    }
-  `}
+                px-3 py-2 border-b text-xs font-medium whitespace-nowrap
+                ${
+                  header.column.getIsSorted()
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-gray-50 text-gray-600"
+                }
+              `}
                   >
                     {header.isPlaceholder
                       ? null
                       : flexRender(
                           header.column.columnDef.header,
-                          header.getContext()
+                          header.getContext(),
                         )}
                   </TableHead>
                 ))}
@@ -250,7 +250,7 @@ export function DataTable<TData extends Mentor, TValue>({
                     return (
                       <TableCell
                         key={cell.id}
-                        className={`px-4 py-3 ${
+                        className={`px-3 py-2 text-xs truncate max-w-[160px] ${
                           isSelectColumn ? "" : "cursor-pointer"
                         }`}
                         onClick={() => {
@@ -260,10 +260,12 @@ export function DataTable<TData extends Mentor, TValue>({
                           }
                         }}
                       >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
+                        <div className="truncate">
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext(),
+                          )}
+                        </div>
                       </TableCell>
                     );
                   })}
@@ -273,7 +275,7 @@ export function DataTable<TData extends Mentor, TValue>({
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className="h-24 text-center"
+                  className="h-20 text-center text-sm"
                 >
                   Tidak ada data.
                 </TableCell>
@@ -284,18 +286,19 @@ export function DataTable<TData extends Mentor, TValue>({
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between mt-6">
-        <div className="text-sm text-gray-600">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4">
+        <div className="text-xs text-gray-600">
           Menampilkan {from}-{to} dari {totalRows} data
         </div>
-        <div className="flex items-center space-x-4">
-          {/* Tampilkan per halaman */}
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-600">Tampilkan per halaman</span>
+
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Per halaman */}
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-600">Per halaman</span>
             <select
               value={pageSize}
               onChange={(e) => table.setPageSize(Number(e.target.value))}
-              className="border border-gray-300 rounded px-2 py-1 text-sm"
+              className="border border-gray-300 rounded px-2 py-1 text-xs"
             >
               {[10, 25, 50].map((size) => (
                 <option key={size} value={size}>
@@ -305,33 +308,34 @@ export function DataTable<TData extends Mentor, TValue>({
             </select>
           </div>
 
-          {/* Numbered Pagination */}
-          <div className="flex items-center space-x-2">
+          {/* Pagination */}
+          <div className="flex items-center gap-1">
             <Button
               variant="outline"
               size="sm"
+              className="h-7 px-2"
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-3.5 h-3.5" />
             </Button>
 
             {Array.from({ length: totalPages }, (_, i) => i + 1)
               .slice(
                 Math.max(0, pageIndex - 2),
-                Math.min(totalPages, pageIndex + 3)
+                Math.min(totalPages, pageIndex + 3),
               )
               .map((page) => (
                 <Button
                   key={page}
                   variant={pageIndex + 1 === page ? "default" : "outline"}
                   size="sm"
-                  onClick={() => table.setPageIndex(page - 1)}
-                  className={
+                  className={`h-7 px-2 text-xs ${
                     pageIndex + 1 === page
                       ? "bg-[#0CA678] hover:bg-[#08916C]"
                       : ""
-                  }
+                  }`}
+                  onClick={() => table.setPageIndex(page - 1)}
                 >
                   {page}
                 </Button>
@@ -340,10 +344,11 @@ export function DataTable<TData extends Mentor, TValue>({
             <Button
               variant="outline"
               size="sm"
+              className="h-7 px-2"
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-3.5 h-3.5" />
             </Button>
           </div>
         </div>
@@ -352,32 +357,36 @@ export function DataTable<TData extends Mentor, TValue>({
       {/* Mentor Detail Dialog */}
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
         <DialogContent
-          className="sm:max-w-xl my-2 p-0"
+          className="
+      w-[95vw] max-w-lg
+      p-0
+      rounded-lg
+    "
           onInteractOutside={(e) => e.preventDefault()}
         >
           {/* Header */}
-          <DialogHeader className="px-6 pt-4 pb-3">
-            <DialogTitle className="text-xl font-bold">
+          <DialogHeader className="px-5 pt-4 pb-2">
+            <DialogTitle className="text-base font-semibold">
               Detail Mentor
             </DialogTitle>
           </DialogHeader>
 
-          {/* Garis pemisah */}
-          <div className="border-t mx-6 mb-1"></div>
+          {/* Divider */}
+          <div className="border-t mx-5"></div>
 
           {/* Scrollable Content */}
-          <ScrollArea className="max-h-[60vh] px-6 py-3">
+          <ScrollArea className="max-h-[65vh] px-5 py-3">
             {selectedMentee && (
-              <div className="space-y-5">
+              <div className="space-y-4">
                 {/* Foto */}
                 <div>
-                  <p className="text-sm text-gray-500 mb-2">Foto Mentor</p>
+                  <p className="text-xs text-gray-500 mb-1.5">Foto Mentor</p>
 
-                  <div className="w-full h-64 bg-gray-200 rounded-md overflow-hidden relative">
+                  <div className="w-full h-48 bg-gray-200 rounded-md overflow-hidden relative">
                     <Image
                       src={
                         selectedMentee.photo ||
-                        "/placeholder.svg?height=256&width=400&text=Profile+Photo"
+                        "/placeholder.svg?height=256&width=400"
                       }
                       alt={selectedMentee.name}
                       fill
@@ -388,50 +397,50 @@ export function DataTable<TData extends Mentor, TValue>({
                 </div>
 
                 {/* Detail Info */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">ID Mentor</p>
-                    <p className="text-lg font-semibold break-words">
+                    <p className="text-xs text-gray-500 mb-1">ID Mentor</p>
+                    <p className="text-sm font-semibold break-words">
                       {selectedMentee.id}
                     </p>
                   </div>
 
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Nama Lengkap</p>
-                    <p className="text-lg font-semibold break-words">
+                    <p className="text-xs text-gray-500 mb-1">Nama Lengkap</p>
+                    <p className="text-sm font-semibold break-words">
                       {selectedMentee.name}
                     </p>
                   </div>
 
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">
+                    <p className="text-xs text-gray-500 mb-1">
                       Tanggal Registrasi
                     </p>
-                    <p className="text-lg font-semibold break-words">
+                    <p className="text-sm font-semibold break-words">
                       {formatDateTime(selectedMentee.registeredAt)}
                     </p>
                   </div>
 
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Email</p>
-                    <p className="text-lg font-semibold break-words">
+                    <p className="text-xs text-gray-500 mb-1">Email</p>
+                    <p className="text-sm font-semibold break-words">
                       {selectedMentee.email}
                     </p>
                   </div>
                 </div>
 
-                {/* Bio & Keahlian sejajar */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                {/* Bio & Keahlian */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Bio</p>
-                    <p className="text-lg font-semibold whitespace-pre-line">
+                    <p className="text-xs text-gray-500 mb-1">Bio</p>
+                    <p className="text-sm font-medium whitespace-pre-line">
                       {selectedMentee.bio || "-"}
                     </p>
                   </div>
 
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Keahlian</p>
-                    <p className="text-lg font-semibold">
+                    <p className="text-xs text-gray-500 mb-1">Keahlian</p>
+                    <p className="text-sm font-medium">
                       {selectedMentee.expertise || "-"}
                     </p>
                   </div>
@@ -440,13 +449,13 @@ export function DataTable<TData extends Mentor, TValue>({
             )}
           </ScrollArea>
 
-          {/* Garis pemisah sebelum tombol */}
-          <div className="border-t mx-6 mt-2"></div>
+          {/* Divider */}
+          <div className="border-t mx-5"></div>
 
           {/* Footer */}
-          <DialogFooter className="flex space-x-4 px-6 py-6 sm:justify-center">
+          <DialogFooter className="flex gap-3 px-5 py-4">
             <Button
-              className="flex-1 bg-[#0CA678] hover:bg-[#08916C]"
+              className="flex-1 h-9 text-sm bg-[#0CA678] hover:bg-[#08916C]"
               onClick={() => {
                 if (selectedMentee) {
                   setEditFormData({
@@ -461,11 +470,10 @@ export function DataTable<TData extends Mentor, TValue>({
                     expertise: selectedMentee.expertise || "",
                   });
 
-                  // INI YANG KAMU LUPA
                   setEditPhotoPreview(selectedMentee.photo || "");
                 }
 
-                setEditStep(1); // reset step juga (best practice)
+                setEditStep(1);
                 setShowDetailDialog(false);
                 setShowEditDialog(true);
               }}
@@ -475,7 +483,7 @@ export function DataTable<TData extends Mentor, TValue>({
 
             <Button
               variant="destructive"
-              className="flex-1"
+              className="flex-1 h-9 text-sm"
               onClick={() => {
                 setShowDetailDialog(false);
                 setShowDeleteDialog(true);
@@ -490,19 +498,21 @@ export function DataTable<TData extends Mentor, TValue>({
       {/* Edit Mentor Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent
-          className="sm:max-w-xl"
+          className="sm:max-w-lg"
           onInteractOutside={(e) => e.preventDefault()}
         >
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">Edit Mentor</DialogTitle>
+            <DialogTitle className="text-base font-bold">
+              Edit Mentor
+            </DialogTitle>
           </DialogHeader>
 
           {/* Step Indicator — DISAMAKAN DENGAN ADD */}
-          <div className="flex items-center justify-start space-x-8 mb-1">
+          <div className="flex items-center justify-start space-x-5 mb-1">
             {/* STEP 1 */}
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1.5">
               <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium ${
+                className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${
                   editStep === 1
                     ? "bg-[#0CA678] text-white"
                     : "bg-gray-200 text-gray-600"
@@ -520,9 +530,9 @@ export function DataTable<TData extends Mentor, TValue>({
             </div>
 
             {/* STEP 2 */}
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1.5">
               <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium ${
+                className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${
                   editStep === 2
                     ? "bg-[#0CA678] text-white"
                     : "bg-gray-200 text-gray-600"
@@ -540,9 +550,9 @@ export function DataTable<TData extends Mentor, TValue>({
             </div>
 
             {/* STEP 3 */}
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1.5">
               <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium ${
+                className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${
                   editStep === 3
                     ? "bg-[#0CA678] text-white"
                     : "bg-gray-200 text-gray-600"
@@ -561,39 +571,39 @@ export function DataTable<TData extends Mentor, TValue>({
           </div>
 
           {/* Separator */}
-          <div className="border-b border-gray-200 mb-4"></div>
+          <div className="border-b border-gray-200 mb-3"></div>
 
           {/* ===================== STEP CONTENT ===================== */}
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* STEP 1 */}
             {editStep === 1 && (
               <>
-                {/* FOTO — DISAMAKAN */}
+                {/* FOTO */}
                 <div>
-                  <p className="text-sm font-medium text-gray-900 mb-4">
+                  <p className="text-xs font-medium text-gray-900 mb-2">
                     Foto Mentor
                   </p>
 
-                  <div className="flex items-start space-x-4">
+                  <div className="flex items-start space-x-3">
                     {/* Preview Foto */}
-                    <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+                    <div className="w-14 h-14 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden shrink-0">
                       {editPhotoPreview ? (
                         <Image
                           src={editPhotoPreview}
                           alt="Preview"
-                          width={80}
-                          height={80}
+                          width={56}
+                          height={56}
                           unoptimized
                           className="rounded-full object-cover"
                         />
                       ) : (
-                        <User className="w-10 h-10 text-gray-400" />
+                        <User className="w-7 h-7 text-gray-400" />
                       )}
                     </div>
 
                     {/* Bagian kanan */}
                     <div className="flex flex-col">
-                      <div className="flex items-center space-x-3">
+                      <div className="flex items-center space-x-2">
                         {/* Hidden input file */}
                         <input
                           type="file"
@@ -609,26 +619,29 @@ export function DataTable<TData extends Mentor, TValue>({
 
                         <Button
                           variant="outline"
-                          className="border-[#0CA678] text-[#0CA678] border-dashed hover:bg-[#0CA678] hover:text-white bg-transparent"
+                          size="sm"
+                          className="border-[#0CA678] text-[#0CA678] border-dashed hover:bg-[#0CA678] hover:text-white bg-transparent text-xs"
                           onClick={() =>
                             document
                               .getElementById("upload-edit-photo")
                               ?.click()
                           }
                         >
-                          <Upload className="w-4 h-4 mr-2" />
+                          <Upload className="w-3 h-3 mr-1.5" />
                           Upload foto profil
                         </Button>
 
                         <Button
                           variant="destructive"
+                          size="sm"
+                          className="text-xs"
                           onClick={() => setEditPhotoPreview("")}
                         >
                           Hapus
                         </Button>
                       </div>
 
-                      <p className="text-xs text-gray-500 mt-2">
+                      <p className="text-xs text-gray-500 mt-1.5">
                         File png atau jpg maks 4MB
                       </p>
                     </div>
@@ -636,9 +649,9 @@ export function DataTable<TData extends Mentor, TValue>({
                 </div>
 
                 {/* FORM FIELD */}
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">
+                    <label className="block text-xs font-medium text-gray-900 mb-1">
                       Nama Lengkap
                     </label>
                     <Input
@@ -650,12 +663,12 @@ export function DataTable<TData extends Mentor, TValue>({
                           name: e.target.value,
                         })
                       }
-                      className="w-full py-3 text-base"
+                      className="w-full text-sm"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">
+                    <label className="block text-xs font-medium text-gray-900 mb-1">
                       Email
                     </label>
                     <Input
@@ -668,7 +681,7 @@ export function DataTable<TData extends Mentor, TValue>({
                           email: e.target.value,
                         })
                       }
-                      className="w-full py-3 text-base"
+                      className="w-full text-sm"
                     />
                   </div>
                 </div>
@@ -677,9 +690,9 @@ export function DataTable<TData extends Mentor, TValue>({
 
             {/* STEP 2 */}
             {editStep === 2 && (
-              <div className="space-y-6">
-                <div className="bg-gray-100 p-4 rounded-md">
-                  <label className="block text-sm font-medium text-gray-900 mb-2">
+              <div className="space-y-4">
+                <div className="bg-gray-100 p-3 rounded-md">
+                  <label className="block text-xs font-medium text-gray-900 mb-1.5">
                     Keahlian Mentor
                   </label>
 
@@ -689,7 +702,7 @@ export function DataTable<TData extends Mentor, TValue>({
                       setEditFormData({ ...editFormData, expertise: value })
                     }
                   >
-                    <SelectTrigger className="w-full py-3 text-base bg-white">
+                    <SelectTrigger className="w-full text-sm bg-white">
                       <SelectValue placeholder="Pilih keahlian" />
                     </SelectTrigger>
 
@@ -703,8 +716,8 @@ export function DataTable<TData extends Mentor, TValue>({
                   </Select>
                 </div>
 
-                <div className="bg-gray-100 p-4 rounded-md">
-                  <label className="block text-sm font-medium text-gray-900 mb-2">
+                <div className="bg-gray-100 p-3 rounded-md">
+                  <label className="block text-xs font-medium text-gray-900 mb-1.5">
                     Bio
                   </label>
 
@@ -714,9 +727,9 @@ export function DataTable<TData extends Mentor, TValue>({
                     onChange={(e) =>
                       setEditFormData({ ...editFormData, bio: e.target.value })
                     }
-                    className="w-full min-h-[200px] p-3 border border-gray-300 rounded-md 
+                    className="w-full min-h-[140px] p-2.5 border border-gray-300 rounded-md 
               resize-none focus:ring-[#0CA678] focus:border-[#0CA678] 
-              text-base bg-white"
+              text-sm bg-white"
                   />
                 </div>
               </div>
@@ -724,9 +737,9 @@ export function DataTable<TData extends Mentor, TValue>({
 
             {/* STEP 3 */}
             {editStep === 3 && (
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-lg font-semibold text-gray-900 mb-2">
+                  <label className="block text-sm font-semibold text-gray-900 mb-1.5">
                     Peran
                   </label>
                   <Select
@@ -735,7 +748,7 @@ export function DataTable<TData extends Mentor, TValue>({
                       setEditFormData({ ...editFormData, role: value })
                     }
                   >
-                    <SelectTrigger className="w-full py-3 text-base">
+                    <SelectTrigger className="w-full text-sm">
                       <SelectValue placeholder="Mentor" />
                     </SelectTrigger>
                     <SelectContent>
@@ -747,7 +760,7 @@ export function DataTable<TData extends Mentor, TValue>({
                 </div>
 
                 <div>
-                  <label className="block text-lg font-semibold text-gray-900 mb-2">
+                  <label className="block text-sm font-semibold text-gray-900 mb-1.5">
                     Status Akun
                   </label>
                   <Select
@@ -756,7 +769,7 @@ export function DataTable<TData extends Mentor, TValue>({
                       setEditFormData({ ...editFormData, status: value })
                     }
                   >
-                    <SelectTrigger className="w-full py-3 text-base">
+                    <SelectTrigger className="w-full text-sm">
                       <SelectValue placeholder="Aktif" />
                     </SelectTrigger>
                     <SelectContent>
@@ -770,13 +783,13 @@ export function DataTable<TData extends Mentor, TValue>({
           </div>
 
           {/* Separator */}
-          <div className="border-t border-gray-200 mt-2 pt-2"></div>
+          <div className="border-t border-gray-200 mt-1 pt-1"></div>
 
           {/* FOOTER BUTTONS */}
-          <DialogFooter className="flex space-x-4 sm:justify-center mt-2">
+          <DialogFooter className="flex space-x-3 sm:justify-center mt-1">
             <Button
               variant="outline"
-              className="flex-1 bg-transparent py-3"
+              className="flex-1 bg-transparent text-sm"
               onClick={() => {
                 if (editStep === 1) {
                   setShowEditDialog(false);
@@ -790,7 +803,7 @@ export function DataTable<TData extends Mentor, TValue>({
             </Button>
 
             <Button
-              className="flex-1 bg-[#0CA678] hover:bg-[#08916C] py-3"
+              className="flex-1 bg-[#0CA678] hover:bg-[#08916C] text-sm"
               onClick={() => {
                 if (editStep === 3) {
                   handleSaveEditMentor();
@@ -853,7 +866,7 @@ export function DataTable<TData extends Mentor, TValue>({
 
                 setDeleting(true);
                 const loadingToastId = toast.loading(
-                  "Menghapus akun mentor..."
+                  "Menghapus akun mentor...",
                 );
 
                 try {
@@ -861,7 +874,7 @@ export function DataTable<TData extends Mentor, TValue>({
                     `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/${selectedMentee.id}`,
                     {
                       withCredentials: true,
-                    }
+                    },
                   );
 
                   toast.success("Akun mentor berhasil dihapus", {

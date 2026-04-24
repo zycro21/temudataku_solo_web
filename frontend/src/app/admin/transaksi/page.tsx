@@ -30,7 +30,7 @@ export default function AdminMentorPage() {
 
   const handleExportPayments = async (format: "csv" | "excel") => {
     const loadingToastId = toast.loading(
-      `Mengekspor data pembayaran ke ${format.toUpperCase()}...`
+      `Mengekspor data pembayaran ke ${format.toUpperCase()}...`,
     );
 
     try {
@@ -40,7 +40,7 @@ export default function AdminMentorPage() {
           params: { format }, // bisa ditambah status: 'confirmed' kalau mau filter
           responseType: "blob", // penting agar file diterima sebagai blob
           withCredentials: true,
-        }
+        },
       );
 
       const blob = new Blob([res.data], { type: res.headers["content-type"] });
@@ -135,63 +135,70 @@ export default function AdminMentorPage() {
               limit: 10000, // ambil semua untuk tabel
             },
             withCredentials: true,
-          }
+          },
         );
 
         const payments = res.data.data;
 
         console.log(res.data);
 
-        // mapping hanya untuk booking
         const mappedProjects: Project[] = payments.map((p: any) => {
           const user = p.user;
 
           // --------------------------
-          // ID Transaksi
+          // ID Transaksi — dari merchantOrderId
           // --------------------------
           const paymentId = p.id;
 
-          const displayId = p.transactionId
-            ? p.transactionId
-            : `${p.id} (Bukan Transaction ID)`;
+          const displayId = p.merchantOrderId
+            ? p.merchantOrderId
+            : `${p.id} (Bukan Merchant Order ID)`;
 
           // --------------------------
           // TYPE
           // --------------------------
           let typeLabel = "-";
           if (p.bookingId) typeLabel = "Mentoring";
-          else if (p.practicePurchaseId) typeLabel = "Practice";
-          else if (p.eLearningPurchaseId) typeLabel = "E-Learning";
+          else if (p.eLearningSubscriptionId) typeLabel = "E-Learning";
+          else if (p.ayclBookingId) typeLabel = "AYCL";
 
           // --------------------------
           // PROGRAM
           // --------------------------
-          const program =
-            typeLabel === "Mentoring"
-              ? mapServiceTypeToProgram(
-                  p.booking?.mentoringService?.serviceType
-                )
-              : "-";
+          let program = "-";
+          if (typeLabel === "Mentoring") {
+            program = mapServiceTypeToProgram(
+              p.booking?.mentoringService?.serviceType,
+            );
+          } else if (typeLabel === "E-Learning") {
+            const durationDays =
+              p.eLearningSubscription?.plan?.durationDay ?? 0;
+            const durationMonths =
+              durationDays >= 30 ? Math.round(durationDays / 30) : 0;
+            program =
+              durationMonths > 0
+                ? `Subscription ${durationMonths} Bulan eLearning`
+                : `Subscription eLearning`;
+          } else if (typeLabel === "AYCL") {
+            program = p.ayclBooking?.batch?.title ?? "-";
+          }
 
           // --------------------------
           // TOPIK / NAMA PRODUK
           // --------------------------
           let topic = "-";
-          if (typeLabel === "Mentoring")
+          if (typeLabel === "Mentoring") {
             topic = p.booking?.mentoringService?.serviceName ?? "-";
-          else if (typeLabel === "Practice")
-            topic = p.practicePurchase?.practice?.title ?? "-";
-          else if (typeLabel === "E-Learning")
-            topic = p.eLearningPurchase?.course?.title ?? "-";
+          }
 
           // --------------------------
           // MENTOR (hanya untuk mentoring)
           // --------------------------
           const mentorNames =
             typeLabel === "Mentoring"
-              ? p.booking?.mentoringService?.mentors
+              ? (p.booking?.mentoringService?.mentors
                   ?.map((m: any) => m.mentorProfile.user.fullName)
-                  .join(", ") ?? "-"
+                  .join(", ") ?? "-")
               : "-";
 
           // --------------------------
@@ -210,7 +217,7 @@ export default function AdminMentorPage() {
           return {
             paymentId, // ⬅️ murni PK
             displayId,
-            
+
             mentee: user?.fullName ?? "-",
             mentor: mentorNames,
             program,
@@ -221,12 +228,12 @@ export default function AdminMentorPage() {
               p.status === "pending"
                 ? "Belum Dibayar"
                 : p.status === "confirmed"
-                ? "Lunas"
-                : p.status === "failed"
-                ? "Gagal"
-                : p.status === "refunded"
-                ? "Refunded"
-                : "-",
+                  ? "Lunas"
+                  : p.status === "failed"
+                    ? "Gagal"
+                    : p.status === "refunded"
+                      ? "Refunded"
+                      : "-",
             alasan: "-",
             type: typeLabel,
           };
@@ -267,7 +274,7 @@ export default function AdminMentorPage() {
               limit: 10000,
             },
             withCredentials: true,
-          }
+          },
         );
 
         const statsFromApi = res.data.stats;
@@ -333,25 +340,26 @@ export default function AdminMentorPage() {
   return (
     <>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        {/* Title */}
         <div>
-          <h1 className="text-3xl font-semibold text-gray-800 mb-1">
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-0.5">
             Transaksi
           </h1>
-          <p className="text-gray-600">Transaksi</p>
+          <p className="text-sm text-gray-500">Transaksi</p>
         </div>
 
-        {/* Dropdown Export Data */}
+        {/* Export Button */}
         <DropdownMenu onOpenChange={(open) => setExportOpen(open)}>
           <DropdownMenuTrigger asChild>
             <Button
               variant="outline"
-              className="flex items-center gap-1 bg-white hover:bg-gray-50 border border-gray-300"
+              className="flex items-center gap-1.5 h-9 px-3 text-sm
+        bg-white hover:bg-gray-50 border border-gray-300"
             >
               <Download className="w-4 h-4" />
-              <span>Export Data</span>
+              <span className="whitespace-nowrap">Export</span>
 
-              {/* Chevron Toggle */}
               {exportOpen ? (
                 <ChevronUp className="w-4 h-4 text-gray-500" />
               ) : (
@@ -360,18 +368,19 @@ export default function AdminMentorPage() {
             </Button>
           </DropdownMenuTrigger>
 
-          <DropdownMenuContent align="end" className="w-40">
+          <DropdownMenuContent align="end" className="w-36 text-sm">
             <DropdownMenuItem onClick={() => handleExportPayments("csv")}>
-              Export ke CSV
+              Export CSV
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleExportPayments("excel")}>
-              Export ke Excel
+              Export Excel
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
 
-      <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-6 mb-8">
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
         {loadingStats
           ? Array.from({ length: 5 }).map((_, i) => (
               <StatCardSkeleton key={i} />
@@ -379,32 +388,37 @@ export default function AdminMentorPage() {
           : stats.map((stat, index) => (
               <Card
                 key={index}
-                className="w-full flex flex-col justify-between px-0 py-2
-          shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200
-          cursor-pointer rounded-lg bg-white"
+                className="
+            w-full
+            flex flex-col justify-between
+            px-0 py-1.5
+            shadow-sm hover:shadow-md
+            transition-all duration-200
+            cursor-pointer rounded-md bg-white
+          "
               >
                 {/* Header */}
-                <CardHeader className="flex items-center justify-between px-5 pt-2 pb-1">
-                  <div className="flex items-center gap-2">
+                <CardHeader className="flex items-center justify-between px-3 pt-2 pb-1">
+                  <div className="flex items-center gap-2 min-w-0">
                     <Image
                       src={stat.image}
                       alt={stat.title}
-                      width={16}
-                      height={16}
+                      width={14}
+                      height={14}
                       className="opacity-90"
                     />
-                    <CardTitle className="text-sm font-medium text-gray-600">
+                    <CardTitle className="text-xs font-medium text-gray-600 truncate">
                       {stat.title}
                     </CardTitle>
                   </div>
 
-                  <ChevronRight className="w-4 h-4 text-gray-500" />
+                  <ChevronRight className="w-3.5 h-3.5 text-gray-500" />
                 </CardHeader>
 
                 {/* Content */}
-                <CardContent className="px-5 pt-0 pb-3">
+                <CardContent className="px-3 pt-0 pb-2">
                   <p
-                    className={`text-3xl font-bold leading-tight ${stat.color}`}
+                    className={`text-xl font-bold leading-tight ${stat.color}`}
                   >
                     {stat.value}
                   </p>

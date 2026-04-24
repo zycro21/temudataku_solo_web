@@ -88,21 +88,22 @@ const MentorSection = () => {
   ];
 
   return (
-    <section className="pb-8 md:pb-16">
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center mb-8">
+    <section className="pb-6 md:pb-12">
+      <div className="max-w-[1100px] mx-auto px-4 sm:px-5 lg:px-6">
+        <div className="flex justify-between items-center mb-6">
           <div>
             <p className="text-sm font-semibold text-[#243A77] mb-2">Mentor</p>
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+
+            <h2 className="text-[26px] md:text-[30px] font-bold text-gray-900 leading-snug">
               Perkenalkan Mentor-Mentor
               <br />
               Berpengalaman Kami
             </h2>
           </div>
 
-          {/* Tombol navigasi hanya tampil di md ke atas */}
-          <div className="hidden md:flex gap-3"></div>
+          <div className="hidden md:flex gap-2"></div>
         </div>
+
         <div className="relative">
           <Carousel
             setApi={setApi}
@@ -114,45 +115,52 @@ const MentorSection = () => {
               dragFree: true,
             }}
           >
-            <CarouselContent className="py-2 md:py-5 -ml-2 md:-ml-4 px-0">
+            <CarouselContent className="py-2 md:py-4 -ml-2 md:-ml-3 px-0">
               {mentors.map((mentor) => (
                 <CarouselItem
                   key={mentor.id}
-                  className="pl-2 md:pl-4 basis-[85%] sm:basis-[65%] md:basis-1/2 lg:basis-1/3"
+                  className="pl-2 md:pl-3 basis-[85%] sm:basis-[65%] md:basis-1/2 lg:basis-1/3"
                 >
                   <div className="bg-white rounded-lg overflow-hidden shadow-none h-full">
-                    <div className="relative h-64 sm:h-72 md:h-80 bg-white flex items-center justify-center">
+                    {/* IMAGE */}
+                    <div className="relative h-52 sm:h-60 md:h-64 bg-white flex items-center justify-center">
                       <Image
                         src={mentor.image}
                         alt={mentor.name}
-                        width={400}
-                        height={310}
+                        width={360}
+                        height={260}
                         className="w-full h-full object-contain"
                       />
                     </div>
-                    <div className="p-6">
-                      <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
+
+                    {/* CONTENT */}
+                    <div className="p-4">
+                      <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2">
                         {mentor.name}
                       </h3>
-                      <div className="space-y-2 mb-4">
-                        <div className="flex items-center gap-3 text-base text-gray-700">
-                          <Briefcase className="w-5 h-5" />
+
+                      <div className="space-y-1.5 mb-3">
+                        <div className="flex items-center gap-2 text-sm text-gray-700">
+                          <Briefcase className="w-4 h-4" />
                           <span>{mentor.role}</span>
                         </div>
-                        <div className="flex items-center gap-3 text-base text-gray-700">
-                          <Calendar className="w-5 h-5" />
+
+                        <div className="flex items-center gap-2 text-sm text-gray-700">
+                          <Calendar className="w-4 h-4" />
                           <span>{mentor.experience}</span>
                         </div>
-                        <div className="flex items-start gap-3 text-base text-gray-700">
-                          <Code className="w-5 h-5 shrink-0 mt-1" />
+
+                        <div className="flex items-start gap-2 text-sm text-gray-700">
+                          <Code className="w-4 h-4 shrink-0 mt-0.5" />
                           <span className="leading-relaxed break-words">
                             {mentor.skills}
                           </span>
                         </div>
                       </div>
+
                       <button
                         onClick={() => router.push("/mentor")}
-                        className="text-[#0CA678] font-semibold text-base hover:underline hover:cursor-pointer"
+                        className="text-[#0CA678] font-medium text-sm hover:underline hover:cursor-pointer"
                       >
                         Lihat Profil Lengkap
                       </button>
@@ -162,24 +170,24 @@ const MentorSection = () => {
               ))}
             </CarouselContent>
 
-            {/* Tombol navigasi ditaruh di pojok kanan atas */}
-            <div className="hidden md:flex gap-2 absolute -top-10 right-20 z-10">
-              <CarouselPrevious className="border border-gray-300 bg-white hover:bg-gray-100 text-gray-800 shadow-md w-10 h-10" />
-              <CarouselNext className="bg-[#0CA678] hover:bg-[#08916C] text-white shadow-md w-10 h-10" />
+            {/* NAV BUTTON */}
+            <div className="hidden md:flex gap-1.5 absolute -top-8 right-12 z-10">
+              <CarouselPrevious className="border border-gray-300 bg-white hover:bg-gray-100 text-gray-800 shadow-sm w-9 h-9" />
+              <CarouselNext className="bg-[#0CA678] hover:bg-[#08916C] text-white shadow-sm w-9 h-9" />
             </div>
           </Carousel>
-          {/* Dots Indicator */}
-          <div className="flex justify-center mt-4 md:mt-6 space-x-2">
+
+          {/* DOTS */}
+          <div className="flex justify-center mt-3 md:mt-5 space-x-2">
             {Array.from({ length: count }).map((_, index) => (
               <button
                 key={index}
                 onClick={() => api?.scrollTo(index)}
-                className={`w-2 h-2 md:w-3 md:h-3 rounded-full transition-colors touch-manipulation ${
+                className={`w-2 h-2 md:w-2.5 md:h-2.5 rounded-full transition-colors ${
                   index + 1 === current
                     ? "bg-emerald-500"
-                    : "bg-gray-300 hover:bg-gray-400 active:bg-gray-500"
+                    : "bg-gray-300 hover:bg-gray-400"
                 }`}
-                aria-label={`Go to slide ${index + 1}`}
               />
             ))}
           </div>

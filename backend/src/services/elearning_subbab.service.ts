@@ -3,8 +3,10 @@ import { parseAsync } from "json2csv";
 import ExcelJS from "exceljs";
 import { format } from "date-fns";
 import crypto from "crypto";
+import { randomBytes } from "crypto";
 import fs from "fs";
 import path from "path";
+import { CourseStatus } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -36,16 +38,26 @@ export const ELearningSubBabService = {
     const course = subChapter.course;
 
     // =========================
-    // ROLE: ADMIN
+    // ROLE HANDLING (UPDATED)
     // =========================
-    if (user.roles.includes("admin")) {
-      // langsung lanjut
+    const roles = user.roles || [];
+
+    const adminLikeRoles = ["admin", "cm", "curdev"];
+    const isAdminLike = roles.some((role) => adminLikeRoles.includes(role));
+    const isMentor = roles.includes("mentor");
+    const isMentee = roles.includes("mentee");
+
+    // =========================
+    // ADMIN / CM / CURDEV
+    // =========================
+    if (isAdminLike) {
+      // bebas akses
     }
 
     // =========================
-    // ROLE: MENTOR
+    // MENTOR
     // =========================
-    else if (user.roles.includes("mentor")) {
+    else if (isMentor) {
       if (user.mentorProfileId !== course.mentorId) {
         throw new Error(
           "Mentor hanya bisa melihat sub-bab dari course yang dia ampu",
@@ -54,9 +66,9 @@ export const ELearningSubBabService = {
     }
 
     // =========================
-    // ROLE: MENTEE (SUBSCRIPTION)
+    // MENTEE (SUBSCRIPTION)
     // =========================
-    else if (user.roles.includes("mentee")) {
+    else if (isMentee) {
       const now = new Date();
 
       const activeSubscription = await prisma.eLearningSubscription.findFirst({
@@ -65,12 +77,8 @@ export const ELearningSubBabService = {
           status: {
             in: ["active", "confirmed"],
           },
-          startAt: {
-            lte: now,
-          },
-          endAt: {
-            gt: now,
-          },
+          startAt: { lte: now },
+          endAt: { gt: now },
         },
       });
 
@@ -79,6 +87,13 @@ export const ELearningSubBabService = {
           "Mentee hanya bisa melihat sub-bab jika memiliki subscription aktif",
         );
       }
+    }
+
+    // =========================
+    // ROLE LAIN DITOLAK
+    // =========================
+    else {
+      throw new Error("Akses ditolak");
     }
 
     // =========================
@@ -96,7 +111,6 @@ export const ELearningSubBabService = {
       where,
       include: {
         texts: true,
-        videos: true,
         quiz: true,
         assignment: true,
       },
@@ -130,7 +144,6 @@ export const ELearningSubBabService = {
             course: true,
           },
         },
-        videos: true,
         texts: true,
         quiz: { include: { questions: true } },
         assignment: true,
@@ -197,7 +210,6 @@ export const ELearningSubBabService = {
         courseId: subBab.subChapter.courseId,
         courseTitle: course.title,
       },
-      videos: subBab.videos,
       texts: subBab.texts,
       quiz: subBab.quiz,
       assignment: subBab.assignment,
@@ -208,7 +220,7 @@ export const ELearningSubBabService = {
 
   async createSubBab(
     subChapterId: string,
-    data: { title: string; estimatedTime?: string },
+    data: { title: string; estimatedTime?: string; status?: string },
     user: { userId: string; roles: string[]; mentorProfileId?: string },
   ) {
     return await prisma.$transaction(async (prismaTx) => {
@@ -219,28 +231,50 @@ export const ELearningSubBabService = {
       });
       if (!subChapter) throw new Error("Sub-chapter tidak ditemukan");
 
-      // Role check: mentor hanya boleh menambah ke course miliknya
+      // ── Role check ──────────────────────────────────────────────────────────
+      const roles = user.roles || [];
+      const adminLikeRoles = ["admin", "cm", "curdev"];
+      const isAdminLike = roles.some((role) => adminLikeRoles.includes(role));
+      const isMentor = roles.includes("mentor");
+
+      // Mentor bukan pemilik course → tolak
       if (
-        user.roles.includes("mentor") &&
-        user.mentorProfileId !== subChapter.course.mentorId
+        isMentor &&
+        !isAdminLike &&
+        subChapter.course.mentorId !== user.mentorProfileId
       ) {
         throw new Error(
           "Akses ditolak: Mentor hanya bisa menambahkan sub-bab ke course yang dia ampu",
         );
       }
 
-      // Generate custom ID: subb-YYYYMMDD-xxxxxx
+      // Bukan admin-like dan bukan mentor → tolak
+      if (!isAdminLike && !isMentor) {
+        throw new Error("Akses ditolak");
+      }
+      // ────────────────────────────────────────────────────────────────────────
+
+      // Generate custom ID: subbab-YYYYMMDD-xxxxxx
       const today = new Date();
       const formattedDate = today.toISOString().split("T")[0].replace(/-/g, "");
       const randomId = crypto.randomBytes(6).toString("hex");
       const subBabId = `subbab-${formattedDate}-${randomId}`;
 
-      // Dapatkan orderNumber terakhir
-      const lastSubBab = await prismaTx.eLearningSubBab.findFirst({
+      // ── orderNumber: pakai aggregate max agar tidak lompat setelah delete ──
+      const agg = await prismaTx.eLearningSubBab.aggregate({
         where: { subChapterId },
-        orderBy: { orderNumber: "desc" },
+        _max: { orderNumber: true },
       });
-      const newOrder = (lastSubBab?.orderNumber || 0) + 1;
+      const newOrder = (agg._max.orderNumber ?? 0) + 1;
+      // ────────────────────────────────────────────────────────────────────────
+
+      // Tentukan status: gunakan nilai dari data jika ada, default DRAFT
+      const status =
+        data.status === "PUBLISHED"
+          ? "PUBLISHED"
+          : data.status === "ARCHIVED"
+            ? "ARCHIVED"
+            : "DRAFT";
 
       // Buat sub-bab baru
       const newSubBab = await prismaTx.eLearningSubBab.create({
@@ -250,6 +284,7 @@ export const ELearningSubBabService = {
           title: data.title,
           estimatedTime: data.estimatedTime || "",
           orderNumber: newOrder,
+          status, // ← TAMBAHAN
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -261,7 +296,12 @@ export const ELearningSubBabService = {
 
   async updateSubBab(
     id: string,
-    data: { title?: string; estimatedTime?: string; orderNumber?: number },
+    data: {
+      title?: string;
+      estimatedTime?: string;
+      orderNumber?: number;
+      status?: CourseStatus;
+    },
     user: { userId: string; roles: string[]; mentorProfileId?: string },
   ) {
     return await prisma.$transaction(async (prismaTx) => {
@@ -279,13 +319,17 @@ export const ELearningSubBabService = {
 
       const course = subBab.subChapter.course;
 
-      // 🔹 Cek hak akses
-      if (user.roles.includes("mentor")) {
+      const adminLikeRoles = ["admin", "cm", "curdev"];
+      const isAdminLike = user.roles.some((r) => adminLikeRoles.includes(r));
+
+      if (!isAdminLike && user.roles.includes("mentor")) {
         if (user.mentorProfileId !== course.mentorId) {
-          throw new Error(
-            "Akses ditolak: Mentor hanya bisa mengedit sub-bab dari course yang dia ampu",
-          );
+          throw new Error("Akses ditolak...");
         }
+      }
+
+      if (!isAdminLike && !user.roles.includes("mentor")) {
+        throw new Error("Akses ditolak");
       }
 
       // 🔹 Jika orderNumber diubah, pastikan tidak duplikat dalam subChapter yang sama
@@ -311,6 +355,7 @@ export const ELearningSubBabService = {
           ...(data.title && { title: data.title }),
           ...(data.estimatedTime && { estimatedTime: data.estimatedTime }),
           ...(data.orderNumber && { orderNumber: data.orderNumber }),
+          ...(data.status && { status: data.status }),
           updatedAt: new Date(),
         },
         include: {
@@ -377,159 +422,97 @@ export const ELearningSubBabService = {
   },
 
   async duplicateSubBab(
-    sourceSubBabId: string,
-    targetSubChapterId: string,
-    newTitle: string | undefined,
+    id: string,
     user: { userId: string; roles: string[]; mentorProfileId?: string },
   ) {
     return await prisma.$transaction(async (prismaTx) => {
-      // 🔹 Ambil subbab sumber beserta relasi lengkap
-      const source = await prismaTx.eLearningSubBab.findUnique({
-        where: { id: sourceSubBabId },
+      const subBab = await prismaTx.eLearningSubBab.findUnique({
+        where: { id },
         include: {
+          texts: true,
           subChapter: {
             include: { course: true },
           },
-          videos: true,
-          texts: {
-            include: {
-              blocks: true,
-            },
-          },
-          quiz: { include: { questions: true } },
-          assignment: true,
         },
       });
 
-      if (!source) throw new Error("Sub-bab tidak ditemukan");
+      if (!subBab) throw new Error("Sub-bab tidak ditemukan");
 
-      // 🔹 Ambil sub-chapter tujuan beserta course-nya
-      const targetSubChapter = await prismaTx.eLearningSubChapter.findUnique({
-        where: { id: targetSubChapterId },
-        include: { course: true },
-      });
+      const course = subBab.subChapter.course;
 
-      if (!targetSubChapter)
-        throw new Error("Sub-chapter tujuan tidak ditemukan");
+      const adminLikeRoles = ["admin", "cm", "curdev"];
+      const isAdminLike = user.roles.some((r) => adminLikeRoles.includes(r));
 
-      // 🔹 Cek hak akses (mentor hanya boleh pada course-nya sendiri)
-      if (user.roles.includes("mentor")) {
-        if (user.mentorProfileId !== source.subChapter.course.mentorId) {
-          throw new Error(
-            "Akses ditolak: Anda bukan mentor dari course sumber",
-          );
-        }
-        if (user.mentorProfileId !== targetSubChapter.course.mentorId) {
-          throw new Error(
-            "Akses ditolak: Anda bukan mentor dari course tujuan",
-          );
+      if (!isAdminLike && user.roles.includes("mentor")) {
+        if (user.mentorProfileId !== course.mentorId) {
+          throw new Error("Akses ditolak...");
         }
       }
 
-      // 🔹 Tentukan orderNumber baru (increment dari terbesar di targetSubChapter)
-      const lastSubBab = await prismaTx.eLearningSubBab.findFirst({
-        where: { subChapterId: targetSubChapterId },
+      if (!isAdminLike && !user.roles.includes("mentor")) {
+        throw new Error("Akses ditolak");
+      }
+
+      // 🔹 Generate title copy
+      const existingCopies = await prismaTx.eLearningSubBab.count({
+        where: {
+          subChapterId: subBab.subChapterId,
+          title: {
+            startsWith: `${subBab.title}-copy`,
+          },
+        },
+      });
+
+      const newTitle = `${subBab.title}-copy (${existingCopies + 1})`;
+
+      // 🔹 Cari orderNumber terakhir
+      const lastOrder = await prismaTx.eLearningSubBab.findFirst({
+        where: { subChapterId: subBab.subChapterId },
         orderBy: { orderNumber: "desc" },
       });
-      const newOrderNumber = (lastSubBab?.orderNumber || 0) + 1;
 
-      // 🔹 Buat ID baru dengan format konsisten
+      const newOrder = (lastOrder?.orderNumber ?? 0) + 1;
+
+      // ======================
+      // 🔹 Generate custom ID SubBab
+      // ======================
       const today = new Date();
       const formattedDate = today.toISOString().split("T")[0].replace(/-/g, "");
       const randomId = crypto.randomBytes(6).toString("hex");
       const subBabId = `subbab-${formattedDate}-${randomId}`;
 
-      // 🔹 Buat subbab baru
+      // 🔹 Create subBab baru
       const newSubBab = await prismaTx.eLearningSubBab.create({
         data: {
-          id: subBabId,
-          subChapterId: targetSubChapterId,
-          title: newTitle || `${source.title} (Copy)`,
-          orderNumber: newOrderNumber,
-          estimatedTime: source.estimatedTime,
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          id: subBabId, // 🔥 CUSTOM ID
+          subChapterId: subBab.subChapterId,
+          title: newTitle,
+          orderNumber: newOrder,
+          estimatedTime: subBab.estimatedTime,
+          status: subBab.status,
         },
       });
 
-      // 🔹 Duplikasi konten: video, text, quiz, assignment
-      // Video
-      for (const video of source.videos) {
-        await prismaTx.eLearningVideo.create({
-          data: {
-            subBabId: newSubBab.id,
-            title: video.title,
-            videoUrl: video.videoUrl,
-            durationSeconds: video.durationSeconds,
-            isPreview: video.isPreview,
-          },
-        });
-      }
+      for (const text of subBab.texts) {
+        // ======================
+        // 🔹 Generate ID Text
+        // ======================
+        const textId = `ETXT-${Date.now()}-${randomBytes(3)
+          .toString("hex")
+          .toUpperCase()}`;
 
-      // Text
-      for (const text of source.texts) {
-        const newText = await prismaTx.eLearningText.create({
+        await prismaTx.eLearningText.create({
           data: {
+            id: textId, // 🔥 CUSTOM ID
             subBabId: newSubBab.id,
             title: text.title,
             orderNumber: text.orderNumber,
-          },
-        });
-
-        for (const block of text.blocks) {
-          await prismaTx.eLearningTextBlock.create({
-            data: {
-              textId: newText.id,
-              content: block.content,
-              order: block.order,
-            },
-          });
-        }
-      }
-
-      // Quiz
-      if (source.quiz) {
-        const newQuiz = await prismaTx.eLearningQuiz.create({
-          data: {
-            subBabId: newSubBab.id,
-            title: source.quiz.title,
-            description: source.quiz.description,
-            totalQuestions: source.quiz.totalQuestions,
-            timeLimitMinutes: source.quiz.timeLimitMinutes,
-          },
-        });
-
-        for (const q of source.quiz.questions) {
-          await prismaTx.eLearningQuestion.create({
-            data: {
-              quizId: newQuiz.id,
-              questionText: q.questionText,
-              options: q.options,
-              correctAnswer: q.correctAnswer,
-            },
-          });
-        }
-      }
-
-      // Assignment
-      if (source.assignment) {
-        await prismaTx.eLearningAssignment.create({
-          data: {
-            subBabId: newSubBab.id,
-            title: source.assignment.title,
-            description: source.assignment.description,
-            dueDays: source.assignment.dueDays,
+            status: text.status,
           },
         });
       }
 
-      return {
-        id: newSubBab.id,
-        title: newSubBab.title,
-        orderNumber: newSubBab.orderNumber,
-        subChapterId: newSubBab.subChapterId,
-        message: "Sub-bab berhasil diduplikasi ke sub-chapter lain",
-      };
+      return newSubBab;
     });
   },
 
@@ -657,7 +640,6 @@ export const ELearningSubBabService = {
             },
           },
         },
-        videos: true,
         texts: true,
         quiz: true,
         assignment: true,
@@ -673,7 +655,6 @@ export const ELearningSubBabService = {
       Title: s.title,
       OrderNumber: s.orderNumber || "-",
       EstimatedTime: s.estimatedTime || "-",
-      TotalVideos: s.videos.length,
       TotalTexts: s.texts.length,
       HasQuiz: s.quiz ? "Yes" : "No",
       HasAssignment: s.assignment ? "Yes" : "No",

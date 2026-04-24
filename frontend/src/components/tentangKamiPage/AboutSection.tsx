@@ -2,35 +2,35 @@ import Image from "next/image";
 
 export default function AboutSection() {
   return (
-    <section className="py-20 bg-gradient-to-b from-white to-emerald-50/40 relative overflow-hidden">
-      <div className="max-w-[1100px] mx-auto px-6 lg:px-8 relative">
-        <div className="grid lg:grid-cols-2 gap-14 items-center">
+    <section className="py-14 bg-gradient-to-b from-white to-emerald-50/40 relative overflow-hidden">
+      <div className="max-w-[1050px] mx-auto px-4 lg:px-6 relative">
+        <div className="grid lg:grid-cols-2 gap-10 items-center">
           {/* LEFT SIDE - Logo Card */}
           <div className="flex justify-center lg:justify-start">
             <div className="relative group">
               {/* Glow Effect */}
-              <div className="absolute -inset-4 bg-emerald-200/40 blur-2xl rounded-3xl opacity-70 group-hover:opacity-100 transition duration-500"></div>
+              <div className="absolute -inset-3 bg-emerald-200/40 blur-xl rounded-2xl opacity-60 group-hover:opacity-90 transition duration-500"></div>
 
               {/* Card */}
-              <div className="relative bg-white rounded-3xl shadow-xl p-10 transition duration-500 group-hover:-translate-y-2 group-hover:shadow-2xl">
+              <div className="relative bg-white rounded-2xl shadow-lg p-7 transition duration-500 group-hover:-translate-y-1.5 group-hover:shadow-xl">
                 <Image
                   src="/assets/tentangKamiPage/logo.svg"
                   alt="TemuDataku Logo"
-                  width={1000}
-                  height={1000}
-                  className="w-72 mx-auto"
+                  width={800}
+                  height={800}
+                  className="w-56 mx-auto"
                 />
               </div>
             </div>
           </div>
 
           {/* RIGHT SIDE - Content */}
-          <div className="space-y-8">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+          <div className="space-y-5">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
               Siapa Kami?
             </h2>
 
-            <div className="space-y-5 text-gray-700 leading-relaxed text-base md:text-lg">
+            <div className="space-y-4 text-gray-700 leading-relaxed text-sm md:text-base">
               <p>
                 <strong>TemuDataku</strong> adalah platform edukasi online yang
                 didesain khusus untuk membantu kamu memahami dan menguasai dunia

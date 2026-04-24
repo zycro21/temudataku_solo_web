@@ -150,13 +150,13 @@ export default function PracticeSelection() {
       <TooltipProvider key={tool}>
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white shadow-sm border border-gray-200 cursor-pointer hover:scale-110 transition-transform">
+            <div className="w-9 h-9 rounded-full flex items-center justify-center bg-white shadow-sm border border-gray-200 cursor-pointer hover:scale-105 transition-transform">
               <Image
                 src={src}
                 alt={tool}
                 width={20}
                 height={20}
-                className="w-5 h-5"
+                className="w-4 h-4"
               />
             </div>
           </TooltipTrigger>
@@ -216,14 +216,17 @@ export default function PracticeSelection() {
   };
 
   return (
-    <section id="practice-selection" className="py-16 px-4 md:px-6 lg:px-8 scroll-mt-[100px]">
+    <section
+      id="practice-selection"
+      className="py-12 px-4 md:px-5 lg:px-6 scroll-mt-[90px]"
+    >
       <div className="max-w-[1000px] mx-auto">
         {/* ================= HEADER (TIDAK DIUBAH) ================= */}
-        <div className="text-center mb-12">
-          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+        <div className="text-center mb-10">
+          <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 mb-3">
             Pilih Bootcamp yang Pas Untuk Kamu!
           </h2>
-          <p className="text-lg text-gray-600 max-w-4xl mx-auto">
+          <p className="text-base text-gray-600 max-w-3xl mx-auto">
             Nggak semua orang punya cara belajar yang sama, makanya TemuDataku
             nyediain pilihan bootcamp yang bisa kamu sesuaikan sama kebutuhan,
             waktu, dan goals kamu. Yuk, cari yang paling pas buat perjalanan
@@ -232,7 +235,7 @@ export default function PracticeSelection() {
         </div>
 
         {/* ================= SEARCH & FILTER (TIDAK DIUBAH DESIGN) ================= */}
-        <div className="mb-8 space-y-8">
+        <div className="mb-6 space-y-6">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
@@ -242,7 +245,7 @@ export default function PracticeSelection() {
                   placeholder="Cari bootcamp-mu di sini"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-700"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm text-gray-700"
                 />
               </div>
             </div>
@@ -253,7 +256,7 @@ export default function PracticeSelection() {
                 value={selectedSkill}
                 onValueChange={(val) => setSelectedSkill(val)}
               >
-                <SelectTrigger className="w-full !h-full px-4 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-700 bg-white">
+                <SelectTrigger className="w-full !h-full px-3 py-2 border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-700 bg-white">
                   <SelectValue placeholder="Semua" />
                 </SelectTrigger>
                 <SelectContent>
@@ -284,7 +287,7 @@ export default function PracticeSelection() {
                   key={skill}
                   variant={selectedSkill === skill ? "default" : "outline"}
                   onClick={() => setSelectedSkill(skill)}
-                  className={`px-6 py-2 rounded-md ${
+                  className={`px-4 py-1.5 text-sm rounded-md ${
                     selectedSkill === skill
                       ? "bg-emerald-600 hover:bg-emerald-700 text-white"
                       : "border-gray-300 text-gray-600 hover:bg-gray-50"
@@ -298,7 +301,7 @@ export default function PracticeSelection() {
         </div>
 
         {/* ================= CARD GRID (DESIGN SAMA) ================= */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
           {bootcamps.length === 0 ? (
             /* KOSONG TOTAL DARI SERVER */
             <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
@@ -347,34 +350,34 @@ export default function PracticeSelection() {
                     alt={bootcamp.serviceName}
                     width={400}
                     height={200}
-                    className="w-full h-64 object-cover"
+                    className="w-full h-52 object-cover"
                   />
 
-                  <div className="absolute top-0 right-0 bg-gray-500 text-white px-3 p-2 rounded-bl-lg text-sm font-medium">
+                  <div className="absolute top-0 right-0 px-2.5 py-1.5 bg-gray-500 text-white rounded-bl-lg text-xs font-medium">
                     {bootcamp.availableSlots !== null
                       ? `<${bootcamp.availableSlots} Kuota Tersisa`
                       : "Unlimited"}
                   </div>
 
-                  <div className="absolute bottom-0 w-full bg-brand-color-secondary text-white px-4 py-3 text-base font-semibold text-center">
+                  <div className="absolute bottom-0 w-full bg-brand-color-secondary text-white px-3 py-2 text-sm font-semibold text-center">
                     {getLevelLabel(bootcamp.level)}
                   </div>
                 </div>
 
-                <CardContent className="p-6">
-                  <h3 className="text-xl font-bold text-gray-900 mb-4">
+                <CardContent className="p-5">
+                  <h3 className="text-lg font-bold text-gray-900 mb-3">
                     {bootcamp.serviceName}
                   </h3>
 
-                  <div className="flex gap-2 mb-4">
+                  <div className="flex gap-1.5 mb-3">
                     {bootcamp.toolsUsed
                       ?.split(",")
                       .map((tool: string) => tool.trim())
                       .map((tool: string) => getToolIcon(tool))}
                   </div>
 
-                  <div className="flex items-center gap-3 text-gray-700 text-base font-medium mb-4">
-                    <Calendar className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                  <div className="flex items-center gap-2 text-gray-700 text-sm font-medium mb-3">
+                    <Calendar className="w-4 h-4 text-gray-500 flex-shrink-0" />
                     <span>
                       {bootcamp.sessionDateRange
                         ? bootcamp.sessionDateRange
@@ -390,7 +393,7 @@ export default function PracticeSelection() {
 
                     <div className="flex flex-col">
                       {/* Harga Coret */}
-                      <span className="text-sm text-gray-400 line-through">
+                      <span className="text-xs text-gray-400 line-through">
                         Rp
                         {Math.round(
                           Number(bootcamp.price) / 0.875,
@@ -398,7 +401,7 @@ export default function PracticeSelection() {
                       </span>
 
                       {/* Harga Diskon */}
-                      <span className="text-2xl font-bold text-gray-900">
+                      <span className="text-xl font-bold text-gray-900">
                         Rp{Number(bootcamp.price).toLocaleString("id-ID")}
                       </span>
                     </div>
@@ -407,14 +410,14 @@ export default function PracticeSelection() {
                   <div className="space-y-3">
                     <Button
                       onClick={() => handleNavigate(bootcamp.id)}
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3"
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 text-sm"
                     >
                       Daftar Sekarang
                     </Button>
                     <Button
                       onClick={() => handleNavigate(bootcamp.id)}
                       variant="outline"
-                      className="w-full border-emerald-600 text-emerald-600 hover:bg-emerald-50 py-3"
+                      className="w-full border-emerald-600 text-emerald-600 hover:bg-emerald-50 py-2.5 text-sm"
                     >
                       Lihat Detail
                     </Button>
@@ -425,12 +428,12 @@ export default function PracticeSelection() {
           )}
         </div>
 
-        <div className="flex justify-center mt-10">
+        <div className="flex justify-center mt-8">
           <Button
             variant="outline"
             onClick={() => filteredBootcamps.length > 6 && setShowAll(!showAll)}
             disabled={filteredBootcamps.length <= 6}
-            className={`px-6 py-3 text-base flex items-center gap-2 transition-all
+            className={`px-5 py-2.5 text-sm flex items-center gap-2 transition-all
     ${
       filteredBootcamps.length <= 6
         ? "text-gray-500 border-gray-400 bg-gray-100 cursor-not-allowed hover:bg-gray-100 hover:text-gray-500"

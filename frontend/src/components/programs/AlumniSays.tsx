@@ -76,17 +76,17 @@ export default function AlumniSays() {
   }, [api]);
 
   return (
-    <section className="py-8 md:py-16">
-      <div className="max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="py-6 md:py-12">
+      <div className="max-w-[1000px] mx-auto px-3 sm:px-5 lg:px-6">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start mb-8">
-          <div className="mb-6 lg:mb-0 lg:max-w-md">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-4 leading-tight">
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start mb-6 md:mb-10">
+          <div className="mb-4 lg:mb-0 lg:max-w-sm">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-3 leading-snug">
               Apa Kata Alumni Tentang Bootcamp di TemuDataku?
             </h2>
           </div>
-          <div className="lg:max-w-md lg:text-right">
-            <p className="text-base md:text-lg text-gray-700 leading-relaxed">
+          <div className="lg:max-w-sm lg:text-right">
+            <p className="text-sm md:text-base text-gray-700 leading-relaxed">
               Belajar bareng mentor bikin perjalanan data gak kerasa sendirian.
               Banyak alumni jadi makin paham, makin pede, dan siap terjun ke
               dunia kerja.
@@ -101,34 +101,34 @@ export default function AlumniSays() {
             className="w-full"
             opts={{
               align: "start",
-              loop: true, // ✅ LOOP AKTIF
+              loop: true,
               dragFree: false,
             }}
           >
-            <CarouselContent className="-ml-4">
+            <CarouselContent className="-ml-3">
               {alumni.map((person) => (
                 <CarouselItem
                   key={person.id}
-                  className="pl-4 basis-[85%] sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
+                  className="pl-3 basis-[85%] sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
                 >
-                  <div className="bg-white rounded-xl shadow-md hover:shadow-2xl hover:-translate-y-3 transition-all duration-300 h-full flex flex-col p-6 border border-transparent hover:border-emerald-200">
-                    {/* ICON LEBIH BESAR */}
-                    <div className="flex justify-center mb-6">
-                      <div className="w-28 h-28 rounded-full bg-gray-100 flex items-center justify-center">
-                        <User className={`w-14 h-14 ${person.color}`} />
+                  <div className="bg-white rounded-lg shadow-sm hover:shadow-lg hover:-translate-y-1.5 transition-all duration-300 h-full flex flex-col p-4 border border-transparent hover:border-emerald-200">
+                    {/* Avatar */}
+                    <div className="flex justify-center mb-4">
+                      <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center">
+                        <User className={`w-9 h-9 ${person.color}`} />
                       </div>
                     </div>
 
                     <div className="text-center flex-1 flex flex-col">
-                      <h3 className="text-base font-bold text-gray-900 mb-1">
+                      <h3 className="text-sm md:text-base font-semibold text-gray-900 mb-1">
                         {person.name}
                       </h3>
-                      <p className="text-sm text-gray-600">{person.role}</p>
-                      <p className="text-xs text-gray-500 mb-4">
+                      <p className="text-xs text-gray-600">{person.role}</p>
+                      <p className="text-[11px] text-gray-500 mb-3">
                         {person.status}
                       </p>
 
-                      <p className="text-sm text-gray-700 leading-relaxed mt-auto">
+                      <p className="text-xs md:text-sm text-gray-700 leading-relaxed mt-auto">
                         "{person.testimonial}"
                       </p>
                     </div>
@@ -137,21 +137,21 @@ export default function AlumniSays() {
               ))}
             </CarouselContent>
 
-            {/* Emerald Themed Arrows */}
-            <CarouselPrevious className="hidden md:flex -left-10 bg-white border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-400 shadow-md" />
-            <CarouselNext className="hidden md:flex -right-10 bg-white border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-400 shadow-md" />
+            {/* Arrows */}
+            <CarouselPrevious className="hidden md:flex -left-6 bg-white border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-400 shadow-sm" />
+            <CarouselNext className="hidden md:flex -right-6 bg-white border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-400 shadow-sm" />
           </Carousel>
 
-          {/* Improved Dots */}
-          <div className="flex justify-center mt-8 gap-3">
+          {/* Dots */}
+          <div className="flex justify-center mt-5 md:mt-6 gap-2">
             {Array.from({ length: count }).map((_, index) => (
               <button
                 key={index}
                 onClick={() => api?.scrollTo(index)}
                 className={`transition-all duration-300 rounded-full ${
                   index === current
-                    ? "w-8 h-3 bg-emerald-500"
-                    : "w-3 h-3 bg-gray-300 hover:bg-emerald-300"
+                    ? "w-6 h-2.5 bg-emerald-500"
+                    : "w-2.5 h-2.5 bg-gray-300 hover:bg-emerald-300"
                 }`}
               />
             ))}

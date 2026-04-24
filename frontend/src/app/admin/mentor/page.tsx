@@ -84,7 +84,7 @@ export default function AdminMentorPage() {
             params: {
               limit: 10000, // ambil semua biar gampang dihitung
             },
-          }
+          },
         );
 
         const users = res.data.data.users;
@@ -93,7 +93,7 @@ export default function AdminMentorPage() {
         // FILTER ROLE MENTOR
         // ===============================
         const mentorUsers = users.filter((user: any) =>
-          user.userRoles?.some((ur: any) => ur.role?.roleName === "mentor")
+          user.userRoles?.some((ur: any) => ur.role?.roleName === "mentor"),
         );
 
         const totalMentor = mentorUsers.length;
@@ -102,11 +102,11 @@ export default function AdminMentorPage() {
         // MENTOR AKTIF / TIDAK AKTIF
         // ===============================
         const activeMentor = mentorUsers.filter(
-          (u: any) => u.isActive === true
+          (u: any) => u.isActive === true,
         ).length;
 
         const inactiveMentor = mentorUsers.filter(
-          (u: any) => u.isActive === false
+          (u: any) => u.isActive === false,
         ).length;
 
         // ===============================
@@ -165,7 +165,7 @@ export default function AdminMentorPage() {
           }),
           axios.get(
             `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentor/admin/mentor-profiles`,
-            { withCredentials: true }
+            { withCredentials: true },
           ),
         ]);
 
@@ -187,7 +187,7 @@ export default function AdminMentorPage() {
 
         const mentors: Mentor[] = users
           .filter((u: any) =>
-            u.userRoles.some((r: any) => r.role.roleName === "mentor")
+            u.userRoles.some((r: any) => r.role.roleName === "mentor"),
           )
           .map((u: any) => {
             const mentorExtra = mentorProfileMap.get(u.id);
@@ -288,7 +288,7 @@ export default function AdminMentorPage() {
         {
           withCredentials: true,
           headers: { "Content-Type": "multipart/form-data" },
-        }
+        },
       );
 
       const userId = registerRes.data.user.id;
@@ -301,14 +301,14 @@ export default function AdminMentorPage() {
           expertise: addFormData.expertise,
           bio: addFormData.bio,
         },
-        { withCredentials: true }
+        { withCredentials: true },
       );
 
       // COPY PASSWORD
       await navigator.clipboard.writeText(generatedPassword);
 
       toast.success(
-        `Mentor berhasil ditambahkan, \nPassword: ${generatedPassword}\n(Password sudah disalin ke clipboard)`
+        `Mentor berhasil ditambahkan, \nPassword: ${generatedPassword}\n(Password sudah disalin ke clipboard)`,
       );
 
       // RESET STATE
@@ -347,7 +347,7 @@ export default function AdminMentorPage() {
 
   const handleExportMentor = async (format: "csv" | "excel") => {
     const loadingToastId = toast.loading(
-      `Mengekspor data mentor ke ${format.toUpperCase()}...`
+      `Mengekspor data mentor ke ${format.toUpperCase()}...`,
     );
 
     try {
@@ -360,7 +360,7 @@ export default function AdminMentorPage() {
           },
           responseType: "blob",
           withCredentials: true,
-        }
+        },
       );
 
       const blob = new Blob([res.data], {
@@ -406,48 +406,46 @@ export default function AdminMentorPage() {
   return (
     <>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div>
-          <h1 className="text-3xl font-semibold text-gray-800 mb-1">Mentor</h1>
-          <p className="text-gray-600">Mentor</p>
+          <h1 className="text-xl font-semibold text-gray-800 mb-0.5">Mentor</h1>
+          <p className="text-sm text-gray-600">Mentor</p>
         </div>
 
-        <div className="flex items-center space-x-3">
-          {/* Dropdown Export Data */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Dropdown Export */}
           <DropdownMenu onOpenChange={(open) => setExportOpen(open)}>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                className="flex items-center gap-1 bg-white hover:bg-gray-50 border border-gray-300"
+                className="flex items-center gap-1 text-sm px-3 py-1.5 bg-white hover:bg-gray-50 border border-gray-300"
                 type="button"
               >
-                <Download className="w-4 h-4" />
-                <span>Export Data</span>
+                <Download className="w-3.5 h-3.5" />
+                <span>Export</span>
 
-                {/* ICON — AMAN DARI HYDRATION ERROR */}
                 {mounted &&
                   (exportOpen ? (
-                    <ChevronUp className="w-4 h-4 text-gray-500" />
+                    <ChevronUp className="w-3.5 h-3.5 text-gray-500" />
                   ) : (
-                    <ChevronDown className="w-4 h-4 text-gray-500" />
+                    <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
                   ))}
               </Button>
             </DropdownMenuTrigger>
 
-            <DropdownMenuContent align="end" className="w-40">
+            <DropdownMenuContent align="end" className="w-36 text-sm">
               <DropdownMenuItem onClick={() => handleExportMentor("csv")}>
-                Export ke CSV
+                CSV
               </DropdownMenuItem>
-
               <DropdownMenuItem onClick={() => handleExportMentor("excel")}>
-                Export ke Excel
+                Excel
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Tombol Tambah Mentor */}
+          {/* Tambah Mentor */}
           <Button
-            className="bg-[#0CA678] hover:bg-[#08916C] flex items-center gap-1"
+            className="bg-[#0CA678] hover:bg-[#08916C] flex items-center gap-1 text-sm px-3 py-1.5"
             onClick={() => {
               setAddFormData({
                 name: "",
@@ -460,47 +458,45 @@ export default function AdminMentorPage() {
               setShowAddDialog(true);
             }}
           >
-            <Plus className="w-4 h-4" />
-            <span>Tambah Mentor</span>
+            <Plus className="w-3.5 h-3.5" />
+            <span>Tambah</span>
           </Button>
         </div>
       </div>
 
-      {/* Stats Cards — mengikuti struktur Mentee */}
-      <div className="w-3/4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-8">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         {stats.map((stat, index) => (
           <Card
             key={index}
-            className="max-w-[340px] w-full flex flex-col justify-between px-0 py-2
-      shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200
-      cursor-pointer rounded-lg bg-white"
+            className="w-full flex flex-col justify-between px-0 py-1.5
+      shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200
+      rounded-md bg-white"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-5 pt-2 pb-1">
-              <div className="flex items-center gap-3">
-                {/* Icon pakai Next Image */}
+            <div className="flex items-center justify-between px-3 pt-2 pb-1">
+              <div className="flex items-center gap-2">
                 <Image
                   src={stat.image}
                   alt={stat.title}
-                  width={15}
-                  height={15}
+                  width={14}
+                  height={14}
                   className="opacity-90"
                 />
 
-                <p className="text-md font-medium text-gray-600">
+                <p className="text-sm font-medium text-gray-600">
                   {stat.title}
                 </p>
               </div>
 
-              {/* Chevron dummy */}
-              <ChevronDown className="w-5 h-5 text-gray-500" />
+              <ChevronDown className="w-4 h-4 text-gray-500" />
             </div>
 
             {/* Content */}
-            <CardContent className="px-5 pt-0 pb-3">
-              <div className="flex items-center gap-3">
+            <CardContent className="px-3 pt-0 pb-2">
+              <div className="flex items-center gap-2">
                 <p
-                  className={`text-4xl font-bold leading-tight ${
+                  className={`text-2xl font-bold leading-tight ${
                     stat.color || "text-gray-900"
                   }`}
                 >
@@ -508,7 +504,7 @@ export default function AdminMentorPage() {
                 </p>
 
                 {stat.change && (
-                  <span className="inline-block text-xs font-medium text-emerald-700 bg-green-200 px-2 py-1 rounded-full">
+                  <span className="text-[10px] font-medium text-emerald-700 bg-green-200 px-1.5 py-0.5 rounded">
                     {stat.change}
                   </span>
                 )}
@@ -518,7 +514,7 @@ export default function AdminMentorPage() {
         ))}
       </div>
 
-      <h2 className="text-2xl font-semibold text-gray-900 mb-3">
+      <h2 className="text-2xl font-semibold text-gray-900 mb-8">
         Mentor Terdaftar
       </h2>
 
@@ -531,22 +527,21 @@ export default function AdminMentorPage() {
       {mounted && (
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
           <DialogContent
-            className="sm:max-w-xl"
+            className="sm:max-w-lg"
             onInteractOutside={(e) => e.preventDefault()}
           >
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold">
+              <DialogTitle className="text-base font-bold">
                 Tambah Mentor Baru
               </DialogTitle>
             </DialogHeader>
 
             {/* Step Indicator */}
-            <div className="flex items-center justify-start space-x-8 mb-1">
-              {" "}
+            <div className="flex items-center justify-start space-x-5 mb-1">
               {/* STEP 1 */}
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1.5">
                 <div
-                  className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium ${
+                  className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${
                     addStep === 1
                       ? "bg-[#0CA678] text-white"
                       : "bg-gray-200 text-gray-600"
@@ -563,9 +558,9 @@ export default function AdminMentorPage() {
                 </span>
               </div>
               {/* STEP 2 */}
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1.5">
                 <div
-                  className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium ${
+                  className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${
                     addStep === 2
                       ? "bg-[#0CA678] text-white"
                       : "bg-gray-200 text-gray-600"
@@ -582,9 +577,9 @@ export default function AdminMentorPage() {
                 </span>
               </div>
               {/* STEP 3 */}
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1.5">
                 <div
-                  className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium ${
+                  className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${
                     addStep === 3
                       ? "bg-[#0CA678] text-white"
                       : "bg-gray-200 text-gray-600"
@@ -603,37 +598,37 @@ export default function AdminMentorPage() {
             </div>
 
             {/* ───────── Separator between NAVIGATION & FORM ───────── */}
-            <div className="border-b border-gray-200 mb-4"></div>
+            <div className="border-b border-gray-200 mb-3"></div>
 
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* Step 1: Basic Information */}
               {addStep === 1 && (
                 <>
-                  {/* Photo Section — UPDATED sesuai Add Mentee */}
+                  {/* Photo Section */}
                   <div>
-                    <p className="text-sm font-medium text-gray-900 mb-4">
+                    <p className="text-xs font-medium text-gray-900 mb-2">
                       Foto Mentor
                     </p>
 
-                    <div className="flex items-start space-x-4">
+                    <div className="flex items-start space-x-3">
                       {/* Preview Foto */}
-                      <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+                      <div className="w-14 h-14 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden shrink-0">
                         {photoPreview ? (
                           <Image
                             src={photoPreview}
                             alt="Preview"
-                            width={80}
-                            height={80}
+                            width={56}
+                            height={56}
                             className="rounded-full object-cover"
                           />
                         ) : (
-                          <User className="w-10 h-10 text-gray-400" />
+                          <User className="w-7 h-7 text-gray-400" />
                         )}
                       </div>
 
                       {/* Bagian kanan */}
                       <div className="flex flex-col">
-                        <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-2">
                           {/* Hidden file input */}
                           <input
                             type="file"
@@ -651,24 +646,27 @@ export default function AdminMentorPage() {
 
                           <Button
                             variant="outline"
-                            className="border-[#0CA678] text-[#0CA678] border-dashed hover:bg-[#0CA678] hover:text-white bg-transparent"
+                            size="sm"
+                            className="border-[#0CA678] text-[#0CA678] border-dashed hover:bg-[#0CA678] hover:text-white bg-transparent text-xs"
                             onClick={() =>
                               document.getElementById("upload-photo")?.click()
                             }
                           >
-                            <Upload className="w-4 h-4 mr-2" />
+                            <Upload className="w-3 h-3 mr-1.5" />
                             Upload foto profil
                           </Button>
 
                           <Button
                             variant="destructive"
+                            size="sm"
+                            className="text-xs"
                             onClick={() => setPhotoPreview("")}
                           >
                             Hapus
                           </Button>
                         </div>
 
-                        <p className="text-xs text-gray-500 mt-2">
+                        <p className="text-xs text-gray-500 mt-1.5">
                           File png atau jpg maks 4MB
                         </p>
                       </div>
@@ -676,9 +674,9 @@ export default function AdminMentorPage() {
                   </div>
 
                   {/* Form Fields */}
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <div>
-                      <label className="block text-sm font-medium text-gray-900 mb-1">
+                      <label className="block text-xs font-medium text-gray-900 mb-1">
                         Nama Lengkap
                       </label>
                       <Input
@@ -690,12 +688,12 @@ export default function AdminMentorPage() {
                             name: e.target.value,
                           })
                         }
-                        className="w-full py-3 text-base"
+                        className="w-full text-sm"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-900 mb-1">
+                      <label className="block text-xs font-medium text-gray-900 mb-1">
                         Email
                       </label>
                       <Input
@@ -708,7 +706,7 @@ export default function AdminMentorPage() {
                             email: e.target.value,
                           })
                         }
-                        className="w-full py-3 text-base"
+                        className="w-full text-sm"
                       />
                     </div>
                   </div>
@@ -717,10 +715,10 @@ export default function AdminMentorPage() {
 
               {/* Step 2: Admin Profile */}
               {addStep === 2 && (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {/* Form Field 1 */}
-                  <div className="bg-gray-100 p-4 rounded-md">
-                    <label className="block text-sm font-medium text-gray-900 mb-2">
+                  <div className="bg-gray-100 p-3 rounded-md">
+                    <label className="block text-xs font-medium text-gray-900 mb-1.5">
                       Keahlian Mentor
                     </label>
 
@@ -730,7 +728,7 @@ export default function AdminMentorPage() {
                         setAddFormData({ ...addFormData, expertise: value })
                       }
                     >
-                      <SelectTrigger className="w-full py-3 text-base bg-white">
+                      <SelectTrigger className="w-full text-sm bg-white">
                         <SelectValue placeholder="Pilih keahlian" />
                       </SelectTrigger>
 
@@ -745,8 +743,8 @@ export default function AdminMentorPage() {
                   </div>
 
                   {/* Form Field 2 */}
-                  <div className="bg-gray-100 p-4 rounded-md">
-                    <label className="block text-sm font-medium text-gray-900 mb-2">
+                  <div className="bg-gray-100 p-3 rounded-md">
+                    <label className="block text-xs font-medium text-gray-900 mb-1.5">
                       Bio
                     </label>
 
@@ -756,9 +754,9 @@ export default function AdminMentorPage() {
                       onChange={(e) =>
                         setAddFormData({ ...addFormData, bio: e.target.value })
                       }
-                      className="w-full min-h-[200px] p-3 border border-gray-300 rounded-md 
+                      className="w-full min-h-[140px] p-2.5 border border-gray-300 rounded-md 
           resize-none focus:ring-[#0CA678] focus:border-[#0CA678] 
-          text-base bg-white"
+          text-sm bg-white"
                     />
                   </div>
                 </div>
@@ -766,9 +764,9 @@ export default function AdminMentorPage() {
 
               {/* Step 3: Role and Status */}
               {addStep === 3 && (
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-lg font-semibold text-gray-900 mb-2">
+                    <label className="block text-sm font-semibold text-gray-900 mb-1.5">
                       Peran
                     </label>
                     <Select
@@ -777,7 +775,7 @@ export default function AdminMentorPage() {
                         setAddFormData({ ...addFormData, role: value })
                       }
                     >
-                      <SelectTrigger className="w-full py-3 text-base">
+                      <SelectTrigger className="w-full text-sm">
                         <SelectValue placeholder="Mentor" />
                       </SelectTrigger>
                       <SelectContent>
@@ -789,7 +787,7 @@ export default function AdminMentorPage() {
                   </div>
 
                   <div>
-                    <label className="block text-lg font-semibold text-gray-900 mb-2">
+                    <label className="block text-sm font-semibold text-gray-900 mb-1.5">
                       Status Akun
                     </label>
                     <Select
@@ -798,7 +796,7 @@ export default function AdminMentorPage() {
                         setAddFormData({ ...addFormData, status: value })
                       }
                     >
-                      <SelectTrigger className="w-full py-3 text-base">
+                      <SelectTrigger className="w-full text-sm">
                         <SelectValue placeholder="Aktif" />
                       </SelectTrigger>
                       <SelectContent>
@@ -812,12 +810,12 @@ export default function AdminMentorPage() {
             </div>
 
             {/* ───────── Separator between FORM & CTA BUTTONS ───────── */}
-            <div className="border-t border-gray-200 mt-2 pt-2"></div>
+            <div className="border-t border-gray-200 mt-1 pt-1"></div>
 
-            <DialogFooter className="flex space-x-4 sm:justify-center mt-2">
+            <DialogFooter className="flex space-x-3 sm:justify-center mt-1">
               <Button
                 variant="outline"
-                className="flex-1 bg-transparent py-3"
+                className="flex-1 bg-transparent text-sm"
                 onClick={() => {
                   if (addStep === 1) {
                     setShowAddDialog(false);
@@ -830,7 +828,7 @@ export default function AdminMentorPage() {
                 {addStep === 1 ? "Kembali" : "Sebelumnya"}
               </Button>
               <Button
-                className="flex-1 bg-[#0CA678] hover:bg-[#08916C] py-3"
+                className="flex-1 bg-[#0CA678] hover:bg-[#08916C] text-sm"
                 onClick={() => {
                   if (addStep === 3) {
                     handleAddMentor();

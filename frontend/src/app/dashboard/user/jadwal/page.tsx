@@ -1,4 +1,3 @@
-// src/app/main/dashboard/user/jadwal/page.tsx
 "use client";
 
 import Sidebar from "@/components/dashboard/user/sidebarDashboardUser";
@@ -10,37 +9,38 @@ import { CalendarProvider } from "@/components/dashboard/user/jadwal/calendarCon
 
 export default function JadwalDashboardUserPage() {
   return (
-    <div className="flex mb-8">
+    <div className="flex">
       <Sidebar />
-      {/* Konten sebelah kanan */}
-      <div className="flex-1 flex flex-col ml-72">
+
+      {/* ✅ FIX: samakan dengan dashboard utama */}
+      <div className="flex-1 flex flex-col ml-64 min-w-0">
         <DashboardHeader />
-        {/* Main content */}
-        <main className="flex-1 p-6 pl-7 bg-gray-50">
-          <h1 className="text-3xl font-semibold text-gray-800 mb-6">Jadwal</h1>
+
+        {/* ✅ FIX: padding diperkecil + anti overflow */}
+        <main className="flex-1 px-5 py-4 bg-gray-50 overflow-x-hidden">
+          {/* ✅ FIX: font lebih kecil */}
+          <h1 className="text-xl font-semibold text-gray-800 mb-4">Jadwal</h1>
 
           <CalendarProvider>
-            {/* Section: Stat Cards */}
-            <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Kiri: Stat Cards */}
-              <div>
+            {/* ✅ FIX: gap lebih kecil + min-w-0 */}
+            <div className="mb-4 grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0">
+              <div className="min-w-0">
                 <ScheduleStatCards />
               </div>
 
-              {/* Kanan: Kosong */}
-              <div></div>
+              <div className="min-w-0"></div>
             </div>
 
-            {/* Section: Calendar & Day Events */}
-            <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Kiri: Kalender (2/3) */}
-                <div className="lg:col-span-2">
+            {/* ✅ FIX: card lebih compact */}
+            <div className="bg-white rounded-lg shadow-sm p-4 mb-4 min-w-0">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 min-w-0">
+                {/* Kiri */}
+                <div className="lg:col-span-2 min-w-0">
                   <CalendarSection />
                 </div>
 
-                {/* Kanan: Jadwal Hari Ini (1/3) */}
-                <div className="lg:col-span-1">
+                {/* Kanan */}
+                <div className="lg:col-span-1 min-w-0">
                   <DayEventsSection />
                 </div>
               </div>

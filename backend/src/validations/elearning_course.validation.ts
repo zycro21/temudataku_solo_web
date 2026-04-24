@@ -8,11 +8,11 @@ export const getAllCoursesSchema = z.object({
     search: z.string().optional(),
     page: z.preprocess(
       (val) => (val ? Number(val) : 1),
-      z.number().int().min(1).default(1)
+      z.number().int().min(1).default(1),
     ),
     limit: z.preprocess(
       (val) => (val ? Number(val) : 10),
-      z.number().int().min(1).max(10000).default(10000)
+      z.number().int().min(1).max(10000).default(10000),
     ),
     sortBy: z
       .enum(["createdAt", "title", "price"])
@@ -34,28 +34,32 @@ export const createCourseSchema = z.object({
     title: z.string().min(1, "Judul wajib diisi"),
     description: z.string().optional(),
     thumbnailImages: z.array(z.string()).optional(),
-    price: z.preprocess(
-      (val) => (typeof val === "string" ? Number(val) : val),
-      z.number().nonnegative("Harga tidak boleh negatif")
-    ),
+    // price: z.preprocess(
+    //   (val) => (typeof val === "string" ? Number(val) : val),
+    //   z.number().nonnegative("Harga tidak boleh negatif")
+    // ),
     category: z.string().optional(),
     tags: z.preprocess(
       (val) =>
         typeof val === "string" ? val.split(",").map((s) => s.trim()) : val,
-      z.array(z.string()).optional()
+      z.array(z.string()).optional(),
     ),
     targetAudience: z.string().optional(),
     level: z.string().optional(),
     estimatedDuration: z.preprocess(
       (val) => (typeof val === "number" ? val.toString() : val),
-      z.string().optional()
+      z.string().optional(),
     ),
     benefits: z.string().optional(),
     toolsUsed: z.string().optional(),
     isActive: z.preprocess(
       (val) => (val === "true" ? true : val === "false" ? false : val),
-      z.boolean().optional()
+      z.boolean().optional(),
     ),
+    status: z
+      .enum(["DRAFT", "PUBLISHED", "ARCHIVED"])
+      .optional()
+      .default("DRAFT"),
   }),
 });
 
@@ -70,25 +74,26 @@ export const updateCourseSchema = z.object({
     thumbnailImages: z.array(z.string()).optional(),
     price: z.preprocess(
       (val) => (typeof val === "string" ? Number(val) : val),
-      z.number().optional()
+      z.number().optional(),
     ),
     category: z.string().optional(),
     tags: z.preprocess(
       (val) =>
         typeof val === "string" ? val.split(",").map((s) => s.trim()) : val,
-      z.array(z.string()).optional()
+      z.array(z.string()).optional(),
     ),
     targetAudience: z.string().optional(),
     level: z.string().optional(),
     estimatedDuration: z.preprocess(
       (val) => val?.toString(),
-      z.string().optional()
+      z.string().optional(),
     ),
+    status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).optional(),
     benefits: z.string().optional(),
     toolsUsed: z.string().optional(),
     isActive: z.preprocess(
       (val) => (val === "true" ? true : val === "false" ? false : val),
-      z.boolean().optional()
+      z.boolean().optional(),
     ),
   }),
 });
@@ -140,5 +145,11 @@ export const exportCoursesSchema = z.object({
 export const exportProductEventSchema = z.object({
   query: z.object({
     format: z.enum(["csv", "excel"]).default("csv"),
+  }),
+});
+
+export const duplicateCourseSchema = z.object({
+  params: z.object({
+    id: z.string().min(1, "ID kursus harus diisi"),
   }),
 });

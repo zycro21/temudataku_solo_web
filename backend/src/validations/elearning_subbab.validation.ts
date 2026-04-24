@@ -29,6 +29,7 @@ export const createSubBabSchema = z.object({
   body: z.object({
     title: z.string().min(1, "Judul wajib diisi"),
     estimatedTime: z.string().optional(),
+    status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).optional(),
   }),
 });
 
@@ -40,6 +41,7 @@ export const updateSubBabSchema = z.object({
     title: z.string().optional(),
     estimatedTime: z.string().optional(),
     orderNumber: z.number().int().positive().optional(),
+    status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).optional(),
   }),
 });
 
@@ -52,10 +54,6 @@ export const deleteSubBabSchema = z.object({
 export const duplicateSubBabSchema = z.object({
   params: z.object({
     id: z.string().min(1, "SubBab ID wajib diisi"),
-  }),
-  body: z.object({
-    targetSubChapterId: z.string().min(1, "Target SubChapter ID wajib diisi"),
-    newTitle: z.string().optional(),
   }),
 });
 

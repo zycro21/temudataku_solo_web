@@ -92,14 +92,14 @@ export default function ProjectExamples() {
   }, [api]);
 
   return (
-    <section className="py-8 md:py-16 bg-white">
-      <div className="max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="py-6 md:py-12 bg-white">
+      <div className="max-w-[1000px] mx-auto px-3 sm:px-5 lg:px-6">
         {/* Header */}
-        <div className="text-center mb-8 md:mb-16">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 md:mb-6 px-4">
+        <div className="text-center mb-6 md:mb-12">
+          <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 md:mb-4 px-2">
             Project Sejauh Ini, Keren Nggak Sih?
           </h2>
-          <p className="text-base md:text-lg text-gray-700 max-w-4xl mx-auto leading-relaxed px-4">
+          <p className="text-sm md:text-base text-gray-700 max-w-3xl mx-auto leading-relaxed px-2">
             Di sini kamu bisa lihat hasil karya alumni TemuDataku selama ikut
             bootcamp. Bukan cuma materi, tapi project beneran yang nunjukin
             skill mereka di dunia data. Yuk intip, siapa tahu bisa jadi
@@ -118,15 +118,15 @@ export default function ProjectExamples() {
               dragFree: false,
             }}
           >
-            <CarouselContent className="gap-6">
+            <CarouselContent className="gap-4">
               {projects.map((project) => (
                 <CarouselItem
                   key={project.id}
                   className="basis-full md:basis-1/2 lg:basis-1/3"
                 >
-                  <div className="bg-bg-color-primary rounded-lg md:rounded-xl overflow-hidden h-full flex flex-col">
+                  <div className="bg-bg-color-primary rounded-md md:rounded-lg overflow-hidden h-full flex flex-col">
                     {/* Project Image */}
-                    <div className="relative h-60 overflow-hidden sm:h-56 md:h-64 lg:h-72 bg-gradient-to-br from-blue-50 to-indigo-100 flex-shrink-0">
+                    <div className="relative h-44 sm:h-48 md:h-52 lg:h-56 overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-100 flex-shrink-0">
                       <Image
                         src={getProjectImage(project.keywords)}
                         alt={project.title}
@@ -136,26 +136,25 @@ export default function ProjectExamples() {
                     </div>
 
                     {/* Project Content */}
-                    <div className="p-4 md:p-6 flex flex-col flex-1">
-                      <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-3 md:mb-4 leading-tight line-clamp-3">
+                    <div className="p-3 md:p-4 flex flex-col flex-1">
+                      <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-2 md:mb-3 leading-snug line-clamp-3">
                         {project.title}
                       </h3>
 
-                      <p className="text-sm md:text-base text-gray-600 mb-4 md:mb-6 leading-relaxed line-clamp-3 flex-1">
+                      <p className="text-xs md:text-sm text-gray-600 mb-3 md:mb-4 leading-relaxed line-clamp-3 flex-1">
                         {project.description}
                       </p>
 
                       {/* Authors */}
-                      <div className="flex items-center mb-4 md:mb-6 gap-3">
-                        <UserRound className="w-4 h-4" />
-
-                        <span className="text-xs md:text-sm text-gray-700 line-clamp-1">
+                      <div className="flex items-center mb-3 md:mb-4 gap-2">
+                        <UserRound className="w-3.5 h-3.5" />
+                        <span className="text-[11px] md:text-xs text-gray-700 line-clamp-1">
                           {project.authors.join(", ")}
                         </span>
                       </div>
 
                       {/* Button */}
-                      <Button className="w-fit bg-emerald-500 hover:bg-emerald-600 text-white px-4 md:px-6 py-2 rounded-lg font-medium text-sm md:text-base">
+                      <Button className="w-fit bg-emerald-500 hover:bg-emerald-600 text-white px-3 md:px-4 py-1.5 rounded-md font-medium text-xs md:text-sm">
                         Jelajahi Proyek
                       </Button>
                     </div>
@@ -164,21 +163,20 @@ export default function ProjectExamples() {
               ))}
             </CarouselContent>
 
-            {/* Navigation Arrows - Hidden on mobile, shown on tablet+ */}
-            <CarouselPrevious className="hidden md:flex left-2 lg:-left-12 bg-white border-gray-200 hover:bg-gray-50 shadow-md" />
-            <CarouselNext className="hidden md:flex right-2 lg:-right-12 bg-white border-gray-200 hover:bg-gray-50 shadow-md" />
+            <CarouselPrevious className="hidden md:flex left-1 lg:-left-8 bg-white border-gray-200 hover:bg-gray-50 shadow-sm" />
+            <CarouselNext className="hidden md:flex right-1 lg:-right-8 bg-white border-gray-200 hover:bg-gray-50 shadow-sm" />
           </Carousel>
 
-          {/* Dots Indicator */}
-          <div className="flex justify-center mt-4 md:mt-6 space-x-2">
+          {/* Dots */}
+          <div className="flex justify-center mt-3 md:mt-4 space-x-1.5">
             {Array.from({ length: count }).map((_, index) => (
               <button
                 key={index}
                 onClick={() => api?.scrollTo(index)}
-                className={`w-2 h-2 md:w-3 md:h-3 rounded-full transition-colors touch-manipulation ${
+                className={`w-2 h-2 md:w-2.5 md:h-2.5 rounded-full transition-colors ${
                   index + 1 === current
                     ? "bg-emerald-500"
-                    : "bg-gray-300 hover:bg-gray-400 active:bg-gray-500"
+                    : "bg-gray-300 hover:bg-gray-400"
                 }`}
                 aria-label={`Go to slide ${index + 1}`}
               />

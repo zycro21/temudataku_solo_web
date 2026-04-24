@@ -14,6 +14,7 @@ import {
   listSubChaptersSchema,
   exportSubChaptersSchema,
 } from "../validations/elearning_subchapter.validation.js";
+import { handleElearningThumbnailUpload } from "../middlewares/uploadImage.js";
 
 const router = express.Router();
 
@@ -77,7 +78,7 @@ const router = express.Router();
 router.get(
   "/courses/:courseId/subchapters",
   authenticate,
-  authorizeRoles("admin", "mentor", "mentee"),
+  authorizeRoles("admin", "mentor", "mentee", "cm", "curdev"),
   validate(getSubChaptersByCourseSchema),
   ELearningSubChapterController.getSubChaptersByCourse
 );
@@ -112,7 +113,7 @@ router.get(
 router.get(
   "/subchapters/:id",
   authenticate,
-  authorizeRoles("admin", "mentor", "mentee"),
+  authorizeRoles("admin", "mentor", "mentee", "cm", "curdev"),
   validate(getSubChapterByIdSchema),
   ELearningSubChapterController.getSubChapterById
 );
@@ -122,7 +123,6 @@ router.get(
  * /api/elearningSubChapter/courses/{courseId}/subchapters:
  *   post:
  *     summary: Tambah sub-chapter ke course
- *     description: Admin dapat menambahkan ke course apa saja. Mentor hanya bisa menambahkan ke course yang dia ampu.
  *     tags: [E-Learning SubChapters]
  *     security:
  *       - bearerAuth: []
@@ -132,11 +132,10 @@ router.get(
  *         required: true
  *         schema:
  *           type: string
- *         description: ID course
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             required:
@@ -145,16 +144,15 @@ router.get(
  *             properties:
  *               title:
  *                 type: string
- *                 example: "Sub-Chapter 1"
  *               description:
  *                 type: string
- *                 example: "Deskripsi sub-chapter"
  *               orderNumber:
  *                 type: integer
- *                 example: 1
  *               estimatedTime:
  *                 type: string
- *                 example: "30 menit"
+ *               thumbnail:
+ *                 type: string
+ *                 format: binary
  *     responses:
  *       201:
  *         description: Sub-chapter berhasil dibuat
@@ -170,7 +168,8 @@ router.get(
 router.post(
   "/courses/:courseId/subchapters",
   authenticate,
-  authorizeRoles("admin", "mentor"),
+  authorizeRoles("admin", "mentor", "cm", "curdev"),
+  handleElearningThumbnailUpload("thumbnail", false), // ⬅️ SINGLE FILE
   validate(createSubChapterSchema),
   ELearningSubChapterController.createSubChapter
 );
@@ -180,10 +179,6 @@ router.post(
  * /api/elearningSubChapter/subchapters/{id}:
  *   put:
  *     summary: Edit sub-chapter
- *     description: >
- *       - Admin dapat mengedit sub-chapter dari course mana pun.
- *       - Mentor hanya bisa mengedit sub-chapter dari course yang dia ampu.
- *       - Update bersifat partial (tidak wajib semua field diisi).
  *     tags: [E-Learning SubChapters]
  *     security:
  *       - bearerAuth: []
@@ -193,26 +188,24 @@ router.post(
  *         required: true
  *         schema:
  *           type: string
- *         description: ID sub-chapter
  *     requestBody:
- *       required: true
+ *       required: false
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             properties:
  *               title:
  *                 type: string
- *                 example: "Sub-chapter baru"
  *               description:
  *                 type: string
- *                 example: "Deskripsi baru"
  *               orderNumber:
  *                 type: integer
- *                 example: 2
  *               estimatedTime:
  *                 type: string
- *                 example: "45 menit"
+ *               thumbnail:
+ *                 type: string
+ *                 format: binary
  *     responses:
  *       200:
  *         description: Sub-chapter berhasil diperbarui
@@ -226,9 +219,40 @@ router.post(
 router.put(
   "/subchapters/:id",
   authenticate,
-  authorizeRoles("admin", "mentor"),
+  authorizeRoles("admin", "mentor", "cm", "curdev"),
+  handleElearningThumbnailUpload("thumbnail", false),
   validate(updateSubChapterSchema),
   ELearningSubChapterController.updateSubChapter
+);
+
+/**
+ * @swagger
+ * /api/elearningSubChapter/subchapters/{id}/duplicate:
+ *   post:
+ *     summary: Duplicate sub-chapter beserta sub-bab dan text
+ *     tags: [E-Learning SubChapters]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       201:
+ *         description: Sub-chapter berhasil diduplikasi
+ *       403:
+ *         description: Akses ditolak
+ *       404:
+ *         description: Sub-chapter tidak ditemukan
+ */
+router.post(
+  "/subchapters/:id/duplicate",
+  authenticate,
+  authorizeRoles("admin", "mentor", "cm", "curdev"),
+  validate(duplicateSubChapterSchema),
+  ELearningSubChapterController.duplicateSubChapter
 );
 
 /**
@@ -315,70 +339,6 @@ router.patch(
   ELearningSubChapterController.reorderSubChapters
 );
 
-/**
- * @swagger
- * /api/elearningSubChapter/subchapters/{id}/duplicate:
- *   post:
- *     summary: Duplikasi sub-chapter ke course lain
- *     description: >
- *       - Hanya **admin** yang dapat menduplikasi sub-chapter.
- *       - Sub-chapter beserta sub-babnya akan disalin ke course tujuan.
- *     tags: [E-Learning SubChapters]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - name: id
- *         in: path
- *         required: true
- *         description: ID sub-chapter yang ingin diduplikasi
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               targetCourseId:
- *                 type: string
- *                 description: ID course tujuan
- *                 example: "crs_abc123"
- *             required:
- *               - targetCourseId
- *     responses:
- *       200:
- *         description: Sub-chapter berhasil diduplikasi
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
- *                 data:
- *                   type: object
- *                   properties:
- *                     originalId:
- *                       type: string
- *                     newSubChapterId:
- *                       type: string
- *                     newSubBabCount:
- *                       type: integer
- *       403:
- *         description: Akses ditolak
- *       404:
- *         description: Sub-chapter atau course tujuan tidak ditemukan
- */
-router.post(
-  "/subchapters/:id/duplicate",
-  authenticate,
-  authorizeRoles("admin"),
-  validate(duplicateSubChapterSchema),
-  ELearningSubChapterController.duplicateSubChapter
-);
 
 /**
  * @swagger

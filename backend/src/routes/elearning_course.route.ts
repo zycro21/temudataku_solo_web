@@ -15,6 +15,7 @@ import {
   getCourseStatisticsSchema,
   exportCoursesSchema,
   exportProductEventSchema,
+  duplicateCourseSchema,
 } from "../validations/elearning_course.validation.js";
 import { handleElearningThumbnailUpload } from "../middlewares/uploadImage.js";
 
@@ -570,6 +571,23 @@ router.get(
   authorizeRoles("admin", "cm", "curdev"),
   validate(exportProductEventSchema),
   ELearningCourseController.exportProductEvent
+);
+
+/**
+ * @swagger
+ * /api/elearningCourse/courses/{id}/duplicate:
+ *   post:
+ *     summary: Duplicate kursus e-learning beserta seluruh isinya
+ *     tags: [E-Learning Courses]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.post(
+  "/courses/:id/duplicate",
+  authenticate,
+  authorizeRoles("admin", "mentor", "cm", "curdev"),
+  validate(duplicateCourseSchema),
+  ELearningCourseController.duplicateCourse
 );
 
 

@@ -41,14 +41,14 @@ export default function ChartSection() {
               sortOrder: "asc",
             },
             withCredentials: true,
-          }
+          },
         );
         setLogs(res.data?.data || []);
       } catch (error: any) {
         console.error(error);
         toast.error(
           error?.response?.data?.message ||
-            "Gagal memuat data aktivitas pengguna."
+            "Gagal memuat data aktivitas pengguna.",
         );
       } finally {
         setLoading(false);
@@ -174,28 +174,29 @@ export default function ChartSection() {
   };
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold text-gray-800">
+    <div className="bg-white p-4 rounded-lg shadow-sm w-full overflow-hidden">
+      <div className="flex justify-between items-center mb-3">
+        <h2 className="text-sm font-semibold text-gray-800">
           Waktu Lihat Halaman
         </h2>
-        <div className="flex bg-gray-100 p-1 rounded-full text-sm font-medium">
+
+        <div className="flex bg-gray-100 p-0.5 rounded-full text-[11px] font-medium">
           <button
             onClick={() => setActiveTab("Week")}
-            className={`px-4 py-1 rounded-full transition-colors ${
+            className={`px-3 py-0.5 rounded-full transition ${
               activeTab === "Week"
                 ? "bg-emerald-500 text-white"
-                : "text-gray-500 hover:text-gray-900"
+                : "text-gray-500"
             }`}
           >
             Week
           </button>
           <button
             onClick={() => setActiveTab("Month")}
-            className={`px-4 py-1 rounded-full transition-colors ${
+            className={`px-3 py-0.5 rounded-full transition ${
               activeTab === "Month"
                 ? "bg-emerald-500 text-white"
-                : "text-gray-500 hover:text-gray-900"
+                : "text-gray-500"
             }`}
           >
             Month
@@ -203,17 +204,17 @@ export default function ChartSection() {
         </div>
       </div>
 
-      <div className="h-[248px] relative">
+      <div className="h-[200px] relative">
         {loading ? (
           <div className="flex justify-center items-center h-full">
-            <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
           </div>
         ) : (
           <>
             <Bar data={data} options={options} />
             {data.datasets[0].data.every((v: number) => v === 0) && (
-              <div className="absolute inset-0 flex items-center justify-center bg-white/60 rounded-xl pointer-events-none">
-                <p className="text-gray-500 text-sm font-medium">
+              <div className="absolute inset-0 flex items-center justify-center bg-white/60 rounded-lg pointer-events-none">
+                <p className="text-gray-500 text-xs font-medium">
                   Belum ada data aktivitas
                 </p>
               </div>

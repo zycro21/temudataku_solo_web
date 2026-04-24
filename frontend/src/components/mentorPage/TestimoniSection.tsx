@@ -123,14 +123,15 @@ const TestimonialSection = () => {
   }, []);
 
   return (
-    <section className="py-16 mt-10 bg-[#E5E7EB] relative overflow-hidden">
-      <div className="max-w-[1150px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="flex justify-between items-center mb-4">
+    <section className="py-12 mt-8 bg-[#E5E7EB] relative overflow-hidden">
+      <div className="max-w-[1100px] mx-auto px-4 sm:px-5 lg:px-6 relative z-10">
+        {/* HEADER */}
+        <div className="flex justify-between items-center mb-3">
           <div>
             <p className="text-sm font-semibold text-[#243A77] mb-2">
               Testimoni
             </p>
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+            <h2 className="text-3xl md:text-[32px] font-bold text-gray-900">
               Apa Kata Mereka?
             </h2>
           </div>
@@ -147,7 +148,7 @@ const TestimonialSection = () => {
             dragFree: true,
           }}
         >
-          <CarouselContent className="py-6 md:py-8 px-0">
+          <CarouselContent className="py-4 md:py-6 px-0">
             {testimonials.map((person) => {
               const isExpanded = expanded[person.id] ?? false;
               const needsButton = showButton[person.id];
@@ -155,22 +156,25 @@ const TestimonialSection = () => {
               return (
                 <CarouselItem
                   key={person.id}
-                  className="pl-2 md:pl-4 basis-[85%] sm:basis-[65%] md:basis-1/2 lg:basis-1/3"
+                  className="pl-2 md:pl-3 basis-[85%] sm:basis-[65%] md:basis-1/2 lg:basis-1/3"
                 >
-                  <div className="bg-white rounded-lg overflow-hidden h-full flex flex-col p-6">
+                  <div className="bg-white rounded-md overflow-hidden h-full flex flex-col p-4">
+                    {/* TEXT */}
                     <p
                       ref={(el) => {
                         testimonialRefs.current[person.id] = el;
                       }}
-                      className={`text-gray-700 text-lg leading-relaxed mb-4 ${
+                      className={`text-gray-700 text-sm md:text-base leading-relaxed mb-3 ${
                         !isExpanded ? "line-clamp-5" : ""
                       }`}
                     >
                       &ldquo;{person.testimonial}&rdquo;
                     </p>
+
+                    {/* BUTTON */}
                     {needsButton && (
                       <button
-                        className="text-[#0CA678] font-medium text-sm mb-4 self-start hover:underline"
+                        className="text-[#0CA678] font-medium text-xs mb-3 self-start hover:underline"
                         onClick={() =>
                           setExpanded((prev) => ({
                             ...prev,
@@ -181,11 +185,13 @@ const TestimonialSection = () => {
                         {isExpanded ? "Load Less" : "Load More"}
                       </button>
                     )}
-                    <div className="mt-4">
-                      <h3 className="text-base font-semibold text-gray-900 mb-1">
+
+                    {/* USER */}
+                    <div className="mt-3">
+                      <h3 className="text-sm font-semibold text-gray-900 mb-0.5">
                         {person.name}
                       </h3>
-                      <p className="text-sm text-gray-600">{person.status}</p>
+                      <p className="text-xs text-gray-600">{person.status}</p>
                     </div>
                   </div>
                 </CarouselItem>
@@ -193,23 +199,24 @@ const TestimonialSection = () => {
             })}
           </CarouselContent>
 
-          <div className="absolute -top-16 right-0 md:flex gap-2 z-10">
-            <CarouselPrevious className="border border-gray-300 bg-white hover:bg-gray-100 text-gray-800 shadow-md w-10 h-10" />
-            <CarouselNext className="bg-[#0CA678] hover:bg-[#08916C] text-white shadow-md w-10 h-10" />
+          {/* NAV BUTTON */}
+          <div className="absolute -top-12 right-8 md:flex gap-1 z-10">
+            <CarouselPrevious className="border border-gray-300 bg-white hover:bg-gray-100 text-gray-800 shadow-sm w-9 h-9" />
+            <CarouselNext className="bg-[#0CA678] hover:bg-[#08916C] text-white shadow-sm w-9 h-9" />
           </div>
         </Carousel>
 
-        <div className="flex justify-center mt-4 md:mt-6 space-x-2">
+        {/* DOTS */}
+        <div className="flex justify-center mt-3 md:mt-4 space-x-1.5">
           {Array.from({ length: count }).map((_, index) => (
             <button
               key={index}
               onClick={() => api?.scrollTo(index)}
-              className={`w-2 h-2 md:w-3 md:h-3 rounded-full transition-colors touch-manipulation ${
+              className={`w-2 h-2 md:w-2.5 md:h-2.5 rounded-full transition-colors ${
                 index + 1 === current
                   ? "bg-emerald-500"
                   : "bg-gray-300 hover:bg-gray-400 active:bg-gray-500"
               }`}
-              aria-label={`Go to slide ${index + 1}`}
             />
           ))}
         </div>

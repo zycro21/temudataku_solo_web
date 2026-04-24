@@ -104,29 +104,29 @@ export default function LoginModal({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent
-        className="sm:min-w-[400px] md:min-w-[500px] lg:min-w-5xl w-full p-0 overflow-hidden"
+        className="sm:min-w-[360px] md:min-w-[520px] lg:min-w-4xl w-full p-0 overflow-hidden"
         onInteractOutside={(e) => e.preventDefault()}
       >
-        <div className="grid md:grid-cols-2 min-h-[500px]">
+        <div className="grid md:grid-cols-2 min-h-[440px]">
           {/* Left side - Illustration */}
-          <div className="hidden md:flex items-center justify-center bg-white pl-8 pr-0">
+          <div className="hidden md:flex items-center justify-center bg-white pl-5 pr-0">
             <Image
               src="/assets/auth/ilustration.svg"
               alt="3D Robot Illustration"
-              width={400}
-              height={400}
-              className="w-full h-full object-contain"
+              width={320}
+              height={320}
+              className="w-[95%] h-[85%] object-contain"
             />
           </div>
 
           {/* Right side - Form */}
-          <div className="p-10 pt-0 relative bg-white flex flex-col justify-center">
+          <div className="p-5 relative bg-white flex flex-col justify-center">
             <DialogHeader>
               <DialogTitle>
-                <p className="text-3xl font-bold text-gray-900 mb-2 text-center">
+                <p className="text-xl font-bold text-gray-900 mb-1.5 text-center">
                   Masuk
                 </p>
-                <p className="text-sm text-gray-500 mb-6 text-center">
+                <p className="text-xs text-gray-500 mb-4 text-center">
                   Selamat datang kembali!!
                 </p>
               </DialogTitle>
@@ -135,7 +135,7 @@ export default function LoginModal({
             <form className="space-y-4" onSubmit={handleLogin}>
               {/* Email */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-[11px] font-medium text-gray-700 mb-1">
                   Email
                 </label>
                 <Input
@@ -144,12 +144,13 @@ export default function LoginModal({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  className="h-8 text-xs px-2.5 placeholder:text-gray-400 placeholder:text-xs"
                 />
               </div>
 
               {/* Password */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-[11px] font-medium text-gray-700 mb-1">
                   Kata Sandi
                 </label>
                 <div className="relative">
@@ -159,7 +160,7 @@ export default function LoginModal({
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="w-full pr-10 border border-gray-300 focus:border-[#0CA678] focus:ring-2 focus:ring-[#0CA678] focus:outline-none"
+                    className="h-8 text-xs px-2.5 pr-9 placeholder:text-gray-400 placeholder:text-xs border border-gray-300 focus:border-[#0CA678] focus:ring-1 focus:ring-[#0CA678] focus:outline-none"
                   />
                   <button
                     type="button"
@@ -167,9 +168,9 @@ export default function LoginModal({
                     className="absolute right-3 top-1/2 -translate-y-1/2"
                   >
                     {showPassword ? (
-                      <EyeOff className="w-4 h-4" />
+                      <EyeOff className="w-3 h-3" />
                     ) : (
-                      <Eye className="w-4 h-4" />
+                      <Eye className="w-3 h-3" />
                     )}
                   </button>
                 </div>
@@ -177,7 +178,7 @@ export default function LoginModal({
 
               {/* Ingat saya + Lupa password */}
               <div className="flex items-center justify-between">
-                <label className="flex items-center space-x-2 text-sm text-gray-600">
+                <label className="flex items-center space-x-2 text-xs text-gray-600">
                   <input
                     type="checkbox"
                     className="rounded border-gray-300 text-[#0CA678]"
@@ -186,7 +187,7 @@ export default function LoginModal({
                 </label>
                 <Link
                   href="/send-email"
-                  className="text-xs text-emerald-600 hover:underline"
+                  className="text-[11px] text-emerald-600 hover:underline"
                 >
                   Lupa kata sandi?
                 </Link>
@@ -196,12 +197,12 @@ export default function LoginModal({
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#0CA678] hover:bg-[#08916C] text-white py-3"
+                className="w-full bg-[#0CA678] hover:bg-[#08916C] text-white py-1.5 text-xs"
               >
                 {loading ? "Memproses..." : "Masuk"}
               </Button>
 
-              <div className="text-center text-gray-500">atau</div>
+              <div className="text-center text-gray-500 text-xs">atau</div>
 
               {/* Google login */}
               {/* <Button
@@ -220,7 +221,7 @@ export default function LoginModal({
               </Button> */}
 
               <div className="flex justify-center">
-                <div className="w-full max-w-md">
+                <div className="w-full max-w-sm">
                   <GoogleLogin
                     onSuccess={async (credentialResponse) => {
                       try {
@@ -268,7 +269,7 @@ export default function LoginModal({
                 </div>
               </div>
 
-              <p className="text-sm text-gray-500 text-center mt-4">
+              <p className="text-xs text-gray-500 text-center mt-1">
                 Belum punya akun?{" "}
                 <button
                   onClick={() => {

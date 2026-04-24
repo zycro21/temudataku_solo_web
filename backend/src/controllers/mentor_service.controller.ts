@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../middlewares/authenticate.js";
-import { HttpError } from "../utils/httpError";
+import { HttpError } from "../utils/httpError.js";
 import * as MentorServiceService from "../services/mentor_service.service.js";
-import { uploadPath } from "../middlewares/uploadImage";
+import { uploadPath } from "../middlewares/uploadImage.js";
 import { PrismaClient } from "@prisma/client";
 import { logActivity } from "../utils/logActivtiy.js";
 

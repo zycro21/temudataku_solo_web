@@ -107,12 +107,12 @@ export default function StatCards() {
 
   const stats = [
     {
-      title: "Program Terdaftar",
+      title: "Jumlah Mentoring",
       value: programCount ?? 0,
       icon: "/assets/dashboard/user/programterdaftar.svg",
     },
     {
-      title: "Jumlah Materi (E-Learning)",
+      title: "Jumlah E-Learning",
       value: materiCount ?? 0,
       icon: "/assets/dashboard/user/jumlahmateri.svg",
     },
@@ -129,24 +129,24 @@ export default function StatCards() {
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-x-6 gap-y-6 mb-6 justify-items-start">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
       {stats.map((item, idx) => (
         <div
           key={idx}
-          className="relative p-4 bg-white border border-gray-200 rounded-lg shadow-sm max-w-[264px] w-full"
+          className="relative p-3 bg-white border border-gray-200 rounded-md shadow-sm w-full"
         >
-          <ChevronRight className="absolute top-3 right-3 w-4 h-4 text-gray-800" />
+          <ChevronRight className="absolute top-2 right-2 w-3 h-3 text-gray-700" />
 
-          <div className="flex items-center gap-2">
-            <Image src={item.icon} alt={item.title} width={16} height={16} />
-            <span className="text-sm text-gray-600">{item.title}</span>
+          <div className="flex items-center gap-1.5">
+            <Image src={item.icon} alt={item.title} width={14} height={14} />
+            <span className="text-[12px] text-gray-600">{item.title}</span>
           </div>
 
-          <div className="mt-5 h-9 flex items-center">
+          <div className="mt-3 h-7 flex items-center">
             {loading ? (
-              <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto" />
+              <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto" />
             ) : (
-              <span className="text-3xl font-bold text-gray-900">
+              <span className="text-xl font-bold text-gray-900">
                 {item.value}
               </span>
             )}

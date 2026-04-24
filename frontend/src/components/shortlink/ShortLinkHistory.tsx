@@ -215,7 +215,7 @@ export default function ShortLinkHistory() {
             </table>
           </div>
 
-                    {/* Pagination */}
+          {/* Pagination */}
           <div className="flex justify-between items-center mt-6 text-sm">
             <p className="text-gray-500">
               Halaman {currentPage} dari {totalPages}

@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "target": "es2020", // Target modern JS
-    "module": "ESNext", // Support native import/export
-    "moduleResolution": "node", // Resolusi module seperti di Node.js
+    "module": "Node16", // Support native import/export
+    "moduleResolution": "node16", // Resolusi module seperti di Node.js
     "rootDir": "./src", // Folder source code
     "outDir": "./dist", // Folder output hasil kompilasi
     "strict": true, // Aktifkan strict type checking

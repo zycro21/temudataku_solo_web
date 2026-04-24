@@ -81,28 +81,22 @@ export default function MentorScheduleSelectionModal({
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent
-          className="sm:max-w-7xl min-h-[75vh] max-h-[95vh] overflow-hidden p-0"
+          className="sm:max-w-5xl max-h-[88vh] overflow-hidden p-0"
           onInteractOutside={(e) => {
-            e.preventDefault(); // prevent close on outside click
+            e.preventDefault();
           }}
           onEscapeKeyDown={(e) => {
-            e.preventDefault(); // prevent close on ESC
+            e.preventDefault();
           }}
         >
           <VisuallyHidden>
             <DialogTitle>Pilih Mentor</DialogTitle>
           </VisuallyHidden>
 
-          <div
-            className={`grid grid-cols-1 sm:grid-cols-3 sm:grid-rows-[1fr_auto] divide-x divide-gray-200 h-full`}
-          >
+          <div className="grid grid-cols-1 sm:grid-cols-3 sm:grid-rows-[1fr_auto] divide-x divide-gray-200 max-h-[88vh]">
             {/* COLUMN 1 — Mentor Info */}
-            <div
-              className={`flex flex-col px-3 ${
-                !selectedDate ? "justify-start h-full" : "h-full"
-              }`}
-            >
-              <div className="flex flex-col items-center text-center pt-6 pb-4">
+            <div className="flex flex-col px-3 overflow-y-auto">
+              <div className="flex flex-col items-center text-center pt-4 pb-3">
                 <Image
                   src={
                     mentor.user.profilePicture
@@ -110,15 +104,15 @@ export default function MentorScheduleSelectionModal({
                       : "/assets/default-avatar.png"
                   }
                   alt={mentor.user.fullName}
-                  width={130}
-                  height={130}
+                  width={90}
+                  height={90}
                   unoptimized
                   className="rounded-full object-cover aspect-square"
                 />
 
-                <div className="w-full text-left mt-3">
-                  <h3 className="text-xl font-bold">{mentor.user.fullName}</h3>
-                  <p className="text-sm text-gray-400 mt-1 leading-relaxed">
+                <div className="w-full text-left mt-2">
+                  <h3 className="text-sm font-bold">{mentor.user.fullName}</h3>
+                  <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">
                     {mentor.bio || "-"}
                   </p>
                   {/* LinkedIn Button */}
@@ -128,8 +122,8 @@ export default function MentorScheduleSelectionModal({
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      <Button className="mt-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md flex items-center gap-2 px-6 py-2.5 text-sm">
-                        <FaLinkedin className="text-white w-5 h-5" />
+                      <Button className="mt-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md flex items-center gap-1.5 px-4 py-1.5 text-xs h-auto">
+                        <FaLinkedin className="text-white w-3.5 h-3.5" />
                         <span className="leading-none">Lihat Profil</span>
                       </Button>
                     </a>
@@ -137,36 +131,32 @@ export default function MentorScheduleSelectionModal({
                 </div>
               </div>
 
-              <div className="px-3 py-3 space-y-3 text-sm text-black mb-4">
-                <div className="flex items-center space-x-2">
-                  <Clock size={18} className="text-gray-400" />
+              <div className="px-2 py-2 space-y-2 text-xs text-black mb-3">
+                <div className="flex items-center space-x-1.5">
+                  <Clock size={14} className="text-gray-400" />
                   <span className="font-medium">
                     {selectedSlotDuration > 0
                       ? `${selectedSlotDuration} Menit`
                       : "Pilih waktu"}
                   </span>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Video size={18} className="text-gray-400" />
+                <div className="flex items-center space-x-1.5">
+                  <Video size={14} className="text-gray-400" />
                   <span className="font-medium">Zoom Meeting</span>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Wrench size={18} className="text-gray-400" />
+                <div className="flex items-center space-x-1.5">
+                  <Wrench size={14} className="text-gray-400" />
                   <span className="font-medium">WIB (UTC+7)</span>
                 </div>
               </div>
             </div>
 
             {/* COLUMN 2 — Calendar */}
-            <div
-              className={`flex flex-col px-4 ${
-                !selectedDate ? "justify-start h-full" : "h-full"
-              }`}
-            >
-              <div className="flex flex-col items-start text-left pt-6 pb-1">
-                <h2 className="text-lg font-semibold">Atur Jadwalmu</h2>
-                <p className="text-[8.5px] text-gray-500 mt-1">
-                  Tentukan tanggal dan bulan yang paling pas buat-mu 
+            <div className="flex flex-col px-3 overflow-y-auto">
+              <div className="flex flex-col items-start text-left pt-4 pb-1">
+                <h2 className="text-sm font-semibold">Atur Jadwalmu</h2>
+                <p className="text-[10px] text-gray-500 mt-0.5">
+                  Tentukan tanggal dan bulan yang paling pas buat-mu
                 </p>
               </div>
 
@@ -178,19 +168,15 @@ export default function MentorScheduleSelectionModal({
             </div>
 
             {/* COLUMN 3 — Time */}
-            <div
-              className={`flex flex-col px-4 ${
-                !selectedDate ? "justify-start h-full" : "h-full"
-              }`}
-            >
-              <div className="flex flex-col items-start text-left pt-6 pb-3">
-                <h2 className="text-lg font-semibold">Pilih Waktu</h2>
-                <p className="text-[8.5px] text-gray-500 mt-1">
+            <div className="flex flex-col px-3 overflow-y-auto">
+              <div className="flex flex-col items-start text-left pt-4 pb-2">
+                <h2 className="text-sm font-semibold">Pilih Waktu</h2>
+                <p className="text-[10px] text-gray-500 mt-0.5">
                   Tentukan jam yang paling pas buat-mu
                 </p>
               </div>
 
-              <div className="mt-4">
+              <div className="mt-2 pr-1">
                 {selectedDate ? (
                   (() => {
                     const dayKey = dayMap[selectedDate.getDay()];
@@ -198,14 +184,14 @@ export default function MentorScheduleSelectionModal({
 
                     if (times.length === 0) {
                       return (
-                        <p className="text-sm text-gray-500">
+                        <p className="text-xs text-gray-500">
                           Mentor tidak ada jadwal
                         </p>
                       );
                     }
 
                     return (
-                      <div className="flex flex-col space-y-2">
+                      <div className="flex flex-col space-y-1.5">
                         {times.map((time, idx) => {
                           const isSelected = selectedTime === time;
 
@@ -216,7 +202,7 @@ export default function MentorScheduleSelectionModal({
                               onClick={() =>
                                 setSelectedTime(isSelected ? null : time)
                               }
-                              className={`w-full text-sm transition-colors ${
+                              className={`w-full text-xs h-auto py-1.5 transition-colors ${
                                 isSelected
                                   ? "bg-emerald-600 text-white hover:bg-emerald-700"
                                   : selectedTime
@@ -232,7 +218,7 @@ export default function MentorScheduleSelectionModal({
                     );
                   })()
                 ) : (
-                  <p className="text-sm text-gray-400">Pilih tanggal dulu</p>
+                  <p className="text-xs text-gray-400">Pilih tanggal dulu</p>
                 )}
               </div>
             </div>
@@ -246,11 +232,11 @@ export default function MentorScheduleSelectionModal({
                 if (times.length === 0) return null;
 
                 return (
-                  <div className="sm:col-start-2 sm:col-span-2 sm:row-start-2 col-span-1 bg-gray-100 p-4 text-sm text-gray-800 relative">
-                    <p className="font-medium mb-2">
+                  <div className="sm:col-start-2 sm:col-span-2 sm:row-start-2 col-span-1 bg-gray-100 px-4 py-3 text-xs text-gray-800 border-t border-gray-200">
+                    <p className="font-medium mb-1.5">
                       Berikut jadwal mentoring-mu:
                     </p>
-                    <p className="text-lg font-bold">
+                    <p className="text-sm font-bold">
                       {selectedDate.toLocaleDateString("id-ID", {
                         weekday: "long",
                         day: "numeric",
@@ -259,20 +245,20 @@ export default function MentorScheduleSelectionModal({
                       })}{" "}
                       {selectedTime && (
                         <>
-                          <span className="ml-1 font-normal text-lg">
+                          <span className="ml-1 font-normal text-sm">
                             pukul{" "}
                           </span>
-                          <span className="font-bold text-lg">
+                          <span className="font-bold text-sm">
                             {selectedTime} WIB
                           </span>
                         </>
                       )}
                     </p>
 
-                    <div className="flex justify-end gap-3 mt-4">
+                    <div className="flex justify-end gap-2 mt-3">
                       <button
                         type="button"
-                        className="px-4 py-2 rounded-md border border-emerald-600 text-emerald-600 bg-white hover:bg-emerald-50 transition"
+                        className="px-3 py-1.5 rounded-md border border-emerald-600 text-emerald-600 bg-white hover:bg-emerald-50 transition text-xs"
                         onClick={() => setShowSummary(false)}
                       >
                         Batal
@@ -281,7 +267,7 @@ export default function MentorScheduleSelectionModal({
                       <button
                         type="button"
                         disabled={!selectedTime}
-                        className={`px-4 py-2 rounded-md border transition ${
+                        className={`px-3 py-1.5 rounded-md border transition text-xs ${
                           selectedTime
                             ? "bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700"
                             : "bg-gray-200 text-gray-400 border-gray-200 cursor-not-allowed"

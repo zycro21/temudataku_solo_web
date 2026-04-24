@@ -8,7 +8,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { AuthenticatedRequestPractice } from "../middlewares/authenticate.js";
-import { uploadToGoogleDrive } from "../utils/googleDrive";
+import { uploadToGoogleDrive } from "../utils/googleDrive.js";
 
 const prisma = new PrismaClient();
 

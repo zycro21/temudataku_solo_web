@@ -76,19 +76,20 @@ export default function FeedbackSection({
   onFeedbackSubmitted,
 }: FeedbackSectionProps) {
   return (
-    <div className="mb-6">
-      <h2 className="text-lg font-semibold text-gray-800 mb-4">{title}</h2>
+    <div className="mb-5">
+      <h2 className="text-base font-semibold text-gray-800 mb-3">{title}</h2>
 
       {feedbacks.length === 0 ? (
-        <p className="text-gray-500 text-sm">Belum ada feedback.</p>
+        <p className="text-gray-500 text-xs">Belum ada feedback.</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {feedbacks.map((feedback) => (
             <Card
               key={feedback.id}
-              className="p-0 overflow-hidden flex flex-col justify-between"
+              className="p-0 overflow-hidden flex flex-col"
             >
-              <div className="relative w-full h-48">
+              {/* IMAGE */}
+              <div className="relative w-full h-32">
                 <Image
                   src={
                     feedback.image &&
@@ -103,42 +104,49 @@ export default function FeedbackSection({
                 />
               </div>
 
-              <CardContent className="px-5 py-6 flex-1 space-y-3">
-                <h3 className="text-lg font-bold text-gray-800">
+              {/* CONTENT */}
+              <CardContent className="px-3 py-3 flex-1 space-y-2">
+                <h3 className="text-sm font-semibold text-gray-800 leading-tight line-clamp-2">
                   {feedback.title}
                 </h3>
-                <div className="text-sm text-gray-600 space-y-1">
+
+                <div className="text-xs text-gray-600 space-y-1 line-clamp-3 break-words">
                   {renderFormattedDescription(feedback.description)}
                 </div>
               </CardContent>
 
-              <CardFooter className="flex flex-col items-start gap-4 px-5 pb-6 mt-auto">
-                <div className="flex items-center text-sm gap-2 text-gray-600">
-                  <Calendar className="w-4 h-4" />
-                  <span>
+              {/* FOOTER */}
+              <CardFooter className="flex flex-col items-start gap-2 px-3 pb-3 mt-auto">
+                <div className="flex items-center text-xs gap-1.5 text-gray-600">
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span className="break-words">
                     {feedback.date} • {feedback.time}
                   </span>
                 </div>
-                <div className="flex items-center text-sm gap-2 text-gray-600">
-                  <User className="w-4 h-4" />
-                  <span>{feedback.mentor}</span>
+
+                <div className="flex items-center text-xs gap-1.5 text-gray-600">
+                  <User className="w-3.5 h-3.5" />
+                  <span className="break-words">{feedback.mentor}</span>
                 </div>
 
-                {feedback.status === "Belum" ? (
-                  <TambahFeedbackModal
-                    sessionId={feedback.id}
-                    feedbackTitle={feedback.title}
-                    feedbackDate={feedback.date}
-                    feedbackTime={feedback.time}
-                    onSuccess={onFeedbackSubmitted}
-                  />
-                ) : (
-                  <LihatFeedbackModal
-                    feedbackTitle={feedback.title}
-                    feedbackDate={feedback.date}
-                    feedbackTime={feedback.time}
-                  />
-                )}
+                {/* ACTION */}
+                <div className="w-full">
+                  {feedback.status === "Belum" ? (
+                    <TambahFeedbackModal
+                      sessionId={feedback.id}
+                      feedbackTitle={feedback.title}
+                      feedbackDate={feedback.date}
+                      feedbackTime={feedback.time}
+                      onSuccess={onFeedbackSubmitted}
+                    />
+                  ) : (
+                    <LihatFeedbackModal
+                      feedbackTitle={feedback.title}
+                      feedbackDate={feedback.date}
+                      feedbackTime={feedback.time}
+                    />
+                  )}
+                </div>
               </CardFooter>
             </Card>
           ))}

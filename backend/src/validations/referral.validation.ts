@@ -134,6 +134,19 @@ export const applyReferralSchema = z.object({
   }),
 });
 
+export const applyReferralAyclSchema = z.object({
+  params: z.object({
+    id: z.string().min(1),
+  }),
+  body: z.object({
+    code: z
+      .string()
+      .min(6)
+      .max(20)
+      .regex(/^[A-Za-z0-9-_]+$/),
+  }),
+});
+
 export const getReferralCommissionsSchema = z.object({
   query: z.object({
     referralCodeId: z.string().optional(),

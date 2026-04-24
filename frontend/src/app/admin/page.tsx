@@ -52,7 +52,7 @@ export default function AdminPage() {
         // === FETCH USERS ===
         const res = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/users?limit=10000`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
 
         const users = res.data.data.users;
@@ -60,7 +60,7 @@ export default function AdminPage() {
 
         // Hitung mentor
         const totalMentors = users.filter((user: any) =>
-          user.userRoles?.some((r: any) => r.role?.roleName === "mentor")
+          user.userRoles?.some((r: any) => r.role?.roleName === "mentor"),
         ).length;
 
         // === HITUNG USER 7 HARI TERAKHIR ===
@@ -82,7 +82,7 @@ export default function AdminPage() {
               limit: 10000,
             },
             withCredentials: true,
-          }
+          },
         );
 
         const statsFromApi = paymentRes.data.stats;
@@ -125,7 +125,7 @@ export default function AdminPage() {
     { status: "pending", total: 0 },
     { status: "confirmed", total: 0 },
     { status: "failed", total: 0 },
-    { status: "refunded", total: 0 },
+    { status: "cancelled", total: 0 },
   ]);
 
   useEffect(() => {
@@ -134,19 +134,19 @@ export default function AdminPage() {
         // === FETCH PAYMENT LANGSUNG DARI API BARU ===
         const res = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/payment/payments?limit=10000`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
 
         const payments = res.data.data || [];
 
         // Status yang diizinkan
-        type AllowedStatus = "pending" | "confirmed" | "failed" | "refunded";
+        type AllowedStatus = "pending" | "confirmed" | "failed" | "cancelled";
 
         const allowedStatuses: AllowedStatus[] = [
           "pending",
           "confirmed",
           "failed",
-          "refunded",
+          "cancelled",
         ];
 
         // Counter awal
@@ -154,7 +154,7 @@ export default function AdminPage() {
           pending: 0,
           confirmed: 0,
           failed: 0,
-          refunded: 0,
+          cancelled: 0,
         };
 
         // Hitung status dari payment.status
@@ -171,7 +171,7 @@ export default function AdminPage() {
           { status: "pending", total: statusCount.pending },
           { status: "confirmed", total: statusCount.confirmed },
           { status: "failed", total: statusCount.failed },
-          { status: "refunded", total: statusCount.refunded },
+          { status: "cancelled", total: statusCount.cancelled },
         ]);
       } catch (err) {
         console.error("Error loading payment status:", err);
@@ -185,7 +185,7 @@ export default function AdminPage() {
     pending: "#F59F00", // oranye
     confirmed: "#0CA678", // hijau
     failed: "#E03131", // merah
-    refunded: "#000080",
+    cancelled: "#000080",
   };
 
   const capitalize = (v: unknown) => {
@@ -198,7 +198,6 @@ export default function AdminPage() {
     key: string;
     month: string;
     mentoring: number;
-    practice: number;
     e_learning: number;
   }
 
@@ -231,7 +230,6 @@ export default function AdminPage() {
         key: `${date.getFullYear()}-${date.getMonth() + 1}`,
         month: monthNames[date.getMonth()],
         mentoring: 0,
-        practice: 0,
         e_learning: 0,
       });
     }
@@ -243,19 +241,19 @@ export default function AdminPage() {
   const fetchMentoringRevenue = async () => {
     const res = await axios.get(
       `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/booking/admin/bookings?page=1&limit=9999`,
-      { withCredentials: true }
+      { withCredentials: true },
     );
     return res.data.data.data;
   };
 
   // --- 3. Fetch practice ---
-  const fetchPracticeRevenue = async () => {
-    const res = await axios.get(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/practice/admin/practice-purchases?page=1&limit=9999`,
-      { withCredentials: true }
-    );
-    return res.data.data.data;
-  };
+  // const fetchPracticeRevenue = async () => {
+  //   const res = await axios.get(
+  //     `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/practice/admin/practice-purchases?page=1&limit=9999`,
+  //     { withCredentials: true },
+  //   );
+  //   return res.data.data.data;
+  // };
 
   // --- 4. Hitung mentoring ---
   const calculateMentoringRevenue = (bookings: any[]) => {
@@ -277,24 +275,24 @@ export default function AdminPage() {
   };
 
   // --- 5. Hitung practice ---
-  const calculatePracticeRevenue = (
-    practicePurchases: any[],
-    months: RevenueItem[]
-  ) => {
-    practicePurchases.forEach((p) => {
-      if (p.status !== "confirmed" && p.status !== "completed") return;
-      if (!p.payment) return;
-      if (!p.payment.paymentDate) return;
+  // const calculatePracticeRevenue = (
+  //   practicePurchases: any[],
+  //   months: RevenueItem[],
+  // ) => {
+  //   practicePurchases.forEach((p) => {
+  //     if (p.status !== "confirmed" && p.status !== "completed") return;
+  //     if (!p.payment) return;
+  //     if (!p.payment.paymentDate) return;
 
-      const payDate = new Date(p.payment.paymentDate);
-      const key = `${payDate.getFullYear()}-${payDate.getMonth() + 1}`;
+  //     const payDate = new Date(p.payment.paymentDate);
+  //     const key = `${payDate.getFullYear()}-${payDate.getMonth() + 1}`;
 
-      const target = months.find((m) => m.key === key);
-      if (target) target.practice += Number(p.payment.amount);
-    });
+  //     const target = months.find((m) => m.key === key);
+  //     if (target) target.practice += Number(p.payment.amount);
+  //   });
 
-    return months;
-  };
+  //   return months;
+  // };
 
   // E-Learning masih pakai dummy karena API belum selesai
   // const generateELearningDummy = (months: RevenueItem[]) => {
@@ -315,8 +313,8 @@ export default function AdminPage() {
         const mentoringBookings = await fetchMentoringRevenue();
         let months = calculateMentoringRevenue(mentoringBookings);
 
-        const practicePurchases = await fetchPracticeRevenue();
-        months = calculatePracticeRevenue(practicePurchases, months);
+        // const practicePurchases = await fetchPracticeRevenue();
+        // months = calculatePracticeRevenue(practicePurchases, months);
 
         // Tambahkan dummy e-learning
         // months = generateELearningDummy(months);
@@ -361,7 +359,7 @@ export default function AdminPage() {
                 sortOrder: "desc",
               },
               withCredentials: true,
-            }
+            },
           );
 
           const bookings = res.data.data.data;
@@ -414,7 +412,7 @@ export default function AdminPage() {
                   document: docName,
                   size: formatSize,
                   rawPath,
-                })
+                }),
               );
             }
 
@@ -465,7 +463,7 @@ export default function AdminPage() {
                 ...s,
                 mentee: menteeLabel,
               };
-            }
+            },
           );
 
           // ============================================================
@@ -530,7 +528,7 @@ export default function AdminPage() {
     try {
       await axios.delete(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentoringSession/admin/mentoring-sessions/${sessionId}`,
-        { withCredentials: true }
+        { withCredentials: true },
       );
 
       toast.success("Sesi mentoring berhasil dihapus!", {
@@ -574,7 +572,7 @@ export default function AdminPage() {
       try {
         const response = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/admin_activity_logs/activity-logs`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
 
         const items = response.data.data.data;
@@ -601,6 +599,22 @@ export default function AdminPage() {
 
     fetchActivities();
   }, []);
+
+  const formatRupiahShort = (value: number) => {
+    if (value >= 1_000_000_000_000) {
+      return `Rp${(value / 1_000_000_000_000).toFixed(1)}T`;
+    }
+    if (value >= 1_000_000_000) {
+      return `Rp${(value / 1_000_000_000).toFixed(1)}M`;
+    }
+    if (value >= 1_000_000) {
+      return `Rp${(value / 1_000_000).toFixed(1)}Jt`;
+    }
+    if (value >= 1_000) {
+      return `Rp${(value / 1_000).toFixed(0)}Rb`;
+    }
+    return `Rp${value}`;
+  };
 
   return (
     <>
@@ -651,41 +665,46 @@ export default function AdminPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="w-3/4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-8">
+      <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-6">
         {stats.map((stat, index) => (
           <Card
             key={index}
-            className="max-w-[340px] w-full flex flex-col justify-between px-0 py-2
-           shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200
-           cursor-pointer rounded-lg bg-white"
+            className="
+        w-full flex flex-col justify-between
+        px-0 py-1.5
+        shadow-sm hover:shadow
+        hover:-translate-y-0.5
+        transition-all duration-200
+        cursor-pointer rounded-md bg-white
+      "
           >
             {/* Header */}
-            <CardHeader className="flex items-center justify-between px-5 pt-2 pb-1">
-              <div className="flex items-center gap-2">
+            <CardHeader className="flex items-center justify-between px-3 pt-2 pb-1">
+              <div className="flex items-center gap-1.5">
                 <Image
                   src={stat.image}
                   alt={stat.title}
-                  width={20}
-                  height={20}
+                  width={16}
+                  height={16}
                   className="opacity-90"
                 />
-                <CardTitle className="text-md font-medium text-gray-600">
+                <CardTitle className="text-xs font-medium text-gray-600">
                   {stat.title}
                 </CardTitle>
               </div>
 
-              <ChevronRight className="w-5 h-5 text-gray-500" />
+              <ChevronRight className="w-4 h-4 text-gray-500" />
             </CardHeader>
 
             {/* Content */}
-            <CardContent className="px-5 pt-0 pb-3">
-              <div className="flex items-center gap-3">
-                <p className="text-4xl font-bold text-gray-900 leading-tight">
+            <CardContent className="px-3 pt-0 pb-2">
+              <div className="flex items-center gap-2">
+                <p className="text-xl sm:text-2xl font-semibold text-gray-900 leading-tight">
                   {stat.value}
                 </p>
 
                 {stat.change && (
-                  <span className="inline-block text-xs font-medium text-emerald-700 bg-green-200 px-2 py-1 rounded-full">
+                  <span className="text-[10px] font-medium text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full">
                     {stat.change}
                   </span>
                 )}
@@ -696,29 +715,29 @@ export default function AdminPage() {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-8">
-        {/* Status Pembayaran Chart (Clean Version Improved) */}
-        <Card className="bg-white rounded-xl shadow-sm col-span-1 lg:col-span-2">
-          <CardHeader className="pb-2">
-            <div className="flex items-center gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 mb-6">
+        {/* Status Pembayaran */}
+        <Card className="bg-white rounded-md shadow-sm col-span-1 lg:col-span-2">
+          <CardHeader className="pb-1 pr-4">
+            <div className="flex items-center gap-2">
               <Image
                 src="/assets/admin/moneyoverviewchart.svg"
                 alt="Status"
-                width={20}
-                height={20}
+                width={12}
+                height={12}
               />
-              <CardTitle className="text-lg font-semibold text-gray-400">
+              <CardTitle className="text-sm font-semibold text-gray-500">
                 Status Pembayaran
               </CardTitle>
             </div>
           </CardHeader>
 
-          <CardContent className="h-[260px] pt-2">
+          <CardContent className="h-[200px] pt-1 px-2">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={paymentStatus}
-                barCategoryGap="20%"
-                margin={{ top: 5, right: 0, left: -40, bottom: -10 }}
+                barCategoryGap="25%"
+                margin={{ top: 0, right: 5, left: -20, bottom: -5 }}
               >
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
 
@@ -727,33 +746,32 @@ export default function AdminPage() {
                   tickFormatter={(value) =>
                     value.charAt(0).toUpperCase() + value.slice(1)
                   }
-                  tick={{ fill: "#6B7280", fontSize: 12 }}
+                  tick={{ fill: "#6B7280", fontSize: 10 }}
                   axisLine={{ stroke: "#E5E7EB" }}
                   tickLine={false}
                 />
 
                 <YAxis
-                  tick={{ fill: "#6B7280", fontSize: 12 }}
+                  tick={{ fill: "#6B7280", fontSize: 10 }}
                   axisLine={false}
                   tickLine={false}
                 />
 
                 <Tooltip
-                  cursor={{ fill: "rgba(0,0,0,0.05)" }}
-                  // tanda tipe any supaya TS tidak ngeluh, lalu kita aman-kan value/name di helper
+                  cursor={{ fill: "rgba(0,0,0,0.04)" }}
                   formatter={(value: any, name: any) => [
                     value,
                     capitalize(name),
                   ]}
                   contentStyle={{
                     backgroundColor: "#fff",
-                    borderRadius: 10,
+                    borderRadius: 6,
                     border: "1px solid #E5E7EB",
-                    fontSize: 12,
+                    fontSize: 10,
                   }}
                 />
 
-                <Bar dataKey="total" radius={[6, 6, 0, 0]} maxBarSize={50}>
+                <Bar dataKey="total" radius={[4, 4, 0, 0]} maxBarSize={30}>
                   {paymentStatus.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={colors[entry.status]} />
                   ))}
@@ -763,71 +781,71 @@ export default function AdminPage() {
           </CardContent>
         </Card>
 
-        {/* Pendapatan Chart */}
-        <Card className="bg-white rounded-xl shadow-sm col-span-1 lg:col-span-3">
-          <CardHeader className="pb-2 flex items-center justify-between">
-            <div className="flex items-center gap-3">
+        {/* Pendapatan */}
+        <Card className="bg-white rounded-md shadow-sm col-span-1 lg:col-span-3">
+          <CardHeader className="pb-1 pr-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 pt-[-10px]">
               <Image
                 src="/assets/admin/overviewpendapatan.svg"
                 alt="Revenue"
-                width={12}
-                height={12}
+                width={10}
+                height={10}
               />
-              <CardTitle className="text-lg font-semibold text-gray-400">
+              <CardTitle className="text-sm font-semibold text-gray-500">
                 Pendapatan
               </CardTitle>
             </div>
 
-            {/* Legend Custom */}
-            <div className="flex items-center gap-4 text-sm">
+            {/* Legend */}
+            <div className="flex flex-wrap items-center gap-2 text-[10px]">
               <div className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded-full block bg-[#9333ea]"></span>
+                <span className="w-2.5 h-2.5 rounded-full bg-[#9333ea]" />
                 <span className="text-gray-500">Mentoring</span>
               </div>
 
-              <div className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded-full block bg-[#16a34a]"></span>
+              {/* <div className="flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#16a34a]" />
                 <span className="text-gray-500">Practice</span>
-              </div>
+              </div> */}
 
               <div className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded-full block bg-[#06b6d4]"></span>
+                <span className="w-2.5 h-2.5 rounded-full bg-[#06b6d4]" />
                 <span className="text-gray-500">E-Learning</span>
               </div>
             </div>
           </CardHeader>
 
-          <CardContent className="h-[260px] pt-2">
+          <CardContent className="h-[200px] pt-1 px-2">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
                 data={revenueData}
-                margin={{ top: 5, right: 10, left: 5, bottom: -5 }}
+                margin={{ top: 5, right: 5, left: 0, bottom: -5 }}
               >
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
 
                 <XAxis
                   dataKey="month"
-                  tick={{ fill: "#6B7280", fontSize: 12 }}
+                  tick={{ fill: "#6B7280", fontSize: 10 }}
                   axisLine={{ stroke: "#E5E7EB" }}
                   tickLine={false}
-                  padding={{ left: 10, right: 10 }}
-                  tickMargin={8}
+                  padding={{ left: 5, right: 5 }}
+                  tickMargin={6}
                 />
 
                 <YAxis
-                  tickFormatter={(value) => `Rp${(value / 1000).toFixed(0)}Rb`}
-                  tick={{ fill: "#6B7280", fontSize: 12 }}
+                  tickFormatter={(value) => formatRupiahShort(value)}
+                  tick={{ fill: "#6B7280", fontSize: 10 }}
                   axisLine={false}
                   tickLine={false}
-                  tickMargin={5}
+                  tickMargin={4}
                 />
 
                 <Tooltip
                   contentStyle={{
                     backgroundColor: "#fff",
-                    borderRadius: 8,
+                    borderRadius: 6,
                     border: "1px solid #E5E7EB",
-                    fontSize: 12,
+                    fontSize: 10,
                   }}
                   formatter={(value: number) => [
                     `Rp ${value.toLocaleString("id-ID")}`,
@@ -836,27 +854,25 @@ export default function AdminPage() {
                   labelFormatter={(label) => `Bulan: ${label}`}
                 />
 
-                {/* <Legend /> */}
-
                 <Line
                   type="monotone"
                   dataKey="mentoring"
                   stroke="#9333ea"
-                  strokeWidth={3}
+                  strokeWidth={2}
                   dot={false}
                 />
-                <Line
+                {/* <Line
                   type="monotone"
                   dataKey="practice"
                   stroke="#16a34a"
-                  strokeWidth={3}
+                  strokeWidth={2}
                   dot={false}
-                />
+                /> */}
                 <Line
                   type="monotone"
                   dataKey="e_learning"
                   stroke="#06b6d4"
-                  strokeWidth={3}
+                  strokeWidth={2}
                   dot={false}
                 />
               </LineChart>
@@ -866,54 +882,59 @@ export default function AdminPage() {
       </div>
 
       {/* Bottom Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {loading ? (
-          <p>Loading...</p>
+          <p className="text-sm">Loading...</p>
         ) : (
-          <Card>
-            <CardHeader className="pb-0 flex items-center justify-between">
-              <div className="flex items-center gap-3">
+          <Card className="shadow-sm rounded-md">
+            {/* HEADER */}
+            <CardHeader className="pb-1 pl-6 pr-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
                 <Image
                   src="/assets/dashboard/user/jadwal.svg"
                   alt="Status"
-                  width={15}
-                  height={15}
+                  width={14}
+                  height={14}
                 />
-                <CardTitle className="text-lg font-semibold text-gray-400">
+                <CardTitle className="text-xl font-semibold text-gray-500">
                   Sesi Mentoring
                 </CardTitle>
               </div>
 
-              <ChevronRight className="w-5 h-5 text-gray-400" />
+              <ChevronRight className="w-4 h-4 text-gray-400" />
             </CardHeader>
 
-            <CardContent>
+            {/* CONTENT */}
+            {/* CONTENT */}
+            <CardContent className="px-5 pb-4">
               <div className="overflow-x-auto pb-2 thin-scroll">
                 <div className="flex gap-4 min-w-max">
                   {sessions.map((session) => (
                     <div
                       key={session.id}
-                      className="border rounded-xl p-4 w-[320px] bg-white shadow-sm"
+                      className="border rounded-lg p-4 w-[280px] bg-white shadow-sm"
                     >
                       {/* Status + Action */}
-                      <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center justify-between mb-3">
                         <Badge
-                          className={`${
-                            statusColors[session.status]
-                          } px-3 py-1 text-sm rounded-md`}
+                          className={`${statusColors[session.status]} px-2.5 py-1 text-[11px] rounded-md`}
                         >
                           {session.status.charAt(0).toUpperCase() +
                             session.status.slice(1)}
                         </Badge>
 
-                        <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 px-3 text-xs"
+                          >
                             Edit
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
-                            className="text-red-600 border-red-200 bg-transparent"
+                            className="h-8 px-3 text-xs text-red-600 border-red-200"
                             onClick={() => handleDeleteSession(session.id)}
                           >
                             Hapus
@@ -921,11 +942,10 @@ export default function AdminPage() {
                         </div>
                       </div>
 
-                      {/* Konten */}
-                      <div className="space-y-4 text-base">
+                      {/* CONTENT */}
+                      <div className="space-y-3 text-[13px]">
                         {/* Mentor & Mentee */}
-                        <div className="flex items-start gap-8">
-                          {/* Mentor */}
+                        <div className="flex items-start gap-4">
                           <div className="flex gap-2 w-1/2">
                             <Image
                               src="/assets/admin/bluementor.svg"
@@ -933,15 +953,14 @@ export default function AdminPage() {
                               width={16}
                               height={16}
                             />
-                            <div className="pl-1 w-full">
-                              <p className="text-gray-500 text-sm">Mentor</p>
-                              <p className="font-medium truncate">
+                            <div className="w-full">
+                              <p className="text-gray-500 text-xs">Mentor</p>
+                              <p className="font-medium truncate text-sm">
                                 {session.mentor}
                               </p>
                             </div>
                           </div>
 
-                          {/* Mentee */}
                           {session.mentee && (
                             <div className="flex gap-2 w-1/2">
                               <Image
@@ -950,9 +969,9 @@ export default function AdminPage() {
                                 width={16}
                                 height={16}
                               />
-                              <div className="pl-1 w-full">
-                                <p className="text-gray-500 text-sm">Mentee</p>
-                                <p className="font-medium truncate">
+                              <div className="w-full">
+                                <p className="text-gray-500 text-xs">Mentee</p>
+                                <p className="font-medium truncate text-sm">
                                   {session.mentee}
                                 </p>
                               </div>
@@ -969,10 +988,12 @@ export default function AdminPage() {
                             height={16}
                           />
                           <div>
-                            <p className="text-gray-500 text-sm">
+                            <p className="text-gray-500 text-xs">
                               Tanggal & Waktu
                             </p>
-                            <p className="font-medium">{session.date}</p>
+                            <p className="font-medium text-sm">
+                              {session.date}
+                            </p>
                           </div>
                         </div>
 
@@ -985,10 +1006,8 @@ export default function AdminPage() {
                             height={16}
                           />
                           <div className="w-full">
-                            <p className="text-gray-500 text-sm">
-                              Topik Pembahasan
-                            </p>
-                            <p className="font-medium truncate">
+                            <p className="text-gray-500 text-xs">Topik</p>
+                            <p className="font-medium truncate text-sm">
                               {session.topic}
                             </p>
                           </div>
@@ -996,9 +1015,7 @@ export default function AdminPage() {
 
                         {/* Document */}
                         <div className="space-y-2">
-                          <p className="text-gray-600 text-sm">
-                            Dokumen Diajukan
-                          </p>
+                          <p className="text-gray-600 text-xs">Dokumen</p>
 
                           <div className="bg-gray-100 p-3 rounded-lg">
                             <div className="flex gap-3 items-center">
@@ -1010,7 +1027,7 @@ export default function AdminPage() {
                               />
 
                               <div className="w-full">
-                                <p className="font-medium truncate">
+                                <p className="font-medium truncate text-sm">
                                   {session.document}
                                 </p>
 
@@ -1023,11 +1040,11 @@ export default function AdminPage() {
                             {session.rawPath && (
                               <Button
                                 variant="link"
-                                className="text-[#0CA678] p-0 h-auto text-sm mt-1"
+                                className="text-[#0CA678] p-0 h-auto text-xs mt-2"
                                 onClick={() =>
                                   window.open(
                                     `${process.env.NEXT_PUBLIC_API_BASE_URL}/${session.rawPath}`,
-                                    "_blank"
+                                    "_blank",
                                   )
                                 }
                               >
@@ -1087,14 +1104,14 @@ export default function AdminPage() {
                         activity.type === "AUTH"
                           ? "bg-amber-800" // coklat
                           : activity.type === "EXPORT"
-                          ? "bg-black"
-                          : activity.type === "CREATE"
-                          ? "bg-green-500"
-                          : activity.type === "UPDATE"
-                          ? "bg-yellow-400"
-                          : activity.type === "DELETE"
-                          ? "bg-red-500"
-                          : "bg-pink-400" // default
+                            ? "bg-black"
+                            : activity.type === "CREATE"
+                              ? "bg-green-500"
+                              : activity.type === "UPDATE"
+                                ? "bg-yellow-400"
+                                : activity.type === "DELETE"
+                                  ? "bg-red-500"
+                                  : "bg-pink-400" // default
                       }`}
                     />
 

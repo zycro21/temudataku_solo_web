@@ -7,8 +7,8 @@ import PDFDocument from "pdfkit";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { AuthenticatedRequestPractice } from "../middlewares/authenticate";
-import { uploadToGoogleDrive } from "../utils/googleDrive";
+// import { AuthenticatedRequestPractice } from "../middlewares/authenticate";
+// import { uploadToGoogleDrive } from "../utils/googleDrive";
 
 const prisma = new PrismaClient();
 

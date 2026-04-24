@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
+import { elearningThumbnailPath } from "../middlewares/uploadImage.js";
 
 const prisma = new PrismaClient();
 
@@ -17,7 +18,7 @@ export const ELearningSubChapterService = {
       limit?: number;
       search?: string;
       orderNumber?: number;
-    }
+    },
   ) {
     const { page = 1, limit = 10, search, orderNumber } = options;
 
@@ -40,7 +41,7 @@ export const ELearningSubChapterService = {
       course.mentorId !== user.mentorProfileId
     ) {
       throw new Error(
-        "Mentor hanya bisa melihat sub-chapter dari course yang dia ampu"
+        "Mentor hanya bisa melihat sub-chapter dari course yang dia ampu",
       );
     }
 
@@ -67,7 +68,7 @@ export const ELearningSubChapterService = {
 
       if (!activeSubscription) {
         throw new Error(
-          "Mentee hanya bisa mengakses course jika memiliki subscription aktif"
+          "Mentee hanya bisa mengakses course jika memiliki subscription aktif",
         );
       }
     }
@@ -94,7 +95,13 @@ export const ELearningSubChapterService = {
     const subChapters = await prisma.eLearningSubChapter.findMany({
       where,
       include: {
-        subBabs: true,
+        subBabs: {
+          include: {
+            texts: true,
+            quiz: true,
+            assignment: true,
+          },
+        },
       },
       orderBy: {
         orderNumber: "asc",
@@ -115,7 +122,7 @@ export const ELearningSubChapterService = {
 
   async getSubChapterById(
     id: string,
-    user: { userId: string; roles: string[]; mentorProfileId?: string }
+    user: { userId: string; roles: string[]; mentorProfileId?: string },
   ) {
     // =========================
     // FETCH SUB-CHAPTER + COURSE
@@ -125,7 +132,6 @@ export const ELearningSubChapterService = {
       include: {
         subBabs: {
           include: {
-            videos: true,
             texts: true,
             quiz: true,
             assignment: true,
@@ -181,7 +187,7 @@ export const ELearningSubChapterService = {
 
       if (!activeSubscription) {
         throw new Error(
-          "Akses ditolak: Anda harus memiliki subscription aktif"
+          "Akses ditolak: Anda harus memiliki subscription aktif",
         );
       }
 
@@ -194,58 +200,71 @@ export const ELearningSubChapterService = {
   async createSubChapter(
     courseId: string,
     data: any,
-    user: { userId: string; roles: string[]; mentorProfileId?: string }
+    user: { userId: string; roles: string[]; mentorProfileId?: string },
   ) {
-    // Mulai transaksi Prisma
     return await prisma.$transaction(async (prismaTx) => {
-      // 1. Cek course
       const course = await prismaTx.eLearningCourse.findUnique({
         where: { id: courseId },
       });
+
       if (!course) throw new Error("Course tidak ditemukan");
 
-      // 2. Cek role mentor: hanya bisa mengedit course sendiri
+      // ✅ ROLE HANDLING (UPDATED)
+      const roles = user.roles || [];
+
+      const adminLikeRoles = ["admin", "cm", "curdev"];
+      const isAdminLike = roles.some((role) => adminLikeRoles.includes(role));
+      const isMentor = roles.includes("mentor");
+
+      // Mentor bukan pemilik
       if (
-        user.roles.includes("mentor") &&
-        user.mentorProfileId !== course.mentorId
+        isMentor &&
+        !isAdminLike &&
+        course.mentorId !== user.mentorProfileId
       ) {
         throw new Error(
-          "Mentor hanya bisa menambahkan sub-chapter ke course yang dia ampu"
+          "Mentor hanya bisa menambahkan sub-chapter ke course yang dia ampu",
         );
       }
 
-      // 3. Generate ID sub-chapter custom: format subc-YYYYMMDD-xxxxxx
+      // Role lain ditolak
+      if (!isAdminLike && !isMentor) {
+        throw new Error("Akses ditolak");
+      }
+
+      // Generate ID
       const today = new Date();
       const formattedDate = today.toISOString().split("T")[0].replace(/-/g, "");
       const randomId = crypto.randomBytes(6).toString("hex");
       const subChapterId = `subc-${formattedDate}-${randomId}`;
 
-      // 4. Cek duplikasi orderNumber
       let orderNumber = data.orderNumber || 1;
+
       const existingSubChapters = await prismaTx.eLearningSubChapter.findMany({
         where: { courseId },
         orderBy: { orderNumber: "asc" },
       });
 
-      // Jika orderNumber sudah ada, geser semua yang >= orderNumber ke atas
-      existingSubChapters.forEach(async (sub) => {
+      // FIXED (no async forEach)
+      for (const sub of existingSubChapters) {
         if (sub.orderNumber >= orderNumber) {
           await prismaTx.eLearningSubChapter.update({
             where: { id: sub.id },
             data: { orderNumber: sub.orderNumber + 1 },
           });
         }
-      });
+      }
 
-      // 5. Create sub-chapter baru
       const newSubChapter = await prismaTx.eLearningSubChapter.create({
         data: {
           id: subChapterId,
           courseId,
           title: data.title,
           description: data.description || "",
+          coverImage: data.coverImage || null,
           orderNumber,
           estimatedTime: data.estimatedTime || "",
+          status: data.status || "DRAFT",
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -262,10 +281,10 @@ export const ELearningSubChapterService = {
       description: string;
       orderNumber: number;
       estimatedTime: string;
+      coverImage?: string; // tambahan
     }>,
-    user: { userId: string; roles: string[]; mentorProfileId?: string }
+    user: { userId: string; roles: string[]; mentorProfileId?: string },
   ) {
-    // Cari sub-chapter beserta course-nya
     const subChapter = await prisma.eLearningSubChapter.findUnique({
       where: { id },
       include: { course: true },
@@ -277,58 +296,71 @@ export const ELearningSubChapterService = {
 
     const course = subChapter.course;
 
-    // Validasi: jika ada orderNumber baru, pastikan tidak duplikat di course yang sama
+    // VALIDASI ORDER NUMBER
     if (data.orderNumber !== undefined) {
       const existing = await prisma.eLearningSubChapter.findFirst({
         where: {
           courseId: course.id,
           orderNumber: data.orderNumber,
-          NOT: { id }, // abaikan diri sendiri
+          NOT: { id },
         },
       });
 
       if (existing) {
         throw new Error(
-          "Nomor urutan (orderNumber) sudah digunakan di sub-chapter lain"
+          "Nomor urutan (orderNumber) sudah digunakan di sub-chapter lain",
         );
       }
     }
 
-    // Role admin: boleh update semua
-    if (user.roles.includes("admin")) {
-      return await prisma.eLearningSubChapter.update({
-        where: { id },
-        data: {
-          ...data,
-          updatedAt: new Date(),
-        },
-        include: { subBabs: true },
-      });
-    }
+    // ROLE HANDLING (UPDATED)
+    const roles = user.roles || [];
 
-    // Role mentor: hanya boleh update course miliknya
-    if (user.roles.includes("mentor")) {
-      if (user.mentorProfileId !== course.mentorId) {
-        throw new Error("Akses ditolak: Anda bukan mentor course ini");
-      }
+    const adminLikeRoles = ["admin", "cm", "curdev"];
+    const isAdminLike = roles.some((role) => adminLikeRoles.includes(role));
+    const isMentor = roles.includes("mentor");
 
-      return await prisma.eLearningSubChapter.update({
-        where: { id },
-        data: {
-          ...data,
-          updatedAt: new Date(),
-        },
-        include: { subBabs: true },
-      });
+    // Mentor bukan pemilik
+    if (isMentor && !isAdminLike && course.mentorId !== user.mentorProfileId) {
+      throw new Error("Akses ditolak: Anda bukan mentor course ini");
     }
 
     // Role lain ditolak
-    throw new Error("Akses ditolak");
+    if (!isAdminLike && !isMentor) {
+      throw new Error("Akses ditolak");
+    }
+
+    // HAPUS IMAGE LAMA (INI POSISINYA DI SINI 🔥)
+    if (data.coverImage && subChapter.coverImage) {
+      try {
+        const absolutePath = path.join(
+          elearningThumbnailPath,
+          path.basename(subChapter.coverImage),
+        );
+
+        if (fs.existsSync(absolutePath)) {
+          fs.unlinkSync(absolutePath);
+          console.log(`Deleted old subchapter image: ${absolutePath}`);
+        }
+      } catch (err) {
+        console.error("Gagal menghapus cover lama:", err);
+      }
+    }
+
+    // UPDATE (SATU PINTU, TIDAK DUPLIKASI)
+    return await prisma.eLearningSubChapter.update({
+      where: { id },
+      data: {
+        ...data,
+        updatedAt: new Date(),
+      },
+      include: { subBabs: true },
+    });
   },
 
   async deleteSubChapter(
     id: string,
-    user: { userId: string; roles: string[] }
+    user: { userId: string; roles: string[] },
   ) {
     // Hanya admin yang boleh
     if (!user.roles.includes("admin")) {
@@ -360,7 +392,7 @@ export const ELearningSubChapterService = {
         prisma.eLearningSubChapter.update({
           where: { id: sc.id },
           data: { orderNumber: sc.orderNumber - 1 },
-        })
+        }),
       );
 
     if (updates.length > 0) {
@@ -373,7 +405,7 @@ export const ELearningSubChapterService = {
   async reorderSubChapters(
     courseId: string,
     newOrder: string[],
-    user: { userId: string; roles: string[] }
+    user: { userId: string; roles: string[] },
   ) {
     // Hanya admin
     if (!user.roles.includes("admin")) {
@@ -392,7 +424,7 @@ export const ELearningSubChapterService = {
 
     // Urutkan sub-chapter lama
     const existingSubChapters = course.subChapters.sort(
-      (a, b) => a.orderNumber - b.orderNumber
+      (a, b) => a.orderNumber - b.orderNumber,
     );
 
     const existingIds = existingSubChapters.map((sc) => sc.id);
@@ -402,14 +434,14 @@ export const ELearningSubChapterService = {
     if (invalidIds.length > 0) {
       throw new Error(
         `Beberapa sub-chapter tidak valid atau tidak milik course ini: ${invalidIds.join(
-          ", "
-        )}`
+          ", ",
+        )}`,
       );
     }
 
     // Sub-chapter yang tidak diubah
     const untouched = existingSubChapters.filter(
-      (sc) => !newOrder.includes(sc.id)
+      (sc) => !newOrder.includes(sc.id),
     );
 
     // Gabungkan urutan final
@@ -425,7 +457,7 @@ export const ELearningSubChapterService = {
       prisma.eLearningSubChapter.update({
         where: { id },
         data: { orderNumber: index + 1, updatedAt: new Date() },
-      })
+      }),
     );
 
     await prisma.$transaction(updates);
@@ -438,83 +470,111 @@ export const ELearningSubChapterService = {
   },
 
   async duplicateSubChapter(
-    sourceSubChapterId: string,
-    targetCourseId: string,
-    user: { userId: string; roles: string[] }
+    id: string,
+    user: { userId: string; roles: string[]; mentorProfileId?: string },
   ) {
-    if (!user.roles.includes("admin")) {
+    const subChapter = await prisma.eLearningSubChapter.findUnique({
+      where: { id },
+      include: {
+        course: true,
+        subBabs: {
+          include: {
+            texts: true,
+          },
+        },
+      },
+    });
+
+    if (!subChapter) {
+      throw new Error("Sub-chapter tidak ditemukan");
+    }
+
+    const course = subChapter.course;
+
+    // ROLE VALIDATION
+    const roles = user.roles || [];
+    const adminLikeRoles = ["admin", "cm", "curdev"];
+    const isAdminLike = roles.some((r) => adminLikeRoles.includes(r));
+    const isMentor = roles.includes("mentor");
+
+    if (isMentor && !isAdminLike && course.mentorId !== user.mentorProfileId) {
+      throw new Error("Akses ditolak: Anda bukan mentor course ini");
+    }
+
+    if (!isAdminLike && !isMentor) {
       throw new Error("Akses ditolak");
     }
 
-    const subChapter = await prisma.eLearningSubChapter.findUnique({
-      where: { id: sourceSubChapterId },
-      include: { subBabs: true },
+    // 🔢 GET NEXT ORDER NUMBER
+    const lastOrder = await prisma.eLearningSubChapter.findFirst({
+      where: { courseId: course.id },
+      orderBy: { orderNumber: "desc" },
     });
 
-    if (!subChapter) throw new Error("Sub-chapter tidak ditemukan");
+    const newOrder = (lastOrder?.orderNumber || 0) + 1;
 
-    const targetCourse = await prisma.eLearningCourse.findUnique({
-      where: { id: targetCourseId },
+    // 🔁 HITUNG COPY KE BERAPA
+    const existingCopies = await prisma.eLearningSubChapter.findMany({
+      where: {
+        courseId: course.id,
+        title: {
+          startsWith: subChapter.title,
+        },
+      },
     });
 
-    if (!targetCourse) throw new Error("Course tujuan tidak ditemukan");
+    const copyIndex = existingCopies.length;
 
-    const result = await prisma.$transaction(async (tx) => {
-      const existingSubChapters = await tx.eLearningSubChapter.findMany({
-        where: { courseId: targetCourseId },
-        orderBy: { orderNumber: "asc" },
-      });
+    const newTitle = `${subChapter.title} - copy ${copyIndex}`;
 
-      const nextOrder =
-        existingSubChapters.length > 0
-          ? existingSubChapters[existingSubChapters.length - 1].orderNumber + 1
-          : 1;
-
-      // Generate ID baru dengan format custom
+    // 🔥 TRANSACTION (WAJIB)
+    return await prisma.$transaction(async (tx) => {
+      // 1. CREATE SUBCHAPTER
+      // Generate ID (SAMA SEPERTI CREATE)
       const today = new Date();
       const formattedDate = today.toISOString().split("T")[0].replace(/-/g, "");
       const randomId = crypto.randomBytes(6).toString("hex");
-      const newSubChapterId = `subc-${formattedDate}-${randomId}`;
+      const subChapterId = `subc-${formattedDate}-${randomId}`;
 
       const newSubChapter = await tx.eLearningSubChapter.create({
         data: {
-          id: newSubChapterId,
-          courseId: targetCourseId,
-          title: subChapter.title,
+          id: subChapterId, // ✅ TAMBAHKAN INI
+          courseId: subChapter.courseId,
+          title: newTitle,
           description: subChapter.description,
-          orderNumber: nextOrder,
+          coverImage: subChapter.coverImage,
           estimatedTime: subChapter.estimatedTime,
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          orderNumber: newOrder,
+          status: "ARCHIVED",
         },
       });
 
-      // Duplikasi sub-bab dengan ID baru juga
-      for (const bab of subChapter.subBabs) {
-        const babRandomId = crypto.randomBytes(6).toString("hex");
-        const babId = `subbab-${formattedDate}-${babRandomId}`;
-
-        await tx.eLearningSubBab.create({
+      // 2. DUPLICATE SUBBABS + TEXTS
+      for (const subBab of subChapter.subBabs) {
+        const newSubBab = await tx.eLearningSubBab.create({
           data: {
-            id: babId,
             subChapterId: newSubChapter.id,
-            title: bab.title,
-            orderNumber: bab.orderNumber,
-            estimatedTime: bab.estimatedTime,
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            title: subBab.title,
+            orderNumber: subBab.orderNumber,
+            estimatedTime: subBab.estimatedTime,
+            status: "ARCHIVED",
           },
         });
+
+        for (const text of subBab.texts) {
+          await tx.eLearningText.create({
+            data: {
+              subBabId: newSubBab.id,
+              title: text.title,
+              orderNumber: text.orderNumber,
+              status: "ARCHIVED",
+            },
+          });
+        }
       }
 
-      return {
-        originalId: subChapter.id,
-        newSubChapterId: newSubChapter.id,
-        newSubBabCount: subChapter.subBabs.length,
-      };
+      return newSubChapter;
     });
-
-    return result;
   },
 
   async listSubChapters({
@@ -571,7 +631,7 @@ export const ELearningSubChapterService = {
   },
 
   async exportSubChaptersToFile(
-    exportFormat: "csv" | "excel"
+    exportFormat: "csv" | "excel",
   ): Promise<{ buffer: Buffer; filename: string; mimetype: string }> {
     const subChapters = await prisma.eLearningSubChapter.findMany({
       include: {
@@ -602,7 +662,7 @@ export const ELearningSubChapterService = {
       const chars =
         "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
       return Array.from({ length }, () =>
-        chars.charAt(Math.floor(Math.random() * chars.length))
+        chars.charAt(Math.floor(Math.random() * chars.length)),
       ).join("");
     }
 

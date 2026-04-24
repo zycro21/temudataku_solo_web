@@ -69,20 +69,20 @@ export default function SertifikatSection({
   }
 
   return (
-    <div className="mb-6 mt-0">
-      <h2 className="text-lg font-semibold text-gray-800 mb-4">{title}</h2>
+    <div className="mb-5 mt-0">
+      <h2 className="text-base font-semibold text-gray-800 mb-3">{title}</h2>
 
       {sertifikats.length === 0 ? (
-        <p className="text-gray-500 text-sm">Belum ada sertifikat.</p>
+        <p className="text-gray-500 text-xs">Belum ada sertifikat.</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {sertifikats.map((sertifikat) => (
             <Card
               key={sertifikat.id}
-              className="p-0 overflow-hidden flex flex-col justify-between shadow-sm hover:shadow-md transition"
+              className="p-0 overflow-hidden flex flex-col shadow-sm hover:shadow transition"
             >
-              {/* Gambar */}
-              <div className="relative w-full h-48">
+              {/* IMAGE */}
+              <div className="relative w-full h-32">
                 <Image
                   src="/assets/dashboard/user/kokok.png"
                   alt="Certificate Placeholder"
@@ -91,26 +91,27 @@ export default function SertifikatSection({
                 />
               </div>
 
-              {/* Konten */}
-              <CardContent className="px-5 pt-1 pb-5 flex-1 space-y-3">
-                <h3 className="text-lg font-bold text-gray-800">
+              {/* CONTENT */}
+              <CardContent className="px-3 py-3 flex-1 space-y-2">
+                <h3 className="text-sm mb-2 font-semibold text-gray-800 leading-tight line-clamp-2">
                   {sertifikat.title}
                 </h3>
-                <p className="text-sm text-gray-600 leading-relaxed">
+
+                <p className="text-xs text-gray-600 leading-snug line-clamp-3 break-words">
                   {parseDescription(sertifikat.description)}
                 </p>
 
-                {/* Status sertifikat */}
-                <div className="flex flex-col mt-3">
-                  <div className="flex items-center text-sm gap-2">
-                    <Calendar className="w-4 h-4 text-gray-500" />
-                    <span className="font-medium text-gray-600">
+                {/* STATUS */}
+                <div className="flex flex-col mt-2 gap-3">
+                  <div className="flex items-center text-xs gap-1.5 text-gray-600">
+                    <Calendar className="w-3.5 h-3.5 text-gray-500" />
+                    <span className="font-medium break-words">
                       {sertifikat.dateRange}
                     </span>
                   </div>
 
                   <div
-                    className={`flex items-center text-sm font-semibold mt-5 ${
+                    className={`text-xs font-semibold ${
                       sertifikat.hasCertificate
                         ? "text-emerald-600"
                         : "text-red-500"
@@ -123,21 +124,29 @@ export default function SertifikatSection({
                 </div>
               </CardContent>
 
-              {/* Footer: hanya tombol Unduh */}
-              <CardFooter className="flex px-5 pb-6 mt-0 w-full">
+              {/* FOOTER */}
+              <CardFooter className="px-3 pb-3 mt-auto w-full">
                 <button
                   disabled={!sertifikat.hasCertificate}
                   onClick={() => {
                     if (sertifikat.hasCertificate && sertifikat.downloadLink)
                       window.open(sertifikat.downloadLink, "_blank");
                   }}
-                  className={`flex items-center justify-center gap-2 w-full px-4 py-2.5 text-sm font-semibold rounded-md transition-all duration-200 ${
-                    sertifikat.hasCertificate
-                      ? "bg-emerald-500 text-white hover:bg-emerald-600 active:scale-[0.98] cursor-pointer"
-                      : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  }`}
+                  className={`
+                flex items-center justify-center gap-1.5
+                w-full
+                px-3 py-1.5
+                text-xs font-medium
+                rounded-md
+                transition
+                ${
+                  sertifikat.hasCertificate
+                    ? "bg-emerald-500 text-white hover:bg-emerald-600 active:scale-[0.98]"
+                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                }
+              `}
                 >
-                  <Download className="w-4 h-4" />
+                  <Download className="w-3.5 h-3.5" />
                   Unduh Sertifikat
                 </button>
               </CardFooter>

@@ -48,7 +48,7 @@ export default function AdminMenteePage() {
 
   const handleExport = async (format: "csv" | "excel") => {
     const loadingToastId = toast.loading(
-      `Mengekspor data mentee ke ${format.toUpperCase()}...`
+      `Mengekspor data mentee ke ${format.toUpperCase()}...`,
     );
 
     try {
@@ -61,7 +61,7 @@ export default function AdminMenteePage() {
           },
           responseType: "blob",
           withCredentials: true,
-        }
+        },
       );
 
       const blob = new Blob([res.data], {
@@ -124,7 +124,7 @@ export default function AdminMenteePage() {
       // status akun
       formData.append(
         "isActive",
-        addFormData.status === "Aktif" ? "true" : "false"
+        addFormData.status === "Aktif" ? "true" : "false",
       );
 
       if (photoFile) {
@@ -139,7 +139,7 @@ export default function AdminMenteePage() {
           headers: {
             "Content-Type": "multipart/form-data",
           },
-        }
+        },
       );
 
       // AUTO COPY PASSWORD
@@ -213,7 +213,7 @@ export default function AdminMenteePage() {
             params: {
               limit: 10000, // ambil semua biar gampang dihitung
             },
-          }
+          },
         );
 
         const users = res.data.data.users;
@@ -222,7 +222,7 @@ export default function AdminMenteePage() {
         // FILTER ROLE MENTEE
         // ===============================
         const menteeUsers = users.filter((user: any) =>
-          user.userRoles?.some((ur: any) => ur.role?.roleName === "mentee")
+          user.userRoles?.some((ur: any) => ur.role?.roleName === "mentee"),
         );
 
         const totalMentee = menteeUsers.length;
@@ -231,11 +231,11 @@ export default function AdminMenteePage() {
         // MENTEE AKTIF / TIDAK AKTIF
         // ===============================
         const activeMentee = menteeUsers.filter(
-          (u: any) => u.isActive === true
+          (u: any) => u.isActive === true,
         ).length;
 
         const inactiveMentee = menteeUsers.filter(
-          (u: any) => u.isActive === false
+          (u: any) => u.isActive === false,
         ).length;
 
         // ===============================
@@ -290,7 +290,7 @@ export default function AdminMenteePage() {
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/users?limit=10000`,
           {
             withCredentials: true,
-          }
+          },
         );
 
         const json = res.data;
@@ -306,8 +306,8 @@ export default function AdminMenteePage() {
         // Filter user yang punya role mentee
         const menteeUsers = users.filter((user: any) =>
           user.userRoles.some(
-            (roleObj: any) => roleObj.role.roleName === "mentee"
-          )
+            (roleObj: any) => roleObj.role.roleName === "mentee",
+          ),
         );
 
         // Mapping ke format Mentee
@@ -347,44 +347,44 @@ export default function AdminMenteePage() {
   return (
     <>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
         <div>
-          <h1 className="text-3xl font-semibold text-gray-800 mb-1">Mentee</h1>
-          <p className="text-gray-600">Mentee</p>
+          <h1 className="text-xl font-semibold text-gray-800 mb-0.5">Mentee</h1>
+          <p className="text-sm text-gray-600">Mentee</p>
         </div>
-        <div className="flex items-center space-x-3">
+
+        <div className="flex items-center gap-2 flex-wrap">
           {/* Dropdown Export Data */}
           <DropdownMenu onOpenChange={(open) => setExportOpen(open)}>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                className="flex items-center gap-1 bg-white hover:bg-gray-50 border border-gray-300"
+                className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white hover:bg-gray-50 border border-gray-300"
               >
-                <Download className="w-4 h-4" />
-                <span>Export Data</span>
+                <Download className="w-3.5 h-3.5" />
+                <span>Export</span>
 
-                {/* Chevron Toggle */}
                 {exportOpen ? (
-                  <ChevronUp className="w-4 h-4 text-gray-500" />
+                  <ChevronUp className="w-3.5 h-3.5 text-gray-500" />
                 ) : (
-                  <ChevronDown className="w-4 h-4 text-gray-500" />
+                  <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
                 )}
               </Button>
             </DropdownMenuTrigger>
 
-            <DropdownMenuContent align="end" className="w-40">
+            <DropdownMenuContent align="end" className="w-36 text-sm">
               <DropdownMenuItem onClick={() => handleExport("csv")}>
-                Export ke CSV
+                CSV
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleExport("excel")}>
-                Export ke Excel
+                Excel
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Tombol Tambah Mentee */}
+          {/* Tombol Tambah */}
           <Button
-            className="bg-[#0CA678] hover:bg-[#08916C] flex items-center gap-1"
+            className="bg-[#0CA678] hover:bg-[#08916C] flex items-center gap-1 px-3 py-1.5 text-sm"
             onClick={() => {
               setAddFormData({
                 name: "",
@@ -395,47 +395,45 @@ export default function AdminMenteePage() {
               setShowAddDialog(true);
             }}
           >
-            <Plus className="w-4 h-4" />
-            <span>Tambah Mentee</span>
+            <Plus className="w-3.5 h-3.5" />
+            <span>Tambah</span>
           </Button>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="w-3/4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-8">
+      <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6">
         {stats.map((stat, index) => (
           <Card
             key={index}
-            className="max-w-[340px] w-full flex flex-col justify-between px-0 py-2
-      shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200
-      cursor-pointer rounded-lg bg-white"
+            className="w-full flex flex-col justify-between px-0 py-1.5
+      shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200
+      cursor-pointer rounded-md bg-white"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-5 pt-2 pb-1">
-              <div className="flex items-center gap-3">
-                {/* Icon (ganti ke Next Image) */}
+            <div className="flex items-center justify-between px-4 pt-2 pb-1">
+              <div className="flex items-center gap-2">
                 <Image
                   src={stat.image}
                   alt={stat.title}
-                  width={16}
-                  height={16}
+                  width={14}
+                  height={14}
                   className="opacity-90"
                 />
 
-                <p className="text-md font-medium text-gray-600">
+                <p className="text-sm font-medium text-gray-600">
                   {stat.title}
                 </p>
               </div>
 
-              {/* Chevron */}
-              <ChevronDown className="w-5 h-5 text-gray-500" />
+              <ChevronDown className="w-4 h-4 text-gray-500" />
             </div>
 
             {/* Content */}
-            <CardContent className="px-5 pt-0 pb-3">
-              <div className="flex items-center gap-3">
+            <CardContent className="px-4 pt-0 pb-2">
+              <div className="flex items-center gap-2">
                 <p
-                  className={`text-4xl font-bold leading-tight ${
+                  className={`text-2xl font-bold leading-tight ${
                     stat.color || "text-gray-900"
                   }`}
                 >
@@ -443,7 +441,7 @@ export default function AdminMenteePage() {
                 </p>
 
                 {stat.change && (
-                  <span className="inline-block text-xs font-medium text-emerald-700 bg-green-200 px-2 py-1 rounded-full">
+                  <span className="inline-block text-[10px] font-medium text-emerald-700 bg-green-200 px-2 py-0.5 rounded-full">
                     {stat.change}
                   </span>
                 )}
@@ -458,7 +456,7 @@ export default function AdminMenteePage() {
       </h2>
 
       {/* DataTable */}
-      <Card className="p-6">
+      <Card className="p-6 mb-10">
         <DataTable columns={columns} data={mentees} />
       </Card>
 
@@ -494,6 +492,7 @@ export default function AdminMenteePage() {
                       width={80}
                       height={80}
                       className="rounded-full object-cover"
+                      unoptimized
                     />
                   ) : (
                     <User className="w-10 h-10 text-gray-400" />

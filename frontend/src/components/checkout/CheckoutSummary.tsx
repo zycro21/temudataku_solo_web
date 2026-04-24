@@ -10,6 +10,7 @@ import axios from "axios";
 
 export default function CheckoutSummary({
   booking,
+  ayclBooking,
   paymentId,
   priceSummary,
   formData,
@@ -18,18 +19,24 @@ export default function CheckoutSummary({
 }: any) {
   const [paymentMethod, setPaymentMethod] = useState("atm");
   const [showQRIS, setShowQRIS] = useState(false);
-  const [showATM, setShowATM] = useState(false); // state baru
+  const [showATM, setShowATM] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Dynamic Price Logic
-  const basePrice = Number(booking?.mentoringService?.price ?? 0);
+  // ── Dynamic Price Logic ───────────────────────────────────────────────────
+  const basePrice =
+    type === "aycl"
+      ? Number(ayclBooking?.batch?.price ?? 0)
+      : Number(booking?.mentoringService?.price ?? 0);
+
   const originalPrice = Number(priceSummary?.originalPrice ?? basePrice);
   const finalPrice = Number(priceSummary?.finalPrice ?? originalPrice);
   const discount = priceSummary ? originalPrice - finalPrice : 0;
 
-  const [isProcessing, setIsProcessing] = useState(false);
-
+  // ── Title ─────────────────────────────────────────────────────────────────
   const serviceTitle =
-    booking?.mentoringService?.serviceName ?? "Mentoring Session";
+    type === "aycl"
+      ? (ayclBooking?.batch?.title ?? "All You Can Learn")
+      : (booking?.mentoringService?.serviceName ?? "Mentoring Session");
 
   const formatRupiah = (value: number | string) => {
     return `Rp${Number(value).toLocaleString("id-ID")}`;
@@ -78,6 +85,52 @@ export default function CheckoutSummary({
       }
     }
 
+    if (type === "aycl") {
+      if (!formData.currentStatus?.trim()) {
+        toast.error("Status saat ini wajib diisi.");
+        return false;
+      }
+
+      if (!formData.institution?.trim()) {
+        toast.error("Instansi/Universitas wajib diisi.");
+        return false;
+      }
+
+      if (!formData.studyProgram?.trim()) {
+        toast.error("Program studi wajib diisi.");
+        return false;
+      }
+
+      if (!formData.semester?.trim()) {
+        toast.error("Semester wajib diisi.");
+        return false;
+      }
+
+      if (!formData.age?.toString().trim()) {
+        toast.error("Usia wajib diisi.");
+        return false;
+      }
+
+      if (!formData.reason?.trim()) {
+        toast.error("Alasan mengikuti AYCL wajib diisi.");
+        return false;
+      }
+
+      if (!formData.familiarity?.trim()) {
+        toast.error("Tingkat familiaritas wajib dipilih.");
+        return false;
+      }
+
+      // TAMBAH VALIDASI SCHEDULE
+      if (
+        !formData.selectedSchedules ||
+        formData.selectedSchedules.length === 0
+      ) {
+        toast.error("Pilih minimal satu kelas yang ingin diikuti.");
+        return false;
+      }
+    }
+
     if (!isTermsChecked) {
       toast.error("Anda belum menyetujui ketentuan dan syarat.");
       return false;
@@ -89,32 +142,32 @@ export default function CheckoutSummary({
   const paymentOptions = [
     {
       id: "atm",
-      label: "Pembayaran Duitku ATM Bersama",
+      label: "Pembayaran ATM Bersama",
       logo: ["/assets/checkout/atmBersama.png"],
     },
     {
       id: "bni",
-      label: "Pembayaran Duitku BNI",
+      label: "Pembayaran BNI",
       logo: ["/assets/checkout/bni.png"],
     },
     {
       id: "mandiri",
-      label: "Pembayaran Duitku Mandiri",
+      label: "Pembayaran Mandiri",
       logo: ["/assets/checkout/mandiri.png"],
     },
     {
       id: "qris",
-      label: "Pembayaran Duitku Shopeepay QRIS",
-      logo: ["/assets/checkout/shopeepay.png", "/assets/checkout/qris.png"], // dua logo
+      label: "Pembayaran Shopeepay/QRIS",
+      logo: ["/assets/checkout/shopeepay.png", "/assets/checkout/qris.png"],
     },
     {
       id: "bri",
-      label: "Pembayaran Duitku BRI",
+      label: "Pembayaran BRI",
       logo: ["/assets/checkout/bri.png"],
     },
     {
       id: "bsi",
-      label: "Pembayaran Duitku BSI",
+      label: "Pembayaran BSI",
       logo: ["/assets/checkout/bsi.png"],
     },
   ];
@@ -143,15 +196,15 @@ export default function CheckoutSummary({
 
     if (!paymentId) {
       toast.error("Payment ID tidak ditemukan.");
+      setIsProcessing(false);
       return;
     }
 
-    // 🔥 SHOW LOADING TOAST
     const loadingToast = toast.loading("Memproses pembayaran...");
 
     try {
       // ==============================
-      //  CREATE PAYMENT
+      // CREATE PAYMENT
       // ==============================
       const paymentRes = await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/payment/payments/create`,
@@ -173,18 +226,16 @@ export default function CheckoutSummary({
       }
 
       // ==============================
-      // UPDATE BOOKING CONTENT
+      // UPDATE BOOKING CONTENT (mentoring only)
       // ==============================
-      if (booking?.id) {
+      if (type === "mentoring" && booking?.id) {
         const formPayload = new FormData();
 
-        if (type === "mentoring") {
-          if (formData.description)
-            formPayload.append("material", formData.description);
+        if (formData.description)
+          formPayload.append("material", formData.description);
 
-          if (formData.expectedOutput)
-            formPayload.append("expectedOutput", formData.expectedOutput);
-        }
+        if (formData.expectedOutput)
+          formPayload.append("expectedOutput", formData.expectedOutput);
 
         if (formData.supportingDocs?.length > 0) {
           for (const file of formData.supportingDocs) {
@@ -205,25 +256,27 @@ export default function CheckoutSummary({
       }
 
       // ==============================
-      // UPDATE USER
+      // UPDATE USER (mentoring & aycl)
       // ==============================
       try {
+        const currentUser = type === "aycl" ? ayclBooking?.user : booking?.user;
+
         if (
-          formData.province !== booking?.user?.province ||
-          formData.city !== booking?.user?.city ||
-          formData.phone !== booking?.user?.phoneNumber
+          formData.province !== currentUser?.province ||
+          formData.city !== currentUser?.city ||
+          formData.phone !== currentUser?.phoneNumber
         ) {
           const userFormData = new FormData();
 
-          if (formData.province !== booking?.user?.province) {
+          if (formData.province !== currentUser?.province) {
             userFormData.append("province", formData.province);
           }
 
-          if (formData.city !== booking?.user?.city) {
+          if (formData.city !== currentUser?.city) {
             userFormData.append("city", formData.city);
           }
 
-          if (formData.phone !== booking?.user?.phoneNumber) {
+          if (formData.phone !== currentUser?.phoneNumber) {
             userFormData.append("phoneNumber", formData.phone);
           }
 
@@ -239,9 +292,31 @@ export default function CheckoutSummary({
         }
       }
 
-      // 🔥 DISMISS LOADING
-      toast.dismiss(loadingToast);
+      // ==============================
+      // UPDATE AYCL BOOKING (aycl only)
+      // ==============================
+      if (type === "aycl" && ayclBooking?.id) {
+        try {
+          await axios.patch(
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/ayclbooking/${ayclBooking.id}`,
+            {
+              currentStatus: formData.currentStatus,
+              institution: formData.institution,
+              studyProgram: formData.studyProgram,
+              semester: formData.semester,
+              age: Number(formData.age),
+              reason: formData.reason,
+              familiarity: formData.familiarity,
+              selectedSchedules: formData.selectedSchedules ?? [],
+            },
+            { withCredentials: true },
+          );
+        } catch (err: any) {
+          console.error("Update AYCL booking gagal:", err);
+        }
+      }
 
+      toast.dismiss(loadingToast);
       toast.success("Mengalihkan ke halaman pembayaran...");
 
       window.location.href = paymentUrl;
@@ -259,33 +334,33 @@ export default function CheckoutSummary({
 
   return (
     <>
-      <div className="border rounded-xl p-6 shadow-sm bg-white space-y-6 max-h-[650px] overflow-y-auto mt-6 ml-4">
+      <div className="border rounded-lg p-4 shadow-sm bg-white space-y-4 max-h-[750px] overflow-y-auto mt-4 ml-3">
         {/* Header */}
-        <h2 className="text-2xl font-bold">Pemesanan</h2>
+        <h2 className="text-lg font-semibold">Pemesanan</h2>
 
         {/* Detail Pesanan */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
             <Image
               src="/assets/mentoringPage/mentoring1on1.svg"
               alt={serviceTitle}
-              width={80}
-              height={80}
-              className="rounded-md"
+              width={56}
+              height={56}
+              className="rounded-md w-14 h-14"
             />
 
             <div className="flex justify-between w-full items-start">
               <div className="flex flex-col">
-                <span className="font-medium text-sm">{serviceTitle}</span>
+                <span className="font-medium text-xs">{serviceTitle}</span>
 
                 {priceSummary && (
-                  <span className="text-xs text-gray-400">
+                  <span className="text-[11px] text-gray-400">
                     Harga sebelum diskon
                   </span>
                 )}
               </div>
 
-              <span className="font-semibold">
+              <span className="font-semibold text-sm">
                 {formatRupiah(originalPrice)}
               </span>
             </div>
@@ -293,26 +368,26 @@ export default function CheckoutSummary({
         </div>
 
         {/* Ringkasan Harga */}
-        <div className="text-sm space-y-2 mb-14">
+        <div className="text-xs space-y-1.5 mb-10">
           <div className="flex justify-between">
             <span>Subtotal</span>
             <span>{formatRupiah(originalPrice)}</span>
           </div>
 
           {priceSummary && (
-            <div className="text-xs text-green-600 font-medium">
+            <div className="text-[11px] text-green-600 font-medium">
               Kode Voucher berhasil diterapkan!!
             </div>
           )}
 
-          <div className="flex justify-between border-t pt-2">
+          <div className="flex justify-between border-t pt-1.5">
             <span>Diskon</span>
             <span className={discount > 0 ? "text-green-600" : ""}>
               {formatRupiah(discount)}
             </span>
           </div>
 
-          <div className="flex justify-between font-semibold text-base border-t pt-2">
+          <div className="flex justify-between font-semibold text-sm border-t pt-1.5">
             <span>Total</span>
             <span>{formatRupiah(finalPrice)}</span>
           </div>
@@ -320,14 +395,13 @@ export default function CheckoutSummary({
 
         {/* Pembayaran */}
         <div className="space-y-3">
-          <h3 className="text-lg font-bold">Pembayaran</h3>
+          <h3 className="text-sm font-semibold">Pembayaran</h3>
           <div className="space-y-2">
             {paymentOptions.map((option) => (
               <label
                 key={option.id}
-                className="flex justify-between items-center cursor-pointer rounded-md px-3 py-2 hover:bg-gray-50 shadow-sm"
+                className="flex justify-between items-center cursor-pointer rounded-md px-2.5 py-1.5 hover:bg-gray-50 shadow-sm"
               >
-                {/* Kiri: Radio + Label */}
                 <div className="flex items-center gap-2">
                   <input
                     type="radio"
@@ -337,10 +411,9 @@ export default function CheckoutSummary({
                     onChange={() => setPaymentMethod(option.id)}
                     className="text-emerald-600 focus:ring-emerald-500"
                   />
-                  <span className="text-sm">{option.label}</span>
+                  <span className="text-xs">{option.label}</span>
                 </div>
 
-                {/* Kanan: Logo(s) */}
                 <div className="flex items-center gap-2">
                   {option.logo?.map((logo, idx) => (
                     <Image
@@ -348,8 +421,8 @@ export default function CheckoutSummary({
                       src={logo}
                       alt={option.label}
                       width={32}
-                      height={16}
-                      className="object-contain"
+                      height={18}
+                      className="object-contain h-8"
                     />
                   ))}
                 </div>
@@ -362,16 +435,13 @@ export default function CheckoutSummary({
         <Button
           onClick={handlePesan}
           disabled={isProcessing}
-          className="w-[250px] mx-auto bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg py-2 font-medium block disabled:opacity-50"
+          className="w-[200px] mx-auto bg-emerald-500 hover:bg-emerald-600 text-white rounded-md py-1.5 text-xs font-medium block"
         >
           {isProcessing ? "Memproses..." : "Pesan"}
         </Button>
       </div>
 
-      {/* Modal QRIS */}
       <QrisModal open={showQRIS} onOpenChange={setShowQRIS} />
-
-      {/* Modal ATM Bersama */}
       <AtmBersamaModal open={showATM} onOpenChange={setShowATM} />
     </>
   );

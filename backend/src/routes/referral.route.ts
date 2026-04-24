@@ -16,6 +16,7 @@ import {
   validateUpdateCommissionPaymentStatusSchema,
   exportCommissionPaymentsSchema,
   applyReferralSchema,
+  applyReferralAyclSchema,
 } from "../validations/referral.validation.js";
 import { validate } from "../middlewares/validate.js";
 import { authenticate } from "../middlewares/authenticate.js";
@@ -547,6 +548,42 @@ router.post(
   authenticate,
   validate(applyReferralSchema),
   ReferralController.applyReferralToELearningController,
+);
+
+/**
+ * @swagger
+ * /api/referral/aycl/{id}/apply-referral:
+ *   post:
+ *     summary: Apply referral ke AYCL booking
+ *     tags: [AYCL Booking]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID AYCL Booking
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           example:
+ *             code: "AYCL-2026"
+ *     responses:
+ *       200:
+ *         description: Referral berhasil diterapkan
+ *       400:
+ *         description: Error validasi
+ *       404:
+ *         description: Booking tidak ditemukan
+ */
+router.post(
+  "/aycl/:id/apply-referral",
+  authenticate,
+  validate(applyReferralAyclSchema),
+  ReferralController.applyReferralToAyclBookingController,
 );
 
 /**

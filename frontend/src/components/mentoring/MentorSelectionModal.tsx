@@ -109,56 +109,50 @@ export default function MentorSelectionModal({
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent
-          className="sm:max-w-4xl max-h-[90vh] overflow-hidden p-0"
-          onInteractOutside={(e) => {
-            e.preventDefault(); // prevent close on outside click
-          }}
-          onEscapeKeyDown={(e) => {
-            e.preventDefault(); // prevent close on ESC
-          }}
+          className="sm:max-w-3xl h-[85vh] flex flex-col p-0"
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
         >
-          {/* Modal Header */}
-          <DialogHeader className="px-6 py-4 border-b">
-            <div className="flex items-center justify-between">
-              <div>
-                <DialogTitle className="text-xl font-bold text-gray-900">
-                  Pilih Mentor Favorit-mu!
-                </DialogTitle>
-                <p className="text-gray-600 text-sm mt-1">
-                  Temukan mentor yang paling cocok buat kamu. Lihat profil
-                  mereka, cek pengalaman dan pilih yang paling pas untuk bantu
-                  kamu berkembang!
-                </p>
-              </div>
+          {/* Header */}
+          <DialogHeader className="px-4 py-3 border-b flex-shrink-0">
+            <div>
+              <DialogTitle className="text-lg font-semibold text-gray-900">
+                Pilih Mentor Favorit-mu!
+              </DialogTitle>
+              <p className="text-gray-600 text-xs mt-1 leading-relaxed">
+                Temukan mentor yang paling cocok buat kamu. Lihat profil mereka
+                dan pilih yang paling pas.
+              </p>
             </div>
           </DialogHeader>
 
-          {/* Search Bar (Tetap dipertahankan) */}
-          <div className="px-6 pb-4 border-b">
+          {/* Search */}
+          <div className="px-4 pb-3 border-b flex-shrink-0">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
               <input
                 type="text"
-                placeholder="Cari mentor-mu di sini"
+                placeholder="Cari mentor..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
           </div>
 
-          {/* Mentors Grid */}
-          <div className="px-6 py-4 overflow-y-auto max-h-96">
+          {/* Scrollable Content */}
+          <div className="flex-1 overflow-y-auto px-4 py-3">
             {mentors.length === 0 && loading ? (
-              <div className="text-center py-10">Memuat mentor...</div>
+              <div className="text-center py-6 text-sm">Memuat mentor...</div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {mentors.map((mentor) => (
                   <Card
                     key={mentor.id}
-                    className="overflow-hidden hover:shadow-md transition-shadow p-0"
+                    className="overflow-hidden hover:shadow-sm transition p-0 rounded-md"
                   >
-                    <div className="relative">
+                    {/* Image */}
+                    <div className="relative h-32">
                       <Image
                         src={
                           mentor.user.profilePicture
@@ -166,58 +160,51 @@ export default function MentorSelectionModal({
                             : "/assets/default-avatar.png"
                         }
                         alt={mentor.user.fullName}
-                        width={150}
-                        height={150}
+                        fill
                         unoptimized
-                        className="w-full h-full object-cover"
+                        className="object-cover"
                       />
                     </div>
 
-                    <CardContent className="pt-0 pb-4 px-4">
-                      {/* Full Name - lebih dekat ke gambar */}
-                      <h3 className="font-bold text-gray-900 mb-2">
+                    <CardContent className="pt-2 pb-3 px-3">
+                      <h3 className="font-semibold text-sm text-gray-900 mb-1.5 line-clamp-1">
                         {mentor.user.fullName}
                       </h3>
 
-                      <div className="space-y-2 mb-3">
-                        {/* BIO (gantikan expertise lama) */}
-                        <div className="flex items-start gap-2">
+                      <div className="space-y-1.5 mb-3">
+                        <div className="flex items-start gap-1.5">
                           <Image
                             src="/assets/mentoringPage/expertise.svg"
                             alt="Bio"
-                            width={12}
-                            height={12}
-                            className="mt-1 flex-shrink-0"
+                            width={10}
+                            height={10}
+                            className="mt-0.5 flex-shrink-0"
                           />
-                          <span className="text-xs text-gray-600 leading-relaxed">
+                          <span className="text-[8px] text-gray-600 leading-snug line-clamp-2">
                             {getFirstSentence(mentor.bio)}
                           </span>
                         </div>
 
-                        {/* Experience tetap */}
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
                           <Image
                             src="/assets/mentoringPage/experience.svg"
                             alt="Experience"
-                            width={12}
-                            height={12}
-                            className="flex-shrink-0"
+                            width={10}
+                            height={10}
                           />
-                          <span className="text-xs text-gray-600">
+                          <span className="text-[8px] text-gray-600 line-clamp-1">
                             {mentor.experience || "-"}
                           </span>
                         </div>
 
-                        {/* Expertise (gantikan hourly rate) */}
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
                           <Image
                             src="/assets/mentoringPage/language.svg"
                             alt="Expertise"
-                            width={12}
-                            height={12}
-                            className="flex-shrink-0"
+                            width={10}
+                            height={10}
                           />
-                          <span className="text-xs text-gray-600">
+                          <span className="text-[8px] text-gray-600 line-clamp-1">
                             {mentor.expertise || "-"}
                           </span>
                         </div>
@@ -225,9 +212,9 @@ export default function MentorSelectionModal({
 
                       <Button
                         onClick={() => handleSelectMentor(mentor)}
-                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm py-2"
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-[34px]"
                       >
-                        Daftar Mentoring
+                        Daftar
                       </Button>
                     </CardContent>
                   </Card>
@@ -236,10 +223,10 @@ export default function MentorSelectionModal({
             )}
           </div>
 
-          {/* Dots Indicator (Tetap dipertahankan) */}
-          <div className="flex justify-center py-4">
-            <div className="flex space-x-2">
-              <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+          {/* Dots (NOW ALWAYS VISIBLE) */}
+          <div className="flex justify-center py-3 border-t flex-shrink-0">
+            <div className="flex space-x-1.5">
+              <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
             </div>
           </div>
         </DialogContent>

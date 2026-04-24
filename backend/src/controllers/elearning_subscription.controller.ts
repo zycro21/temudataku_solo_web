@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { AuthenticatedRequestELearningSubscription } from "../middlewares/authenticate.js";
 import { format } from "date-fns";
-import { HttpError } from "../utils/httpError";
+// import { HttpError } from "../utils/httpError";
 import * as ElearningSubscriptionService from "../services/elearning_subscription.service.js";
 import { PrismaClient } from "@prisma/client";
 import path from "path";

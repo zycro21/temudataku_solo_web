@@ -59,25 +59,27 @@ export default function Navbar() {
     return `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${currentUser.profilePicture}`;
   })();
 
+  const isExternalImage = profileImage.startsWith("http");
+
   return (
-    <nav className="h-[88px] w-full flex items-center justify-between px-6 md:px-16 bg-white sticky top-0 z-50">
+    <nav className="h-[80px] w-full flex items-center justify-between px-4 md:px-10 bg-white sticky top-0 z-50">
       {/* Logo */}
       <Link href="/" className="flex items-center">
         <Image
           src="/images/Navbar_logo.png"
           alt="TemuDataku Logo"
-          width={134}
-          height={82}
+          width={116}
+          height={68}
           className="w-[120px] h-auto"
         />
       </Link>
 
       {/* Menu */}
       <ul
-        className="hidden md:flex items-center space-x-6 text-[15px] text-[#5F6368] font-medium"
+        className="hidden md:flex items-center space-x-4 text-sm text-gray-600 font-medium"
         ref={menuRef}
       >
-        <li className="relative px-3 py-2 rounded-md hover:bg-gray-50 transition">
+        <li className="relative px-2 py-1.5 rounded-md hover:bg-gray-50 transition">
           <button
             onClick={() => {
               setLearningOpen((prev) => !prev);
@@ -90,7 +92,7 @@ export default function Navbar() {
             <span>Jalur Belajar</span>
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className={`h-4 w-4 transform transition-transform duration-200 ${
+              className={`h-3 w-3 transform transition-transform duration-200 ${
                 learningOpen ? "rotate-180 text-[#0CA678]" : ""
               }`}
               fill="none"
@@ -107,44 +109,53 @@ export default function Navbar() {
           </button>
 
           {learningOpen && (
-            <ul className="absolute left-0 mt-2 w-72 bg-white shadow-lg rounded-lg py-2 z-20">
+            <ul className="absolute left-0 mt-2 w-64 bg-white shadow-md rounded-lg py-1.5 z-20">
               <li>
                 <Link
                   href="/programs"
-                  className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100"
+                  className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 text-sm"
                 >
-                  <MdSchool className="text-gray-500 text-md" />
+                  <MdSchool className="text-gray-500 text-sm" />
                   Bootcamp
                 </Link>
               </li>
               <li>
                 <Link
                   href="/mentoring"
-                  className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100"
+                  className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 text-sm"
                 >
-                  <MdSupervisorAccount className="text-gray-500 text-md" />
+                  <MdSupervisorAccount className="text-gray-500 text-sm" />
                   Mentoring
                 </Link>
               </li>
               {/* <li>
                 <Link
                   href="/practice"
-                  className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100"
+                  className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 text-sm"
                 >
                   <MdAssignment className="text-gray-500 text-md" />
                   Praktik
                 </Link>
               </li> */}
-              
+
               {/* <li>
                 <Link
                   href="/elearning"
-                  className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100"
+                 className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 text-sm"
                 >
-                  <MdMenuBook className="text-gray-500 text-md" />
+                  <MdMenuBook className="text-gray-500 text-sm" />
                   E-Learning
                 </Link>
               </li> */}
+              <li>
+                <Link
+                  href="/aycl"
+                  className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 text-sm"
+                >
+                  <MdMenuBook className="text-gray-500 text-sm" />
+                  All You Can Learn (AYCL)
+                </Link>
+              </li>
             </ul>
           )}
         </li>
@@ -166,13 +177,13 @@ export default function Navbar() {
           <>
             <button
               onClick={() => setIsLoginModalOpen(true)}
-              className="px-5 py-2 border border-[#0CA678] text-[#0CA678] rounded-md hover:bg-[#0CA678] hover:text-white text-sm transition"
+              className="px-4 py-1.5 border border-[#0CA678] text-[#0CA678] rounded-md hover:bg-[#0CA678] hover:text-white text-xs transition"
             >
               Masuk
             </button>
             <button
               onClick={() => setIsRegisterModalOpen(true)}
-              className="px-5 py-2 bg-[#0CA678] rounded-md hover:bg-[#08916C] text-white text-sm transition"
+              className="px-4 py-1.5 bg-[#0CA678] rounded-md hover:bg-[#08916C] text-white text-xs transition"
             >
               Daftar Akun
             </button>
@@ -189,17 +200,17 @@ export default function Navbar() {
               <Image
                 src={profileImage}
                 alt="Avatar"
-                width={40}
-                height={40}
-                // unoptimized
+                width={34}
+                height={34}
+                unoptimized
                 className="rounded-full object-cover"
               />
-              <span className="text-base font-semibold text-gray-700">
+              <span className="text-sm font-semibold text-gray-700">
                 {currentUser.fullName}
               </span>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className={`h-4 w-4 transform transition-transform ${
+                className={`h-3 w-3 transform transition-transform ${
                   userOpen ? "rotate-180" : ""
                 }`}
                 viewBox="0 0 20 20"
@@ -214,17 +225,17 @@ export default function Navbar() {
             </button>
 
             {userOpen && (
-              <ul className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg py-2 z-20">
+              <ul className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-md py-1.5 z-20">
                 <li>
                   <Link
                     href="/dashboard/user/"
-                    className="flex items-center gap-4 px-4 py-2 hover:bg-gray-100"
+                    className="flex items-center gap-3 px-3 py-1.5 hover:bg-gray-100 text-sm"
                   >
                     <Image
                       src="/assets/navbar/profile.svg"
                       alt="Profil"
-                      width={12}
-                      height={12}
+                      width={10}
+                      height={10}
                       className="relative top-[-0.5px]"
                     />
                     Profil Saya
@@ -233,13 +244,13 @@ export default function Navbar() {
                 <li>
                   <Link
                     href="/dashboard/user/"
-                    className="flex items-center gap-4 px-4 py-2 hover:bg-gray-100"
+                    className="flex items-center gap-3 px-3 py-1.5 hover:bg-gray-100 text-sm"
                   >
                     <Image
                       src="/assets/navbar/dashboard.svg"
                       alt="Dashboard"
-                      width={12}
-                      height={12}
+                      width={10}
+                      height={10}
                       className="relative top-[-0.5px]"
                     />
                     Dashboard Saya
@@ -248,13 +259,13 @@ export default function Navbar() {
                 <li>
                   <Link
                     href="/dashboard/jadwal"
-                    className="flex items-center gap-4 px-4 py-2 hover:bg-gray-100"
+                    className="flex items-center gap-3 px-3 py-1.5 hover:bg-gray-100 text-sm"
                   >
                     <Image
                       src="/assets/navbar/class.svg"
                       alt="Dashboard"
-                      width={12}
-                      height={12}
+                      width={10}
+                      height={10}
                       className="relative top-[-0.5px]"
                     />
                     Kelas Saya
@@ -263,13 +274,13 @@ export default function Navbar() {
                 <li>
                   <Link
                     href="/dashboard/transaction"
-                    className="flex items-center gap-4 px-4 py-2 hover:bg-gray-100"
+                    className="flex items-center gap-3 px-3 py-1.5 hover:bg-gray-100 text-sm"
                   >
                     <Image
                       src="/assets/navbar/transaction.svg"
                       alt="Dashboard"
-                      width={12}
-                      height={12}
+                      width={10}
+                      height={10}
                       className="relative top-[-0.5px]"
                     />
                     Transaksi Saya
@@ -279,7 +290,7 @@ export default function Navbar() {
                 {/* <li>
                   <Link
                     href="/dashboard"
-                    className="flex items-center gap-4 px-4 py-2 hover:bg-gray-100"
+                    className="flex items-center gap-3 px-3 py-1.5 hover:bg-gray-100 text-sm"
                   >
                     <Image
                       src="/assets/navbar/setting.svg"
@@ -295,13 +306,13 @@ export default function Navbar() {
                 <li>
                   <button
                     onClick={() => logout("/")} // gunakan hook logout
-                    className="flex items-center gap-4 w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100"
+                    className="flex items-center gap-3 w-full text-left px-3 py-1.5 text-sm text-red-600 hover:bg-gray-100"
                   >
                     <Image
                       src="/assets/navbar/exit.svg"
                       alt="Keluar"
-                      width={12}
-                      height={12}
+                      width={10}
+                      height={10}
                       className="relative top-[-0.5px]"
                     />
                     Keluar

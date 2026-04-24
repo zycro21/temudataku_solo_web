@@ -24,23 +24,25 @@ export default function SuccessModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="sm:max-w-md flex flex-col items-center justify-center text-center py-8"
+        className="sm:max-w-sm w-full max-h-[85vh] overflow-y-auto my-6 px-5 py-6 flex flex-col items-center justify-center text-center"
         onInteractOutside={(e) => e.preventDefault()}
       >
-        {/* Tambahkan DialogTitle untuk aksesibilitas */}
         <DialogTitle className="sr-only">Success</DialogTitle>
 
         {/* Icon Success */}
-        <CheckCircle className="w-20 h-20 text-emerald-500 mb-4" />
+        <CheckCircle className="w-14 h-14 text-emerald-500 mb-3" />
 
         {/* Teks */}
-        <h2 className="text-lg font-bold">Horray!</h2>
-        <p className="text-sm text-gray-600">Akun berhasil diperbarui, Silahkan Refresh Website Anda</p>
+        <h2 className="text-base font-semibold">Horray!</h2>
+        <p className="text-xs text-gray-600 mt-1 leading-relaxed max-w-[260px]">
+          Akun berhasil diperbarui, silakan refresh website Anda.
+        </p>
 
         {/* Tombol */}
         <Button
           onClick={handleBack}
-          className="mt-6 bg-emerald-500 hover:bg-emerald-600 text-white"
+          size="sm"
+          className="mt-4 px-4 py-1.5 text-xs bg-emerald-500 hover:bg-emerald-600 text-white"
         >
           Kembali ke Dashboard
         </Button>

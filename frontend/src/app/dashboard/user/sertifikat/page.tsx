@@ -157,55 +157,61 @@ export default function SertifikatDashboardUserPage() {
   const isEmpty = Object.keys(grouped).length === 0;
 
   return (
-    <div className="flex mb-8">
+    <div className="flex">
       <Sidebar />
-      <div className="flex-1 flex flex-col ml-72">
+
+      {/* Konten kanan */}
+      <div className="flex-1 flex flex-col ml-64 min-w-0">
         <DashboardHeader />
-        <main className="flex-1 p-6 pl-7 bg-gray-50 overflow-x-hidden">
-          <h1 className="text-3xl font-semibold text-gray-800 mb-6">
+
+        <main className="flex-1 px-5 py-4 bg-gray-50 overflow-x-hidden">
+          <h1 className="text-3xl font-semibold text-gray-800 mb-4">
             Sertifikat
           </h1>
 
-          <SertifikatFilters
-            programFilter={programFilter}
-            searchQuery={searchQuery}
-            onProgramChange={setProgramFilter}
-            onSearchChange={setSearchQuery}
-          />
+          <div className="space-y-4 min-w-0">
+            <SertifikatFilters
+              programFilter={programFilter}
+              searchQuery={searchQuery}
+              onProgramChange={setProgramFilter}
+              onSearchChange={setSearchQuery}
+            />
 
-          {loading && (
-            <p className="text-gray-500 text-sm mt-4">Memuat data...</p>
-          )}
+            {loading && (
+              <p className="text-sm text-gray-500 mt-2">Memuat data...</p>
+            )}
 
-          {error && <p className="text-red-500 text-sm mt-4">{error}</p>}
+            {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
 
-          {!loading &&
-            !error &&
-            Object.entries(grouped).map(([category, sertifikats]) => (
-              <SertifikatSection
-                key={category}
-                title={category}
-                sertifikats={sertifikats}
-              />
-            ))}
+            {!loading &&
+              !error &&
+              Object.entries(grouped).map(([category, sertifikats]) => (
+                <div key={category} className="min-w-0">
+                  <SertifikatSection
+                    title={category}
+                    sertifikats={sertifikats}
+                  />
+                </div>
+              ))}
 
-          {!loading && !error && isEmpty && (
-            <div className="flex flex-col items-center justify-center text-center py-20">
-              <Ban className="w-16 h-16 text-gray-300 mb-4" />
-              <h3 className="text-gray-700 font-semibold mb-1">
-                Belum ada program mentoring
-              </h3>
-              <p className="text-gray-500 text-sm mb-6">
-                Anda belum mengikuti program mentoring apa pun
-              </p>
-              <Link
-                href="/programs"
-                className="px-4 py-2 rounded-md bg-emerald-500 text-white hover:bg-emerald-600 transition cursor-pointer"
-              >
-                Ikuti Program
-              </Link>
-            </div>
-          )}
+            {!loading && !error && isEmpty && (
+              <div className="flex flex-col items-center justify-center text-center py-14">
+                <Ban className="w-12 h-12 text-gray-300 mb-3" />
+                <h3 className="text-sm font-semibold text-gray-700 mb-1">
+                  Belum ada program mentoring
+                </h3>
+                <p className="text-xs text-gray-500 mb-4">
+                  Anda belum mengikuti program mentoring apa pun
+                </p>
+                <Link
+                  href="/programs"
+                  className="px-3 py-1.5 text-xs rounded-md bg-emerald-500 text-white hover:bg-emerald-600 transition"
+                >
+                  Ikuti Program
+                </Link>
+              </div>
+            )}
+          </div>
         </main>
       </div>
     </div>

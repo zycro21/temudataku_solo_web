@@ -9,6 +9,34 @@ import { elearningThumbnailPath } from "../middlewares/uploadImage.js";
 
 const prisma = new PrismaClient();
 
+function generateCourseId() {
+  const today = new Date();
+  const formattedDate = today.toISOString().split("T")[0].replace(/-/g, "");
+  const randomId = crypto.randomBytes(3).toString("hex");
+  return `elearn-${formattedDate}-${randomId}`;
+}
+
+function generateSubChapterId() {
+  const today = new Date();
+  const formattedDate = today.toISOString().split("T")[0].replace(/-/g, "");
+  const randomId = crypto.randomBytes(6).toString("hex");
+  return `subc-${formattedDate}-${randomId}`;
+}
+
+function generateSubBabId() {
+  const today = new Date();
+  const formattedDate = today.toISOString().split("T")[0].replace(/-/g, "");
+  const randomId = crypto.randomBytes(6).toString("hex");
+  return `subbab-${formattedDate}-${randomId}`;
+}
+
+function generateTextId() {
+  return `ETXT-${Date.now()}-${crypto
+    .randomBytes(3)
+    .toString("hex")
+    .toUpperCase()}`;
+}
+
 export const ELearningCourseService = {
   async getAllCourses(
     filters: any,
@@ -90,6 +118,16 @@ export const ELearningCourseService = {
               },
             },
           },
+          // TAMBAHAN: include relasi untuk hitung courses, modules, materials
+          subChapters: {
+            include: {
+              subBabs: {
+                include: {
+                  texts: true, // untuk hitung materials (ELearningText)
+                },
+              },
+            },
+          },
         },
         skip,
         take: limit,
@@ -97,12 +135,45 @@ export const ELearningCourseService = {
       }),
     ]);
 
+    // TAMBAHAN: hitung courses, modules, materials per course
+    const dataWithCounts = courses.map((course) => {
+      const coursesCount = course.subChapters.length;
+
+      const modulesCount = course.subChapters.reduce(
+        (acc, subChapter) => acc + subChapter.subBabs.length,
+        0,
+      );
+
+      const materialsCount = course.subChapters.reduce(
+        (acc, subChapter) =>
+          acc +
+          subChapter.subBabs.reduce(
+            (acc2, subBab) => acc2 + subBab.texts.length,
+            0,
+          ),
+        0,
+      );
+      // =====================================================================
+      // CATATAN:
+      // - coursesCount  = jumlah ELearningSubChapter milik course
+      // - modulesCount  = jumlah semua ELearningSubBab di bawah subChapters tsb
+      // - materialsCount = jumlah semua ELearningText di bawah subBabs tsb
+      // =====================================================================
+
+      return {
+        ...course,
+        coursesCount,
+        modulesCount,
+        materialsCount,
+      };
+    });
+
     return {
       total,
       page,
       limit,
       totalPages: Math.ceil(total / limit),
-      data: courses,
+      data: dataWithCounts,
     };
   },
 
@@ -125,7 +196,6 @@ export const ELearningCourseService = {
           include: {
             subBabs: {
               include: {
-                videos: true,
                 texts: true,
                 quiz: true,
                 assignment: true,
@@ -222,6 +292,7 @@ export const ELearningCourseService = {
         benefits: data.benefits,
         toolsUsed: data.toolsUsed,
         isActive: data.isActive ?? true,
+        status: data.status ?? "DRAFT",
       },
     });
 
@@ -406,7 +477,6 @@ export const ELearningCourseService = {
           include: {
             subBabs: {
               include: {
-                videos: true,
                 texts: true,
                 quiz: true,
                 assignment: true,
@@ -740,5 +810,147 @@ export const ELearningCourseService = {
       mimetype:
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     };
+  },
+
+  async duplicateCourse(id: string, user: any) {
+    const course = await prisma.eLearningCourse.findUnique({
+      where: { id },
+      include: {
+        subChapters: {
+          include: {
+            subBabs: {
+              include: {
+                texts: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!course) {
+      throw { status: 404, message: "Course tidak ditemukan" };
+    }
+
+    /* ===== ROLE-BASED ACCESS ===== */
+    const roles: string[] = Array.isArray(user?.roles)
+      ? user.roles.map((r: unknown) =>
+          typeof r === "string" ? r : (r as { role: string }).role,
+        )
+      : [];
+
+    const adminLikeRoles = ["admin", "cm", "curdev"];
+    const isAdminLike = roles.some((role) => adminLikeRoles.includes(role));
+
+    const isMentor = roles.includes("mentor");
+
+    if (isAdminLike) {
+      // bebas
+    } else if (isMentor) {
+      if (!user.mentorProfileId) {
+        throw {
+          status: 403,
+          message: "Mentor profile tidak ditemukan",
+        };
+      }
+
+      if (course.mentorId !== user.mentorProfileId) {
+        throw {
+          status: 403,
+          message: "Akses ditolak: bukan pemilik course ini",
+        };
+      }
+    } else {
+      throw {
+        status: 403,
+        message: "Akses ditolak",
+      };
+    }
+
+    // 🔢 HITUNG COPY KE BERAPA
+    const existingCopies = await prisma.eLearningCourse.count({
+      where: {
+        title: {
+          startsWith: `${course.title}-copy`,
+        },
+      },
+    });
+
+    const copyNumber = existingCopies + 1;
+    const newTitle = `${course.title}-copy ${copyNumber}`;
+
+    // ======================
+    // 1. CREATE COURSE
+    // ======================
+    const newCourse = await prisma.eLearningCourse.create({
+      data: {
+        id: generateCourseId(),
+        mentorId: course.mentorId,
+        title: newTitle,
+        description: course.description,
+        thumbnailImages: course.thumbnailImages,
+        category: course.category,
+        tags: course.tags,
+        targetAudience: course.targetAudience,
+        level: course.level,
+        estimatedDuration: course.estimatedDuration,
+        benefits: course.benefits,
+        toolsUsed: course.toolsUsed,
+        isActive: false,
+        status: "ARCHIVED",
+      },
+    });
+
+    // ======================
+    // 2. DUPLICATE SUBCHAPTER
+    // ======================
+    for (const subChapter of course.subChapters) {
+      const newSubChapter = await prisma.eLearningSubChapter.create({
+        data: {
+          id: generateSubChapterId(),
+          courseId: newCourse.id,
+          title: `${subChapter.title}-copy ${copyNumber}`,
+          coverImage: subChapter.coverImage,
+          description: subChapter.description,
+          orderNumber: subChapter.orderNumber,
+          estimatedTime: subChapter.estimatedTime,
+          taskType: subChapter.taskType,
+          status: "ARCHIVED",
+        },
+      });
+
+      // ======================
+      // 3. DUPLICATE SUBBAB
+      // ======================
+      for (const subBab of subChapter.subBabs) {
+        const newSubBab = await prisma.eLearningSubBab.create({
+          data: {
+            id: generateSubBabId(),
+            subChapterId: newSubChapter.id,
+            title: `${subBab.title}-copy ${copyNumber}`,
+            orderNumber: subBab.orderNumber,
+            estimatedTime: subBab.estimatedTime,
+            status: "ARCHIVED",
+          },
+        });
+
+        // ======================
+        // 4. DUPLICATE TEXT
+        // ======================
+        for (const text of subBab.texts) {
+          await prisma.eLearningText.create({
+            data: {
+              id: generateTextId(),
+              subBabId: newSubBab.id,
+              title: text.title ? `${text.title}-copy ${copyNumber}` : null,
+              orderNumber: text.orderNumber,
+              status: "ARCHIVED",
+            },
+          });
+        }
+      }
+    }
+
+    return newCourse;
   },
 };

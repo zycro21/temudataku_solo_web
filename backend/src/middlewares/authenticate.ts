@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { CourseStatus } from "@prisma/client";
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -318,7 +319,7 @@ export interface AuthenticatedRequestReferralCode extends Request {
       }
     | {
         code: string;
-        context: "booking" | "practice_purchase" | "elearning_subscription";
+        context: "booking" | "practice_purchase" | "elearning_subscription" | "ayclpurchase";
       }
     | {
         referralCodeId: string;
@@ -507,6 +508,7 @@ export interface AuthenticatedRequestSubChapter extends Request {
     courseId?: string;
   };
   validatedQuery?: any;
+  file?: Express.Multer.File;
 }
 
 interface ReorderBody {
@@ -556,6 +558,7 @@ export interface AuthenticatedRequestSubBab extends Request {
     title?: string;
     estimatedTime?: string;
     orderNumber?: number;
+    status?: CourseStatus; 
     // Untuk duplikasi
     targetSubChapterId?: string;
     newTitle?: string;
@@ -585,6 +588,7 @@ export interface AuthenticatedRequestText extends Request {
     title?: string;
     orderNumber?: number;
     blocks: { content: string; order: number }[];
+    status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   };
   validatedParams?: { textId?: string; subBabId?: string; id?: string };
   validatedQuery?: any;
@@ -905,6 +909,34 @@ export interface AuthenticatedRequestInteractiveAttempt extends Request {
 }
 
 export interface AuthenticatedRequestELearningExCode extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+    fullName?: string;
+  };
+  validatedBody?: any;
+  validatedParams?: any;
+  validatedQuery?: any;
+}
+
+export interface AuthenticatedRequestAycl extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+    fullName?: string;
+  };
+  validatedBody?: any;
+  validatedParams?: any;
+  validatedQuery?: any;
+}
+
+export interface AuthenticatedRequestAyclBooking extends Request {
   user?: {
     userId: string;
     roles: string[];

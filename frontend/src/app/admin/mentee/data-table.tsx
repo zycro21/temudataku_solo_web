@@ -86,11 +86,11 @@ export function DataTable<TData extends Mentee, TValue>({
 
       formData.append(
         "isActive",
-        editFormData.status === "Aktif" ? "true" : "false"
+        editFormData.status === "Aktif" ? "true" : "false",
       );
 
       const fileInput = document.getElementById(
-        "edit-photo"
+        "edit-photo",
       ) as HTMLInputElement;
 
       if (fileInput?.files?.[0]) {
@@ -105,7 +105,7 @@ export function DataTable<TData extends Mentee, TValue>({
           headers: {
             "Content-Type": "multipart/form-data",
           },
-        }
+        },
       );
 
       toast.success("Data mentee berhasil diperbarui");
@@ -127,7 +127,7 @@ export function DataTable<TData extends Mentee, TValue>({
     try {
       await axios.delete(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/${selectedMentee.id}`,
-        { withCredentials: true }
+        { withCredentials: true },
       );
 
       toast.success("Akun mentee berhasil dihapus");
@@ -172,61 +172,62 @@ export function DataTable<TData extends Mentee, TValue>({
   return (
     <div>
       {/* Search bar */}
-      <div className="flex items-center pb-4">
-        <div className="relative w-full max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+      <div className="flex items-center pb-3">
+        <div className="relative w-full max-w-xs">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
           <Input
-            placeholder="Cari Berdasarkan Nama, Email, atau Status..."
+            placeholder="Cari nama, email, status..."
             value={globalFilter ?? ""}
             onChange={(e) => setGlobalFilter(e.target.value)}
-            className="pl-10 focus-visible:ring-green-500"
+            className="pl-8 pr-3 py-1.5 text-sm focus-visible:ring-green-500"
           />
         </div>
       </div>
 
       {/* Table */}
-      <div className="rounded-md border">
-        <Table>
+      <div className="rounded-md border overflow-hidden">
+        <Table className="text-sm">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <TableHead
                     key={header.id}
-                    className={`px-4 py-3 text-gray-700 transition
-    ${
-      header.column.getIsSorted() || header.column.getFilterValue()
-        ? "bg-emerald-100 text-emerald-900"
-        : ""
-    }
-    ${
-      typeof header.column.columnDef.header === "function"
-        ? "cursor-pointer"
-        : ""
-    }
-  `}
+                    className={`px-3 py-2 text-gray-700 whitespace-nowrap
+                ${
+                  header.column.getIsSorted() || header.column.getFilterValue()
+                    ? "bg-emerald-100 text-emerald-900"
+                    : ""
+                }
+                ${
+                  typeof header.column.columnDef.header === "function"
+                    ? "cursor-pointer"
+                    : ""
+                }`}
                   >
                     {header.isPlaceholder
                       ? null
                       : flexRender(
                           header.column.columnDef.header,
-                          header.getContext()
+                          header.getContext(),
                         )}
                   </TableHead>
                 ))}
               </TableRow>
             ))}
           </TableHeader>
+
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id} className="hover:bg-gray-50">
                   {row.getVisibleCells().map((cell) => {
                     const isSelectColumn = cell.column.id === "select";
+
                     return (
                       <TableCell
                         key={cell.id}
-                        className={`px-4 py-3 ${
+                        className={`px-3 py-2 align-middle ${
                           isSelectColumn ? "" : "cursor-pointer"
                         }`}
                         onClick={() => {
@@ -236,10 +237,12 @@ export function DataTable<TData extends Mentee, TValue>({
                           }
                         }}
                       >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
+                        <div className="truncate max-w-[160px]">
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext(),
+                          )}
+                        </div>
                       </TableCell>
                     );
                   })}
@@ -249,7 +252,7 @@ export function DataTable<TData extends Mentee, TValue>({
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className="h-24 text-center"
+                  className="h-20 text-center text-sm"
                 >
                   Tidak ada data.
                 </TableCell>
@@ -260,18 +263,19 @@ export function DataTable<TData extends Mentee, TValue>({
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between mt-6">
-        <div className="text-sm text-gray-600">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4">
+        <div className="text-xs text-gray-600">
           Menampilkan {from}-{to} dari {totalRows} data
         </div>
-        <div className="flex items-center space-x-4">
-          {/* Tampilkan per halaman */}
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-600">Tampilkan per halaman</span>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Page size */}
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-600">Per halaman</span>
             <select
               value={pageSize}
               onChange={(e) => table.setPageSize(Number(e.target.value))}
-              className="border border-gray-300 rounded px-2 py-1 text-sm"
+              className="border border-gray-300 rounded px-2 py-1 text-xs"
             >
               {[10, 25, 50].map((size) => (
                 <option key={size} value={size}>
@@ -281,33 +285,34 @@ export function DataTable<TData extends Mentee, TValue>({
             </select>
           </div>
 
-          {/* Numbered Pagination */}
-          <div className="flex items-center space-x-2">
+          {/* Pagination buttons */}
+          <div className="flex items-center gap-1">
             <Button
               variant="outline"
               size="sm"
+              className="h-7 px-2"
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-3.5 h-3.5" />
             </Button>
 
             {Array.from({ length: totalPages }, (_, i) => i + 1)
               .slice(
                 Math.max(0, pageIndex - 2),
-                Math.min(totalPages, pageIndex + 3)
+                Math.min(totalPages, pageIndex + 3),
               )
               .map((page) => (
                 <Button
                   key={page}
                   variant={pageIndex + 1 === page ? "default" : "outline"}
                   size="sm"
-                  onClick={() => table.setPageIndex(page - 1)}
-                  className={
+                  className={`h-7 px-2 text-xs ${
                     pageIndex + 1 === page
                       ? "bg-[#0CA678] hover:bg-[#08916C]"
                       : ""
-                  }
+                  }`}
+                  onClick={() => table.setPageIndex(page - 1)}
                 >
                   {page}
                 </Button>
@@ -316,10 +321,11 @@ export function DataTable<TData extends Mentee, TValue>({
             <Button
               variant="outline"
               size="sm"
+              className="h-7 px-2"
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-3.5 h-3.5" />
             </Button>
           </div>
         </div>
@@ -397,7 +403,7 @@ export function DataTable<TData extends Mentee, TValue>({
                           day: "2-digit",
                           month: "long",
                           year: "numeric",
-                        }
+                        },
                       )}
                     </p>
                   </div>

@@ -7,8 +7,8 @@ import PDFDocument from "pdfkit";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { AuthenticatedRequestPractice } from "../middlewares/authenticate";
-import { uploadToGoogleDrive } from "../utils/googleDrive";
+// import { AuthenticatedRequestPractice } from "../middlewares/authenticate";
+// import { uploadToGoogleDrive } from "../utils/googleDrive";
 
 const prisma = new PrismaClient();
 
@@ -293,7 +293,7 @@ export const useReferralCodeService = async ({
 }: {
   userId: string;
   code: string;
-  context: "booking" | "practice_purchase" | "elearning_subscription";
+  context: "booking" | "practice_purchase" | "elearning_subscription" | "ayclpurchase";
 }) => {
   /* ================================
    * 1. VALIDASI REFERRAL CODE
@@ -578,6 +578,123 @@ export const applyReferralToELearningService = async ({
     };
   });
 };
+
+export const applyReferralToAyclBookingService = async ({
+  userId,
+  bookingId,
+  code,
+}: {
+  userId: string;
+  bookingId: string;
+  code: string;
+}) => {
+  return await prisma.$transaction(async (tx) => {
+    /* ===============================
+       1️⃣ Ambil booking + batch + payment
+    =============================== */
+    const booking = await tx.aYCLBooking.findUnique({
+      where: { id: bookingId },
+      include: {
+        batch: true,
+        payment: true,
+      },
+    });
+
+    if (!booking) {
+      throw { status: 404, message: "Booking tidak ditemukan." };
+    }
+
+    if (booking.userId !== userId) {
+      throw { status: 403, message: "Bukan booking milik anda." };
+    }
+
+    if (booking.status !== "pending") {
+      throw { status: 400, message: "Referral hanya bisa saat pending." };
+    }
+
+    if (!booking.payment) {
+      throw { status: 400, message: "Payment tidak ditemukan." };
+    }
+
+    if (booking.referralUsageId) {
+      throw { status: 400, message: "Referral sudah digunakan." };
+    }
+
+    /* ===============================
+       2️⃣ Gunakan referral (🔥 NEW CONTEXT)
+    =============================== */
+    const referralResult = await useReferralCodeService({
+      userId,
+      code,
+      context: "ayclpurchase",
+    });
+
+    const referralUsageId = referralResult.referralUsageId;
+
+    const referral = await tx.referralCode.findUnique({
+      where: { code },
+    });
+
+    if (!referral) {
+      throw { status: 404, message: "Referral tidak ditemukan." };
+    }
+
+    const discountPercentage = referral.discountPercentage.toNumber();
+    const commissionPercentage = referral.commissionPercentage.toNumber();
+
+    const originalPrice = booking.batch.price.toNumber();
+
+    /* ===============================
+       3️⃣ Hitung harga
+    =============================== */
+    const finalPrice = Math.round(
+      originalPrice * (1 - discountPercentage / 100),
+    );
+
+    const commissionAmount = Math.round(
+      originalPrice * (commissionPercentage / 100),
+    );
+
+    /* ===============================
+       4️⃣ Update booking
+    =============================== */
+    await tx.aYCLBooking.update({
+      where: { id: bookingId },
+      data: { referralUsageId },
+    });
+
+    /* ===============================
+       5️⃣ Update payment
+    =============================== */
+    await tx.payment.update({
+      where: { ayclBookingId: bookingId },
+      data: {
+        amount: finalPrice,
+        updatedAt: new Date(),
+      },
+    });
+
+    /* ===============================
+       6️⃣ Create commission
+    =============================== */
+    await tx.referralCommisions.create({
+      data: {
+        referralCodeId: referral.id,
+        transactionId: booking.payment.id,
+        amount: commissionAmount,
+        created_at: new Date(),
+      },
+    });
+
+    return {
+      originalPrice,
+      discountPercentage,
+      finalPrice,
+      commissionPercentage,
+      commissionAmount,
+    };
+  });
+}
 
 export const getReferralCommissions = async (input: {
   referralCodeId?: string;

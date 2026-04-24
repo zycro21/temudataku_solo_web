@@ -46,18 +46,18 @@ function CenteredMonthCaption({ calendarMonth }: MonthCaptionProps) {
         <button
           type="button"
           aria-label="Bulan sebelumnya"
-          className="absolute left-0 p-2 text-black hover:text-gray-700 text-2xl"
+          className="absolute left-0 p-2 text-black hover:text-gray-700 text-lg"
           onClick={() => goToMonth(previousMonth)}
         >
           &#60;
         </button>
       )}
-      <div className="font-semibold text-2xl text-center">{label}</div>
+      <div className="font-semibold text-lg text-center">{label}</div>
       {nextMonth && (
         <button
           type="button"
           aria-label="Bulan selanjutnya"
-          className="absolute right-0 p-2 text-black hover:text-gray-700 text-2xl"
+          className="absolute right-0 p-2 text-black hover:text-gray-700 text-lg"
           onClick={() => goToMonth(nextMonth)}
         >
           &#62;
@@ -98,7 +98,7 @@ export default function MentorCalendar({
   };
 
   return (
-    <div className="mt-2 relative">
+    <div className="mt-1 relative text-sm">
       <DayPicker
         mode="single"
         selected={selectedDate || undefined} // controlled dari parent
@@ -140,7 +140,7 @@ export default function MentorCalendar({
       {/* Tooltip */}
       {hoveredDate && tooltipPos && (
         <div
-          className="fixed bg-gray-800 text-white text-xs px-2 py-1 rounded shadow z-50 pointer-events-none"
+          className="fixed bg-gray-800 text-white text-[10px] px-1.5 py-0.5 rounded shadow z-50 pointer-events-none"
           style={{
             top: tooltipPos.y,
             left: tooltipPos.x,

@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { AuthenticatedRequestNotification } from "../middlewares/authenticate.js";
 import { format } from "date-fns";
-import { HttpError } from "../utils/httpError";
+// import { HttpError } from "../utils/httpError";
 import * as NotificationService from "../services/notification.service.js";
 import { PrismaClient } from "@prisma/client";
 import { logActivity } from "../utils/logActivtiy.js";

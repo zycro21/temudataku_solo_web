@@ -79,7 +79,7 @@ const router = express.Router();
 router.get(
   "/subchapters/:subChapterId/subbabs",
   authenticate,
-  authorizeRoles("admin", "mentor", "mentee"),
+  authorizeRoles("admin", "cm", "curdev", "mentor", "mentee"),
   validate(getSubBabsBySubChapterSchema),
   ELearningSubBabController.getSubBabsBySubChapter
 );
@@ -164,7 +164,7 @@ router.get(
 router.post(
   "/subchapters/:subChapterId/subbabs",
   authenticate,
-  authorizeRoles("admin", "mentor"),
+  authorizeRoles("admin", "mentor", "cm", "curdev"),
   validate(createSubBabSchema),
   ELearningSubBabController.createSubBab
 );
@@ -217,9 +217,45 @@ router.post(
 router.put(
   "/subbabs/:id",
   authenticate,
-  authorizeRoles("admin", "mentor"),
+  authorizeRoles("admin", "mentor", "cm", "curdev"),
   validate(updateSubBabSchema),
   ELearningSubBabController.updateSubBab
+);
+
+/**
+ * @swagger
+ * /api/elearningSubBab/subbabs/{id}/duplicate:
+ *   post:
+ *     summary: Duplicate sub-bab beserta semua kontennya
+ *     description: >
+ *       Admin dapat menduplikasi sub-bab dari course manapun.
+ *       Mentor hanya dapat menduplikasi sub-bab dari course yang dia ampu.
+ *       Sub-bab akan disalin lengkap termasuk semua elearning text di dalamnya.
+ *       Judul akan otomatis ditambahkan "-copy (n)".
+ *     tags: [E-Learning SubBabs]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID Sub-Bab
+ *     responses:
+ *       201:
+ *         description: Sub-bab berhasil diduplikasi
+ *       403:
+ *         description: Akses ditolak
+ *       404:
+ *         description: Sub-bab tidak ditemukan
+ */
+router.post(
+  "/subbabs/:id/duplicate",
+  authenticate,
+  authorizeRoles("admin", "mentor", "cm", "curdev"),
+  validate(duplicateSubBabSchema),
+  ELearningSubBabController.duplicateSubBab
 );
 
 /**
@@ -256,58 +292,6 @@ router.delete(
   authorizeRoles("admin"),
   validate(deleteSubBabSchema),
   ELearningSubBabController.deleteSubBab
-);
-
-/**
- * @swagger
- * /api/elearningSubBab/subbabs/{id}/duplicate:
- *   post:
- *     summary: Duplikasi sub-bab ke sub-chapter lain
- *     description: >
- *       Admin dapat menyalin sub-bab ke sub-chapter manapun.
- *       Mentor hanya dapat menyalin ke sub-chapter dari course yang dia ampu.
- *       Konten (video, text, quiz, assignment) juga akan ikut disalin.
- *       Sistem akan otomatis menyesuaikan orderNumber agar tidak terjadi duplikasi di sub-chapter tujuan.
- *     tags: [E-Learning SubBabs]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - name: id
- *         in: path
- *         required: true
- *         schema:
- *           type: string
- *         description: ID Sub-Bab yang akan diduplikasi
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [targetSubChapterId]
- *             properties:
- *               targetSubChapterId:
- *                 type: string
- *                 example: "SubChap_abc123"
- *               newTitle:
- *                 type: string
- *                 example: "Pengenalan Golang (Copy)"
- *     responses:
- *       201:
- *         description: Sub-bab berhasil diduplikasi
- *       400:
- *         description: Data tidak valid atau duplikat orderNumber
- *       403:
- *         description: Akses ditolak
- *       404:
- *         description: Sub-bab atau sub-chapter tidak ditemukan
- */
-router.post(
-  "/subbabs/:id/duplicate",
-  authenticate,
-  authorizeRoles("admin", "mentor"),
-  validate(duplicateSubBabSchema),
-  ELearningSubBabController.duplicateSubBab
 );
 
 /**

@@ -474,4 +474,27 @@ export const ELearningCourseController = {
       next(err);
     }
   },
+
+  async duplicateCourse(
+    req: AuthenticatedRequestElearning,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const { validatedParams, user } = req;
+
+      const duplicated = await ELearningCourseService.duplicateCourse(
+        validatedParams.id,
+        user,
+      );
+
+      res.status(201).json({
+        success: true,
+        message: "Course berhasil diduplicate",
+        data: duplicated,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
 };

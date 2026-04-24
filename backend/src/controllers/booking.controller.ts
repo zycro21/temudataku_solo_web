@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { AuthenticatedRequestBooking } from "../middlewares/authenticate.js";
 import { format } from "date-fns";
-import { HttpError } from "../utils/httpError";
+import { HttpError } from "../utils/httpError.js";
 import * as BookingService from "../services/booking.service.js";
 import { PrismaClient } from "@prisma/client";
 import path from "path";

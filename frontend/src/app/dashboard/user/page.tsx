@@ -18,7 +18,7 @@ export default function MainDashboardUserPage() {
       try {
         const res = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/me`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
         setUser(res.data.data);
       } catch (err) {
@@ -39,33 +39,35 @@ export default function MainDashboardUserPage() {
   const firstName = user ? getFirstName(user.fullName) : "User";
 
   return (
-    <div className="flex mb-8">
+    <div className="flex">
       <Sidebar />
-      {/* Konten sebelah kanan */}
-      <div className="flex-1 flex flex-col ml-72">
+
+      {/* Konten kanan */}
+      <div className="flex-1 flex flex-col ml-64 min-w-0">
         <DashboardHeader />
-        {/* Main content */}
-        <main className="flex-1 p-6 pl-7 bg-gray-50 overflow-x-hidden">
-          <h1 className="text-2xl font-semibold text-gray-800 mb-6">
+
+        <main className="flex-1 px-5 py-4 bg-gray-50 overflow-x-hidden">
+          <h1 className="text-xl font-semibold text-gray-800 mb-4">
             Halo, {firstName}
           </h1>
 
-          {/* Grid utama: kiri (2 kolom), kanan (1 kolom) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Kiri */}
-            <div className="space-y-6">
+            <div className="space-y-4 min-w-0">
               <StatCards />
               <ChartSection />
             </div>
 
             {/* Kanan */}
-            <div className="space-y-6">
+            <div className="space-y-4 min-w-0">
               <ScheduleSection />
               <ActivitySection />
             </div>
           </div>
 
-          <RecommendationSection />
+          <div className="mt-4">
+            <RecommendationSection />
+          </div>
         </main>
       </div>
     </div>

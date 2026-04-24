@@ -27,47 +27,59 @@ export default function LihatFeedbackModal({
     <Dialog>
       {/* Tombol utama */}
       <DialogTrigger asChild>
-        <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center gap-2">
+        <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center gap-1.5 text-xs py-1.5">
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ duration: 0.4, ease: "easeOut" }}
           >
-            <CheckCircle className="w-5 h-5 text-white animate-pulse" />
+            <CheckCircle className="w-4 h-4 text-white" />
           </motion.div>
           <span className="font-medium">Feedback</span>
         </Button>
       </DialogTrigger>
 
-      {/* Modal tampil saat tombol diklik */}
-      <DialogContent className="bg-white rounded-xl shadow-lg w-full max-w-md p-0">
-        <DialogHeader className="px-6 py-5 border-b text-center">
-          <DialogTitle className="text-lg font-semibold text-gray-800">
+      {/* Modal */}
+      <DialogContent
+        className="
+      bg-white rounded-lg shadow
+      w-full max-w-sm
+      p-0
+      overflow-hidden
+    "
+        onInteractOutside={(e) => e.preventDefault()}
+      >
+        {/* HEADER */}
+        <DialogHeader className="px-4 py-3 border-b text-center space-y-0.5">
+          <DialogTitle className="text-sm font-semibold text-gray-800">
             Anda Telah Memberikan Feedback
           </DialogTitle>
-          <p className="text-sm text-gray-600 mt-1">{feedbackTitle}</p>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-xs text-gray-600">{feedbackTitle}</p>
+          <p className="text-[11px] text-gray-500">
             {feedbackDate} • {feedbackTime}
           </p>
         </DialogHeader>
 
-        <div className="px-6 py-8 text-center space-y-4">
+        {/* CONTENT */}
+        <div className="px-4 py-5 text-center space-y-3 overflow-x-hidden">
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            transition={{ duration: 0.6, type: "spring" }}
+            transition={{ duration: 0.5, type: "spring" }}
             className="flex justify-center"
           >
-            <CheckCircle className="w-16 h-16 text-blue-600" />
+            <CheckCircle className="w-10 h-10 text-blue-600" />
           </motion.div>
-          <p className="text-gray-700 text-base font-medium">
+
+          <p className="text-xs text-gray-700 font-medium leading-relaxed">
             Terima kasih! Anda telah memberikan feedback untuk sesi ini.
           </p>
         </div>
 
-        <div className="px-6 py-4 border-t flex justify-center">
+        {/* FOOTER */}
+        <div className="px-4 py-3 border-t flex justify-center">
           <DialogClose asChild>
-            <Button className="w-32 bg-blue-600 hover:bg-blue-700 text-white">
+            <Button className="w-full text-xs py-1.5 bg-blue-600 hover:bg-blue-700 text-white">
               Tutup
             </Button>
           </DialogClose>

@@ -129,12 +129,14 @@ const MentorSection = () => {
   }, [api]);
 
   return (
-    <section id="mentorSection" className="py-10 md:py-16">
-      <div className="max-w-[1150px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center mb-8">
+    <section id="mentorSection" className="py-8 md:py-12">
+      <div className="max-w-[1100px] mx-auto px-4 sm:px-5 lg:px-6">
+        <div className="flex justify-between items-center mb-6">
           <div>
-            <p className="text-sm font-semibold text-[#243A77] mb-2">Mentor</p>
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+            <p className="text-xs font-semibold text-[#243A77] mb-1.5">
+              Mentor
+            </p>
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
               Perkenalkan Mentor-Mentor
               <br />
               Berpengalaman Kami
@@ -153,60 +155,54 @@ const MentorSection = () => {
           <CarouselContent>
             {mentorGroups.map((group, groupIndex) => (
               <CarouselItem key={groupIndex}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 py-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 py-4">
                   {group.map((mentor) => (
                     <div
                       key={mentor.id}
                       className="
-    bg-white rounded-2xl 
-    border border-gray-200 
-    overflow-hidden h-full
-    transition-all duration-300
-    hover:-translate-y-2
-    hover:shadow-2xl
-    hover:border-emerald-300
-    group
-  "
+                    bg-white rounded-xl
+                    border border-gray-200
+                    overflow-hidden h-full
+                    transition-all duration-300
+                    hover:-translate-y-1
+                    hover:shadow-xl
+                    hover:border-emerald-300
+                    group
+                  "
                     >
-                      {/* IMAGE SECTION */}
-                      <div className="relative h-64 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center overflow-hidden">
-                        {/* Decorative Soft Circle */}
-                        <div className="absolute w-72 h-72 bg-emerald-100 rounded-full blur-3xl opacity-40 group-hover:opacity-60 transition duration-500"></div>
+                      {/* IMAGE */}
+                      <div className="relative h-56 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center overflow-hidden">
+                        <div className="absolute w-64 h-64 bg-emerald-100 rounded-full blur-3xl opacity-30 group-hover:opacity-50 transition duration-500"></div>
 
                         <Image
                           src={mentor.image}
                           alt={mentor.name}
-                          width={500}
-                          height={500}
-                          className="
-      relative z-10 
-      max-h-[85%] 
-      w-auto 
-      object-contain
-    "
+                          width={400}
+                          height={400}
+                          className="relative z-10 max-h-[85%] w-auto object-contain"
                         />
                       </div>
 
-                      {/* ROLE BADGE (Floating Below Image) */}
+                      {/* ROLE BADGE */}
                       <div className="flex justify-center">
-                        <div className="mt-4 bg-white px-5 py-2 rounded-full text-xs font-semibold text-emerald-600 shadow-md border border-gray-200">
+                        <div className="mt-4 bg-white px-4.5 py-2 rounded-full text-xs font-semibold text-emerald-600 shadow-sm border">
                           {mentor.role}
                         </div>
                       </div>
 
-                      {/* CONTENT SECTION */}
-                      <div className="p-6">
-                        <h3 className="text-xl font-bold text-gray-900 leading-snug mb-1">
+                      {/* CONTENT */}
+                      <div className="p-4">
+                        <h3 className="text-lg font-bold text-gray-900 mb-1">
                           {mentor.name}
                         </h3>
 
-                        <p className="text-sm text-gray-500 mb-4">
+                        <p className="text-xs text-gray-500 mb-3">
                           {mentor.experience}
                         </p>
 
-                        <div className="space-y-3 mb-4">
-                          <div className="flex items-start gap-3 text-sm text-gray-700">
-                            <Code className="w-4 h-4 shrink-0 mt-1 text-emerald-500" />
+                        <div className="space-y-2 mb-3">
+                          <div className="flex items-start gap-2 text-xs text-gray-700">
+                            <Code className="w-3.5 h-3.5 shrink-0 mt-1 text-emerald-500" />
                             <span className="leading-relaxed line-clamp-3">
                               {mentor.skills}
                             </span>
@@ -220,13 +216,14 @@ const MentorSection = () => {
                                 setSelectedMentor(mentor);
                                 setIsDialogOpen(true);
                               }}
-                              className="text-[#0CA678] font-semibold text-base hover:underline hover:cursor-pointer"
+                              className="text-[#0CA678] font-semibold text-sm hover:underline"
                             >
                               Lihat Profil Lengkap
                             </button>
                           </DialogTrigger>
+
                           <DialogContent
-                            className="max-w-lg"
+                            className="max-w-md"
                             onPointerDownOutside={(e) => e.preventDefault()}
                           >
                             <DialogHeader>
@@ -235,43 +232,45 @@ const MentorSection = () => {
                                   {selectedMentor?.name}
                                 </DialogTitle>
                               </VisuallyHidden>
+
                               <DialogDescription asChild>
-                                <div className="mt-4">
-                                  {/* Header Section */}
-                                  <div className="relative bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl p-6 mb-6 text-white text-center">
-                                    <div className="flex justify-center mb-4">
+                                <div className="mt-3">
+                                  {/* HEADER */}
+                                  <div className="relative bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg p-4 mb-4 text-white text-center">
+                                    <div className="flex justify-center mb-3">
                                       <Image
-                                        width={120}
-                                        height={120}
+                                        width={90}
+                                        height={90}
                                         src={selectedMentor?.image}
                                         alt={selectedMentor?.name}
-                                        className="rounded-full border-4 border-white shadow-lg object-contain bg-white"
+                                        className="rounded-full border-2 border-white shadow object-contain bg-white"
                                       />
                                     </div>
-                                    <h3 className="text-2xl font-bold">
+
+                                    <h3 className="text-lg font-bold">
                                       {selectedMentor?.name}
                                     </h3>
-                                    <p className="text-base opacity-90">
+                                    <p className="text-sm opacity-90">
                                       {selectedMentor?.role}
                                     </p>
                                   </div>
 
-                                  {/* Detail Section */}
-                                  <div className="space-y-4">
-                                    <div className="flex items-center gap-3 text-base text-gray-700">
-                                      <Calendar className="w-5 h-5 text-emerald-500" />
+                                  {/* DETAIL */}
+                                  <div className="space-y-3">
+                                    <div className="flex items-center gap-2 text-sm text-gray-700">
+                                      <Calendar className="w-4 h-4 text-emerald-500" />
                                       <span>{selectedMentor?.experience}</span>
                                     </div>
 
-                                    <div className="flex items-start gap-3 text-base text-gray-700">
-                                      <Code className="w-5 h-5 text-emerald-500 shrink-0 mt-1" />
+                                    <div className="flex items-start gap-2 text-sm text-gray-700">
+                                      <Code className="w-4 h-4 text-emerald-500 shrink-0 mt-1" />
                                       <span className="leading-relaxed break-words">
                                         {selectedMentor?.skills}
                                       </span>
                                     </div>
 
-                                    <div className="flex items-center gap-3 text-base text-gray-700">
-                                      <Linkedin className="w-5 h-5 text-emerald-500" />
+                                    <div className="flex items-center gap-2 text-sm text-gray-700">
+                                      <Linkedin className="w-4 h-4 text-emerald-500" />
                                       <a
                                         href={selectedMentor?.linkedin}
                                         target="_blank"
@@ -282,11 +281,11 @@ const MentorSection = () => {
                                       </a>
                                     </div>
 
-                                    <div className="mt-6 p-4 bg-gray-50 rounded-lg border">
-                                      <p className="text-base font-semibold mb-2">
+                                    <div className="mt-4 p-3 bg-gray-50 rounded-md border">
+                                      <p className="text-sm font-semibold mb-1">
                                         Biografi
                                       </p>
-                                      <p className="text-base text-gray-700 leading-relaxed">
+                                      <p className="text-sm text-gray-700 leading-relaxed">
                                         {selectedMentor?.biography}
                                       </p>
                                     </div>
@@ -304,18 +303,20 @@ const MentorSection = () => {
             ))}
           </CarouselContent>
 
-          <div className="hidden md:flex gap-2 absolute -top-10 right-20 z-10">
-            <CarouselPrevious className="border border-gray-300 bg-white hover:bg-gray-100 text-gray-800 shadow-md w-10 h-10" />
-            <CarouselNext className="bg-[#0CA678] hover:bg-[#08916C] text-white shadow-md w-10 h-10" />
+          {/* NAV */}
+          <div className="hidden md:flex gap-1.5 absolute -top-8 right-16 z-10">
+            <CarouselPrevious className="border border-gray-300 bg-white hover:bg-gray-100 text-gray-800 shadow-sm w-8 h-8" />
+            <CarouselNext className="bg-[#0CA678] hover:bg-[#08916C] text-white shadow-sm w-8 h-8" />
           </div>
         </Carousel>
 
-        <div className="flex justify-center mt-6 space-x-2">
+        {/* DOTS */}
+        <div className="flex justify-center mt-4 space-x-1.5">
           {Array.from({ length: count }).map((_, index) => (
             <button
               key={index}
               onClick={() => api?.scrollTo(index)}
-              className={`w-3 h-3 rounded-full transition-colors ${
+              className={`w-2.5 h-2.5 rounded-full transition-colors ${
                 index + 1 === current
                   ? "bg-emerald-500"
                   : "bg-gray-300 hover:bg-gray-400"

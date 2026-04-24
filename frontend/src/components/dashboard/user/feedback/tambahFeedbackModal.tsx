@@ -69,13 +69,13 @@ export default function TambahFeedbackModal({
       // Konversi jawaban mentee jadi rating (1–5)
       const ratingValues: Record<string, number> = {
         "Sangat Setuju": 5,
-        "Setuju": 4,
+        Setuju: 4,
         "Tidak Setuju": 2,
         "Sangat Tidak Setuju": 1,
       };
 
       const numericAnswers = Object.values(answers).map(
-        (ans) => ratingValues[ans] ?? 0
+        (ans) => ratingValues[ans] ?? 0,
       );
       const avgRating =
         numericAnswers.reduce((a, b) => a + b, 0) / numericAnswers.length;
@@ -93,7 +93,7 @@ export default function TambahFeedbackModal({
         payload,
         {
           withCredentials: true,
-        }
+        },
       );
 
       toast.success(res.data.message || "Feedback berhasil dikirim.");
@@ -104,7 +104,7 @@ export default function TambahFeedbackModal({
       console.error("Error saat kirim feedback:", error);
       toast.error(
         error.response?.data?.message ||
-          "Gagal mengirim feedback. Coba lagi nanti."
+          "Gagal mengirim feedback. Coba lagi nanti.",
       );
     } finally {
       setLoading(false);
@@ -125,31 +125,47 @@ export default function TambahFeedbackModal({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogOverlay />
         <DialogContent
-          className="bg-white rounded-xl shadow-lg w-full max-w-xl flex flex-col max-h-[90vh] p-0"
+          className="
+    bg-white rounded-lg shadow
+    w-full max-w-md
+    flex flex-col
+    max-h-[85vh]
+    p-0
+    overflow-hidden
+  "
           showCloseButton={false}
           onInteractOutside={(e) => e.preventDefault()}
         >
-          {/* Header */}
-          <div className="px-6 py-4 border-b space-y-1 shrink-0">
-            <DialogTitle className="text-lg font-semibold">
+          {/* HEADER */}
+          <div className="px-4 py-3 border-b space-y-1 shrink-0 bg-white">
+            <DialogTitle className="text-sm font-semibold">
               Tambah Review
             </DialogTitle>
-            <DialogDescription className="text-sm text-gray-800">
+            <DialogDescription className="text-xs text-gray-700">
               {feedbackTitle}
             </DialogDescription>
-            <p className="text-xs text-gray-500">
+            <p className="text-[11px] text-gray-500">
               {feedbackDate} • {feedbackTime}
             </p>
           </div>
 
-          {/* Body */}
-          <div className="px-6 py-4 flex-1 overflow-y-auto space-y-6">
+          {/* BODY */}
+          <div
+            className="
+      px-4 py-3
+      flex-1
+      overflow-y-auto
+      overflow-x-hidden
+      space-y-4
+    "
+          >
             {questions.map((q, i) => (
               <div key={i}>
-                <p className="text-sm font-medium mb-3">
-                  {q} <span className="text-emerald-500 font-bold">*</span>
+                <p className="text-xs font-medium mb-2 leading-snug">
+                  {q} <span className="text-emerald-500">*</span>
                 </p>
-                <div className="flex flex-col gap-2">
+
+                <div className="flex flex-col gap-1.5">
                   {[
                     "Sangat Setuju",
                     "Setuju",
@@ -160,11 +176,19 @@ export default function TambahFeedbackModal({
                     return (
                       <label
                         key={opt}
-                        className={`flex items-center gap-3 px-3 py-2 cursor-pointer w-fit transition ${
-                          selected
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-white text-gray-700 hover:bg-gray-50"
-                        }`}
+                        className={`
+                  flex items-center gap-2
+                  px-2.5 py-1.5
+                  cursor-pointer
+                  rounded-md
+                  w-full
+                  transition
+                  ${
+                    selected
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-white text-gray-700 hover:bg-gray-50"
+                  }
+                `}
                       >
                         <input
                           type="radio"
@@ -174,18 +198,24 @@ export default function TambahFeedbackModal({
                           onChange={() => handleSelect(i, opt)}
                           className="hidden"
                         />
+
                         <span
-                          className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                            selected
-                              ? "border-emerald-500 bg-emerald-500"
-                              : "border-gray-400"
-                          }`}
+                          className={`
+                    w-3.5 h-3.5
+                    rounded-full border flex items-center justify-center
+                    ${
+                      selected
+                        ? "border-emerald-500 bg-emerald-500"
+                        : "border-gray-400"
+                    }
+                  `}
                         >
                           {selected && (
-                            <span className="w-2 h-2 bg-white rounded-full"></span>
+                            <span className="w-1.5 h-1.5 bg-white rounded-full"></span>
                           )}
                         </span>
-                        <span className="text-sm">{opt}</span>
+
+                        <span className="text-xs">{opt}</span>
                       </label>
                     );
                   })}
@@ -193,47 +223,69 @@ export default function TambahFeedbackModal({
               </div>
             ))}
 
-            {/* Textareas */}
+            {/* TEXTAREA 1 */}
             <div>
-              <p className="text-sm font-medium mb-2">
-                Masukan dari peserta untuk meningkatkan kualitas pembelajaran{" "}
-                <span className="text-emerald-500 font-bold">*</span>
+              <p className="text-xs font-medium mb-1.5">
+                Masukan untuk meningkatkan kualitas{" "}
+                <span className="text-emerald-500">*</span>
               </p>
               <textarea
                 placeholder="Masukan anda..."
                 value={input1}
                 onChange={(e) => setInput1(e.target.value)}
-                className="w-full border rounded-lg p-3 text-sm resize-none"
-                rows={4}
+                className="
+          w-full
+          border rounded-md
+          p-2
+          text-xs
+          resize-none
+        "
+                rows={3}
               />
             </div>
+
+            {/* TEXTAREA 2 */}
             <div>
-              <p className="text-sm font-medium mb-2">
-                Apakah ada hal lain yang perlu disampaikan kepada mentor?{" "}
-                <span className="text-emerald-500 font-bold">*</span>
+              <p className="text-xs font-medium mb-1.5">
+                Hal lain untuk mentor{" "}
+                <span className="text-emerald-500">*</span>
               </p>
               <textarea
                 placeholder="Tulis catatan tambahan..."
                 value={input2}
                 onChange={(e) => setInput2(e.target.value)}
-                className="w-full border rounded-lg p-3 text-sm resize-none"
-                rows={4}
+                className="
+          w-full
+          border rounded-md
+          p-2
+          text-xs
+          resize-none
+        "
+                rows={3}
               />
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="px-6 py-4 flex justify-center gap-3 bg-white border-t shrink-0">
-            <Button variant="outline" onClick={handleClose} className="w-32">
+          {/* FOOTER */}
+          <div className="px-4 py-3 flex gap-2 bg-white border-t shrink-0">
+            <Button
+              variant="outline"
+              onClick={handleClose}
+              className="flex-1 text-xs py-1.5"
+            >
               Batal
             </Button>
+
             <Button
               disabled={!allAnswered || loading}
-              className={`w-32 ${
-                allAnswered && !loading
-                  ? "bg-emerald-500 hover:bg-emerald-600 text-white"
-                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
-              }`}
+              className={`
+        flex-1 text-xs py-1.5
+        ${
+          allAnswered && !loading
+            ? "bg-emerald-500 hover:bg-emerald-600 text-white"
+            : "bg-gray-300 text-gray-500 cursor-not-allowed"
+        }
+      `}
               onClick={handleSubmit}
             >
               {loading ? "Menyimpan..." : "Simpan"}

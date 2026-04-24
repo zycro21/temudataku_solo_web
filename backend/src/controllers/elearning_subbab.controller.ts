@@ -6,7 +6,7 @@ export const ELearningSubBabController = {
   async getSubBabsBySubChapter(
     req: AuthenticatedRequestSubBab,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { user, validatedParams, validatedQuery } = req;
@@ -30,7 +30,7 @@ export const ELearningSubBabController = {
       const result = await ELearningSubBabService.getSubBabsBySubChapter(
         subChapterId,
         user,
-        { page, limit, search, sort }
+        { page, limit, search, sort },
       );
 
       res.status(200).json({
@@ -45,7 +45,7 @@ export const ELearningSubBabController = {
   async getSubBabById(
     req: AuthenticatedRequestSubBab,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, user } = req;
@@ -60,7 +60,7 @@ export const ELearningSubBabController = {
 
       const result = await ELearningSubBabService.getSubBabById(
         validatedParams.id,
-        user
+        user,
       );
 
       res.status(200).json({
@@ -84,7 +84,7 @@ export const ELearningSubBabController = {
   async createSubBab(
     req: AuthenticatedRequestSubBab,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, validatedBody, user } = req;
@@ -111,7 +111,7 @@ export const ELearningSubBabController = {
       const newSubBab = await ELearningSubBabService.createSubBab(
         validatedParams.subChapterId,
         validatedBody as { title: string; estimatedTime?: string },
-        user
+        user,
       );
 
       res.status(201).json({
@@ -133,7 +133,7 @@ export const ELearningSubBabController = {
   async updateSubBab(
     req: AuthenticatedRequestSubBab,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, validatedBody, user } = req;
@@ -149,7 +149,7 @@ export const ELearningSubBabController = {
       const result = await ELearningSubBabService.updateSubBab(
         validatedParams.id,
         validatedBody,
-        user
+        user,
       );
 
       res.status(200).json({
@@ -176,7 +176,7 @@ export const ELearningSubBabController = {
   async deleteSubBab(
     req: AuthenticatedRequestSubBab,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, user } = req;
@@ -192,7 +192,7 @@ export const ELearningSubBabController = {
 
       // Panggil service
       const result = await ELearningSubBabService.deleteSubBab(
-        validatedParams.id
+        validatedParams.id,
       );
 
       res.status(200).json({
@@ -212,12 +212,12 @@ export const ELearningSubBabController = {
   async duplicateSubBab(
     req: AuthenticatedRequestSubBab,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
-      const { validatedParams, validatedBody, user } = req;
+      const { validatedParams, user } = req;
 
-      if (!validatedParams?.id || !validatedBody?.targetSubChapterId || !user) {
+      if (!user || !validatedParams?.id) {
         res.status(400).json({
           success: false,
           message: "Data request tidak valid",
@@ -225,25 +225,21 @@ export const ELearningSubBabController = {
         return;
       }
 
-      const duplicated = await ELearningSubBabService.duplicateSubBab(
+      const result = await ELearningSubBabService.duplicateSubBab(
         validatedParams.id,
-        validatedBody.targetSubChapterId,
-        validatedBody.newTitle,
-        user
+        user,
       );
 
       res.status(201).json({
         success: true,
         message: "Sub-bab berhasil diduplikasi",
-        data: duplicated,
+        data: result,
       });
     } catch (err: any) {
       if (err.message.includes("tidak ditemukan")) {
         res.status(404).json({ success: false, message: err.message });
       } else if (err.message.includes("Akses ditolak")) {
         res.status(403).json({ success: false, message: err.message });
-      } else if (err.message.includes("duplikat")) {
-        res.status(400).json({ success: false, message: err.message });
       } else {
         next(err);
       }
@@ -253,7 +249,7 @@ export const ELearningSubBabController = {
   async reorderSubBabs(
     req: AuthenticatedRequestSubBab,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, validatedBody, user } = req;
@@ -269,7 +265,7 @@ export const ELearningSubBabController = {
       const result = await ELearningSubBabService.reorderSubBabs(
         validatedParams.subChapterId,
         validatedBody.updates,
-        user
+        user,
       );
 
       res.status(200).json({
@@ -291,7 +287,7 @@ export const ELearningSubBabController = {
   async getAllSubBabs(
     req: AuthenticatedRequestSubBab,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedQuery, user } = req;
@@ -328,7 +324,7 @@ export const ELearningSubBabController = {
   async exportSubBabs(
     req: AuthenticatedRequestSubBab,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedQuery, user } = req;
@@ -354,7 +350,7 @@ export const ELearningSubBabController = {
 
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename=${file.filename}`
+        `attachment; filename=${file.filename}`,
       );
       res.setHeader("Content-Type", file.mimetype);
 

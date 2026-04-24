@@ -7,6 +7,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogTrigger,
+  DialogClose,
 } from "@/components/ui/dialog";
 import {
   Calendar,
@@ -66,88 +67,104 @@ export default function MentoringDetailDialog({
   return (
     <Dialog>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="max-w-lg p-6">
-        <DialogHeader>
-          <DialogTitle className="text-lg font-semibold text-gray-800">
+
+      <DialogContent
+        onInteractOutside={(e) => e.preventDefault()}
+        className="
+      w-full max-w-md
+      p-4 sm:p-5
+      max-h-[85vh]
+      overflow-y-auto
+      overflow-x-hidden
+    "
+      >
+        <DialogHeader className="space-y-1">
+          <DialogTitle className="text-base font-semibold text-gray-800">
             {tanggalFormatted}
           </DialogTitle>
-          <DialogDescription className="text-sm text-gray-500">
+          <DialogDescription className="text-xs text-gray-500">
             Lihat jadwal sesi Anda hari ini.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="mt-4 space-y-6 text-sm text-gray-700">
+        <div className="mt-3 space-y-4 text-xs text-gray-700">
           {/* Jadwal */}
           <div>
-            <p className="font-medium flex items-center gap-3 text-gray-800">
-              <Calendar className="w-4 h-4 text-gray-900" /> Jadwal
+            <p className="font-medium flex items-center gap-2 text-gray-800">
+              <Calendar className="w-3.5 h-3.5 text-gray-900" /> Jadwal
             </p>
-            <p className="ml-7 text-gray-600">
+            <p className="ml-6 text-gray-600">
               {tanggalFormatted} pukul {event.time}
             </p>
           </div>
 
           {/* Jenis Mentoring */}
           <div>
-            <p className="font-medium flex items-center gap-3 text-gray-800">
-              <BookOpen className="w-4 h-4 text-gray-900" /> Jenis Mentoring
+            <p className="font-medium flex items-center gap-2 text-gray-800">
+              <BookOpen className="w-3.5 h-3.5 text-gray-900" /> Jenis Mentoring
             </p>
-            <p className="ml-7 text-gray-600">Mentoring 1 on 1</p>
+            <p className="ml-6 text-gray-600">Mentoring 1 on 1</p>
           </div>
 
           {/* Mentor */}
           <div>
-            <p className="font-medium flex items-center gap-3 text-gray-800">
-              <User className="w-4 h-4 text-gray-900" /> Mentor
+            <p className="font-medium flex items-center gap-2 text-gray-800">
+              <User className="w-3.5 h-3.5 text-gray-900" /> Mentor
             </p>
-            <div className="ml-7 mt-2 flex items-center gap-3">
+
+            <div className="ml-6 mt-1.5 flex items-center gap-2">
               {event.mentor.photo ? (
                 <img
                   src={event.mentor.photo}
                   alt={event.mentor.name}
-                  className="w-10 h-10 rounded-full object-cover"
+                  className="w-8 h-8 rounded-full object-cover"
                 />
               ) : (
-                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
-                  <User className="w-5 h-5" />
+                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
+                  <User className="w-4 h-4" />
                 </div>
               )}
-              <div>
-                <p className="text-gray-700 font-medium">{event.mentor.name}</p>
-                <p className="text-gray-500 text-sm">{event.mentor.email}</p>
+
+              <div className="leading-tight">
+                <p className="text-gray-700 font-medium text-xs">
+                  {event.mentor.name}
+                </p>
+                <p className="text-gray-500 text-[11px]">
+                  {event.mentor.email}
+                </p>
               </div>
             </div>
           </div>
 
           {/* Materi */}
           <div>
-            <p className="font-medium flex items-center gap-3 text-gray-800">
-              <BookOpen className="w-4 h-4 text-gray-900" /> Materi Pembahasan
+            <p className="font-medium flex items-center gap-2 text-gray-800">
+              <BookOpen className="w-3.5 h-3.5 text-gray-900" /> Materi
+              Pembahasan
             </p>
-            <p className="ml-7 text-gray-600">{event.materi}</p>
+            <p className="ml-6 text-gray-600 break-words">{event.materi}</p>
           </div>
 
           {/* Catatan */}
           {event.catatan && (
             <div>
-              <p className="font-medium flex items-center gap-3 text-gray-800">
-                <StickyNote className="w-4 h-4 text-gray-900" /> Catatan /
-                Permintaan Khusus
+              <p className="font-medium flex items-center gap-2 text-gray-800">
+                <StickyNote className="w-3.5 h-3.5 text-gray-900" /> Catatan
               </p>
-              <p className="ml-7 text-gray-600">{event.catatan}</p>
+              <p className="ml-6 text-gray-600 break-words">{event.catatan}</p>
             </div>
           )}
 
           {/* Link Zoom */}
           <div>
-            <p className="font-medium flex items-center gap-3 text-gray-800">
-              <Link2 className="w-4 h-4 text-gray-900" /> Link Zoom Meeting
+            <p className="font-medium flex items-center gap-2 text-gray-800">
+              <Link2 className="w-3.5 h-3.5 text-gray-900" /> Link Zoom
             </p>
             <a
               href={event.zoomLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="ml-7 text-emerald-600 hover:underline break-all"
+              className="ml-6 text-emerald-600 hover:underline break-all text-xs"
             >
               {event.zoomLink}
             </a>
@@ -155,19 +172,39 @@ export default function MentoringDetailDialog({
 
           {/* Meeting ID */}
           <div>
-            <p className="font-medium flex items-center gap-3 text-gray-800">
-              <Hash className="w-4 h-4 text-gray-900" /> Meeting ID
+            <p className="font-medium flex items-center gap-2 text-gray-800">
+              <Hash className="w-3.5 h-3.5 text-gray-900" /> Meeting ID
             </p>
-            <p className="ml-7 text-gray-600">{event.meetingId}</p>
+            <p className="ml-6 text-gray-600 break-all">{event.meetingId}</p>
           </div>
 
           {/* Passcode */}
           <div>
-            <p className="font-medium flex items-center gap-3 text-gray-800">
-              <Lock className="w-4 h-4 text-gray-900" /> Meeting Passcode
+            <p className="font-medium flex items-center gap-2 text-gray-800">
+              <Lock className="w-3.5 h-3.5 text-gray-900" /> Passcode
             </p>
-            <p className="ml-7 text-gray-600">{event.passcode}</p>
+            <p className="ml-6 text-gray-600 break-all">{event.passcode}</p>
           </div>
+        </div>
+
+        {/* FOOTER (STICKY) */}
+        <div className="px-4 py-3 border-t bg-white sticky bottom-0 z-10">
+          <DialogClose asChild>
+            <button
+              className="
+        w-full
+        text-xs
+        font-medium
+        px-3 py-2
+        rounded-md
+        bg-gray-900 text-white
+        hover:bg-gray-800
+        transition
+      "
+            >
+              Tutup
+            </button>
+          </DialogClose>
         </div>
       </DialogContent>
     </Dialog>

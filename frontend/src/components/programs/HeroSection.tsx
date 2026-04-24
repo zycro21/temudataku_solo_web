@@ -67,7 +67,7 @@ export default function HeroSection() {
   ];
 
   return (
-    <section className="bg-gradient-to-br py-12 px-4 md:px-6 lg:px-8 relative overflow-hidden">
+    <section className="bg-gradient-to-br py-12 px-4 md:px-5 lg:px-6 relative overflow-hidden">
       <Image
         src="/assets/mentoringPage/vectorHeroSection.svg"
         alt="vector background"
@@ -75,85 +75,85 @@ export default function HeroSection() {
         className="object-cover object-center z-0"
         priority
       />
-      <div className="max-w-7xl mx-auto relative z-10">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+
+      <div className="max-w-6xl mx-auto relative z-10">
+        <div className="grid lg:grid-cols-2 gap-8 items-center">
           {/* Left side - Illustration */}
           <div className="relative flex items-center justify-center">
             <Image
               src="/assets/programsPage/programsIllustration.svg"
               alt="ilustration"
-              width={600}
-              height={400}
-              className="w-full h-full"
+              width={520}
+              height={360}
+              className="w-[85%] md:w-[80%] lg:w-full h-auto"
             />
           </div>
 
           {/* Right side - Content */}
-          <div className="space-y-6 order-1 lg:order-2">
-            {/* Main Heading */}
-            <div className="space-y-2">
-              <h1 className="text-xl md:text-2xl lg:text-4xl font-semibold text-gray-900 leading-tight">
-                Materi Terstruktur & Praktik Langsung dengan Bootcamp
-              </h1>
+          <div className="space-y-4 order-1 lg:order-2">
+            <div className="space-y-6">
+              {/* Heading */}
+              <div className="space-y-1.5">
+                <h1 className="text-lg md:text-xl lg:text-3xl font-semibold text-gray-900 leading-tight">
+                  Materi Terstruktur & Praktik Langsung dengan Bootcamp
+                </h1>
 
-              <p className="text-xl font-semibold leading-relaxed max-w-2xl">
-                #GasBelajarData
-              </p>
+                <p className="text-base font-semibold leading-relaxed">
+                  #GasBelajarData
+                </p>
 
-              {/* Description */}
-              <p className="max-sm:text-sm text-md text-gray-600 leading-relaxed max-w-2xl">
-                Bootcamp TemuDataku dirancang buat kamu yang pengen belajar data
-                dari nol sampai paham, tanpa pusing. Materinya udah disusun rapi
-                dan langsung dipraktikkin, jadi kamu nggak cuma belajar—tapi
-                juga beneran bisa!
-              </p>
-            </div>
-
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Button
-                size="lg"
-                onClick={scrollToPractice}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-6 text-base font-medium shadow-lg hover:cursor-pointer"
-              >
-                Pilihan Bootcamp
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="border-emerald-600 text-emerald-600 hover:bg-emerald-50 px-4 py-6 text-base font-medium hover:cursor-pointer"
-              >
-                Konsultasi Gratis
-              </Button>
-            </div>
-
-            {/* Mentor Avatars and Stats */}
-            <div className="space-y-4">
-              <div className="flex items-center space-x-4">
-                {/* Avatar Stack */}
-
-                <div className="flex gap-2 flex-wrap">
-                  {mentors.map((mentor, index) => (
-                    <Avatar
-                      key={mentor.id}
-                      className={`w-12 h-12 shadow-md flex items-center justify-center ${avatarColors[index % avatarColors.length]}`}
-                    >
-                      <User className="w-6 h-6" />
-                    </Avatar>
-                  ))}
-                </div>
-
-                {/* Count */}
-                <div className="text-gray-600 font-medium">
-                  + 95 mentee telah mendaftar
-                </div>
+                <p className="text-sm md:text-base text-gray-600 leading-relaxed max-w-xl">
+                  Bootcamp TemuDataku dirancang buat kamu yang pengen belajar
+                  data dari nol sampai paham, tanpa pusing. Materinya udah
+                  disusun rapi dan langsung dipraktikkin, jadi kamu nggak cuma
+                  belajar—tapi juga beneran bisa!
+                </p>
               </div>
 
-              {/* Testimonial Link */}
-              <div className="pt-2">
-                <button className="text-secondary-text-color hover:text-emerald-700 font-medium underline underline-offset-4 transition-colors">
-                  Apa yang mereka katakan?
-                </button>
+              {/* Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button
+                  size="sm"
+                  onClick={scrollToPractice}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3.5 text-base font-medium shadow-md"
+                >
+                  Pilihan Bootcamp
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-emerald-600 text-emerald-600 hover:bg-emerald-50 px-5 py-3.5 text-base font-medium"
+                >
+                  Konsultasi Gratis
+                </Button>
+              </div>
+
+              {/* Avatar + Stats */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex gap-1.5 flex-wrap">
+                    {mentors.map((mentor, index) => (
+                      <Avatar
+                        key={mentor.id}
+                        className={`w-10 h-10 shadow-sm flex items-center justify-center ${avatarColors[index % avatarColors.length]}`}
+                      >
+                        <User className="w-5 h-5" />
+                      </Avatar>
+                    ))}
+                  </div>
+
+                  <div className="text-gray-600 text-sm font-medium">
+                    + 95 mentee telah mendaftar
+                  </div>
+                </div>
+
+                {/* Link */}
+                <div className="pt-2">
+                  <button className="text-sm text-secondary-text-color hover:text-emerald-700 font-medium underline underline-offset-2 transition-colors">
+                    Apa yang mereka katakan?
+                  </button>
+                </div>
               </div>
             </div>
           </div>

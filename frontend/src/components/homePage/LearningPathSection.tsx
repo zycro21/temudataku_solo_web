@@ -37,6 +37,10 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
 
   const [bootcamps, setBootcamps] = useState<any[]>([]);
   const [bootcampLoading, setBootcampLoading] = useState(true);
+
+  const [ayclBatch, setAyclBatch] = useState<any>(null);
+  const [ayclLoading, setAyclLoading] = useState(true);
+
   const router = useRouter();
 
   useEffect(() => {
@@ -56,6 +60,23 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
     };
 
     fetchBootcamps();
+  }, []);
+
+  useEffect(() => {
+    const fetchAycl = async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/aycl/public/aycl`,
+        );
+        setAyclBatch(res.data.data ?? res.data);
+      } catch {
+        setAyclBatch(null);
+      } finally {
+        setAyclLoading(false);
+      }
+    };
+
+    fetchAycl();
   }, []);
 
   const formatDate = (dateString: string) => {
@@ -254,27 +275,28 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
   };
 
   return (
-    <section ref={ref} className="py-16 mb-16 bg-white">
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+    <section ref={ref} className="py-12 mb-12 bg-white">
+      <div className="max-w-[1100px] mx-auto px-4 sm:px-5 lg:px-6">
         {/* Section Header */}
-        <div className="text-center mb-12">
-          <p className="text-sm font-semibold text-blue-900 mb-3">
+        <div className="text-center mb-10">
+          <p className="text-sm font-semibold text-blue-900 mb-2">
             Jalur Belajar
           </p>
-          <h2 className="text-3xl md:text-4xl font-bold mb-20">
+
+          <h2 className="text-2xl md:text-[32px] font-bold mb-14 leading-snug">
             Jalur Belajar di TemuDataku
             <br />
             yang Bisa Kamu Pilih
           </h2>
 
           {/* Tab Navigation */}
-          <div className="flex justify-center mb-12">
-            <div className="border border-gray-300 rounded-xl px-4 py-2 flex gap-4 md:gap-6 overflow-x-auto lg:overflow-visible whitespace-nowrap w-full lg:w-auto bg-white">
+          <div className="flex justify-center mb-10">
+            <div className="border border-gray-300 rounded-lg px-3 py-2 flex gap-3 md:gap-4 overflow-x-auto lg:overflow-visible whitespace-nowrap w-full lg:w-auto bg-white">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`min-w-max lg:w-[300px] px-6 py-3 text-center rounded-md font-medium transition-all duration-200 ${
+                  className={`min-w-max lg:w-[250px] px-5 py-2.5 text-[15px] text-center rounded-md font-medium transition-all duration-200 ${
                     activeTab === tab.id
                       ? "bg-[#0CA678] text-white shadow-sm"
                       : "text-gray-600 bg-gray-100 hover:text-gray-900"
@@ -287,46 +309,46 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
           </div>
         </div>
 
-        {/* Content based on active tab */}
+        {/* ================= MENTORING ================= */}
         {activeTab === "mentoring" && (
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid md:grid-cols-2 gap-6">
             {mentoringOptions.map((option) => (
               <Card
                 key={option.id}
-                className="overflow-hidden shadow-lg border-0"
+                className="overflow-hidden shadow-md border-0"
               >
                 <div className="relative">
                   <Image
                     src={option.image}
                     alt={option.title}
                     width={400}
-                    height={250}
-                    className="w-full object-cover"
+                    height={220}
+                    className="w-full h-48 object-cover"
                   />
                   {option.badge && (
-                    <div className="absolute bottom-0 left-0 right-0 bg-[#243A77] text-white text-center py-3 text-sm font-semibold">
+                    <div className="absolute bottom-0 left-0 right-0 bg-[#243A77] text-white text-center py-2 text-xs font-semibold">
                       {option.badge}
                     </div>
                   )}
                 </div>
 
-                <CardContent className="p-6">
-                  <h3 className="text-xl font-bold mb-4">{option.title}</h3>
+                <CardContent className="p-5">
+                  <h3 className="text-lg font-bold mb-3">{option.title}</h3>
 
-                  <div className="mb-6">
+                  <div className="mb-5">
                     {option.originalPrice && (
-                      <span className="text-sm text-gray-500 line-through mr-2">
+                      <span className="text-xs text-gray-500 line-through mr-2">
                         {option.originalPrice}
                       </span>
                     )}
-                    <span className="text-2xl font-bold">{option.price}</span>
+                    <span className="text-xl font-bold">{option.price}</span>
                   </div>
 
-                  <ul className="space-y-3 mb-6">
+                  <ul className="space-y-2 mb-5">
                     {option.features.map((feature, index) => (
-                      <li key={index} className="flex items-start gap-3">
-                        <Check className="w-5 h-5 text-[#0CA678]" />
-                        <span className="text-sm text-gray-600">{feature}</span>
+                      <li key={index} className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-[#0CA678]" />
+                        <span className="text-xs text-gray-600">{feature}</span>
                       </li>
                     ))}
                   </ul>
@@ -334,7 +356,7 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
                   <Button
                     onClick={() => handleSelectService(option.type as any)}
                     disabled={loading}
-                    className="w-full bg-[#0CA678] hover:bg-[#08916C] text-white"
+                    className="w-full bg-[#0CA678] hover:bg-[#08916C] text-white py-2 text-sm"
                   >
                     {loading ? "Memuat..." : "Ikuti Sesi"}
                   </Button>
@@ -344,39 +366,144 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
           </div>
         )}
 
+        {/* ================= AYCL ================= */}
         {activeTab === "aycl" && (
-          <div className="text-center py-12">
-            <p className="text-gray-600">Konten All You Can Learn akan segera hadir...</p>
+          <div>
+            {ayclLoading ? (
+              <div className="text-center py-16 text-gray-500 text-sm">
+                Loading...
+              </div>
+            ) : ayclBatch ? (
+              /* ADA AYCL AKTIF */
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-800 p-8 md:p-12 text-white shadow-xl">
+                {/* Decorative circles */}
+                <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white/5" />
+                <div className="absolute -bottom-14 -left-14 w-64 h-64 rounded-full bg-white/5" />
+
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center gap-8">
+                  {/* Left content */}
+                  <div className="flex-1">
+                    {/* Badge */}
+                    <span className="inline-block bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full mb-4 backdrop-blur-sm">
+                      🎉 Sudah Hadir Sekarang!
+                    </span>
+
+                    <h3 className="text-2xl md:text-3xl font-bold mb-3 leading-tight">
+                      {ayclBatch.title}
+                    </h3>
+
+                    {ayclBatch.subHeadline && (
+                      <p className="text-emerald-100 text-sm md:text-base mb-4 leading-relaxed">
+                        {ayclBatch.subHeadline}
+                      </p>
+                    )}
+
+                    {/* Price */}
+                    <div className="flex items-baseline gap-2 mb-6">
+                      <span className="text-emerald-200 text-base font-medium">
+                        Hanya
+                      </span>
+                      <span className="text-3xl font-extrabold">
+                        Rp{Number(ayclBatch.price).toLocaleString("id-ID")}
+                      </span>
+                    </div>
+
+                    {/* CTA buttons */}
+                    <div className="flex flex-wrap gap-3">
+                      <Button
+                        onClick={() => router.push("/aycl")}
+                        className="bg-white text-emerald-700 hover:bg-emerald-50 font-semibold px-6 py-2.5 text-sm shadow"
+                      >
+                        Daftar Sekarang
+                      </Button>
+                      <Button
+                        onClick={() => router.push("/aycl")}
+                        variant="outline"
+                        className="border-white/60 text-white hover:bg-white/10 font-medium px-6 py-2.5 text-sm bg-transparent"
+                      >
+                        Lihat Detail
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Right: highlight box */}
+                  <div className="md:w-64 bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 shrink-0">
+                    <p className="text-xs font-semibold text-emerald-200 uppercase tracking-wide mb-4">
+                      Yang Kamu Dapatkan
+                    </p>
+                    <ul className="space-y-3">
+                      {[
+                        "Akses materi dan hands-of-project",
+                        "Sesi live interaktif",
+                        "Komunitas eksklusif",
+                        "Sertifikat kelulusan",
+                      ].map((item) => (
+                        <li
+                          key={item}
+                          className="flex items-start gap-2 text-sm text-white"
+                        >
+                          <Check className="w-4 h-4 text-emerald-300 mt-0.5 shrink-0" />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* TIDAK ADA AYCL AKTIF */
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="relative mb-6">
+                  <div className="w-20 h-20 rounded-full bg-emerald-50 flex items-center justify-center">
+                    <CalendarDays className="w-9 h-9 text-emerald-500" />
+                  </div>
+                  <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center">
+                    <span className="text-emerald-600 text-xs font-bold">
+                      !
+                    </span>
+                  </div>
+                </div>
+
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  All You Can Learn Akan Segera Kembali
+                </h3>
+                <p className="text-sm text-gray-500 max-w-sm">
+                  Program batch berikutnya sedang dalam persiapan. Pantau terus
+                  untuk mendapatkan informasi terbaru!
+                </p>
+              </div>
+            )}
           </div>
         )}
 
+        {/* ================= PROGRAM ================= */}
         {activeTab === "program" && (
           <div>
             {bootcampLoading ? (
-              <div className="text-center py-20 text-gray-500">
+              <div className="text-center py-16 text-gray-500 text-sm">
                 Loading bootcamps...
               </div>
             ) : bootcamps.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-center">
-                <div className="bg-emerald-50 p-6 rounded-full mb-6">
-                  <CalendarDays className="w-12 h-12 text-emerald-600" />
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="bg-emerald-50 p-5 rounded-full mb-5">
+                  <CalendarDays className="w-10 h-10 text-emerald-600" />
                 </div>
 
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
                   Bootcamp Akan Segera Hadir
                 </h3>
 
-                <p className="text-gray-600 max-w-md">
+                <p className="text-sm text-gray-600 max-w-md">
                   Saat ini belum ada bootcamp yang tersedia.
                 </p>
               </div>
             ) : (
               <>
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {bootcamps.map((bootcamp) => (
                     <Card
                       key={bootcamp.id}
-                      className="overflow-hidden hover:shadow-lg transition-shadow border border-gray-200 rounded-lg p-0 gap-0"
+                      className="overflow-hidden hover:shadow-md transition-shadow border border-gray-200 rounded-lg p-0 gap-0"
                     >
                       <div className="relative">
                         <Image
@@ -386,35 +513,35 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
                           }
                           alt={bootcamp.serviceName}
                           width={400}
-                          height={200}
-                          className="w-full h-64 object-cover"
+                          height={180}
+                          className="w-full h-48 object-cover"
                         />
 
-                        <div className="absolute top-0 right-0 bg-gray-500 text-white px-3 p-2 rounded-bl-lg text-sm font-medium">
+                        <div className="absolute top-0 right-0 bg-gray-500 text-white px-2 py-1 rounded-bl-lg text-xs font-medium">
                           {bootcamp.availableSlots !== null
-                            ? `<${bootcamp.availableSlots} Kuota Tersisa`
+                            ? `<${bootcamp.availableSlots} Kuota`
                             : "Unlimited"}
                         </div>
 
-                        <div className="absolute bottom-0 w-full bg-brand-color-secondary text-white px-4 py-3 text-base font-semibold text-center">
+                        <div className="absolute bottom-0 w-full bg-brand-color-secondary text-white px-3 py-2 text-sm font-semibold text-center">
                           {getLevelLabel(bootcamp.level)}
                         </div>
                       </div>
 
-                      <CardContent className="p-6">
-                        <h3 className="text-xl font-bold text-gray-900 mb-4">
+                      <CardContent className="p-5">
+                        <h3 className="text-lg font-bold text-gray-900 mb-3">
                           {bootcamp.serviceName}
                         </h3>
 
-                        <div className="flex gap-2 mb-4 flex-wrap">
+                        <div className="flex gap-2 mb-3 flex-wrap">
                           {bootcamp.toolsUsed
                             ?.split(",")
                             .map((tool: string) => tool.trim())
                             .map((tool: string) => getToolIcon(tool))}
                         </div>
 
-                        <div className="flex items-center gap-3 text-gray-700 text-base font-medium mb-4">
-                          <Calendar className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                        <div className="flex items-center gap-2 text-gray-700 text-sm font-medium mb-3">
+                          <Calendar className="w-4 h-4 text-gray-500" />
                           <span>
                             {bootcamp.sessionDateRange
                               ? bootcamp.sessionDateRange
@@ -425,29 +552,29 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-3 mb-6">
-                          <Tag className="w-5 h-5 text-gray-500" />
+                        <div className="flex items-center gap-2 mb-5">
+                          <Tag className="w-4 h-4 text-gray-500" />
 
                           <div className="flex flex-col">
-                            <span className="text-sm text-gray-400 line-through">
+                            <span className="text-xs text-gray-400 line-through">
                               Rp
                               {Math.round(
                                 Number(bootcamp.price) / 0.875,
                               ).toLocaleString("id-ID")}
                             </span>
 
-                            <span className="text-2xl font-bold text-gray-900">
+                            <span className="text-lg font-bold text-gray-900">
                               Rp{Number(bootcamp.price).toLocaleString("id-ID")}
                             </span>
                           </div>
                         </div>
 
-                        <div className="space-y-3">
+                        <div className="space-y-2">
                           <Button
                             onClick={() =>
                               router.push(`/programs/${bootcamp.id}`)
                             }
-                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3"
+                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 text-sm"
                           >
                             Daftar Sekarang
                           </Button>
@@ -457,7 +584,7 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
                               router.push(`/programs/${bootcamp.id}`)
                             }
                             variant="outline"
-                            className="w-full border-emerald-600 text-emerald-600 hover:bg-emerald-50 py-3"
+                            className="w-full border-emerald-600 text-emerald-600 hover:bg-emerald-50 py-2 text-sm"
                           >
                             Lihat Detail
                           </Button>
@@ -467,12 +594,11 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
                   ))}
                 </div>
 
-                {/* Redirect ke /programs */}
-                <div className="flex justify-center mt-10">
+                <div className="flex justify-center mt-8">
                   <Button
                     variant="outline"
                     onClick={() => router.push("/programs")}
-                    className="px-6 py-3 text-base flex items-center gap-2 text-emerald-600 border-emerald-600 hover:bg-emerald-50"
+                    className="px-5 py-2 text-sm flex items-center gap-2 text-emerald-600 border-emerald-600 hover:bg-emerald-50"
                   >
                     Lihat Lebih Banyak
                     <ChevronDown className="w-4 h-4" />

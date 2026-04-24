@@ -139,9 +139,10 @@ export default function ScheduleSection() {
   const scheduleItems = allSchedules[formatDateKey(selectedDate)] || [];
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold text-gray-800">Jadwal</h2>
+    <div className="bg-white p-4 rounded-lg shadow-sm w-full overflow-hidden">
+      <div className="flex justify-between items-center mb-3">
+        <h2 className="text-sm font-semibold text-gray-800">Jadwal</h2>
+
         <div className="relative">
           <select
             value={currentValue}
@@ -151,7 +152,7 @@ export default function ScheduleSection() {
               setCurrentDate(newDate);
               setSelectedDate(newDate);
             }}
-            className="appearance-none bg-transparent pr-6 text-sm font-medium text-gray-600 cursor-pointer capitalize"
+            className="appearance-none bg-transparent pr-5 text-[12px] font-medium text-gray-600 cursor-pointer capitalize"
           >
             {monthOptions.map((opt, i) => (
               <option key={i} value={opt.value}>
@@ -159,62 +160,63 @@ export default function ScheduleSection() {
               </option>
             ))}
           </select>
-          <ChevronDown className="w-4 h-4 absolute right-0 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+          <ChevronDown className="w-3 h-3 absolute right-0 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
         </div>
       </div>
 
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-center gap-3 mb-3">
         <ChevronLeft
-          className="w-5 h-5 text-gray-400 cursor-pointer"
+          className="w-4 h-4 text-gray-400 cursor-pointer"
           onClick={goToPrevWeek}
         />
-        <div className="flex items-center space-x-2.5">
+
+        <div className="flex items-center gap-2">
           {weekDates.map((date, index) => {
             const isSelected =
               date.toDateString() === selectedDate.toDateString();
+
             return (
               <div
                 key={index}
                 onClick={() => setSelectedDate(date)}
-                className={`flex flex-col items-center justify-center w-12 h-16 rounded-lg cursor-pointer transition-colors
-          ${
-            isSelected
-              ? "bg-emerald-600 text-white font-semibold shadow-lg"
-              : "text-gray-600 hover:bg-gray-100"
-          }`}
+                className={`flex flex-col items-center justify-center px-2 py-1.5 rounded-md cursor-pointer transition
+            ${
+              isSelected
+                ? "bg-emerald-600 text-white font-semibold shadow-sm"
+                : "text-gray-600 hover:bg-gray-100"
+            }`}
               >
-                <span className="text-base font-semibold">
-                  {date.getDate()}
-                </span>
-                <span className="text-sm mt-1">{days[index]}</span>
+                <span className="text-sm font-semibold">{date.getDate()}</span>
+                <span className="text-[11px] mt-0.5">{days[index]}</span>
               </div>
             );
           })}
         </div>
+
         <ChevronRight
-          className="w-5 h-5 text-gray-400 cursor-pointer"
+          className="w-4 h-4 text-gray-400 cursor-pointer"
           onClick={goToNextWeek}
         />
       </div>
 
       <div
-        className={`space-y-4 ${
-          scheduleItems.length > 1
-            ? "max-h-[110px] overflow-y-auto pr-2 scroll-thin"
-            : ""
+        className={`space-y-3 ${
+          scheduleItems.length > 1 ? "max-h-[95px] overflow-y-auto pr-1" : ""
         }`}
       >
         {scheduleItems.length > 0 ? (
           scheduleItems.map((item, index) => (
             <div
               key={index}
-              className="flex items-center justify-between p-4 bg-gray-50 rounded-xl"
+              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
             >
               <div className="flex flex-col">
-                <span className="text-base font-medium text-gray-800">
+                <span className="text-sm font-medium text-gray-800">
                   {item.title}
                 </span>
-                <span className="text-sm text-gray-500 mt-1">{item.time}</span>
+                <span className="text-[12px] text-gray-500 mt-0.5">
+                  {item.time}
+                </span>
               </div>
 
               <button
@@ -222,15 +224,12 @@ export default function ScheduleSection() {
                   if (item.meetingLink) {
                     let link = item.meetingLink.trim();
 
-                    // Deteksi link Google Calendar
                     if (link.includes("google.com/url?q=")) {
                       try {
                         const urlObj = new URL(link);
                         const realLink = urlObj.searchParams.get("q");
                         if (realLink) link = realLink;
-                      } catch (err) {
-                        console.error("Invalid URL format:", err);
-                      }
+                      } catch (err) {}
                     }
 
                     window.open(link, "_blank", "noopener,noreferrer");
@@ -240,21 +239,21 @@ export default function ScheduleSection() {
                     );
                   }
                 }}
-                className={`flex items-center text-sm font-medium rounded-full px-3 py-1 shadow-sm transition-colors
-                  ${
-                    item.meetingLink
-                      ? "text-blue-600 bg-white border border-white hover:bg-gray-50"
-                      : "text-red-500 bg-gray-100 cursor-not-allowed"
-                  }`}
+                className={`flex items-center text-[11px] font-medium rounded-full px-2.5 py-1 transition
+                ${
+                  item.meetingLink
+                    ? "text-blue-600 bg-white border hover:bg-gray-50"
+                    : "text-red-500 bg-gray-100 cursor-not-allowed"
+                }`}
               >
                 <ZoomIcon />
-                {item.meetingLink ? "Zoom Meeting" : "Belum ada Link"}
+                {item.meetingLink ? "Zoom" : "Belum"}
               </button>
             </div>
           ))
         ) : (
-          <div className="p-14 text-center text-gray-500 text-sm bg-gray-50 rounded-xl">
-            Tidak ada jadwal untuk anda hari ini
+          <div className="p-10 text-center text-gray-500 text-[12px] bg-gray-50 rounded-lg">
+            Tidak ada jadwal hari ini
           </div>
         )}
       </div>

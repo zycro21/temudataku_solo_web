@@ -14,7 +14,7 @@ export const getSubChaptersByCourseSchema = z.object({
     search: z.string().optional(),
     orderNumber: z.preprocess(
       (val) => (val ? Number(val) : undefined),
-      z.number().int().optional()
+      z.number().int().optional(),
     ),
   }),
 });
@@ -27,16 +27,20 @@ export const getSubChapterByIdSchema = z.object({
 
 export const createSubChapterSchema = z.object({
   params: z.object({
-    courseId: z.string().min(1, "Course ID wajib diisi"),
+    courseId: z.string().min(1),
   }),
   body: z.object({
-    title: z.string().min(1, "Judul sub-chapter wajib diisi"),
+    title: z.string().min(1),
     description: z.string().optional(),
     orderNumber: z.preprocess(
       (val) => (typeof val === "string" ? Number(val) : val),
-      z.number().int().min(1, "Order number harus lebih dari 0")
+      z.number().int().min(1),
     ),
-    estimatedTime: z.string().optional(),
+    estimatedTime: z.preprocess(
+      (val) => (val !== undefined && val !== null ? String(val) : val),
+      z.string().optional(),
+    ),
+    status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).optional(),
   }),
 });
 
@@ -49,9 +53,13 @@ export const updateSubChapterSchema = z.object({
     description: z.string().optional(),
     orderNumber: z.preprocess(
       (val) => (typeof val === "string" ? Number(val) : val),
-      z.number().int().min(1).optional()
+      z.number().int().min(1).optional(),
     ),
-    estimatedTime: z.string().optional(),
+    estimatedTime: z.preprocess(
+      (val) => (val !== undefined && val !== null ? String(val) : val),
+      z.string().optional(),
+    ),
+    status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).optional(),
   }),
 });
 
@@ -76,9 +84,6 @@ export const duplicateSubChapterSchema = z.object({
   params: z.object({
     id: z.string().min(1, "Sub-chapter ID wajib diisi"),
   }),
-  body: z.object({
-    targetCourseId: z.string().min(1, "Course tujuan wajib diisi"),
-  }),
 });
 
 export const listSubChaptersSchema = z.object({
@@ -98,14 +103,14 @@ export const listSubChaptersSchema = z.object({
       .optional()
       .refine(
         (val) => !val || ["title", "orderNumber", "createdAt"].includes(val),
-        "sortBy tidak valid"
+        "sortBy tidak valid",
       ),
     sortOrder: z
       .string()
       .optional()
       .refine(
         (val) => !val || ["asc", "desc"].includes(val.toLowerCase()),
-        "sortOrder tidak valid"
+        "sortOrder tidak valid",
       ),
   }),
 });

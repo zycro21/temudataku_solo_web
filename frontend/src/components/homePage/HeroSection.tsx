@@ -9,7 +9,7 @@ export default function HeroSection() {
   const [showRegister, setShowRegister] = useState(false);
 
   return (
-    <section className="bg-gradient-to-br py-12 px-4 md:px-6 lg:px-8 relative overflow-hidden">
+    <section className="bg-gradient-to-br py-8 px-4 md:px-5 lg:px-6 relative overflow-hidden">
       <Image
         src="/assets/homePage/vectorHeroSection.svg"
         alt="vector background"
@@ -17,37 +17,37 @@ export default function HeroSection() {
         className="object-cover object-center z-0"
         priority
       />
-      <div className="max-w-7xl mx-auto relative z-10">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+      <div className="max-w-6xl mx-auto relative z-10">
+        <div className="grid lg:grid-cols-2 gap-6 items-center">
           {/* Left side - Illustration */}
           <div className="relative flex items-center justify-center order-first lg:order-last">
             <Image
               src="/assets/homePage/illustrationHero.svg"
               alt="ilustration"
-              width={600}
-              height={400}
-              className="w-full h-full"
+              width={500}
+              height={320}
+              className="w-full max-w-md h-auto"
             />
           </div>
 
           {/* Right side - Content */}
-          <div className="space-y-6">
+          <div className="space-y-5">
             {/* Main Heading */}
             <div className="space-y-2">
-              <h1 className="text-xl md:text-2xl lg:text-4xl font-semibold text-gray-900 leading-tight">
+              <h1 className="text-xl md:text-2xl lg:text-3xl font-semibold text-gray-900 leading-snug">
                 Jembatan Menuju Karier <br /> Impian di Dunia Data
               </h1>
-              <p className="max-sm:text-sm text-md text-gray-600 leading-relaxed max-w-2xl">
+              <p className="text-base md:text-lg text-gray-600 leading-relaxed max-w-xl">
                 Temukan jalur belajar yang terstruktur, bimbingan dari mentor
                 industri, dan proyek nyata untuk mengasah keterampilan datamu.
               </p>
             </div>
 
             {/* Register Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-3">
               <Button
-                size="lg"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-6 text-base font-medium shadow-lg hover:cursor-pointer"
+                size="sm"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3.5 text-base font-medium shadow-md hover:cursor-pointer"
                 onClick={() => setShowRegister(true)}
               >
                 Daftar Sekarang

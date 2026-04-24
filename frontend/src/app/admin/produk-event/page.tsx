@@ -58,7 +58,7 @@ export default function AdminMentorPage() {
 
   const handleExportProductEvent = async (format: "csv" | "excel") => {
     const loadingToastId = toast.loading(
-      `Mengekspor produk & event ke ${format.toUpperCase()}...`
+      `Mengekspor produk & event ke ${format.toUpperCase()}...`,
     );
 
     try {
@@ -68,7 +68,7 @@ export default function AdminMentorPage() {
           params: { format },
           responseType: "blob",
           withCredentials: true,
-        }
+        },
       );
 
       const blob = new Blob([res.data], {
@@ -141,7 +141,7 @@ export default function AdminMentorPage() {
               limit: 10000,
               isVerified: true,
             },
-          }
+          },
         );
 
         const options: MentorOption[] = res.data.data.map((item: any) => ({
@@ -310,7 +310,7 @@ export default function AdminMentorPage() {
                 page: 1,
                 limit: 10000,
               },
-            }
+            },
           ),
           axios.get(
             `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/elearningCourse/courses`,
@@ -320,16 +320,16 @@ export default function AdminMentorPage() {
                 page: 1,
                 limit: 10000,
               },
-            }
+            },
           ),
         ]);
 
         const mentoringProjects = mentoringRes.data.data.map(
-          mapMentoringToProject
+          mapMentoringToProject,
         );
 
         const elearningProjects = elearningRes.data.data.map(
-          mapELearningToProject
+          mapELearningToProject,
         );
 
         console.log(elearningProjects.map((p: any) => p.foto));
@@ -493,89 +493,52 @@ export default function AdminMentorPage() {
       }
     }
 
-    try {
-      if (addFormData.kategori === "Mentoring") {
-        // =====================
-        // 🟢 MENTORING (JSON)
-        // =====================
-        const payload = {
-          serviceName: addFormData.nama,
-          description: addFormData.deskripsi || undefined,
-          price: Number(addFormData.harga),
-          serviceType: mapServiceType(addFormData.tipeMentoring),
-
-          maxParticipants: Number(addFormData.maxParticipants),
-          durationDays: Number(addFormData.durationDays),
-
-          mentorProfileIds: selectedMentorIds, // WAJIB ARRAY
-          benefits: addFormData.benefits || undefined,
-          mechanism: addFormData.mechanism || undefined,
-          syllabusPath: addFormData.syllabusPath || undefined,
-          toolsUsed: addFormData.toolsUsed || undefined,
-          targetAudience: addFormData.targetAudience || undefined,
-          schedule: addFormData.schedule || undefined,
-          alumniPortfolio: addFormData.alumniPortfolio || undefined,
-        };
-
-        await axios.post(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentorService/mentoring-services`,
-          payload,
-          {
-            withCredentials: true,
-          }
+    // =====================
+    // ✅ VALIDASI SYLLABUS PATH (URL)
+    // =====================
+    if (addFormData.syllabusPath) {
+      try {
+        new URL(addFormData.syllabusPath);
+      } catch {
+        toast.error(
+          "Syllabus Path harus berupa URL yang valid. Contoh: https://drive.google.com/file/...",
         );
-
-        toast.success("Produk mentoring berhasil ditambahkan");
-      } else {
-        // =====================
-        // 🔵 E-LEARNING (FORMDATA)
-        // =====================
-        const formData = new FormData();
-
-        formData.append("mentorId", selectedMentorId);
-        formData.append("title", addFormData.nama);
-        formData.append("description", addFormData.deskripsi);
-        formData.append("price", addFormData.harga);
-        if (addFormData.category)
-          formData.append("category", addFormData.category);
-
-        if (addFormData.targetAudience)
-          formData.append("targetAudience", addFormData.targetAudience);
-
-        if (addFormData.level) formData.append("level", addFormData.level);
-
-        if (addFormData.estimatedDuration)
-          formData.append("estimatedDuration", addFormData.estimatedDuration);
-
-        if (addFormData.benefits)
-          formData.append("benefits", addFormData.benefits);
-
-        if (addFormData.toolsUsed)
-          formData.append("toolsUsed", addFormData.toolsUsed);
-
-        formData.append(
-          "isActive",
-          addFormData.status === "Aktif" ? "true" : "false"
-        );
-
-        (addFormData.tags ?? []).forEach((tag) =>
-          formData.append("tags[]", tag)
-        );
-
-        if (addFormData.foto) {
-          formData.append("thumbnailImages", addFormData.foto);
-        }
-
-        await axios.post(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/elearningCourse/courses`,
-          formData,
-          {
-            withCredentials: true,
-          }
-        );
-
-        toast.success("E-learning berhasil ditambahkan");
+        return;
       }
+    }
+
+    try {
+      // =====================
+      // 🟢 MENTORING (JSON)
+      // =====================
+      const payload = {
+        serviceName: addFormData.nama,
+        description: addFormData.deskripsi || undefined,
+        price: Number(addFormData.harga),
+        serviceType: mapServiceType(addFormData.tipeMentoring),
+
+        maxParticipants: Number(addFormData.maxParticipants),
+        durationDays: Number(addFormData.durationDays),
+
+        mentorProfileIds: selectedMentorIds, // WAJIB ARRAY
+        benefits: addFormData.benefits || undefined,
+        mechanism: addFormData.mechanism || undefined,
+        syllabusPath: addFormData.syllabusPath || undefined,
+        toolsUsed: addFormData.toolsUsed || undefined,
+        targetAudience: addFormData.targetAudience || undefined,
+        schedule: addFormData.schedule || undefined,
+        alumniPortfolio: addFormData.alumniPortfolio || undefined,
+      };
+
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentorService/mentoring-services`,
+        payload,
+        {
+          withCredentials: true,
+        },
+      );
+
+      toast.success("Produk mentoring berhasil ditambahkan");
 
       // =====================
       // ✅ SUCCESS
@@ -610,7 +573,7 @@ export default function AdminMentorPage() {
               limit: "10000",
             },
             withCredentials: true,
-          }
+          },
         );
 
         const mentoringData = mentoringRes.data.data || [];
@@ -656,7 +619,7 @@ export default function AdminMentorPage() {
               limit: 10000, // cukup ambil total
             },
             withCredentials: true,
-          }
+          },
         );
 
         const totalELearning = elearningRes.data.total || 0;
@@ -702,24 +665,27 @@ export default function AdminMentorPage() {
   return (
     <>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        {/* Title */}
         <div>
-          <h1 className="text-3xl font-semibold text-gray-800 mb-1">
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-0.5">
             Produk & Event
           </h1>
-          <p className="text-gray-600">Produk & Event</p>
+          <p className="text-sm text-gray-500">Produk & Event</p>
         </div>
 
-        <div className="flex items-center space-x-3">
-          {/* Dropdown Export Data */}
+        {/* Actions */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Dropdown Export */}
           <DropdownMenu onOpenChange={(open) => setExportOpen(open)}>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                className="flex items-center gap-1 bg-white hover:bg-gray-50 border border-gray-300"
+                className="flex items-center gap-1.5 h-9 px-3 text-sm
+          bg-white hover:bg-gray-50 border border-gray-300"
               >
                 <Download className="w-4 h-4" />
-                <span>Export Data</span>
+                <span className="whitespace-nowrap">Export</span>
 
                 {exportOpen ? (
                   <ChevronUp className="w-4 h-4 text-gray-500" />
@@ -729,38 +695,34 @@ export default function AdminMentorPage() {
               </Button>
             </DropdownMenuTrigger>
 
-            <DropdownMenuContent align="end" className="w-40">
+            <DropdownMenuContent align="end" className="w-36 text-sm">
               <DropdownMenuItem onClick={() => handleExportProductEvent("csv")}>
-                Export ke CSV
+                Export CSV
               </DropdownMenuItem>
-
               <DropdownMenuItem
                 onClick={() => handleExportProductEvent("excel")}
               >
-                Export ke Excel
+                Export Excel
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Tombol Tambah Produk & Event */}
+          {/* Button Tambah */}
           <Button
-            className="bg-[#0CA678] hover:bg-[#08916C] flex items-center gap-1"
+            className="flex items-center gap-1.5 h-9 px-3 text-sm
+      bg-[#0CA678] hover:bg-[#08916C]"
             onClick={() => {
               setAddFormData({
                 nama: "",
                 kategori: "Mentoring",
                 tipeMentoring: "Bootcamp",
                 foto: null,
-
                 deskripsi: "",
                 harga: "",
                 status: "Aktif",
-
                 diskonTipe: "persentase",
                 diskon: 0,
                 hargaDiskon: "",
-
-                // 🟢 mentoring
                 benefits: "",
                 mechanism: "",
                 toolsUsed: "",
@@ -768,8 +730,6 @@ export default function AdminMentorPage() {
                 schedule: "",
                 alumniPortfolio: "",
                 syllabusPath: "",
-
-                // 🔵 e-learning
                 category: "",
                 level: "",
                 estimatedDuration: "",
@@ -781,45 +741,47 @@ export default function AdminMentorPage() {
             }}
           >
             <Plus className="w-4 h-4" />
-            <span>Tambah Produk & Event</span>
+            <span className="whitespace-nowrap">Tambah</span>
           </Button>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
         {stats.map((stat, index) => (
           <Card
             key={index}
-            className="w-full flex flex-col justify-between px-0 py-2
-      shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200
-      cursor-pointer rounded-lg bg-white"
+            className="
+        w-full flex flex-col justify-between
+        px-0 py-1.5
+        shadow-sm hover:shadow-md
+        transition-all duration-200
+        cursor-pointer rounded-md bg-white
+      "
           >
             {/* Header */}
-            <CardHeader className="flex items-center justify-between px-5 pt-2 pb-1">
-              <div className="flex items-center gap-2">
+            <CardHeader className="flex items-center justify-between px-3 pt-2 pb-1">
+              <div className="flex items-center gap-2 min-w-0">
                 <Image
                   src={stat.image}
                   alt={stat.title}
-                  width={20}
-                  height={20}
+                  width={14}
+                  height={14}
                   className="opacity-90"
                 />
-                <CardTitle className="text-md font-medium text-gray-600">
+                <CardTitle className="text-xs font-medium text-gray-600 truncate">
                   {stat.title}
                 </CardTitle>
               </div>
 
-              <ChevronRight className="w-5 h-5 text-gray-500" />
+              <ChevronRight className="w-3.5 h-3.5 text-gray-500" />
             </CardHeader>
 
             {/* Content */}
-            <CardContent className="px-5 pt-0 pb-3">
-              <div className="flex items-center gap-3">
-                <p className={`text-4xl font-bold leading-tight ${stat.color}`}>
-                  {stat.value}
-                </p>
-              </div>
+            <CardContent className="px-3 pt-0 pb-2">
+              <p className={`text-xl font-bold leading-tight ${stat.color}`}>
+                {stat.value}
+              </p>
             </CardContent>
           </Card>
         ))}
@@ -998,7 +960,6 @@ export default function AdminMentorPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Mentoring">Mentoring</SelectItem>
-                      <SelectItem value="E-Learning">E-Learning</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1065,7 +1026,7 @@ export default function AdminMentorPage() {
                                 setSelectedMentorIds((prev) =>
                                   checked
                                     ? prev.filter((id) => id !== mentor.id)
-                                    : [...prev, mentor.id]
+                                    : [...prev, mentor.id],
                                 );
                               }}
                             />
@@ -1074,31 +1035,6 @@ export default function AdminMentorPage() {
                         );
                       })}
                     </div>
-                  </div>
-                )}
-
-                {addFormData.kategori === "E-Learning" && (
-                  <div>
-                    <label className="text-sm font-bold text-gray-900 block mb-2">
-                      Pilih Mentor
-                    </label>
-
-                    <Select
-                      value={selectedMentorId}
-                      onValueChange={(value) => setSelectedMentorId(value)}
-                    >
-                      <SelectTrigger className="w-full border rounded-lg">
-                        <SelectValue placeholder="Pilih mentor" />
-                      </SelectTrigger>
-
-                      <SelectContent>
-                        {mentorOptions.map((mentor) => (
-                          <SelectItem key={mentor.id} value={mentor.id}>
-                            {mentor.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                   </div>
                 )}
               </>
@@ -1481,210 +1417,6 @@ export default function AdminMentorPage() {
                             alumniPortfolio: e.target.value,
                           }))
                         }
-                      />
-                    </EditField>
-                  </div>
-                )}
-
-                {addFormData.kategori === "E-Learning" && (
-                  <div className="space-y-4 pt-4 border-t">
-                    <h3 className="text-base font-bold text-emerald-700">
-                      Detail E-Learning
-                    </h3>
-
-                    <EditField label="Category">
-                      <textarea
-                        rows={2}
-                        placeholder="Masukkan kategori e-learning"
-                        className="
-    w-full
-    border border-gray-300
-    rounded-lg
-    px-3 py-2
-    text-sm
-    outline-none
-    focus:border-emerald-400
-    focus:ring-1
-    focus:ring-emerald-400
-    transition
-  "
-                        value={addFormData.category}
-                        onChange={(e) =>
-                          setAddFormData((prev) => ({
-                            ...prev,
-                            category: e.target.value,
-                          }))
-                        }
-                      />
-                    </EditField>
-
-                    <EditField label="Level">
-                      <textarea
-                        rows={2}
-                        placeholder="Tentukan level e-learning (Beginner, Intermediate, Advanced)"
-                        className="
-    w-full
-    border border-gray-300
-    rounded-lg
-    px-3 py-2
-    text-sm
-    outline-none
-    focus:border-emerald-400
-    focus:ring-1
-    focus:ring-emerald-400
-    transition
-  "
-                        value={addFormData.level}
-                        onChange={(e) =>
-                          setAddFormData((prev) => ({
-                            ...prev,
-                            level: e.target.value,
-                          }))
-                        }
-                      />
-                    </EditField>
-
-                    <EditField label="Estimated Duration">
-                      <textarea
-                        rows={2}
-                        placeholder="Perkiraan durasi pembelajaran"
-                        className="
-    w-full
-    border border-gray-300
-    rounded-lg
-    px-3 py-2
-    text-sm
-    outline-none
-    focus:border-emerald-400
-    focus:ring-1
-    focus:ring-emerald-400
-    transition
-  "
-                        value={addFormData.estimatedDuration}
-                        onChange={(e) =>
-                          setAddFormData((prev) => ({
-                            ...prev,
-                            estimatedDuration: e.target.value,
-                          }))
-                        }
-                      />
-                    </EditField>
-
-                    <EditField label="Benefits">
-                      <textarea
-                        rows={3}
-                        placeholder="Manfaat yang akan diperoleh peserta e-learning"
-                        className="
-    w-full
-    border border-gray-300
-    rounded-lg
-    px-3 py-2
-    text-sm
-    outline-none
-    focus:border-emerald-400
-    focus:ring-1
-    focus:ring-emerald-400
-    transition
-  "
-                        value={addFormData.benefits}
-                        onChange={(e) =>
-                          setAddFormData((prev) => ({
-                            ...prev,
-                            benefits: e.target.value,
-                          }))
-                        }
-                      />
-                    </EditField>
-
-                    <EditField label="Tools Used">
-                      <textarea
-                        rows={2}
-                        placeholder="Tools atau platform yang digunakan dalam e-learning"
-                        className="
-    w-full
-    border border-gray-300
-    rounded-lg
-    px-3 py-2
-    text-sm
-    outline-none
-    focus:border-emerald-400
-    focus:ring-1
-    focus:ring-emerald-400
-    transition
-  "
-                        value={addFormData.toolsUsed}
-                        onChange={(e) =>
-                          setAddFormData((prev) => ({
-                            ...prev,
-                            toolsUsed: e.target.value,
-                          }))
-                        }
-                      />
-                    </EditField>
-
-                    {/* TAGS – TETAP INPUT */}
-                    <EditField label="Tags">
-                      <div className="flex flex-wrap gap-2 mb-2">
-                        {(addFormData.tags ?? []).map((tag, idx) => (
-                          <span
-                            key={idx}
-                            className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-emerald-100 text-emerald-700"
-                          >
-                            {tag}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const scrollTop =
-                                  scrollRef.current?.scrollTop ?? 0;
-
-                                setAddFormData((prev) => ({
-                                  ...prev,
-                                  tags: prev.tags?.filter((_, i) => i !== idx),
-                                }));
-
-                                requestAnimationFrame(() => {
-                                  if (scrollRef.current) {
-                                    scrollRef.current.scrollTop = scrollTop;
-                                  }
-                                });
-                              }}
-                              className="text-emerald-700 hover:text-red-600 font-bold"
-                            >
-                              ×
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-
-                      <Input
-                        placeholder="Tekan Enter untuk menambahkan tag"
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            e.stopPropagation();
-
-                            const scrollTop = scrollRef.current?.scrollTop ?? 0;
-                            const value = (
-                              e.target as HTMLInputElement
-                            ).value.trim();
-                            if (!value) return;
-
-                            if (!(addFormData.tags ?? []).includes(value)) {
-                              setAddFormData((prev) => ({
-                                ...prev,
-                                tags: [...(prev.tags ?? []), value],
-                              }));
-                            }
-
-                            (e.target as HTMLInputElement).value = "";
-
-                            requestAnimationFrame(() => {
-                              if (scrollRef.current) {
-                                scrollRef.current.scrollTop = scrollTop;
-                              }
-                            });
-                          }
-                        }}
                       />
                     </EditField>
                   </div>

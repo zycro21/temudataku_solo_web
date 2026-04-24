@@ -36,80 +36,83 @@ export default function BenefitsSection({
   onClickCTA?: () => void;
 }) {
   return (
-    <section className="py-16 mt-16 bg-[#E5E7EB] relative overflow-hidden">
+    <section className="py-10 mt-15 bg-[#E5E7EB] relative overflow-hidden">
       {/* Background decorative elements */}
-      <div className="absolute top-20 right-0 w-40 h-40 ">
+      <div className="absolute top-16 right-0 w-28 h-28">
         <Image
           src="/assets/homePage/ornamenBenefit.svg"
           alt="ornamen"
-          width={160}
-          height={160}
-          className="scale-200"
+          width={120}
+          height={120}
+          className="scale-150"
         />
       </div>
-      <div className="absolute bottom-10 -left-0  w-40 h-40 ">
+      <div className="absolute bottom-6 left-0 w-28 h-28">
         <Image
           src="/assets/homePage/ornamenBenefit.svg"
           alt="ornamen"
-          width={160}
-          height={160}
-          className="scale-200"
+          width={120}
+          height={120}
+          className="scale-150"
         />
       </div>
 
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="grid lg:grid-cols-2 gap-12 items-start">
-          {/* Left side - Text content */}
-          <div className="space-y-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-5 lg:px-6 relative z-10">
+        <div className="grid lg:grid-cols-2 gap-8 items-start">
+          {/* Left side */}
+          <div className="space-y-4">
             <div>
-              <p className="text-base font-semibold text-blue-900 mb-4">
+              <p className="text-sm font-semibold text-blue-900 mb-2">
                 Nilai <span className="font-bold">Plus</span>
               </p>
-              <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-4 leading-snug">
                 Kenapa Belajar di <br />
                 <span className="bg-gradient-to-r from-emerald-500 to-teal-600 bg-clip-text text-transparent">
                   TemuDataku?
                 </span>
               </h1>
-              <p className="text-xl md:text-2xl text-gray-600 leading-loose mb-10 max-w-2xl">
+
+              <p className="text-base md:text-lg text-gray-600 leading-relaxed mb-6 max-w-xl">
                 TemuDataku hadir untuk mempercepat karier kamu di dunia Data &
                 AI. Kami fokus memberikan bimbingan yang tepat, menghubungkan
                 kamu dengan mentor industri, dan membekali kamu dengan
-                keterampilan praktis untuk masa depan karier yang cemerlang di
-                data science dan AI.
+                keterampilan praktis untuk masa depan karier yang cemerlang.
               </p>
             </div>
 
             <Button
               onClick={onClickCTA}
-              className="bg-[#0CA678] hover:bg-[#08916C] text-white px-10 py-4 rounded-md font-semibold text-lg"
+              className="bg-[#0CA678] hover:bg-[#08916C] text-white px-6 py-2.5 rounded-md font-semibold text-base"
             >
               Lihat Jalur Belajar
             </Button>
           </div>
 
-          {/* Right side - Benefits grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {/* Right side */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {benefits.map((benefit) => (
               <Card
                 key={benefit.id}
                 className="bg-white shadow-sm hover:shadow-md transition-shadow border-0"
               >
-                <CardContent className="p-6 pt-0 pb-2">
-                  <div className="mb-4">
-                    <div className="w-14 h-14 flex items-center justify-center">
+                <CardContent className="p-4 pt-0 pb-2">
+                  <div className="mb-3">
+                    <div className="w-10 h-10 flex items-center justify-center">
                       <Image
                         src="/assets/homePage/greenbook.svg"
                         alt="icon benefit"
-                        width={32}
-                        height={32}
+                        width={24}
+                        height={24}
                         className="object-contain"
                       />
                     </div>
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">
+
+                  <h3 className="text-base font-semibold text-gray-900 mb-2">
                     {benefit.title}
                   </h3>
+
                   <p className="text-gray-600 text-sm leading-relaxed">
                     {benefit.description}
                   </p>

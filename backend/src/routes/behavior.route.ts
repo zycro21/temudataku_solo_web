@@ -10,11 +10,11 @@ import {
 import { validate } from "../middlewares/validate.js";
 import { authenticate } from "../middlewares/authenticate.js";
 import { authorizeRoles } from "../middlewares/authorizeRole.js";
-import {
-  handleThumbnailUpload,
-  handlePracticeFileUpload,
-} from "../middlewares/uploadImage";
-import { preloadPracticeTitle } from "../middlewares/preloadTitlePractice";
+// import {
+//   handleThumbnailUpload,
+//   handlePracticeFileUpload,
+// } from "../middlewares/uploadImage";
+// import { preloadPracticeTitle } from "../middlewares/preloadTitlePractice";
 
 const router = Router();
 

@@ -1,10 +1,10 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { AuthenticatedRequest } from "../middlewares/authenticate.js";
-import { HttpError } from "../utils/httpError";
+import { HttpError } from "../utils/httpError.js";
 import * as AuthService from "../services/auth.service.js";
 import * as UserService from "../services/user.service.js";
-import { uploadPath } from "../middlewares/uploadImage";
+import { uploadPath } from "../middlewares/uploadImage.js";
 import { PrismaClient } from "@prisma/client";
 import { logActivity } from "../utils/logActivtiy.js";
 

@@ -41,12 +41,8 @@ import elearningReviewRoutes from "./routes/elearning_review.route.js";
 import elearningCertificateRoutes from "./routes/elearning_certificate.route.js";
 import elearningSubscriptionPlan from "./routes/elearning_subscription_plan.route.js";
 import elearningSubscription from "./routes/elearning_subscription.route.js";
-import elearningVideo from "./routes/elearning_video.route.js";
-import elearningTextInteractive from "./routes/elearning_text_interactive.route.js";
-import elearningMatchingInteractive from "./routes/elearning_matching.route.js";
-import elearningMultipleChoice from "./routes/elearning_multiplechoices.route.js";
-import elearningInteractiveAttempt from "./routes/elearning_interactiveattemptanswer.route.js";
-import elearningExecutableCode from "./routes/elearning_excode.route.js";
+import ayclRoutes from "./routes/aycl.route.js";
+import ayclBookingRoutes from "./routes/aycl_booking.route.js";
 import { redirectShortCodeController } from "./controllers/short_link.controller.js";
 import "./schedulers/cron.js";
 import { fileURLToPath } from "url";
@@ -117,12 +113,8 @@ app.use("/api/elearningReview", elearningReviewRoutes);
 app.use("/api/elearningCertificate", elearningCertificateRoutes);
 app.use("/api/elearningSubscriptionPlan", elearningSubscriptionPlan);
 app.use("/api/elearningSubscription", elearningSubscription);
-app.use("/api/elearningVideo", elearningVideo);
-app.use("/api/elearningTextInteractive", elearningTextInteractive);
-app.use("/api/elearningMatching", elearningMatchingInteractive);
-app.use("/api/e-learningmultiplechoice", elearningMultipleChoice);
-app.use("/api/elearningInteractivesAttempt", elearningInteractiveAttempt);
-app.use("/api/elearningExecutableCode", elearningExecutableCode);
+app.use("/api/aycl", ayclRoutes);
+app.use("/api/ayclbooking", ayclBookingRoutes);
 
 // Path Static untuk Images
 // Perbaikan di sini, mengganti __dirname dengan yang benar menggunakan import.meta.url

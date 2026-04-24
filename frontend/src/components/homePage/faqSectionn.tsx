@@ -41,23 +41,27 @@ export default function FAQPage() {
   ];
 
   return (
-    <div id="faq" className="bg-white py-20 pb-18 mt-10 px-4 scroll-smooth">
-      <div className="max-w-[1000px] mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-12">
+    <div id="faq" className="bg-white py-14 pb-14 mt-8 px-4 scroll-smooth">
+      <div className="max-w-[900px] mx-auto px-4 sm:px-5 lg:px-6">
+        {/* TITLE */}
+        <h1 className="text-2xl md:text-3xl font-bold text-center text-gray-900 mb-8">
           Frequently Asked Questions (FAQ)
         </h1>
 
-        <Accordion type="single" collapsible className="space-y-4">
+        <Accordion type="single" collapsible className="space-y-3">
           {faqs.map((faq) => (
             <AccordionItem
               key={faq.id}
               value={faq.id}
-              className="bg-gray-100 rounded-lg shadow-sm overflow-hidden"
+              className="bg-gray-100 rounded-md shadow-sm overflow-hidden"
             >
-              <AccordionTrigger className="px-6 py-6 mb-1 text-left text-lg md:text-xl font-semibold text-gray-900 hover:no-underline hover:bg-gray-200 rounded-lg">
+              {/* QUESTION */}
+              <AccordionTrigger className="px-4 py-4 mb-0.5 text-left text-sm md:text-base font-semibold text-gray-900 hover:no-underline hover:bg-gray-200 rounded-md">
                 {faq.question}
               </AccordionTrigger>
-              <AccordionContent className="px-6 pb-6 pt-3 text-base md:text-lg text-gray-700 leading-relaxed">
+
+              {/* ANSWER */}
+              <AccordionContent className="px-4 pb-4 pt-2 text-sm text-gray-700 leading-relaxed">
                 {faq.answer}
               </AccordionContent>
             </AccordionItem>

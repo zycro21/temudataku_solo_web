@@ -7,11 +7,12 @@ import PDFDocument from "pdfkit";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { AuthenticatedRequestPractice } from "../middlewares/authenticate";
-import { uploadToGoogleDrive } from "../utils/googleDrive";
+// import { AuthenticatedRequestPractice } from "../middlewares/authenticate.js";
+import { uploadToGoogleDrive } from "../utils/googleDrive.js";
 import axios from "axios";
 import crypto from "crypto";
 import moment from "moment-timezone";
+import { sendAyclPaymentSuccessEmail } from "../utils/sendAyclPaymentSuccess.js";
 
 const prisma = new PrismaClient();
 
@@ -86,6 +87,7 @@ export const createDuitkuPayment = async ({
   if (payment.bookingId) type = "booking";
   else if (payment.practicePurchaseId) type = "practice";
   else if (payment.eLearningSubscriptionId) type = "elearning";
+  else if (payment.ayclBookingId) type = "aycl";
 
   /**
    * 4️⃣ Generate invoice (merchantOrderId)
@@ -135,7 +137,12 @@ export const createDuitkuPayment = async ({
    * 7️⃣ Call API Duitku
    */
   try {
-    const response = await axios.post(DUITKU_URL, payload, { headers });
+    const duitkuUrl =
+      process.env.NODE_ENV === "production"
+        ? DUITKU_URL_PRODUCTION
+        : DUITKU_URL;
+
+    const response = await axios.post(duitkuUrl, payload, { headers });
 
     /**
      * 8️⃣ Update payment (WAJIB SIMPAN merchantOrderId)
@@ -174,6 +181,7 @@ export const getPaymentStatus = async (
       booking: true,
       practicePurchase: true,
       eLearningSubscription: true,
+      ayclBooking: true, // 🔥 tambah
     },
   });
 
@@ -185,11 +193,11 @@ export const getPaymentStatus = async (
    * 🔥 SECURITY CHECK
    * Pastikan user hanya bisa cek payment miliknya
    */
-
   const ownerId =
     payment.booking?.menteeId ||
     payment.practicePurchase?.userId ||
-    payment.eLearningSubscription?.userId;
+    payment.eLearningSubscription?.userId ||
+    payment.ayclBooking?.userId; // 🔥 tambah
 
   if (ownerId !== userId) {
     throw { status: 403, message: "Forbidden." };
@@ -207,7 +215,9 @@ export const getPaymentStatus = async (
         ? "practice"
         : payment.eLearningSubscription
           ? "elearning"
-          : "unknown",
+          : payment.ayclBooking // 🔥 tambah
+            ? "aycl"
+            : "unknown",
   };
 };
 
@@ -280,7 +290,6 @@ export const processDuitkuCallback = async ({
       });
     }
 
-    // 🔥 INI YANG DIGANTI (SATU-SATUNYA)
     if (payment.eLearningSubscriptionId) {
       const subscription = await tx.eLearningSubscription.findUnique({
         where: { id: payment.eLearningSubscriptionId },
@@ -318,6 +327,40 @@ export const processDuitkuCallback = async ({
         },
       });
     }
+
+    // 🔥 AYCL
+    if (payment.ayclBookingId) {
+      // 🔥 Update status booking
+      await tx.aYCLBooking.update({
+        where: { id: payment.ayclBookingId },
+        data: { status: "confirmed" },
+      });
+
+      // 🔥 Fetch data lengkap untuk email (di luar transaction agar tidak block)
+      const ayclBooking = await tx.aYCLBooking.findUnique({
+        where: { id: payment.ayclBookingId },
+        include: {
+          user: true,
+          batch: true,
+        },
+      });
+
+      if (ayclBooking) {
+        // 🔥 Kirim email - tidak await agar tidak block callback response
+        sendAyclPaymentSuccessEmail({
+          email: ayclBooking.user.email,
+          fullName: ayclBooking.user.fullName,
+          batchTitle: ayclBooking.batch.title,
+          merchantOrderId: payment.merchantOrderId ?? "-",
+          paymentMethod: payment.paymentMethod,
+          amount: payment.amount.toNumber(),
+          paymentDate: now,
+          whatsappGroupLink: ayclBooking.batch.whatsappGroupLink,
+        }).catch((err) => {
+          console.error("Gagal mengirim email konfirmasi AYCL:", err);
+        });
+      }
+    }
   });
 };
 
@@ -354,16 +397,16 @@ export const getPayments = async ({
             },
           },
         },
-        practicePurchase: {
-          include: {
-            user: { select: { id: true, fullName: true, email: true } },
-            practice: true,
-          },
-        },
         eLearningSubscription: {
           include: {
             user: { select: { id: true, fullName: true, email: true } },
-            plan: true, // agar frontend bisa ambil nama paket
+            plan: true,
+          },
+        },
+        ayclBooking: {
+          include: {
+            user: { select: { id: true, fullName: true, email: true } },
+            batch: true,
           },
         },
       },
@@ -378,12 +421,12 @@ export const getPayments = async ({
   const formatted = payments.map((payment) => {
     const user =
       payment.booking?.mentee ??
-      payment.practicePurchase?.user ??
-      payment.eLearningSubscription?.user;
+      payment.eLearningSubscription?.user ??
+      payment.ayclBooking?.user;
 
     return {
       id: payment.id,
-      transactionId: payment.transactionId,
+      merchantOrderId: payment.merchantOrderId,
       amount: payment.amount,
       status: payment.status,
       paymentMethod: payment.paymentMethod,
@@ -396,15 +439,14 @@ export const getPayments = async ({
         email: user?.email,
       },
       bookingId: payment.bookingId,
-      practicePurchaseId: payment.practicePurchaseId,
       eLearningSubscriptionId: payment.eLearningSubscriptionId,
+      ayclBookingId: payment.ayclBookingId,
       booking: payment.booking,
-      practicePurchase: payment.practicePurchase,
       eLearningSubscription: payment.eLearningSubscription,
+      ayclBooking: payment.ayclBooking,
     };
   });
 
-  // 🔥 ADMIN STATS
   const stats = {
     total,
     success: 0,
@@ -576,16 +618,9 @@ export const getPaymentsByUser = async ({
 
   const where: Prisma.PaymentWhereInput = {
     OR: [
-      {
-        booking: {
-          menteeId: userId,
-        },
-      },
-      {
-        practicePurchase: {
-          userId: userId,
-        },
-      },
+      { booking: { menteeId: userId } },
+      { eLearningSubscription: { userId: userId } },
+      { ayclBooking: { userId: userId } },
     ],
   };
 
@@ -600,50 +635,54 @@ export const getPaymentsByUser = async ({
       include: {
         booking: {
           include: {
-            mentoringService: true, // ambil semua kolom, atau bisa select { title: true } nanti jika perlu
+            mentoringService: true,
           },
         },
-        practicePurchase: {
+        eLearningSubscription: {
           include: {
-            practice: true,
+            plan: true,
+          },
+        },
+        ayclBooking: {
+          include: {
+            batch: true,
           },
         },
       },
-    }) as Promise<
-      {
-        id: string;
-        merchantOrderId: string | null;
-        amount: any;
-        status: string | null;
-        paymentMethod: string | null;
-        paymentDate: Date | null;
-        transactionId: string | null;
-        createdAt: Date | null;
-        booking?: {
-          mentoringService?: {
-            serviceName?: string;
-          } | null;
-        } | null;
-        practicePurchase?: {
-          practice?: {
-            title?: string;
-          } | null;
-        } | null;
-      }[]
-    >,
+    }),
     prisma.payment.count({ where }),
   ]);
 
   const formatted = payments.map((p) => {
-    const isBooking = !!p.booking;
+    let type: string;
+    let title: string;
+
+    if (p.booking) {
+      type = "booking";
+      title = p.booking.mentoringService?.serviceName ?? "-";
+    } else if (p.ayclBooking) {
+      type = "aycl";
+      title = p.ayclBooking.batch?.title ?? "-";
+    } else if (p.eLearningSubscription) {
+      type = "elearning";
+      const durationDays = p.eLearningSubscription.plan?.durationDay ?? 0;
+      // konversi hari ke bulan (approx)
+      const durationMonths =
+        durationDays >= 30 ? Math.round(durationDays / 30) : 0;
+      title =
+        durationMonths > 0
+          ? `Subscription ${durationMonths} Bulan eLearning`
+          : `Subscription eLearning`;
+    } else {
+      type = "other";
+      title = "-";
+    }
 
     return {
       id: p.id,
       merchantOrderId: p.merchantOrderId,
-      type: isBooking ? "booking" : "practice",
-      title: isBooking
-        ? p.booking?.mentoringService?.serviceName
-        : p.practicePurchase?.practice?.title,
+      type,
+      title,
       amount: p.amount,
       status: p.status,
       paymentMethod: p.paymentMethod,

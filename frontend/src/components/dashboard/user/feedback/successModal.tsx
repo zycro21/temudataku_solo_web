@@ -20,15 +20,22 @@ export default function SuccessModal({ open, onClose }: SuccessModalProps) {
       <DialogOverlay />
       <DialogContent
         showCloseButton={false}
-        className="bg-white rounded-xl shadow-lg w-[350px] p-6 text-center"
         onInteractOutside={(e) => e.preventDefault()}
+        className="
+    bg-white rounded-lg shadow
+    w-full max-w-xs
+    p-4
+    text-center
+    overflow-x-hidden
+  "
       >
         <DialogTitle className="sr-only">Feedback terkirim</DialogTitle>
 
-        <div className="flex justify-center mb-4">
-          <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center">
+        {/* ICON */}
+        <div className="flex justify-center mb-3">
+          <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
             <svg
-              className="w-8 h-8 text-emerald-500"
+              className="w-5 h-5 text-emerald-500"
               fill="none"
               stroke="currentColor"
               strokeWidth={2.5}
@@ -43,13 +50,15 @@ export default function SuccessModal({ open, onClose }: SuccessModalProps) {
           </div>
         </div>
 
-        <h3 className="text-lg font-semibold">Horray!</h3>
-        <p className="text-sm text-gray-600 mt-1">
-          Umpan balikmu berhasil disampaikan!
+        {/* TEXT */}
+        <h3 className="text-sm font-semibold">Horray!</h3>
+        <p className="text-xs text-gray-600 mt-1">
+          Feedback-mu berhasil disampaikan!
         </p>
 
+        {/* BUTTON */}
         <DialogClose asChild>
-          <Button className="mt-6 bg-emerald-500 hover:bg-emerald-600 text-white">
+          <Button className="mt-4 w-full text-xs py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white">
             Kembali ke Dashboard
           </Button>
         </DialogClose>

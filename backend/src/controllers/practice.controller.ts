@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { AuthenticatedRequestPractice } from "../middlewares/authenticate.js";
 import { format } from "date-fns";
-import { HttpError } from "../utils/httpError";
+import { HttpError } from "../utils/httpError.js";
 import * as PracticeService from "../services/practice.service.js";
 import { PrismaClient, Prisma } from "@prisma/client";
 import path from "path";

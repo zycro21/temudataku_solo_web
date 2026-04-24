@@ -175,7 +175,7 @@ export const columns: ColumnDef<Project>[] = [
             sort ? "bg-emerald-200" : ""
           }`}
         >
-          Tanggal
+          Tanggal Bayar
           {sort === "asc" && <ArrowDown className="w-4 h-4" />}
           {sort === "desc" && <ArrowUp className="w-4 h-4" />}
         </button>

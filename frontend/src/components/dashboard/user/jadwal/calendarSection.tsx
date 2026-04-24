@@ -61,18 +61,18 @@ export default function CalendarSection() {
 
   const calendarDays = getCalendarDays(
     currentDate.getFullYear(),
-    currentDate.getMonth()
+    currentDate.getMonth(),
   );
 
   const goToPrevMonth = () => {
     setCurrentDate(
-      new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)
+      new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1),
     );
   };
 
   const goToNextMonth = () => {
     setCurrentDate(
-      new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)
+      new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1),
     );
   };
 
@@ -102,41 +102,50 @@ export default function CalendarSection() {
   return (
     <div className="bg-white pt-1 px-6 pb-6 h-fit">
       {/* Header Kalender */}
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center mb-3">
         <div className="flex items-center space-x-2">
-          <div className="flex items-center border border-gray-400 rounded-md px-3 py-1 cursor-pointer">
-            <span className="text-lg font-semibold text-gray-800">
+          <div className="flex items-center border border-gray-400 rounded px-2 py-0.5 cursor-pointer">
+            <span
+              className="font-semibold text-gray-800"
+              style={{ fontSize: "11px" }}
+            >
               {monthNames[currentDate.getMonth()]}
             </span>
-            <ChevronDown className="w-4 h-4 ml-1 text-gray-600" />
+            <ChevronDown className="w-2.5 h-2.5 ml-1 text-gray-600" />
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-1">
           <button
             onClick={goToPrevMonth}
-            className="p-1 rounded-full hover:bg-gray-100"
+            className="p-0.5 rounded-full hover:bg-gray-100"
           >
-            <ChevronLeft className="w-5 h-5 text-gray-500" />
+            <ChevronLeft className="w-3 h-3 text-gray-500" />
           </button>
-          <span className="text-lg font-semibold text-gray-800 whitespace-nowrap">
+          <span
+            className="font-semibold text-gray-800 whitespace-nowrap"
+            style={{ fontSize: "11px" }}
+          >
             {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
           </span>
           <button
             onClick={goToNextMonth}
-            className="p-1 rounded-full hover:bg-gray-100"
+            className="p-0.5 rounded-full hover:bg-gray-100"
           >
-            <ChevronRight className="w-5 h-5 text-gray-500" />
+            <ChevronRight className="w-3 h-3 text-gray-500" />
           </button>
         </div>
       </div>
 
       {/* Grid Kalender */}
-      <div className="grid grid-cols-7 border border-gray-300 text-sm">
+      <div
+        className="grid grid-cols-7 border border-gray-300 w-full"
+        style={{ fontSize: "9px" }}
+      >
         {daysInWeek.map((day, index) => (
           <div
             key={index}
-            className="py-2 px-2 font-medium text-gray-500 border-b border-r border-gray-300 text-left"
+            className="py-0.5 px-1 font-medium text-gray-500 border-b border-r border-gray-300 text-left"
           >
             {day}
           </div>
@@ -156,38 +165,47 @@ export default function CalendarSection() {
             <div
               key={index}
               onClick={() => setSelectedDate(date)}
-              className={`group relative border-b border-r border-gray-300 p-1.5 min-h-[100px] flex flex-col cursor-pointer ${
+              className={`group relative border-b border-r border-gray-300 flex flex-col cursor-pointer ${
                 !isCurrentMonth ? "bg-gray-100 text-gray-400" : ""
               } ${isSelected ? "ring-2 ring-emerald-500" : ""}`}
+              style={{ padding: "4px", minHeight: "80px" }}
             >
               {isToday && (
-                <span className="absolute top-1 left-1/2 -translate-x-1/2 bg-black text-white text-xs px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition">
+                <span
+                  className="absolute top-1 left-1/2 -translate-x-1/2 bg-black text-white px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition"
+                  style={{ fontSize: "8px" }}
+                >
                   Today
                 </span>
               )}
 
               <div
-                className={`text-xs font-semibold w-6 h-6 flex items-center justify-center rounded-full ${
+                className={`font-semibold flex items-center justify-center rounded-full ${
                   isToday ? "bg-emerald-500 text-white" : ""
                 }`}
+                style={{ fontSize: "10px", width: "18px", height: "18px" }}
               >
                 {date.getDate()}
               </div>
 
-              <div className="space-y-1 mt-1 text-xs flex-1 overflow-hidden">
+              <div className="space-y-0.5 mt-0.5 flex-1 overflow-hidden">
                 {dayEvents.slice(0, 2).map((event, eventIndex) => (
                   <span
                     key={eventIndex}
-                    className={`block w-full rounded-sm py-0.5 px-1 text-left ${getEventStyle(
-                      event.type
+                    className={`block w-full rounded-sm text-left truncate ${getEventStyle(
+                      event.type,
                     )}`}
+                    style={{ fontSize: "9px", padding: "1px 3px" }}
                   >
                     {event.title}
                   </span>
                 ))}
 
                 {dayEvents.length > 2 && (
-                  <span className="block text-xs text-gray-400 text-left">
+                  <span
+                    className="block text-gray-400 text-left"
+                    style={{ fontSize: "8px" }}
+                  >
                     +{dayEvents.length - 2} more
                   </span>
                 )}
@@ -198,29 +216,24 @@ export default function CalendarSection() {
       </div>
 
       {/* Legenda */}
-      <div className="flex items-center space-x-4 mt-4 text-sm flex-wrap">
+      <div
+        className="flex items-center gap-2 mt-2 flex-wrap"
+        style={{ fontSize: "9px" }}
+      >
         <div className="flex items-center space-x-1">
-          <span className="w-3 h-3 bg-yellow-400 rounded-sm"></span>
+          <span className="w-2 h-2 bg-yellow-400 rounded-sm inline-block"></span>
           <span>One-on-One</span>
         </div>
         <div className="flex items-center space-x-1">
-          <span className="w-3 h-3 bg-blue-500 rounded-sm"></span>
+          <span className="w-2 h-2 bg-blue-500 rounded-sm inline-block"></span>
           <span>Group</span>
         </div>
         <div className="flex items-center space-x-1">
-          <span className="w-3 h-3 bg-purple-500 rounded-sm"></span>
+          <span className="w-2 h-2 bg-purple-500 rounded-sm inline-block"></span>
           <span>Bootcamp</span>
         </div>
         <div className="flex items-center space-x-1">
-          <span className="w-3 h-3 bg-pink-400 rounded-sm"></span>
-          <span>Shortclass</span>
-        </div>
-        <div className="flex items-center space-x-1">
-          <span className="w-3 h-3 bg-red-400 rounded-sm"></span>
-          <span>Live Class</span>
-        </div>
-        <div className="flex items-center space-x-1">
-          <span className="w-3 h-3 bg-emerald-500 rounded-sm"></span>
+          <span className="w-2 h-2 bg-emerald-500 rounded-sm inline-block"></span>
           <span>Other</span>
         </div>
       </div>

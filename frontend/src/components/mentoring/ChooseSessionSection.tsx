@@ -69,24 +69,24 @@ export default function ChooseSessionSection() {
   };
 
   return (
-    <section className="py-16 px-4 md:px-6 lg:px-8">
-      <div className="max-w-6xl mx-auto">
+    <section className="py-15 px-3 md:px-5 lg:px-6">
+      <div className="max-w-[1000px] mx-auto">
         {/* Section Header */}
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
+        <div className="text-center mb-8">
+          <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 mb-4">
             Pilih Gaya Belajar Sesuai Vibenya Kamu!
           </h2>
-          <p className="text-lg text-gray-600 max-w-4xl mx-auto leading-relaxed">
+          <p className="text-sm md:text-base text-gray-600 max-w-3xl mx-auto leading-relaxed">
             Mau belajar bareng mentor secara intensif atau fleksibel sesuai
             waktu kamu? TemuDataku punya beberapa pilihan mentoring yang bisa
             disesuaikan sama kebutuhan dan ritme belajar kamu.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid md:grid-cols-2 gap-5 lg:gap-6">
           {/* 1-on-1 Card */}
-          <Card className="relative overflow-hidden py-0">
-            <div className="relative h-64">
+          <Card className="relative overflow-hidden py-0 rounded-lg">
+            <div className="relative h-44 md:h-48">
               <Image
                 src={"/assets/mentoringPage/mentoring1on1.svg"}
                 alt="1-on-1 Mentoring"
@@ -95,27 +95,29 @@ export default function ChooseSessionSection() {
               />
             </div>
 
-            <CardContent className="p-6">
-              <CardHeader className="p-0 mb-4">
-                <CardTitle className="text-2xl font-bold">
+            <CardContent className="p-4">
+              <CardHeader className="p-0 mb-3">
+                <CardTitle className="text-lg md:text-xl font-semibold">
                   Mentoring 1 on 1
                 </CardTitle>
               </CardHeader>
 
-              <div className="mb-6">
-                <div className="text-sm text-gray-500 line-through">
+              <div className="mb-4">
+                <div className="text-xs text-gray-500 line-through">
                   Rp 199.000
                 </div>
-                <div className="text-3xl font-bold">Rp 99.000</div>
+                <div className="text-xl md:text-2xl font-bold">Rp 99.000</div>
               </div>
 
-              <div className="space-y-3 mb-8">
+              <div className="space-y-2.5 mb-5">
                 {oneOnOneFeatures.map((feature, index) => (
-                  <div key={index} className="flex gap-3">
-                    <div className="w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center">
-                      <Check className="w-3 h-3 text-white" />
+                  <div key={index} className="flex gap-2.5">
+                    <div className="w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center mt-0.5">
+                      <Check className="w-2.5 h-2.5 text-white" />
                     </div>
-                    <span className="text-sm">{feature}</span>
+                    <span className="text-xs md:text-sm text-gray-700">
+                      {feature}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -123,7 +125,7 @@ export default function ChooseSessionSection() {
               <Button
                 onClick={() => handleSelectService("one-on-one")}
                 disabled={loading}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm h-[36px]"
               >
                 {loading ? "Memuat..." : "Ikuti Sesi"}
               </Button>
@@ -131,8 +133,8 @@ export default function ChooseSessionSection() {
           </Card>
 
           {/* Group Card */}
-          <Card className="relative overflow-hidden py-0">
-            <div className="relative h-64">
+          <Card className="relative overflow-hidden py-0 rounded-lg">
+            <div className="relative h-44 md:h-48">
               <Image
                 src={"/assets/mentoringPage/mentoringgroup.svg"}
                 alt="Group Mentoring"
@@ -141,27 +143,29 @@ export default function ChooseSessionSection() {
               />
             </div>
 
-            <CardContent className="p-6 flex flex-col">
-              <CardHeader className="p-0 mb-4">
-                <CardTitle className="text-2xl font-bold">
+            <CardContent className="p-4 flex flex-col">
+              <CardHeader className="p-0 mb-3">
+                <CardTitle className="text-lg md:text-xl font-semibold">
                   Mentoring Group
                 </CardTitle>
               </CardHeader>
 
-              <div className="mb-6">
-                <div className="text-sm text-gray-500 line-through">
+              <div className="mb-4">
+                <div className="text-xs text-gray-500 line-through">
                   Rp 270.000
                 </div>
-                <div className="text-3xl font-bold">Rp 249.000</div>
+                <div className="text-xl md:text-2xl font-bold">Rp 249.000</div>
               </div>
 
-              <div className="space-y-3 mb-8">
+              <div className="space-y-2.5 mb-5">
                 {groupFeatures.map((feature, index) => (
-                  <div key={index} className="flex gap-3">
-                    <div className="w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center">
-                      <Check className="w-3 h-3 text-white" />
+                  <div key={index} className="flex gap-2.5">
+                    <div className="w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center mt-0.5">
+                      <Check className="w-2.5 h-2.5 text-white" />
                     </div>
-                    <span className="text-sm">{feature}</span>
+                    <span className="text-xs md:text-sm text-gray-700">
+                      {feature}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -169,7 +173,7 @@ export default function ChooseSessionSection() {
               <Button
                 onClick={() => handleSelectService("group")}
                 disabled={loading}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white mt-auto"
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm h-[36px] mt-auto"
               >
                 {loading ? "Memuat..." : "Ikuti Sesi"}
               </Button>
@@ -178,13 +182,13 @@ export default function ChooseSessionSection() {
         </div>
 
         {/* Disclaimers */}
-        <div className="mt-12 text-start space-y-2">
-          <p className="text-sm text-gray-600">
+        <div className="mt-8 text-start space-y-1">
+          <p className="text-[11px] md:text-xs text-gray-600 leading-snug">
             * Garansi kepuasan bisa didapatkan jika peserta tidak puas dan
             mengisi form untuk melakukan klaim garansi serta memberikan bukti
             valid.
           </p>
-          <p className="text-sm text-gray-600">
+          <p className="text-[11px] md:text-xs text-gray-600 leading-snug">
             ** Untuk peserta yang pertama kali mengikuti mentoring akan
             mendapatkan akses ke praktik data science.
           </p>
