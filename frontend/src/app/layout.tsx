@@ -6,6 +6,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import ClientTrackerWrapper from "@/components/ClientTrackerWrapper";
 import MaintenanceGuard from "@/components/MaintenanceGuardFix";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import Script from "next/script";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -25,7 +26,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Temudataku",
-  description: "Platform untuk booking dan konsultasi dengan mudah.",
+  description: "Platform Belajar Data dan Cabangnya Dengan Mudah.",
   icons: { icon: "/favicon.png" },
 };
 
@@ -39,6 +40,35 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        {/* META PIXEL */}
+        <Script
+          id="meta-pixel"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+            !function(f,b,e,v,n,t,s)
+            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+            n.queue=[];t=b.createElement(e);t.async=!0;
+            t.src=v;s=b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t,s)}(window, document,'script',
+            'https://connect.facebook.net/en_US/fbevents.js');
+            fbq('init', '1264849835627719');
+            fbq('track', 'PageView');
+          `,
+          }}
+        />
+
+        <noscript>
+          <img
+            height="1"
+            width="1"
+            style={{ display: "none" }}
+            src="https://www.facebook.com/tr?id=1264849835627719&ev=PageView&noscript=1"
+          />
+        </noscript>
+
         <GoogleOAuthProvider
           clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}
         >
