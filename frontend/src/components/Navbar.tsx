@@ -10,6 +10,8 @@ import {
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext"; // pakai AuthContext
 import { useLogout } from "@/hooks/useLogout"; // import hook logout
+import axios from "axios";
+import { usePathname } from "next/navigation";
 
 // Import modal yang sudah kamu buat
 import LoginModal from "./LoginModal";
@@ -21,9 +23,16 @@ export default function Navbar() {
 
   const [learningOpen, setLearningOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
+  const [ayclOpen, setAyclOpen] = useState(false);
 
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+
+  const [ayclList, setAyclList] = useState<
+    { id: string; title: string; slug: string }[]
+  >([]);
+
+  const pathname = usePathname();
 
   // Ambil user global dari AuthContext
   const { currentUser } = useAuth();
@@ -42,10 +51,33 @@ export default function Navbar() {
 
       setLearningOpen(false);
       setUserOpen(false);
+      setAyclOpen(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    const fetchAyclList = async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/aycl/public/aycl/list`,
+        );
+
+        setAyclList(res.data.data || []);
+      } catch (err) {
+        console.error("Gagal ambil list AYCL:", err);
+      }
+    };
+
+    fetchAyclList();
+  }, []);
+
+  useEffect(() => {
+    setLearningOpen(false);
+    setUserOpen(false);
+    setAyclOpen(false);
+  }, [pathname]);
 
   const profileImage = (() => {
     if (!currentUser?.profilePicture) {
@@ -109,7 +141,7 @@ export default function Navbar() {
           </button>
 
           {learningOpen && (
-            <ul className="absolute left-0 mt-2 w-64 bg-white shadow-md rounded-lg py-1.5 z-20">
+            <ul className="absolute left-0 mt-2 w-70 bg-white shadow-md rounded-lg py-1.5 z-20">
               <li>
                 <Link
                   href="/programs"
@@ -147,14 +179,66 @@ export default function Navbar() {
                   E-Learning
                 </Link>
               </li> */}
-              <li>
-                <Link
-                  href="/aycl"
-                  className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 text-sm"
-                >
-                  <MdMenuBook className="text-gray-500 text-sm" />
-                  All You Can Learn (AYCL)
-                </Link>
+              <li className="relative">
+                {ayclList.length === 0 ? (
+                  // 🔥 fallback (tidak ada active)
+                  <Link
+                    href="/aycl"
+                    className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 text-sm"
+                  >
+                    <MdMenuBook className="text-gray-500 text-sm" />
+                    All You Can Learn (AYCL)
+                  </Link>
+                ) : (
+                  <>
+                    {/* 🔥 Parent */}
+                    <button
+                      onClick={() => {
+                        setAyclOpen((prev) => !prev);
+                        setLearningOpen(true);
+                        setUserOpen(false);
+                      }}
+                      className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 text-sm w-full text-left"
+                    >
+                      <MdMenuBook className="text-gray-500 text-sm" />
+
+                      <span className="flex-1 text-left">
+                        All You Can Learn (AYCL)
+                      </span>
+
+                      <svg
+                        className={`h-3 w-3 transition-transform duration-200 ${
+                          ayclOpen ? "rotate-0" : "-rotate-90"
+                        }`}
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M7 5l5 5-5 5"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </button>
+
+                    {/* 🔥 Dropdown */}
+                    {ayclOpen && (
+                      <ul className="absolute top-0 left-full ml-2 w-78 bg-white shadow-md rounded-lg py-1.5 z-30">
+                        {ayclList.map((item) => (
+                          <li key={item.id}>
+                            <Link
+                              href={`/aycl?slug=${item.slug}`}
+                              className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 text-sm"
+                            >
+                              <MdAssignment className="text-gray-400 text-sm" />
+                              {item.title}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </>
+                )}
               </li>
             </ul>
           )}

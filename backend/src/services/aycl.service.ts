@@ -72,16 +72,14 @@ export class AyclService {
       // 🔥 2. HANDLE SINGLE ACTIVE
       // ======================
       if (data.isActive) {
-        await tx.aYCLBatch.updateMany({
-          where: {
-            isActive: true,
-          },
-          data: {
-            isActive: false,
-          },
+        const activeCount = await tx.aYCLBatch.count({
+          where: { isActive: true },
         });
-      }
 
+        if (activeCount >= 2) {
+          throw new Error("MAX_ACTIVE_BATCH_REACHED");
+        }
+      }
       // ======================
       // 3. CREATE BATCH
       // ======================
@@ -276,13 +274,19 @@ export class AyclService {
       if (!existing) throw new Error("AYCL tidak ditemukan");
 
       // ======================
-      // 🔥 SINGLE ACTIVE
+      // 🔥 VALIDASI MAX 2 ACTIVE (UPDATE)
       // ======================
-      if (data.isActive === true) {
-        await tx.aYCLBatch.updateMany({
-          where: { isActive: true, NOT: { id } },
-          data: { isActive: false },
+      if (data.isActive === true && !existing.isActive) {
+        const activeCount = await tx.aYCLBatch.count({
+          where: {
+            isActive: true,
+            NOT: { id }, // exclude dirinya sendiri
+          },
         });
+
+        if (activeCount >= 2) {
+          throw new Error("MAX_ACTIVE_BATCH_REACHED");
+        }
       }
 
       // ======================
@@ -538,10 +542,11 @@ export class AyclService {
     };
   }
 
-  static async getPublicAycl() {
+  static async getPublicAycl(slug?: string) {
     const batch = await prisma.aYCLBatch.findFirst({
       where: {
         isActive: true,
+        ...(slug ? { slug } : {}),
       },
       include: {
         sections: {
@@ -551,6 +556,9 @@ export class AyclService {
         schedules: {
           orderBy: { date: "asc" },
         },
+      },
+      orderBy: {
+        createdAt: "desc", // fallback kalau tanpa slug
       },
     });
 
@@ -587,14 +595,12 @@ export class AyclService {
     };
 
     return {
-      // CORE
       id: batch.id,
       title: batch.title,
       slug: batch.slug,
       whatsappGroupLink: batch.whatsappGroupLink,
       price: Number(batch.price),
 
-      // HERO
       headline: batch.headline,
       subHeadline: batch.subHeadline,
       description: batch.description,
@@ -602,7 +608,6 @@ export class AyclService {
       startDate: batch.startDate,
       endDate: batch.endDate,
 
-      // SECTIONS
       sections: batch.sections.map((s) => ({
         type: s.type,
         title: s.title,
@@ -610,13 +615,11 @@ export class AyclService {
         content: normalizeContent(s.type, s.content),
       })),
 
-      // MATERIALS
       materials: batch.materials.map((m) => ({
         title: m.title,
         description: m.description,
       })),
 
-      // SCHEDULES
       schedules: batch.schedules.map((s) => ({
         title: s.title,
         date: s.date,
@@ -626,5 +629,32 @@ export class AyclService {
         quota: s.quota,
       })),
     };
+  }
+
+  static async getActiveAyclList() {
+    const batches = await prisma.aYCLBatch.findMany({
+      where: {
+        isActive: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 2,
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+
+        // 🔥 TAMBAHAN PENTING
+        headline: true,
+        subHeadline: true,
+        price: true,
+      },
+    });
+
+    return batches.map((b) => ({
+      ...b,
+      price: Number(b.price), // biar langsung usable di frontend
+    }));
   }
 }

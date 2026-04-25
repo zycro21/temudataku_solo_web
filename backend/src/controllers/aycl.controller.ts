@@ -34,6 +34,15 @@ export class AyclController {
         });
         return;
       }
+
+      if (err.message === "MAX_ACTIVE_BATCH_REACHED") {
+        res.status(400).json({
+          success: false,
+          message: "Maksimal hanya 2 batch yang bisa aktif",
+        });
+        return;
+      }
+
       next(err);
     }
   }
@@ -110,6 +119,22 @@ export class AyclController {
         data: result,
       });
     } catch (err: any) {
+      if (err.message === "MAX_ACTIVE_BATCH_REACHED") {
+        res.status(400).json({
+          success: false,
+          message: "Maksimal hanya 2 batch yang bisa aktif",
+        });
+        return;
+      }
+
+      if (err.message === "AYCL tidak ditemukan") {
+        res.status(404).json({
+          success: false,
+          message: err.message,
+        });
+        return;
+      }
+
       next(err);
     }
   }
@@ -147,7 +172,9 @@ export class AyclController {
     next: NextFunction,
   ) {
     try {
-      const result = await AyclService.getPublicAycl();
+      const slug = req.query.slug as string | undefined;
+
+      const result = await AyclService.getPublicAycl(slug);
 
       res.status(200).json({
         success: true,
@@ -158,10 +185,28 @@ export class AyclController {
       if (err.message === "NOT_FOUND") {
         res.status(404).json({
           success: false,
-          message: "AYCL aktif tidak ditemukan",
+          message: "AYCL tidak ditemukan",
         });
         return;
       }
+      next(err);
+    }
+  }
+
+  static async getActiveAyclList(
+    req: AuthenticatedRequestAycl,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const result = await AyclService.getActiveAyclList();
+
+      res.status(200).json({
+        success: true,
+        message: "List AYCL aktif berhasil diambil",
+        data: result,
+      });
+    } catch (err) {
       next(err);
     }
   }

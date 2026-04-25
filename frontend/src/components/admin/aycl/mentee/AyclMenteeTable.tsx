@@ -461,9 +461,10 @@ export default function AyclMenteeTable({
                           const btn = buttonRefs.current[item.id];
                           if (btn) {
                             const rect = btn.getBoundingClientRect();
+
                             setMenuPosition({
-                              top: rect.bottom + window.scrollY + 4,
-                              left: rect.right + window.scrollX - 128,
+                              top: rect.bottom + 4,
+                              left: rect.right - 128,
                             });
                           }
                           setOpenMenu(item.id);

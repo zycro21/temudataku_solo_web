@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/tooltip";
 import MentorSelectionModal from "../mentoring/MentorSelectionModal";
 import { toast } from "sonner";
+import { motion } from "framer-motion";
 
 const tabs = [
   { id: "mentoring", label: "Mentoring" },
@@ -38,7 +39,7 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
   const [bootcamps, setBootcamps] = useState<any[]>([]);
   const [bootcampLoading, setBootcampLoading] = useState(true);
 
-  const [ayclBatch, setAyclBatch] = useState<any>(null);
+  const [ayclBatches, setAyclBatches] = useState<any[]>([]);
   const [ayclLoading, setAyclLoading] = useState(true);
 
   const router = useRouter();
@@ -66,11 +67,12 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
     const fetchAycl = async () => {
       try {
         const res = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/aycl/public/aycl`,
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/aycl/public/aycl/list`,
         );
-        setAyclBatch(res.data.data ?? res.data);
+
+        setAyclBatches(res.data.data || []);
       } catch {
-        setAyclBatch(null);
+        setAyclBatches([]);
       } finally {
         setAyclLoading(false);
       }
@@ -373,82 +375,116 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
               <div className="text-center py-16 text-gray-500 text-sm">
                 Loading...
               </div>
-            ) : ayclBatch ? (
+            ) : ayclBatches.length > 0 ? (
               /* ADA AYCL AKTIF */
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-800 p-8 md:p-12 text-white shadow-xl">
-                {/* Decorative circles */}
-                <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white/5" />
-                <div className="absolute -bottom-14 -left-14 w-64 h-64 rounded-full bg-white/5" />
+              <div className="flex flex-col gap-6">
+                {ayclBatches.map((batch, index) => (
+                  <motion.div
+                    key={batch.id}
+                    initial={{ opacity: 0, y: 40 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                      duration: 0.5,
+                      delay: index * 0.2,
+                      ease: "easeOut",
+                    }}
+                    whileHover={{ scale: 1.01 }}
+                    className={`relative overflow-hidden rounded-2xl 
+  p-8 md:p-12 text-white shadow-xl
+  ${
+    index === 1
+      ? "bg-gradient-to-br from-emerald-500 to-emerald-700"
+      : "bg-gradient-to-br from-emerald-600 to-emerald-800"
+  }`}
+                  >
+                    {/* Decorative */}
+                    <motion.div
+                      animate={{ y: [0, -10, 0] }}
+                      transition={{ duration: 6, repeat: Infinity }}
+                      className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white/5"
+                    />
+                    <div className="absolute -bottom-14 -left-14 w-64 h-64 rounded-full bg-white/5" />
 
-                <div className="relative z-10 flex flex-col md:flex-row md:items-center gap-8">
-                  {/* Left content */}
-                  <div className="flex-1">
-                    {/* Badge */}
-                    <span className="inline-block bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full mb-4 backdrop-blur-sm">
-                      🎉 Sudah Hadir Sekarang!
-                    </span>
+                    <div className="relative z-10 flex flex-col md:flex-row md:items-center gap-8">
+                      {/* LEFT */}
+                      <div className="flex-1">
+                        <span className="inline-block bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full mb-4 backdrop-blur-sm">
+                          🎉 Sudah Hadir Sekarang!
+                        </span>
 
-                    <h3 className="text-2xl md:text-3xl font-bold mb-3 leading-tight">
-                      {ayclBatch.title}
-                    </h3>
+                        <h3 className="text-2xl md:text-3xl font-bold mb-3">
+                          {batch.title}
+                        </h3>
 
-                    {ayclBatch.subHeadline && (
-                      <p className="text-emerald-100 text-sm md:text-base mb-4 leading-relaxed">
-                        {ayclBatch.subHeadline}
-                      </p>
-                    )}
+                        {batch.subHeadline && (
+                          <p className="text-emerald-100 text-sm md:text-base mb-4">
+                            {batch.subHeadline}
+                          </p>
+                        )}
 
-                    {/* Price */}
-                    <div className="flex items-baseline gap-2 mb-6">
-                      <span className="text-emerald-200 text-base font-medium">
-                        Hanya
-                      </span>
-                      <span className="text-3xl font-extrabold">
-                        Rp{Number(ayclBatch.price).toLocaleString("id-ID")}
-                      </span>
+                        <div className="flex items-baseline gap-2 mb-6">
+                          <span className="text-emerald-200 text-base">
+                            Hanya
+                          </span>
+                          <span className="text-3xl font-extrabold">
+                            Rp{Number(batch.price).toLocaleString("id-ID")}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap gap-3">
+                          <Button
+                            onClick={() =>
+                              router.push(`/aycl?slug=${batch.slug}`)
+                            }
+                            className="bg-white text-emerald-700 hover:bg-emerald-50 
+               font-semibold px-6 py-2.5 text-sm shadow-sm
+               rounded-lg transition-all duration-200 hover:scale-[1.02]"
+                          >
+                            Daftar Sekarang
+                          </Button>
+
+                          <Button
+                            onClick={() =>
+                              router.push(`/aycl?slug=${batch.slug}`)
+                            }
+                            className="
+    bg-transparent 
+    text-white 
+    border border-white/70
+    hover:bg-white/10 hover:border-white
+    font-medium px-6 py-2.5 text-sm
+    rounded-lg
+    transition-all duration-200
+  "
+                          >
+                            Lihat Detail
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* RIGHT */}
+                      <div className="md:w-64 bg-white/10 rounded-xl p-6 border border-white/20">
+                        <p className="text-xs font-semibold text-emerald-200 mb-4">
+                          Yang Kamu Dapatkan
+                        </p>
+
+                        <ul className="space-y-3">
+                          {[
+                            "Akses materi dan hands-of-project",
+                            "Sesi live interaktif",
+                            "Komunitas eksklusif",
+                            "Sertifikat kelulusan",
+                          ].map((item) => (
+                            <li key={item} className="flex gap-2 text-sm">
+                              <Check className="w-4 h-4 text-emerald-300" />
+                              {item}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
-
-                    {/* CTA buttons */}
-                    <div className="flex flex-wrap gap-3">
-                      <Button
-                        onClick={() => router.push("/aycl")}
-                        className="bg-white text-emerald-700 hover:bg-emerald-50 font-semibold px-6 py-2.5 text-sm shadow"
-                      >
-                        Daftar Sekarang
-                      </Button>
-                      <Button
-                        onClick={() => router.push("/aycl")}
-                        variant="outline"
-                        className="border-white/60 text-white hover:bg-white/10 font-medium px-6 py-2.5 text-sm bg-transparent"
-                      >
-                        Lihat Detail
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Right: highlight box */}
-                  <div className="md:w-64 bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 shrink-0">
-                    <p className="text-xs font-semibold text-emerald-200 uppercase tracking-wide mb-4">
-                      Yang Kamu Dapatkan
-                    </p>
-                    <ul className="space-y-3">
-                      {[
-                        "Akses materi dan hands-of-project",
-                        "Sesi live interaktif",
-                        "Komunitas eksklusif",
-                        "Sertifikat kelulusan",
-                      ].map((item) => (
-                        <li
-                          key={item}
-                          className="flex items-start gap-2 text-sm text-white"
-                        >
-                          <Check className="w-4 h-4 text-emerald-300 mt-0.5 shrink-0" />
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
+                  </motion.div>
+                ))}
               </div>
             ) : (
               /* TIDAK ADA AYCL AKTIF */

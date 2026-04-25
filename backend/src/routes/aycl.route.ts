@@ -117,4 +117,9 @@ router.get(
   AyclController.getPublicAycl
 );
 
+router.get(
+  "/public/aycl/list",
+  AyclController.getActiveAyclList
+);
+
 export default router;

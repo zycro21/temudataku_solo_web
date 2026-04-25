@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import HeroSection from "@/components/aycl/HeroSection";
@@ -118,12 +119,19 @@ export default function AyclPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
+  const searchParams = useSearchParams();
+  const slug = searchParams.get("slug");
+
   useEffect(() => {
     const fetchPublicAycl = async () => {
       try {
         const res = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/aycl/public/aycl`,
+          {
+            params: { slug },
+          },
         );
+
         setData(res.data.data);
       } catch (err: any) {
         if (err?.response?.status === 404) {
@@ -138,7 +146,7 @@ export default function AyclPage() {
     };
 
     fetchPublicAycl();
-  }, []);
+  }, [slug]);
 
   if (loading) {
     return (
