@@ -1,4 +1,4 @@
-import { AyclMaterial } from "@/app/aycl/page";
+import { AyclMaterial } from "@/app/aycl/AyclClient";
 
 import {
   BarChart2,

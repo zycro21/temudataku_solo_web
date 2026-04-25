@@ -16,7 +16,7 @@ import {
   Presentation,
   ClipboardList,
 } from "lucide-react";
-import { AyclMaterial } from "@/app/aycl/page";
+import { AyclMaterial } from "@/app/aycl/AyclClient";
 
 // ── Keyword → icon mapper ─────────────────────────────────────────────────────
 function getMaterialIcon(title: string) {

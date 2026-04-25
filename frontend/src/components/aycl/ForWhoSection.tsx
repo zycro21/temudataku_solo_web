@@ -36,7 +36,7 @@ import {
   Factory,
   ClipboardList,
 } from "lucide-react";
-import { AyclSection } from "@/app/aycl/page";
+import { AyclSection } from "@/app/aycl/AyclClient";
 
 // ── Keyword → { icon, title } mapper ──────────────────────────────────────────
 // Fungsi ini mendeteksi konteks dari teks deskripsi target

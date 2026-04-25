@@ -1,4 +1,4 @@
-import { AyclSchedule, AyclSection } from "@/app/aycl/page";
+import { AyclSchedule, AyclSection } from "@/app/aycl/AyclClient";
 
 interface ScheduleSectionProps {
   title: string;

@@ -1,4 +1,4 @@
-import { AyclSection } from "@/app/aycl/page";
+import { AyclSection } from "@/app/aycl/AyclClient";
 
 import {
   Video,
