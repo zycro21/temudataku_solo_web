@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import axios from "axios";
 import {
   Dialog,
@@ -27,6 +27,14 @@ export default function LoginModal({
   setIsOpen: (open: boolean) => void;
   openRegister: () => void;
 }) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const returnUrl =
+    pathname === "/aycl"
+      ? `${pathname}${searchParams.toString() ? `?${searchParams}` : ""}`
+      : null;
+
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -76,7 +84,11 @@ export default function LoginModal({
         } else if (roles.includes("mentor")) {
           router.push("/dashboard/mentor");
         } else {
-          router.push("/");
+          if (returnUrl) {
+            router.push(returnUrl); // 🔥 balik ke /aycl atau /aycl?slug=...
+          } else {
+            router.push("/"); // default selain aycl
+          }
         }
       }, 100);
     } catch (err: any) {
@@ -257,7 +269,11 @@ export default function LoginModal({
                         } else if (roles.includes("mentor")) {
                           router.push("/dashboard/mentor");
                         } else {
-                          router.push("/");
+                          if (returnUrl) {
+                            router.push(returnUrl);
+                          } else {
+                            router.push("/");
+                          }
                         }
                       } catch (err) {
                         console.error(err);

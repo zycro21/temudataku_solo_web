@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
 import { toast } from "sonner";
 import LoginModal from "@/components/LoginModal";
+import { useAuth } from "@/context/AuthContext";
 
 interface Props {
   title: string;
@@ -21,6 +22,8 @@ export default function RegisterSection({
   schedules,
   batchId,
 }: Props) {
+  const { currentUser } = useAuth();
+
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -30,7 +33,7 @@ export default function RegisterSection({
   const originalPhone = useRef("");
 
   const [loadingUser, setLoadingUser] = useState(true);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  // const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const [openLogin, setOpenLogin] = useState(false);
@@ -39,38 +42,25 @@ export default function RegisterSection({
 
   // FETCH USER (/me)
   useEffect(() => {
-    const fetchMe = async () => {
-      try {
-        const res = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/me`,
-          { withCredentials: true },
-        );
+    if (!currentUser) {
+      setLoadingUser(false);
+      return;
+    }
 
-        const user = res.data?.data;
+    setLoadingUser(true);
 
-        if (user) {
-          setIsLoggedIn(true);
+    const fetchedName = currentUser.fullName || "";
+    const fetchedPhone = currentUser.phoneNumber || "";
 
-          const fetchedName = user.fullName || "";
-          const fetchedPhone = user.phoneNumber || "";
+    setName(fetchedName);
+    setPhone(fetchedPhone);
+    setEmail(currentUser.email || "");
 
-          setName(fetchedName);
-          setPhone(fetchedPhone);
-          setEmail(user.email || "");
+    originalName.current = fetchedName;
+    originalPhone.current = fetchedPhone;
 
-          // 🔥 Simpan original
-          originalName.current = fetchedName;
-          originalPhone.current = fetchedPhone;
-        }
-      } catch {
-        setIsLoggedIn(false);
-      } finally {
-        setLoadingUser(false);
-      }
-    };
-
-    fetchMe();
-  }, []);
+    setLoadingUser(false);
+  }, [currentUser]); // 🔥 penting
 
   const handleSubmit = async () => {
     // Validasi per kolom dengan toast spesifik
@@ -172,7 +162,7 @@ export default function RegisterSection({
               <div className="h-10 bg-gray-100 rounded" />
             </div>
           </div>
-        ) : !isLoggedIn ? (
+        ) : !currentUser ? (
           <div className="bg-white rounded-2xl p-6 md:p-8 text-center shadow-xl">
             <p className="text-gray-800 font-semibold text-base mb-2">
               Kamu harus login terlebih dahulu

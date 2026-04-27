@@ -23,12 +23,22 @@ export default function VerifyPageContent() {
     const verify = async () => {
       try {
         const res = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/verify?token=${token}`
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/verify?token=${token}`,
         );
         toast.success(res.data.message || "Akun berhasil diverifikasi ✅");
 
         const roles: string[] = res.data.roles || [];
+
         let redirectPath = "/";
+
+        // 🔥 ambil dari localStorage
+        const savedReturnUrl = localStorage.getItem("returnUrl");
+
+        if (savedReturnUrl) {
+          redirectPath = savedReturnUrl;
+          localStorage.removeItem("returnUrl"); // biar gak nyangkut
+        }
+
         if (roles.includes("affiliator")) redirectPath = "/affiliator/login";
 
         setTimeout(() => router.push(redirectPath), 2000);
@@ -54,12 +64,12 @@ export default function VerifyPageContent() {
       }
       await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/resend-verification`,
-        { email }
+        { email },
       );
       toast.success("Email verifikasi baru telah dikirim ✅");
     } catch (err: any) {
       toast.error(
-        err.response?.data?.message || "Gagal mengirim ulang email verifikasi"
+        err.response?.data?.message || "Gagal mengirim ulang email verifikasi",
       );
     }
   };

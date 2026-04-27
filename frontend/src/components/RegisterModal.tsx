@@ -14,7 +14,7 @@ import Image from "next/image";
 import axios from "axios";
 import { toast } from "sonner";
 import { GoogleLogin } from "@react-oauth/google";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
 export default function RegisterModal({
@@ -28,6 +28,13 @@ export default function RegisterModal({
 }) {
   const { setCurrentUser } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const returnUrl =
+    pathname === "/aycl"
+      ? `${pathname}${searchParams.toString() ? `?${searchParams}` : ""}`
+      : null;
 
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -50,6 +57,10 @@ export default function RegisterModal({
     try {
       setLoading(true);
 
+      if (returnUrl) {
+        localStorage.setItem("returnUrl", returnUrl);
+      }
+
       const formData = new FormData();
       formData.append("email", registerEmail);
       formData.append("password", registerPassword);
@@ -66,7 +77,9 @@ export default function RegisterModal({
 
       // RESPONS SUCCESS DIBUAT SPESIFIK
       if (status === "new_user") {
-        toast.success("Akun berhasil dibuat. Silakan verifikasi email Anda.");
+        toast.success(
+          "Akun berhasil dibuat. Silakan Cek Email Anda dan Lakukan Verifikasi.",
+        );
       } else if (status === "role_added") {
         toast.success("Role mentee berhasil ditambahkan ke akun Anda.");
       } else if (status === "role_exists") {
@@ -121,7 +134,7 @@ export default function RegisterModal({
           <div className="p-5 relative bg-white flex flex-col justify-center">
             <DialogHeader>
               <DialogTitle>
-               <p className="text-xl font-bold text-gray-900 mb-1.5 text-center">
+                <p className="text-xl font-bold text-gray-900 mb-1.5 text-center">
                   Buat Akun
                 </p>
                 <p className="text-xs text-gray-500 mb-4 text-center">
@@ -223,7 +236,7 @@ export default function RegisterModal({
                 {loading ? "Mendaftar..." : "Daftar"}
               </Button>
 
-             <div className="text-center text-gray-500 text-xs">atau</div>
+              <div className="text-center text-gray-500 text-xs">atau</div>
 
               {/* <Button
                 type="button"
@@ -280,7 +293,11 @@ export default function RegisterModal({
                         } else if (roles.includes("mentor")) {
                           router.push("/dashboard/mentor");
                         } else {
-                          router.push("/");
+                          if (returnUrl) {
+                            router.push(returnUrl);
+                          } else {
+                            router.push("/");
+                          }
                         }
                       } catch (err) {
                         console.error(err);

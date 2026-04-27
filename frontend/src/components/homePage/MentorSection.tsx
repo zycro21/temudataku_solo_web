@@ -38,7 +38,7 @@ const MentorSection = () => {
       experience: "Teknik Informatika UPNV Jakarta",
       skills:
         "Python, SQL, Machine Learning, Statistical Analysis, Data Visualization (Tableau/Power BI), Predictive Modeling, Big Data Analytics, Deep Learning",
-      image: "/assets/mentor/jessely.png",
+      image: "/assets/mentor/10.png",
     },
     {
       id: 2,
@@ -47,34 +47,34 @@ const MentorSection = () => {
       experience: "Statistika Institut Teknologi Sepuluh Nopember",
       skills:
         "SQL, Power BI, Tableau, Advanced Excel, Google Looker Studio, Data Storytelling, Exploratory Data Analysis (EDA)",
-      image: "/assets/mentor/vania.png",
+      image: "/assets/mentor/4.png",
     },
     {
       id: 3,
       name: "Muhamad Ali",
-      role: "Mentor AI Engineer",
+      role: "Mentor AI/ML Engineer",
       experience: "S2 Data Science for Business Utel University",
       skills:
         "Deep Learning, PyTorch, TensorFlow, Computer Vision, NLP, MLOps, Cloud Computing, LLM",
-      image: "/assets/mentor/ali.png",
+      image: "/assets/mentor/3.png",
     },
     {
       id: 4,
       name: "Mochamad Dimas Putra Hermawan",
-      role: "Mentor Machine Learning Engineer",
+      role: "Mentor AI/ML Engineer",
       experience: "Teknologi Informasi Universitas Brawijaya",
       skills:
         "Python, Machine Learning Model, Docker, Kubernetes, MLOps Pipeline, Model Deployment, CI/CD for ML",
-      image: "/assets/mentor/dimas.png",
+      image: "/assets/mentor/6.png",
     },
     {
       id: 5,
       name: "Verren Angelina Saputra",
-      role: "Mentor AI Engineer",
+      role: "Mentor AI/ML Engineer",
       experience: "Teknik Informatika Binus University",
       skills:
         "Python, TensorFlow, PyTorch, OpenCV, Deep Learning, Computer Vision, Natural Language Processing (NLP), LLM",
-      image: "/assets/mentor/verren.png",
+      image: "/assets/mentor/9.png",
     },
     {
       id: 6,
@@ -83,7 +83,43 @@ const MentorSection = () => {
       experience: "Sistem Informasi Binus University",
       skills:
         "Apache Airflow, Spark, Hadoop, PostgreSQL, BigQuery, Snowflake, Data Warehousing, ETL/ELT Pipeline, Database Schema Design",
-      image: "/assets/mentor/anang.png",
+      image: "/assets/mentor/2.png",
+    },
+    {
+      id: 7,
+      name: "Jasman",
+      role: "Mentor AI/ML Engineer",
+      experience: "Teknik Elektro & Listrik Universitas Islam Indonesia",
+      skills:
+        "Python, Tensorflow, Pytorch, Scikit-Learn, Streamlit, LangGraph, Paramiko, PyQt, Git, SSH, Cloud Services",
+      image: "/assets/mentor/5.png",
+    },
+    {
+      id: 8,
+      name: "Yogi Maulana",
+      role: "Mentor Analytics Engineer",
+      experience: "Teknologi Informasi Universitas Mercu Buana Yogyakarta",
+      skills:
+        "SQL, Python, dbt, Metabase, Looker Studio",
+      image: "/assets/mentor/8.png",
+    },
+    {
+      id: 9,
+      name: "Akmal Fauzan",
+      role: "Mentor Data Analyst",
+      experience: "Statistik Universitas Islam Indonesia",
+      skills:
+        "Python (Pandas, NumPy, Matplotlib), SQL (PostgreSQL, MySQL, Oracle), Apache Airflow, Power BI, Qlik Sense, Tableau, Looker Studio, Excel (Advanced, VBA), RStudio",
+      image: "/assets/mentor/7.png",
+    },
+    {
+      id: 10,
+      name: "Miftahul Salam",
+      role: "Mentor Data Engineer",
+      experience: "Teknik Industri",
+      skills:
+        "Python, R, SQL, Apache (Spark, Airflow, Kafka), dbt, Google BigQuery, GCP, Cloudera, Docker, Qlik Replikate",
+      image: "/assets/mentor/1.png",
     },
   ];
 
