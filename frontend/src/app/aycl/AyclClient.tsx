@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Navbar from "@/components/Navbar";
@@ -147,7 +148,9 @@ export default function AyclClient({ slug }: { slug?: string }) {
   if (loading) {
     return (
       <>
-        <Navbar />
+        <Suspense fallback={<div />}>
+          <Navbar />
+        </Suspense>
         <PageSkeleton />
         <Footer />
       </>
@@ -157,7 +160,9 @@ export default function AyclClient({ slug }: { slug?: string }) {
   if (notFound || !data) {
     return (
       <>
-        <Navbar />
+        <Suspense fallback={<div />}>
+          <Navbar />
+        </Suspense>
         <NotFound />
         <Footer />
       </>
@@ -170,7 +175,9 @@ export default function AyclClient({ slug }: { slug?: string }) {
 
   return (
     <>
-      <Navbar />
+      <Suspense fallback={<div />}>
+        <Navbar />
+      </Suspense>
       <HeroSection
         title={data.title}
         headline={data.headline}

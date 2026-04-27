@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import axios from "axios";
@@ -40,7 +41,9 @@ export default function Page() {
   if (loading) {
     return (
       <>
-        <Navbar />
+        <Suspense fallback={<div />}>
+          <Navbar />
+        </Suspense>
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
           <div className="flex flex-col items-center gap-4">
             <Loader2 className="w-10 h-10 animate-spin text-emerald-600" />

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import HeroSection from "@/components/programs/HeroSection";
@@ -8,16 +9,18 @@ import AlumniSays from "@/components/programs/AlumniSays";
 import NeedHelp from "@/components/mentoring/NeedHelp";
 
 export default function page() {
-    return (
-        <>
-            <Navbar />
-            <HeroSection />
-            <WhySection />
-            <PracticeSelection />
-            <ProjectExamples />
-            <AlumniSays />
-            <NeedHelp />
-            <Footer />
-        </>
-    );
+  return (
+    <>
+      <Suspense fallback={<div />}>
+        <Navbar />
+      </Suspense>
+      <HeroSection />
+      <WhySection />
+      <PracticeSelection />
+      <ProjectExamples />
+      <AlumniSays />
+      <NeedHelp />
+      <Footer />
+    </>
+  );
 }

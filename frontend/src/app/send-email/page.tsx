@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import SendEmailPage from "@/components/sendEmail/index";
@@ -5,7 +6,9 @@ import SendEmailPage from "@/components/sendEmail/index";
 export default function SendEmail() {
   return (
     <div className="flex flex-col min-h-screen w-full">
-      <Navbar />
+      <Suspense fallback={<div />}>
+        <Navbar />
+      </Suspense>
       <SendEmailPage />
       <Footer />
     </div>

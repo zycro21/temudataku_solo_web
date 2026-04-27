@@ -6,9 +6,13 @@ import Footer from "@/components/Footer";
 export default function ClassCheckoutPage() {
   return (
     <>
-      <Navbar />
+      <Suspense fallback={<div />}>
+        <Navbar />
+      </Suspense>
 
-      <Suspense fallback={<div className="p-10 text-center">Loading checkout...</div>}>
+      <Suspense
+        fallback={<div className="p-10 text-center">Loading checkout...</div>}
+      >
         <CheckoutClassPage />
       </Suspense>
 

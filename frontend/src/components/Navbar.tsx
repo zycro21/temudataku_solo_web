@@ -1,4 +1,6 @@
 "use client";
+
+import { Suspense } from "react";
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
@@ -18,6 +20,8 @@ import LoginModal from "./LoginModal";
 import RegisterModal from "./RegisterModal";
 
 export default function Navbar() {
+  const [mounted, setMounted] = useState(false);
+
   const menuRef = useRef<HTMLUListElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -78,6 +82,10 @@ export default function Navbar() {
     setUserOpen(false);
     setAyclOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const profileImage = (() => {
     if (!currentUser?.profilePicture) {
@@ -257,7 +265,7 @@ export default function Navbar() {
 
       {/* Bagian kanan */}
       <div className="hidden md:flex items-center gap-4">
-        {!currentUser ? (
+        {!mounted ? null : !currentUser ? (
           <>
             <button
               onClick={() => setIsLoginModalOpen(true)}
@@ -409,23 +417,27 @@ export default function Navbar() {
       </div>
 
       {/* Modal Components */}
-      <LoginModal
-        isOpen={isLoginModalOpen}
-        setIsOpen={setIsLoginModalOpen}
-        openRegister={() => {
-          setIsLoginModalOpen(false);
-          setIsRegisterModalOpen(true);
-        }}
-      />
+      <Suspense fallback={null}>
+        <LoginModal
+          isOpen={isLoginModalOpen}
+          setIsOpen={setIsLoginModalOpen}
+          openRegister={() => {
+            setIsLoginModalOpen(false);
+            setIsRegisterModalOpen(true);
+          }}
+        />
+      </Suspense>
 
-      <RegisterModal
-        isOpen={isRegisterModalOpen}
-        setIsOpen={setIsRegisterModalOpen}
-        openLogin={() => {
-          setIsRegisterModalOpen(false);
-          setIsLoginModalOpen(true);
-        }}
-      />
+      <Suspense fallback={null}>
+        <RegisterModal
+          isOpen={isRegisterModalOpen}
+          setIsOpen={setIsRegisterModalOpen}
+          openLogin={() => {
+            setIsRegisterModalOpen(false);
+            setIsLoginModalOpen(true);
+          }}
+        />
+      </Suspense>
     </nav>
   );
 }

@@ -1,13 +1,16 @@
+import { Suspense } from "react";
 import Mentoring from "@/components/mentoring/Mentoring";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
 export default function page() {
-    return (
-      <>
+  return (
+    <>
+      <Suspense fallback={<div />}>
         <Navbar />
-        <Mentoring />
-        <Footer />
-      </>
-  )
+      </Suspense>
+      <Mentoring />
+      <Footer />
+    </>
+  );
 }
