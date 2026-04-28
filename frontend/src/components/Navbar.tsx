@@ -36,6 +36,8 @@ export default function Navbar() {
     { id: string; title: string; slug: string }[]
   >([]);
 
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   const pathname = usePathname();
 
   // Ambil user global dari AuthContext
@@ -102,17 +104,52 @@ export default function Navbar() {
   const isExternalImage = profileImage.startsWith("http");
 
   return (
-    <nav className="h-[80px] w-full flex items-center justify-between px-4 md:px-10 bg-white sticky top-0 z-50">
-      {/* Logo */}
-      <Link href="/" className="flex items-center">
-        <Image
-          src="/images/Navbar_logo.png"
-          alt="TemuDataku Logo"
-          width={116}
-          height={68}
-          className="w-[120px] h-auto"
-        />
-      </Link>
+    <nav className="h-[70px] md:h-[80px] w-full flex items-center justify-between px-4 md:px-10 bg-white sticky top-0 z-50">
+      {/* LEFT: Logo + Hamburger */}
+      <div className="flex items-center gap-3">
+        {/* Hamburger (mobile only) */}
+        <button
+          onClick={() => setMobileMenuOpen((prev) => !prev)}
+          className="md:hidden p-2 rounded-md hover:bg-gray-100"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className={`h-5 w-5 text-gray-700 transition-transform duration-300 ${
+              mobileMenuOpen ? "rotate-90" : "rotate-0"
+            }`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            {mobileMenuOpen ? (
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            ) : (
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            )}
+          </svg>
+        </button>
+
+        {/* Logo */}
+        <Link href="/" className="flex items-center">
+          <Image
+            src="/images/Navbar_logo.png"
+            alt="TemuDataku Logo"
+            width={116}
+            height={68}
+            className="w-[100px] md:w-[120px] h-auto"
+          />
+        </Link>
+      </div>
 
       {/* Menu */}
       <ul
@@ -264,20 +301,20 @@ export default function Navbar() {
       </ul>
 
       {/* Bagian kanan */}
-      <div className="hidden md:flex items-center gap-4">
+      <div className="flex items-center gap-2 md:gap-4">
         {!mounted ? null : !currentUser ? (
           <>
             <button
               onClick={() => setIsLoginModalOpen(true)}
-              className="px-4 py-1.5 border border-[#0CA678] text-[#0CA678] rounded-md hover:bg-[#0CA678] hover:text-white text-xs transition"
+              className="px-3 md:px-4 py-1.5 border border-[#0CA678] text-[#0CA678] rounded-md hover:bg-[#0CA678] hover:text-white text-xs transition"
             >
               Masuk
             </button>
             <button
               onClick={() => setIsRegisterModalOpen(true)}
-              className="px-4 py-1.5 bg-[#0CA678] rounded-md hover:bg-[#08916C] text-white text-xs transition"
+              className="px-3 md:px-4 py-1.5 bg-[#0CA678] rounded-md hover:bg-[#08916C] text-white text-xs transition"
             >
-              Daftar Akun
+              Daftar
             </button>
           </>
         ) : (
@@ -287,7 +324,7 @@ export default function Navbar() {
                 setUserOpen((prev) => !prev);
                 setLearningOpen(false);
               }}
-              className="flex items-center gap-3"
+              className="flex items-center gap-2 md:gap-3"
             >
               <Image
                 src={profileImage}
@@ -297,7 +334,7 @@ export default function Navbar() {
                 unoptimized
                 className="rounded-full object-cover"
               />
-              <span className="text-sm font-semibold text-gray-700">
+              <span className="text-[11px] md:text-sm font-semibold text-gray-700 max-w-[90px] md:max-w-none truncate md:truncate-none">
                 {currentUser.fullName}
               </span>
               <svg
@@ -414,6 +451,52 @@ export default function Navbar() {
             )}
           </div>
         )}
+
+        {/* MOBILE MENU */}
+        <div
+          className={`
+    absolute top-full left-0 w-full bg-white border-t border-gray-100 shadow-md md:hidden
+    transition-all duration-300 ease-in-out overflow-hidden
+    ${
+      mobileMenuOpen
+        ? "max-h-[500px] opacity-100 translate-y-0"
+        : "max-h-0 opacity-0 -translate-y-2 pointer-events-none"
+    }
+  `}
+        >
+          <ul className="flex flex-col text-sm text-gray-700 font-medium py-3">
+            <li className="px-4 py-2 text-center hover:bg-gray-50">
+              <Link href="/programs">Bootcamp</Link>
+            </li>
+            <li className="px-4 py-2 text-center hover:bg-gray-50">
+              <Link href="/mentoring">Mentoring</Link>
+            </li>
+            {/* AYCL (dynamic seperti desktop) */}
+            {ayclList.length === 0 ? (
+              <li className="px-4 py-2 text-center hover:bg-gray-50 truncate">
+                <Link href="/aycl">AYCL</Link>
+              </li>
+            ) : (
+              ayclList.map((item) => (
+                <li
+                  key={item.id}
+                  className="px-4 py-2 text-center hover:bg-gray-50"
+                >
+                  <Link href={`/aycl?slug=${item.slug}`}>{item.title}</Link>
+                </li>
+              ))
+            )}
+            <li className="px-4 py-2 text-center hover:bg-gray-50">
+              <Link href="/mentor">Mentor</Link>
+            </li>
+            <li className="px-4 py-2 text-center hover:bg-gray-50">
+              <Link href="/#faq">FAQ</Link>
+            </li>
+            <li className="px-4 py-2 text-center hover:bg-gray-50">
+              <Link href="/tentang-kami">Tentang Kami</Link>
+            </li>
+          </ul>
+        </div>
       </div>
 
       {/* Modal Components */}

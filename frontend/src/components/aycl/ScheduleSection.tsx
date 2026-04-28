@@ -23,8 +23,8 @@ export default function ScheduleSection({
   const challenges: string[] = challenge?.content?.items ?? [];
 
   return (
-    <section className="py-20 px-4 bg-gradient-to-b from-white to-emerald-50">
-      <div className="max-w-5xl mx-auto space-y-20">
+    <section className="py-14 sm:py-20 px-4 bg-gradient-to-b from-white to-emerald-50">
+      <div className="max-w-5xl mx-auto space-y-14 sm:space-y-20">
         {/* ================= JADWAL ================= */}
         {schedules.length > 0 && (
           <div>
@@ -32,11 +32,11 @@ export default function ScheduleSection({
               Pelaksanaan {title}
             </p>
 
-            <h2 className="text-2xl font-bold text-gray-900 mb-3 text-center">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-3 text-center">
               Jadwal {title}
             </h2>
 
-            <p className="text-gray-500 font-medium text-sm mb-10 leading-relaxed text-center max-w-2xl mx-auto">
+            <p className="text-gray-500 font-medium text-xs sm:text-sm mb-8 sm:mb-10 leading-relaxed text-center max-w-2xl mx-auto">
               {title} akan dilaksanakan secara{" "}
               <strong className="text-gray-700">
                 live session melalui Google Meet
@@ -46,7 +46,7 @@ export default function ScheduleSection({
             </p>
 
             {/* Timeline */}
-            <div className="space-y-12">
+            <div className="space-y-8 sm:space-y-12">
               {Array.from({ length: Math.ceil(schedules.length / 4) }).map(
                 (_, rowIndex) => {
                   const rowItems = schedules.slice(
@@ -57,8 +57,9 @@ export default function ScheduleSection({
                   return (
                     <div
                       key={rowIndex}
-                      className="flex justify-center gap-8 relative"
+                      className="flex flex-wrap justify-center gap-6 sm:gap-8 relative"
                     >
+                      <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-[2px] bg-emerald-200 sm:hidden"></div>
                       {rowItems.map((s, i) => {
                         const globalIndex = rowIndex * 4 + i;
                         const isLastInRow = i === rowItems.length - 1;
@@ -66,12 +67,15 @@ export default function ScheduleSection({
                         const { date, month, year } = parseScheduleDate(s.date);
 
                         return (
-                          <div key={globalIndex} className="flex items-center">
+                          <div
+                            key={globalIndex}
+                            className="flex flex-col sm:flex-row items-center w-full sm:w-auto justify-center relative"
+                          >
                             {/* ITEM */}
                             <div className="text-center relative">
-                              <div className="hidden sm:block w-4 h-4 bg-emerald-500 rounded-full mx-auto mb-4"></div>
+                              <div className="w-3 h-3 sm:w-4 sm:h-4 bg-emerald-500 rounded-full mx-auto mb-3 sm:mb-4 z-10"></div>
 
-                              <div className="bg-white border border-emerald-100 rounded-2xl px-8 py-6 shadow-sm hover:shadow-md transition min-w-[140px]">
+                              <div className="bg-white border border-emerald-100 rounded-2xl px-6 sm:px-8 py-5 sm:py-6 shadow-sm hover:shadow-md transition min-w-[120px] sm:min-w-[140px]">
                                 <p className="text-4xl font-bold text-emerald-600 leading-none">
                                   {date}
                                 </p>
@@ -103,7 +107,7 @@ export default function ScheduleSection({
         {challenges.length > 0 && (
           <div className="max-w-3xl mx-auto">
             <div className="bg-white border border-emerald-100 rounded-2xl p-6 md:p-8 shadow-sm">
-              <p className="text-emerald-600 font-medium text-sm uppercase tracking-widest mb-2 text-center">
+              <p className="text-emerald-600 font-medium text-xs sm:text-sm uppercase tracking-widest mb-1 sm:mb-2 text-center">
                 Relatable?
               </p>
 

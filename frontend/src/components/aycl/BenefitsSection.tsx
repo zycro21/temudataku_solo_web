@@ -25,7 +25,7 @@ export default function BenefitsSection({ benefit, closing }: Props) {
 
         {/* Benefits */}
         {isLoading ? (
-          <div className="grid grid-cols-2 gap-5 mb-12 animate-pulse justify-items-center">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-5 mb-10 sm:mb-12 justify-items-center">
             {[1, 2, 3, 4].map((i) => (
               <div
                 key={i}
@@ -43,17 +43,18 @@ export default function BenefitsSection({ benefit, closing }: Props) {
                 <div
                   key={i}
                   className={`
-            flex gap-3 items-start bg-white border border-emerald-100 
-            rounded-xl px-5 py-4 shadow-sm hover:shadow-md transition
-            w-full max-w-md
-            ${isOdd && isLast ? "col-span-2 justify-self-center" : ""}
-          `}
+    flex flex-col sm:flex-row gap-2 sm:gap-3 items-start
+    bg-white border border-emerald-100 
+    rounded-xl px-4 sm:px-5 py-3 sm:py-4 shadow-sm hover:shadow-md transition
+    w-full max-w-md
+    ${isOdd && isLast ? "col-span-2 justify-self-center" : ""}
+  `}
                 >
                   <Check
                     size={18}
-                    className="text-emerald-600 shrink-0 mt-0.5"
+                    className="text-emerald-600 shrink-0 self-center sm:self-start sm:mt-1"
                   />
-                  <p className="text-gray-700 font-medium text-sm leading-relaxed">
+                  <p className="text-gray-700 font-medium text-sm leading-relaxed text-center sm:text-left">
                     {b}
                   </p>
                 </div>
@@ -63,11 +64,11 @@ export default function BenefitsSection({ benefit, closing }: Props) {
         ) : null}
 
         {/* Disclaimer */}
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 flex gap-3 items-start shadow-sm mb-10">
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 sm:p-5 flex gap-3 items-start sm:items-start shadow-sm mb-8 sm:mb-10">
           <AlertCircle size={18} className="text-amber-500 shrink-0 mt-0.5" />
 
           <div>
-            <p className="font-semibold text-gray-800 text-sm mb-1">
+            <p className="font-semibold text-gray-800 text-sm mb-1 text-left sm:text-left">
               Hal yang Perlu Kamu Tahu
             </p>
 
@@ -83,7 +84,7 @@ export default function BenefitsSection({ benefit, closing }: Props) {
 
         {/* Closing Section (NEW) */}
         {closing && (
-          <div className="relative bg-white border border-emerald-100 rounded-2xl p-7 text-center shadow-sm overflow-hidden">
+          <div className="relative bg-white border border-emerald-100 rounded-2xl p-5 sm:p-7 text-center shadow-sm overflow-hidden">
             {/* subtle gradient accent */}
             <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 via-transparent to-white pointer-events-none" />
 
@@ -93,7 +94,7 @@ export default function BenefitsSection({ benefit, closing }: Props) {
                 Jadi, Bagaimana Keputusanmu Sekarang?
               </h3>
 
-              <p className="text-gray-600 text-sm leading-relaxed max-w-xl mx-auto">
+              <p className="text-gray-600 text-sm leading-relaxed max-w-xl mx-auto px-2 sm:px-0">
                 {closing?.content?.text || ""}
               </p>
 

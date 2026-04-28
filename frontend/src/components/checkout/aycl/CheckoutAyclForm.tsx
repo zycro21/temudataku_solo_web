@@ -74,8 +74,10 @@ export default function CheckoutAyclForm({
   ];
 
   return (
-    <form className="p-4 md:p-5 md:pl-6 space-y-5">
-      <h2 className="text-lg font-semibold">Informasi Pemesanan</h2>
+    <form className="p-4 md:p-5 md:pl-6 space-y-5 max-w-3xl mx-auto md:mx-0">
+      <h2 className="text-lg font-semibold text-center md:text-left">
+        Informasi Pemesanan
+      </h2>
 
       {/* ========================= */}
       {/* BASIC INFO (TIDAK DIUBAH) */}
@@ -109,7 +111,7 @@ export default function CheckoutAyclForm({
       </div>
 
       {/* Provinsi + Kota */}
-      <div className="flex gap-3 max-w-3xl">
+      <div className="flex flex-col md:flex-row gap-3 max-w-3xl">
         <div className="flex flex-col flex-1">
           <label className="text-xs font-medium text-gray-600 mb-1">
             Provinsi
@@ -173,8 +175,8 @@ export default function CheckoutAyclForm({
       {/* 🔥 NEW SECTION */}
       {/* ========================= */}
 
-      <div className="border-t pt-5 space-y-5">
-        <h3 className="text-sm font-semibold text-emerald-700">
+      <div className="border-t pt-5 space-y-6">
+        <h3 className="text-sm font-semibold text-emerald-700 text-center md:text-left">
           Informasi Tambahan
         </h3>
 
@@ -297,14 +299,17 @@ export default function CheckoutAyclForm({
             <span className="text-red-500">*</span>
           </label>
 
-          <div className="mt-2 space-y-2 bg-emerald-50 p-3 rounded-lg border border-emerald-100">
+          <div className="mt-2 space-y-3 md:space-y-2 bg-emerald-50 p-3 md:p-4 rounded-lg border border-emerald-100">
             {loadingSchedules ? (
               <p className="text-sm text-gray-500">Memuat kelas...</p>
             ) : schedules.length === 0 ? (
               <p className="text-sm text-gray-500">Belum ada kelas tersedia</p>
             ) : (
               schedules.map((s: any) => (
-                <label key={s.id} className="flex items-center gap-2 text-sm">
+                <label
+                  key={s.id}
+                  className="flex items-center md:items-center gap-2 md:gap-2 text-sm justify-center md:justify-start text-center md:text-left"
+                >
                   <input
                     type="checkbox"
                     checked={formData.selectedSchedules.includes(s.id)}
@@ -328,7 +333,7 @@ export default function CheckoutAyclForm({
                       onFormChange?.(updated);
                     }}
                   />
-                  <span>
+                  <span className="leading-relaxed">
                     {s.title} ({new Date(s.date).toLocaleDateString()})
                   </span>
                 </label>
@@ -350,7 +355,7 @@ export default function CheckoutAyclForm({
               setFormData(updated);
               onFormChange?.(updated);
             }}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-400"
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm leading-relaxed focus:ring-2 focus:ring-emerald-400"
           />
         </div>
 

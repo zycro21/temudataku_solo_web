@@ -153,14 +153,14 @@ export default function WhyDifferentSection({
   if (!differentiator || items.length === 0) return null;
 
   return (
-    <section className="py-20 px-4 bg-gradient-to-b from-white to-emerald-50">
+    <section className="py-14 sm:py-20 px-4 bg-gradient-to-b from-white to-emerald-50">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
           <p className="text-emerald-600 font-medium text-sm uppercase tracking-widest mb-2">
             Keunggulan
           </p>
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">
             Kenapa {title} Berbeda?
           </h2>
         </div>
@@ -172,21 +172,21 @@ export default function WhyDifferentSection({
               const rowItems = items.slice(rowIndex * 2, rowIndex * 2 + 2);
 
               return (
-                <div key={rowIndex} className="flex justify-center gap-4">
+                <div key={rowIndex} className="flex justify-center gap-3 sm:gap-4">
                   {rowItems.map((r, i) => (
                     <div
                       key={i}
-                      className="bg-white border border-emerald-100 rounded-xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition flex gap-4 items-start flex-1 max-w-[calc(50%-0.5rem)]"
+                      className="bg-white border border-emerald-100 rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-3 sm:gap-4 flex-1 max-w-full sm:max-w-[calc(50%-0.5rem)]"
                     >
-                      <div className="bg-emerald-50 rounded-lg p-2 shrink-0">
+                      <div className="bg-emerald-50 rounded-lg p-2 shrink-0 mx-auto sm:mx-0">
                         {getDifferentiatorIcon(r.title + " " + r.desc)}
                       </div>
 
-                      <div>
-                        <p className="font-semibold text-gray-800 text-sm mb-1">
+                      <div className="flex flex-col items-center sm:items-start">
+                        <p className="font-semibold text-gray-800 text-sm sm:text-sm mb-1">
                           {r.title}
                         </p>
-                        <p className="text-gray-500 font-medium text-sm leading-relaxed">
+                        <p className="text-gray-500 font-medium text-xs sm:text-sm leading-relaxed max-w-md sm:max-w-none">
                           {r.desc}
                         </p>
                       </div>
@@ -202,10 +202,10 @@ export default function WhyDifferentSection({
         <div className="bg-white border border-emerald-100 rounded-2xl overflow-hidden shadow-sm">
           {/* Header row */}
           <div className="grid grid-cols-2 bg-emerald-50 border-b border-emerald-100">
-            <div className="px-6 py-3 font-semibold text-gray-500 text-sm">
+            <div className="px-4 sm:px-6 py-3 font-semibold text-gray-500 text-xs sm:text-sm flex items-center justify-center text-center">
               Belajar Sendiri
             </div>
-            <div className="px-6 py-3 font-semibold text-emerald-700 text-sm bg-emerald-100">
+            <div className="px-4 sm:px-6 py-3 font-semibold text-emerald-700 text-xs sm:text-sm bg-emerald-100 flex items-center justify-center text-center">
               {title} ✓
             </div>
           </div>
@@ -216,16 +216,16 @@ export default function WhyDifferentSection({
               key={i}
               className="grid grid-cols-2 border-b last:border-0 border-emerald-100"
             >
-              <div className="px-6 py-4 flex gap-2 items-start">
-                <X size={15} className="text-red-700 shrink-0 mt-1.5" />
-                <p className="text-gray-500 font-medium text-sm leading-relaxed">
+              <div className="px-4 sm:px-6 py-3 sm:py-4 flex gap-2 items-start">
+                <X size={15} className="text-red-700 shrink-0 mt-1 sm:mt-1.5" />
+                <p className="text-gray-500 font-medium text-xs sm:text-sm leading-relaxed">
                   {row.label}
                 </p>
               </div>
 
-              <div className="px-6 py-4 flex gap-2 items-start bg-emerald-50/60">
-                <Check size={15} className="text-emerald-600 shrink-0 mt-1.5" />
-                <p className="text-gray-700 font-medium text-sm leading-relaxed">
+              <div className="px-4 sm:px-6 py-3 sm:py-4 flex gap-2 items-start bg-emerald-50/60">
+                <Check size={15} className="text-emerald-600 shrink-0 mt-1 sm:mt-1.5" />
+                <p className="text-gray-700 font-medium text-xs sm:text-sm leading-relaxed">
                   {row.aycl}
                 </p>
               </div>

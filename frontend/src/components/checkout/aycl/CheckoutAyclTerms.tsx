@@ -62,26 +62,26 @@ export default function CheckoutAyclTerms({
   }, [priceSummary]);
 
   return (
-    <div className="mt-0 p-4 md:p-5 md:pl-7 space-y-4 max-w-[55rem]">
+    <div className="mt-0 p-4 md:p-5 md:pl-7 space-y-5 max-w-[55rem] mx-auto md:mx-0">
       {/* Title */}
-      <h2 className="text-lg md:text-xl font-semibold">
+      <h2 className="text-lg md:text-xl font-semibold text-center md:text-left">
         Voucher dan Syarat & Ketentuan
       </h2>
 
       {/* Kode Kupon */}
-      <div className="border border-gray-200 rounded-lg px-3 py-3 md:px-4 md:py-3 flex items-center gap-3 w-full">
-        <span className="shrink-0 text-sm font-semibold text-gray-700">
+      <div className="border border-gray-200 rounded-lg px-3 py-3 md:px-4 md:py-3 flex flex-col md:flex-row items-stretch md:items-center gap-3 w-full">
+        <span className="shrink-0 text-sm font-semibold text-gray-700 text-center md:text-left w-full md:w-auto">
           Kode Kupon (Opsional)
         </span>
 
-        <div className="flex items-stretch ml-2 flex-1 w-full relative group">
+        <div className="flex flex-col md:flex-row gap-2 md:gap-0 md:ml-2 flex-1 w-full relative group min-w-0">
           <input
             type="text"
             value={coupon}
             onChange={(e) => setCoupon(e.target.value)}
             placeholder="XXXX-9267"
             disabled={isVoucherApplied}
-            className={`rounded-l-full border border-r-0 bg-transparent px-3 py-1.5 text-xs outline-none flex-1
+            className={`w-full md:flex-1 rounded-full md:rounded-l-full border md:border-r-0 px-3 py-2 text-xs outline-none
               ${isVoucherApplied ? "cursor-not-allowed bg-gray-100" : ""}`}
           />
 
@@ -89,7 +89,7 @@ export default function CheckoutAyclTerms({
             type="button"
             onClick={handleApplyCoupon}
             disabled={!coupon.trim() || loading || isVoucherApplied}
-            className="rounded-r-full bg-emerald-600 text-white text-xs font-medium px-4 py-1.5 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full md:w-auto rounded-full md:rounded-r-full bg-emerald-600 text-white text-xs font-medium px-4 py-2 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Memproses..." : "Gunakan Kupon"}
           </button>
@@ -103,8 +103,8 @@ export default function CheckoutAyclTerms({
       </div>
 
       {/* Terms Scroll Box */}
-      <div className="border border-gray-200 rounded-md p-4 h-80 overflow-y-auto text-xs space-y-3 scroll-thin leading-relaxed">
-        <p className="font-bold text-base md:text-lg tracking-tight">
+      <div className="border border-gray-200 rounded-md p-4 md:p-5 h-72 md:h-80 overflow-y-auto text-xs md:text-sm space-y-3 scroll-thin leading-relaxed">
+        <p className="font-bold text-base md:text-lg tracking-tight text-center md:text-left">
           SYARAT DAN KETENTUAN UMUM TEMUDATAKU
         </p>
 

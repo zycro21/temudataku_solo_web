@@ -277,15 +277,15 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
   };
 
   return (
-    <section ref={ref} className="py-12 mb-12 bg-white">
+    <section ref={ref} className="py-14 mb-12 bg-white">
       <div className="max-w-[1100px] mx-auto px-4 sm:px-5 lg:px-6">
         {/* Section Header */}
-        <div className="text-center mb-10">
-          <p className="text-sm font-semibold text-blue-900 mb-2">
+        <div className="text-center mb-12 px-2">
+          <p className="text-xs sm:text-sm font-semibold text-blue-900 mb-2">
             Jalur Belajar
           </p>
 
-          <h2 className="text-2xl md:text-[32px] font-bold mb-14 leading-snug">
+          <h2 className="text-xl sm:text-2xl md:text-[32px] font-bold mb-10 sm:mb-14 leading-snug">
             Jalur Belajar di TemuDataku
             <br />
             yang Bisa Kamu Pilih
@@ -293,12 +293,12 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
 
           {/* Tab Navigation */}
           <div className="flex justify-center mb-10">
-            <div className="border border-gray-300 rounded-lg px-3 py-2 flex gap-3 md:gap-4 overflow-x-auto lg:overflow-visible whitespace-nowrap w-full lg:w-auto bg-white">
+            <div className="border border-gray-300 rounded-lg px-2 sm:px-3 py-2 flex gap-2 sm:gap-3 md:gap-4 overflow-x-auto lg:overflow-visible whitespace-nowrap w-full lg:w-auto bg-white">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`min-w-max lg:w-[250px] px-5 py-2.5 text-[15px] text-center rounded-md font-medium transition-all duration-200 ${
+                  className={`flex-shrink-0 px-4 sm:px-5 py-2 text-sm sm:text-[15px] text-center rounded-md font-medium transition-all duration-200 ${
                     activeTab === tab.id
                       ? "bg-[#0CA678] text-white shadow-sm"
                       : "text-gray-600 bg-gray-100 hover:text-gray-900"
@@ -313,7 +313,7 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
 
         {/* ================= MENTORING ================= */}
         {activeTab === "mentoring" && (
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 gap-6 justify-items-center">
             {mentoringOptions.map((option) => (
               <Card
                 key={option.id}
@@ -325,7 +325,7 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
                     alt={option.title}
                     width={400}
                     height={220}
-                    className="w-full h-48 object-cover"
+                    className="w-full h-44 sm:h-48 object-cover"
                   />
                   {option.badge && (
                     <div className="absolute bottom-0 left-0 right-0 bg-[#243A77] text-white text-center py-2 text-xs font-semibold">
@@ -334,10 +334,12 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
                   )}
                 </div>
 
-                <CardContent className="p-5">
-                  <h3 className="text-lg font-bold mb-3">{option.title}</h3>
+                <CardContent className="pt-0 p-4 sm:p-5">
+                  <h3 className="text-xl font-bold mb-2 sm:mb-3 text-center sm:text-left">
+                    {option.title}
+                  </h3>
 
-                  <div className="mb-5">
+                  <div className="mb-5 text-center sm:text-left">
                     {option.originalPrice && (
                       <span className="text-xs text-gray-500 line-through mr-2">
                         {option.originalPrice}
@@ -346,7 +348,7 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
                     <span className="text-xl font-bold">{option.price}</span>
                   </div>
 
-                  <ul className="space-y-2 mb-5">
+                  <ul className="space-y-2 mb-5 text-left sm:text-left">
                     {option.features.map((feature, index) => (
                       <li key={index} className="flex items-start gap-2">
                         <Check className="w-4 h-4 text-[#0CA678]" />
@@ -358,7 +360,7 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
                   <Button
                     onClick={() => handleSelectService(option.type as any)}
                     disabled={loading}
-                    className="w-full bg-[#0CA678] hover:bg-[#08916C] text-white py-2 text-sm"
+                    className="w-full bg-[#0CA678] hover:bg-[#08916C] text-white py-2.5 text-sm sm:text-base"
                   >
                     {loading ? "Memuat..." : "Ikuti Sesi"}
                   </Button>
@@ -390,7 +392,7 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
                     }}
                     whileHover={{ scale: 1.01 }}
                     className={`relative overflow-hidden rounded-2xl 
-  p-8 md:p-12 text-white shadow-xl
+  p-6 sm:p-8 md:p-12 text-white shadow-xl
   ${
     index === 1
       ? "bg-gradient-to-br from-emerald-500 to-emerald-700"
@@ -407,7 +409,7 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
 
                     <div className="relative z-10 flex flex-col md:flex-row md:items-center gap-8">
                       {/* LEFT */}
-                      <div className="flex-1">
+                      <div className="flex-1 text-center md:text-left">
                         <span className="inline-block bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full mb-4 backdrop-blur-sm">
                           🎉 Sudah Hadir Sekarang!
                         </span>
@@ -422,7 +424,7 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
                           </p>
                         )}
 
-                        <div className="flex items-baseline gap-2 mb-6">
+                        <div className="flex items-baseline gap-2 mb-6 justify-center md:justify-start">
                           <span className="text-emerald-200 text-base">
                             Hanya
                           </span>
@@ -431,7 +433,7 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
                           </span>
                         </div>
 
-                        <div className="flex flex-wrap gap-3">
+                        <div className="flex flex-wrap gap-3 justify-center md:justify-start">
                           <Button
                             onClick={() =>
                               router.push(`/aycl?slug=${batch.slug}`)
@@ -463,7 +465,7 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
                       </div>
 
                       {/* RIGHT */}
-                      <div className="md:w-64 bg-white/10 rounded-xl p-6 border border-white/20">
+                      <div className="md:w-64 bg-white/10 rounded-xl p-6 border border-white/20 mx-auto md:mx-0">
                         <p className="text-xs font-semibold text-emerald-200 mb-4">
                           Yang Kamu Dapatkan
                         </p>

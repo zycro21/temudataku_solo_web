@@ -41,27 +41,30 @@ export default function FAQPage() {
   ];
 
   return (
-    <div id="faq" className="bg-white py-14 pb-14 mt-8 px-4 scroll-smooth">
-      <div className="max-w-[900px] mx-auto px-4 sm:px-5 lg:px-6">
+    <div
+      id="faq"
+      className="bg-white py-10 md:py-14 mt-6 md:mt-8 px-4 scroll-smooth"
+    >
+      <div className="max-w-[900px] mx-auto px-3 sm:px-5 lg:px-6">
         {/* TITLE */}
-        <h1 className="text-2xl md:text-3xl font-bold text-center text-gray-900 mb-8">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-center text-gray-900 mb-6 md:mb-8 leading-snug">
           Frequently Asked Questions (FAQ)
         </h1>
 
-        <Accordion type="single" collapsible className="space-y-3">
+        <Accordion type="single" collapsible className="space-y-2 md:space-y-3">
           {faqs.map((faq) => (
             <AccordionItem
               key={faq.id}
               value={faq.id}
-              className="bg-gray-100 rounded-md shadow-sm overflow-hidden"
+              className="bg-gray-100 rounded-md shadow-sm overflow-hidden mx-auto w-full"
             >
               {/* QUESTION */}
-              <AccordionTrigger className="px-4 py-4 mb-0.5 text-left text-sm md:text-base font-semibold text-gray-900 hover:no-underline hover:bg-gray-200 rounded-md">
+              <AccordionTrigger className="px-4 py-3 md:py-4 text-left text-sm md:text-base font-semibold text-gray-900 hover:no-underline hover:bg-gray-200 rounded-md leading-snug">
                 {faq.question}
               </AccordionTrigger>
 
               {/* ANSWER */}
-              <AccordionContent className="px-4 pb-4 pt-2 text-sm text-gray-700 leading-relaxed">
+              <AccordionContent className="px-4 pb-4 pt-1 text-sm text-gray-700 leading-relaxed text-left md:text-left">
                 {faq.answer}
               </AccordionContent>
             </AccordionItem>

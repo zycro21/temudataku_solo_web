@@ -86,10 +86,10 @@ export default function CheckoutAyclPage() {
   }, []);
 
   return (
-    <div className="bg-gradient-to-br py-12 px-4 md:px-6 lg:px-8 relative overflow-hidden">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
+    <div className="bg-gradient-to-br py-8 md:py-12 px-4 md:px-6 lg:px-8 relative overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
         {/* Kolom Kiri (2/3) */}
-        <div className="lg:col-span-2 flex flex-col gap-1">
+        <div className="lg:col-span-2 flex flex-col gap-4 md:gap-6">
           <CheckoutAyclForm
             onFormChange={setCheckoutData}
             schedules={schedules}
@@ -105,15 +105,17 @@ export default function CheckoutAyclPage() {
         </div>
 
         {/* Kolom Kanan (1/3) */}
-        <div className="pr-9">
-          <CheckoutSummary
-            ayclBooking={ayclBooking}
-            paymentId={paymentId}
-            priceSummary={priceSummary}
-            formData={checkoutData}
-            isTermsChecked={isTermsChecked}
-            type="aycl"
-          />
+        <div className="mt-6 lg:mt-0 pr-0 lg:pr-9 flex justify-center lg:block">
+          <div className="w-full max-w-md lg:max-w-none">
+            <CheckoutSummary
+              ayclBooking={ayclBooking}
+              paymentId={paymentId}
+              priceSummary={priceSummary}
+              formData={checkoutData}
+              isTermsChecked={isTermsChecked}
+              type="aycl"
+            />
+          </div>
         </div>
       </div>
     </div>

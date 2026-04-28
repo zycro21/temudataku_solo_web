@@ -4,19 +4,19 @@ import Image from "next/image";
 
 export default function Footer() {
   return (
-    <footer className="bg-[#243A77] text-white py-12 px-8 md:px-[100px]">
+    <footer className="bg-[#243A77] text-white py-10 sm:py-12 px-5 sm:px-8 md:px-[100px]">
       <div className="container mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 mb-8">
           {/* Logo and Description */}
-          <div className="lg:col-span-1 space-y-6">
-            <div className="flex items-center space-x-2">
-              <Image src="/images/footerLogo.svg" alt="TemuDataku Logo" width={134} height={50} className="w-[134px] h-1/4" />
+          <div className="lg:col-span-1 space-y-5 sm:space-y-6 text-center md:text-left">
+            <div className="flex items-center justify-center md:justify-start">
+              <Image src="/images/footerLogo.svg" alt="TemuDataku Logo" width={134} height={50} className="w-[120px] sm:w-[134px] h-auto" />
             </div>
 
-            <p className="text-blue-100 text-sm leading-relaxed max-w-sm">TemuDataku adalah platform mentoring data science terpersonalisasi yang menghubungkan Anda dengan mentor berpengalaman untuk mempercepat perjalanan belajar Anda.</p>
+            <p className="text-blue-100 text-sm leading-relaxed max-w-sm mx-auto md:mx-0">TemuDataku adalah platform mentoring data science terpersonalisasi yang menghubungkan Anda dengan mentor berpengalaman untuk mempercepat perjalanan belajar Anda.</p>
 
             {/* Social Media Icons */}
-            <div className="flex space-x-3">
+            <div className="flex justify-center md:justify-start space-x-3">
               <Link href="#" className="w-10 h-10 bg-white rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors">
                 <MessageCircle className="w-5 h-5 text-blue-800" />
               </Link>
@@ -30,9 +30,9 @@ export default function Footer() {
           </div>
 
           {/* TemuDataku Links */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-white">TemuDataku</h3>
-            <ul className="space-y-3">
+          <div className="space-y-3 sm:space-y-4 text-center md:text-left">
+            <h3 className="text-base sm:text-lg font-semibold text-white">TemuDataku</h3>
+            <ul className="space-y-2.5 sm:space-y-3">
               <li>
                 <Link href="/programs" className="text-blue-100 hover:text-white transition-colors text-sm">
                   Program & Bootcamp
@@ -62,22 +62,22 @@ export default function Footer() {
           </div>
 
           {/* Contact Information */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-white">Hubungi Kami</h3>
-            <div className="space-y-3 text-sm">
+          <div className="space-y-3 sm:space-y-4 text-center md:text-left">
+            <h3 className="text-base sm:text-lg font-semibold text-white">Hubungi Kami</h3>
+            <div className="space-y-2.5 sm:space-y-3 text-sm text-center md:text-left">
               <p className="text-blue-100 leading-relaxed">
                 Kelurahan Karangbesuki,
                 <br />
                 Kecamatan Sukun, Kota Malang
               </p>
-              <p className="text-blue-100">081234567890</p>
+              <p className="text-blue-100">0822-3452-9895</p>
               <p className="text-blue-100">temudataku@gmail.com</p>
             </div>
           </div>
 
           {/* Help Links */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-white">Bantuan</h3>
+          <div className="space-y-3 sm:space-y-4 text-center md:text-left">
+            <h3 className="text-base sm:text-lg font-semibold text-white">Bantuan</h3>
             <ul className="space-y-3">
               <li>
                 <Link href="/terms" className="text-blue-100 hover:text-white transition-colors text-sm">
@@ -95,7 +95,7 @@ export default function Footer() {
 
         {/* Copyright */}
         <div className="pt-6">
-          <p className="text-blue-100 text-sm text-center md:text-left">© 2025 TemuDataku. All Rights Reserved</p>
+          <p className="text-blue-100 text-xs sm:text-sm text-center md:text-left">© 2025 TemuDataku. All Rights Reserved</p>
         </div>
       </div>
     </footer>

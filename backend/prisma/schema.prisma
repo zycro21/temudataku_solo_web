@@ -1060,35 +1060,73 @@ model MentorReport {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model MentoringService {
-  id                 String              @id @default(cuid())
-  serviceName        String              @db.VarChar @map("service_name")
+  id                 String   @id @default(cuid())
+  serviceName        String   @db.VarChar @map("service_name")
   description        String?
-  price              Decimal             @db.Decimal
-  serviceType        String?             @db.VarChar @map("service_type")
-  maxParticipants    Int?                @map("max_participants")
-  durationDays       Int                 @map("duration_days")
-  benefits           String?             
-  mechanism          String?
-  syllabusPath       String?             @map("syllabus_path")
-  toolsUsed          String?             @map("tools_used")
-  targetAudience     String?             @map("target_audience")
-  schedule           String?
-  alumniPortfolio    Json?               @db.JsonB @map("alumni_portfolio")  // thumbnail, title, description, menteeName, projectLink
-  category           String?             @db.VarChar
-  level              String?             @db.VarChar
-  testimonials       Json?               @db.JsonB   // photo, name, status, comment
-  isActive           Boolean?            @default(true) @map("is_active")
-  createdAt          DateTime?           @default(now()) @db.Timestamp(6) @map("created_at")
-  updatedAt          DateTime?           @db.Timestamp(6) @map("updated_at")
+  price              Decimal  @db.Decimal
+  strikePrice        Decimal? @db.Decimal @map("strike_price") // harga coret
+
+  serviceType        String?  @db.VarChar @map("service_type")
+  maxParticipants    Int?     @map("max_participants")
+  durationDays       Int      @map("duration_days")
+
+  // NEW SIMPLE FIELDS
+  programAbout       String?  @map("program_about")
+  totalWeeks         Int?     @map("total_weeks")
+  totalProjects      Int?     @map("total_projects")
+
+  category           String?  @db.VarChar
+  level              String?  @db.VarChar
+
+  isActive           Boolean? @default(true) @map("is_active")
+  createdAt          DateTime? @default(now()) @map("created_at")
+  updatedAt          DateTime? @map("updated_at")
+
+  // RELATIONS
+  sections           MentoringSection[]
+  tools              MentoringTool[]
+  schedules          MentoringSchedule[]
+  portfolios         MentoringPortfolio[]
+  testimonials       MentoringTestimonial[]
 
   bookings           Booking[]
   certificates       Certificate[]
   mentors            MentoringServiceMentor[]
   mentoringSessions  MentoringSession[]
-  projects           Project[]          
+  projects           Project[]
 
   @@map("mentoring_services")
 }
+
+enum MentoringSectionType {
+  BENEFIT
+  MECHANISM
+  SYLLABUS
+  TARGET
+}
+
+model MentoringSection {
+  id        String   @id @default(cuid())
+  serviceId String
+  type      MentoringSectionType
+  title     String
+
+  /// JSON:
+  /// BENEFIT   => { title: string, description: string }
+  /// MECHANISM => { title: string, description: string }
+  /// SYLLABUS  => { title: string, description: string }
+  /// TARGET    => { title: string, description: string }
+  content   Json
+
+  order     Int
+
+  service   MentoringService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@index([serviceId, order])
+  @@map("mentoring_sections")
+}
+
+
 
 model MentoringServiceMentor {
   id                 String         @id @default(cuid())

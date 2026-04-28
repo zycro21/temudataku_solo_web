@@ -229,24 +229,28 @@ export default function CurriculumSection({
             return (
               <div
                 key={i}
-                className="bg-white border border-emerald-100 rounded-xl p-5 md:p-6 flex gap-5 items-start shadow-sm hover:shadow-md transition"
+                className="bg-white border border-emerald-100 rounded-xl p-4 sm:p-5 md:p-6 shadow-sm hover:shadow-md transition"
               >
-                {/* Number */}
-                <span className="text-3xl font-bold text-emerald-100 shrink-0 leading-none">
-                  {num}
-                </span>
-
                 <div className="flex gap-4 items-start">
-                  {/* Icon */}
-                  <div className="bg-emerald-50 rounded-lg p-2 shrink-0">
-                    {getMaterialIcon(m.title + " " + (m.description ?? ""))}
+                  {/* LEFT (Number + Icon) */}
+                  <div className="flex flex-col items-center sm:items-start gap-3 shrink-0">
+                    {/* Number */}
+                    <span className="text-2xl sm:text-3xl font-bold text-emerald-100 leading-none">
+                      {num}
+                    </span>
+
+                    {/* Icon */}
+                    <div className="bg-emerald-50 rounded-lg p-2 sm:hidden">
+                      {getMaterialIcon(m.title + " " + (m.description ?? ""))}
+                    </div>
                   </div>
 
-                  {/* Content */}
-                  <div>
-                    <p className="font-semibold text-gray-800 text-sm mb-1">
+                  {/* RIGHT (Text) */}
+                  <div className="flex-1 text-left">
+                    <p className="font-semibold text-gray-800 text-sm sm:text-sm mb-1">
                       {m.title}
                     </p>
+
                     {m.description && (
                       <p className="text-gray-500 font-medium text-sm leading-relaxed">
                         {m.description}

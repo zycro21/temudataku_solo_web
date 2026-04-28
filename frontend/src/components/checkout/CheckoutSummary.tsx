@@ -334,9 +334,16 @@ export default function CheckoutSummary({
 
   return (
     <>
-      <div className="border rounded-lg p-4 shadow-sm bg-white space-y-4 max-h-[750px] overflow-y-auto mt-4 ml-3">
+      <div
+        className="border rounded-lg p-4 md:p-5 shadow-sm bg-white space-y-5 
+    max-h-[125vh] md:max-h-[750px] overflow-y-auto 
+    mt-4 ml-0 lg:ml-3 
+    w-full max-w-md mx-auto lg:max-w-none"
+      >
         {/* Header */}
-        <h2 className="text-lg font-semibold">Pemesanan</h2>
+        <h2 className="text-lg font-semibold text-center lg:text-left">
+          Pemesanan
+        </h2>
 
         {/* Detail Pesanan */}
         <div className="space-y-2">
@@ -400,7 +407,8 @@ export default function CheckoutSummary({
             {paymentOptions.map((option) => (
               <label
                 key={option.id}
-                className="flex justify-between items-center cursor-pointer rounded-md px-2.5 py-1.5 hover:bg-gray-50 shadow-sm"
+                className="flex flex-col md:flex-row justify-between items-start md:items-center 
+                  cursor-pointer rounded-md px-3 py-2 hover:bg-gray-50 shadow-sm gap-2"
               >
                 <div className="flex items-center gap-2">
                   <input
@@ -411,7 +419,9 @@ export default function CheckoutSummary({
                     onChange={() => setPaymentMethod(option.id)}
                     className="text-emerald-600 focus:ring-emerald-500"
                   />
-                  <span className="text-xs">{option.label}</span>
+                  <span className="text-xs leading-relaxed">
+                    {option.label}
+                  </span>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -422,7 +432,7 @@ export default function CheckoutSummary({
                       alt={option.label}
                       width={32}
                       height={18}
-                      className="object-contain h-8"
+                      className="object-contain h-8 md:h-8"
                     />
                   ))}
                 </div>
@@ -435,7 +445,8 @@ export default function CheckoutSummary({
         <Button
           onClick={handlePesan}
           disabled={isProcessing}
-          className="w-[200px] mx-auto bg-emerald-500 hover:bg-emerald-600 text-white rounded-md py-1.5 text-xs font-medium block"
+          className="w-full md:w-[200px] mx-auto bg-emerald-500 hover:bg-emerald-600 
+           text-white rounded-md py-2 text-sm md:text-xs font-medium block"
         >
           {isProcessing ? "Memproses..." : "Pesan"}
         </Button>

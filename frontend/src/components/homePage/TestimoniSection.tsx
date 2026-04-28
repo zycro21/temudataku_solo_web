@@ -124,7 +124,7 @@ const TestimonialSection = () => {
     <section className="py-12 mt-8 bg-[#E5E7EB] relative overflow-hidden">
       <div className="max-w-[1100px] mx-auto px-4 sm:px-5 lg:px-6 relative z-10">
         {/* HEADER */}
-        <div className="flex justify-between items-center mb-3">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4 text-center md:text-left gap-3 md:gap-0">
           <div>
             <p className="text-sm font-semibold text-[#243A77] mb-2">
               Testimoni
@@ -140,10 +140,10 @@ const TestimonialSection = () => {
           setApi={setApi}
           className="w-full"
           opts={{
-            align: "start",
+            align: "center",
             loop: true,
             skipSnaps: false,
-            dragFree: true,
+            dragFree: false,
           }}
         >
           <CarouselContent className="py-4 md:py-6 px-0">
@@ -154,9 +154,9 @@ const TestimonialSection = () => {
               return (
                 <CarouselItem
                   key={person.id}
-                  className="pl-2 md:pl-3 basis-[85%] sm:basis-[65%] md:basis-1/2 lg:basis-1/3"
+                  className="pl-2 md:pl-3 basis-full sm:basis-[80%] md:basis-1/2 lg:basis-1/3"
                 >
-                  <div className="bg-white rounded-md overflow-hidden h-full flex flex-col p-4">
+                  <div className="bg-white rounded-md overflow-hidden h-full flex flex-col p-4 mx-auto shadow-sm md:shadow-none">
                     {/* TEXT */}
                     <p
                       ref={(el) => {
@@ -198,19 +198,28 @@ const TestimonialSection = () => {
           </CarouselContent>
 
           {/* NAV BUTTON (diperkecil & dirapetin) */}
-          <div className="absolute -top-12 right-10 md:flex gap-1.5 z-10">
-            <CarouselPrevious className="border border-gray-300 bg-white hover:bg-gray-100 text-gray-800 shadow-sm w-9 h-9" />
-            <CarouselNext className="bg-[#0CA678] hover:bg-[#08916C] text-white shadow-sm w-9 h-9" />
-          </div>
+          <>
+            {/* MOBILE NAV BUTTON (di bawah header) */}
+            {/* <div className="flex md:hidden justify-center gap-2 mb-4">
+              <CarouselPrevious className="border border-gray-300 bg-white hover:bg-gray-100 text-gray-800 shadow-sm w-9 h-9" />
+              <CarouselNext className="bg-[#0CA678] hover:bg-[#08916C] text-white shadow-sm w-9 h-9" />
+            </div> */}
+
+            {/* DESKTOP NAV BUTTON (tidak berubah) */}
+            <div className="hidden md:flex absolute -top-12 right-10 gap-1.5 z-10">
+              <CarouselPrevious className="border border-gray-300 bg-white hover:bg-gray-100 text-gray-800 shadow-sm w-9 h-9" />
+              <CarouselNext className="bg-[#0CA678] hover:bg-[#08916C] text-white shadow-sm w-9 h-9" />
+            </div>
+          </>
         </Carousel>
 
         {/* DOTS */}
-        <div className="flex justify-center mt-3 md:mt-5 space-x-1.5">
+        <div className="flex justify-center mt-4 md:mt-5 space-x-2 md:space-x-1.5">
           {Array.from({ length: count }).map((_, index) => (
             <button
               key={index}
               onClick={() => api?.scrollTo(index)}
-              className={`w-2 h-2 rounded-full transition-colors ${
+              className={`w-2.5 h-2.5 md:w-2 md:h-2 rounded-full transition-colors ${
                 index + 1 === current
                   ? "bg-emerald-500"
                   : "bg-gray-300 hover:bg-gray-400"

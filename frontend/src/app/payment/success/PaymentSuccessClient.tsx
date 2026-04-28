@@ -51,20 +51,20 @@ export default function PaymentSuccessPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-8">
-      <div className="bg-white shadow-lg rounded-2xl p-6 text-center max-w-md w-full">
+      <div className="bg-white shadow-lg rounded-2xl p-5 sm:p-6 text-center max-w-md w-full">
         {status === "success" ? (
           <>
-            <h1 className="text-lg font-bold text-green-600 mb-3">
+            <h1 className="text-base sm:text-lg font-bold text-green-600 mb-3">
               🎉 Pembayaran Berhasil
             </h1>
-            <p className="text-gray-600 text-xs mb-1.5">
+           <p className="text-gray-600 text-xs sm:text-sm mb-2">
               Order ID:
               <br />
               <span className="font-medium text-gray-800 break-all">
                 {merchantOrderId}
               </span>
             </p>
-            <p className="text-gray-600 text-xs mb-4">
+            <p className="text-gray-600 text-xs sm:text-sm mb-4">
               Reference:
               <br />
               <span className="font-medium text-gray-800 break-all">
@@ -73,7 +73,7 @@ export default function PaymentSuccessPage() {
             </p>
 
             {/* keterangan cek email */}
-            <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 mb-4 text-left">
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-3 sm:px-4 py-3 mb-4 text-left sm:text-left">
               <p className="text-emerald-700 text-xs leading-relaxed text-justify">
                 Kami telah mengirimkan bukti pembayaran beserta detail program
                 ke alamat email yang terdaftar. Silakan cek inbox atau folder{" "}
@@ -92,12 +92,12 @@ export default function PaymentSuccessPage() {
               </p>
 
               {/* BUTTON ACTION */}
-              <div className="flex flex-col sm:flex-row gap-2 mt-3">
+              <div className="flex flex-col sm:flex-row gap-2 mt-4">
                 {/* Perbaikan di sini: Menambahkan tag <a> yang hilang */}
                 <a
                   href="https://wa.me/6282234529895"
                   target="_blank"
-                  className="flex-1 text-center bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-medium px-3 py-1.5 rounded-md transition"
+                  className="flex-1 text-center bg-emerald-500 hover:bg-emerald-600 text-white text-xs sm:text-sm font-medium px-3 py-2 rounded-md transition"
                 >
                   Hubungi WhatsApp
                 </a>
@@ -105,7 +105,7 @@ export default function PaymentSuccessPage() {
                 {/* Perbaikan di sini: Menambahkan tag <a> yang hilang */}
                 <a
                   href="mailto:temudataku@gmail.com"
-                  className="flex-1 text-center border border-emerald-500 text-emerald-600 hover:bg-emerald-100 text-xs font-medium px-3 py-1.5 rounded-md transition"
+                  className="flex-1 text-center border border-emerald-500 text-emerald-600 hover:bg-emerald-100 text-xs sm:text-sm font-medium px-3 py-2 rounded-md transition"
                 >
                   Kirim Email
                 </a>
@@ -114,14 +114,14 @@ export default function PaymentSuccessPage() {
 
             <button
               onClick={() => router.push("/dashboard/user")}
-              className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-medium px-5 py-2 rounded-lg"
+              className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs sm:text-sm font-medium px-5 py-2.5 rounded-lg w-full sm:w-auto"
             >
               Ke Dashboard
             </button>
           </>
         ) : (
           <>
-            <h1 className="text-lg font-bold text-red-600 mb-3">
+            <h1 className="text-base sm:text-lg font-bold text-red-600 mb-3">
               ❌ Pembayaran Gagal
             </h1>
             <p className="text-gray-600 text-xs mb-4">

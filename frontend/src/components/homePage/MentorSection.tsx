@@ -126,7 +126,7 @@ const MentorSection = () => {
   return (
     <section className="pb-6 md:pb-12">
       <div className="max-w-[1100px] mx-auto px-4 sm:px-5 lg:px-6">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 text-center md:text-left gap-4 md:gap-0">
           <div>
             <p className="text-sm font-semibold text-[#243A77] mb-2">Mentor</p>
 
@@ -148,18 +148,18 @@ const MentorSection = () => {
               align: "start",
               loop: true,
               skipSnaps: false,
-              dragFree: true,
+              dragFree: false,
             }}
           >
             <CarouselContent className="py-2 md:py-4 -ml-2 md:-ml-3 px-0">
               {mentors.map((mentor) => (
                 <CarouselItem
                   key={mentor.id}
-                  className="pl-2 md:pl-3 basis-[85%] sm:basis-[65%] md:basis-1/2 lg:basis-1/3"
+                  className="pl-2 md:pl-3 basis-full sm:basis-[80%] md:basis-1/2 lg:basis-1/3"
                 >
-                  <div className="bg-white rounded-lg overflow-hidden shadow-none h-full">
+                  <div className="bg-white rounded-lg overflow-hidden shadow-sm md:shadow-none h-full mx-auto">
                     {/* IMAGE */}
-                    <div className="relative h-52 sm:h-60 md:h-64 bg-white flex items-center justify-center">
+                    <div className="relative h-48 sm:h-60 md:h-64 bg-white flex items-center justify-center">
                       <Image
                         src={mentor.image}
                         alt={mentor.name}

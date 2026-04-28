@@ -74,10 +74,10 @@ export default function HeroSection({
   materials,
 }: HeroSectionProps) {
   return (
-    <section className="bg-gradient-to-br from-emerald-50 via-white to-emerald-100 pt-20 pb-16 px-4">
+    <section className="bg-gradient-to-br from-emerald-50 via-white to-emerald-100 pt-16 sm:pt-20 pb-12 sm:pb-16 px-4">
       <div className="max-w-5xl mx-auto text-center">
         {/* Badge Group */}
-        <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
+        <div className="flex flex-wrap items-center justify-center gap-2 mb-4 sm:mb-6">
           <span className="inline-block bg-emerald-100 text-emerald-700 text-sm font-medium px-4 py-1.5 rounded-full">
             {headline}
           </span>
@@ -89,36 +89,36 @@ export default function HeroSection({
         </div>
 
         {/* Heading — dari subHeadline */}
-        <h1 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-5">
+        <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-gray-900 leading-snug sm:leading-tight mb-4 sm:mb-5">
           {subHeadline ?? headline}
         </h1>
 
         {/* Description — dari description */}
         {description && (
-          <p className="text-gray-600 font-medium text-base md:text-lg max-w-2xl mx-auto mb-4">
+          <p className="text-gray-600 font-medium text-sm sm:text-base md:text-lg max-w-2xl mx-auto mb-3 sm:mb-4 leading-relaxed">
             {description}
           </p>
         )}
 
-        <p className="text-gray-400 font-medium text-sm md:text-base max-w-xl mx-auto mb-12">
+        <p className="text-gray-400 font-medium text-xs sm:text-sm md:text-base max-w-xl mx-auto mb-8 sm:mb-12 leading-relaxed">
           Belajar skill yang relevan, aplikatif, dan bisa dipakai untuk
           portfolio maupun kebutuhan kerja.
         </p>
 
         {/* CTA */}
-        <div className="flex flex-col sm:flex-row gap-3 justify-center mb-16">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center mb-10 sm:mb-16">
           <button
             onClick={() => {
               const el = document.getElementById("daftar");
               if (el) {
-                const yOffset = -95; 
+                const yOffset = -95;
                 const y =
                   el.getBoundingClientRect().top + window.pageYOffset + yOffset;
 
                 window.scrollTo({ top: y, behavior: "smooth" });
               }
             }}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-8 py-3 rounded-lg transition"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-6 sm:px-8 py-2.5 sm:py-3 rounded-lg transition text-sm sm:text-base"
           >
             Mau Ikutan Kelas
           </button>
@@ -134,7 +134,7 @@ export default function HeroSection({
                 window.scrollTo({ top: y, behavior: "smooth" });
               }
             }}
-            className="border border-emerald-300 hover:border-emerald-500 text-emerald-700 font-medium px-8 py-3 rounded-lg transition"
+            className="border border-emerald-300 hover:border-emerald-500 text-emerald-700 font-medium px-6 sm:px-8 py-2.5 sm:py-3 rounded-lg transition text-sm sm:text-base"
           >
             Pelajari Lebih Lanjut
           </button>
@@ -155,18 +155,18 @@ export default function HeroSection({
                     {rowItems.map((m, i) => (
                       <div
                         key={i}
-                        className="bg-white border border-emerald-100 rounded-xl p-5 shadow-sm flex gap-4 items-start hover:shadow-md transition flex-1 max-w-[calc(50%-0.5rem)]"
+                        className="bg-white border border-emerald-100 rounded-xl p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-3 sm:gap-4 hover:shadow-md transition flex-1 max-w-full sm:max-w-[calc(50%-0.5rem)]"
                       >
-                        <div className="bg-emerald-50 rounded-lg p-2 shrink-0">
+                        <div className="bg-emerald-50 rounded-lg p-2 shrink-0 mx-auto sm:mx-0">
                           {getMaterialIcon(m.title)}
                         </div>
 
-                        <div>
-                          <p className="font-semibold text-gray-800 text-sm mb-1">
+                        <div className="flex flex-col items-center sm:items-start">
+                          <p className="font-semibold text-gray-800 text-sm sm:text-sm mb-1">
                             {m.title}
                           </p>
                           {m.description && (
-                            <p className="text-gray-500 font-medium text-sm leading-relaxed">
+                            <p className="text-gray-500 font-medium text-xs sm:text-sm leading-relaxed">
                               {m.description}
                             </p>
                           )}

@@ -376,13 +376,13 @@ export default function ForWhoSection({ target }: ForWhoSectionProps) {
   if (items.length === 0) return null;
 
   return (
-    <section className="py-20 px-4 bg-gradient-to-b from-white to-emerald-50">
+    <section className="py-14 sm:py-20 px-4 bg-gradient-to-b from-white to-emerald-50">
       <div className="max-w-4xl mx-auto text-center">
         <p className="text-emerald-600 font-medium text-sm uppercase tracking-widest mb-2">
           Untuk Kamu
         </p>
 
-        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-10">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-8 sm:mb-10">
           Cocok untuk Siapa?
         </h2>
 
@@ -399,17 +399,17 @@ export default function ForWhoSection({ target }: ForWhoSectionProps) {
                     return (
                       <div
                         key={i}
-                        className="flex gap-4 items-start bg-white border border-emerald-100 rounded-xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition w-full max-w-[420px] text-left"
+                        className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-3 sm:gap-4 bg-white border border-emerald-100 rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition w-full max-w-full sm:max-w-[420px]"
                       >
-                        <div className="bg-emerald-50 rounded-lg p-2 shrink-0">
+                        <div className="bg-emerald-50 rounded-lg p-2 shrink-0 mx-auto sm:mx-0">
                           {icon}
                         </div>
 
-                        <div>
-                          <p className="font-semibold text-gray-800 text-sm">
+                        <div className="flex flex-col items-center sm:items-start">
+                          <p className="font-semibold text-gray-800 text-sm sm:text-sm">
                             {title}
                           </p>
-                          <p className="text-gray-500 font-medium text-sm mt-0.5 leading-relaxed">
+                          <p className="text-gray-500 font-medium text-xs sm:text-sm mt-0.5 leading-relaxed max-w-md sm:max-w-none">
                             {desc}
                           </p>
                         </div>
