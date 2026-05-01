@@ -9,7 +9,9 @@ export default function TentangKami() {
       <Suspense fallback={<div />}>
         <Navbar />
       </Suspense>
-      <TentangKamiPage />
+      <Suspense fallback={<div />}>
+        <TentangKamiPage />
+      </Suspense>
       <Footer />
     </div>
   );
