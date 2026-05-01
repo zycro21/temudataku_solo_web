@@ -1075,6 +1075,11 @@ model MentoringService {
   totalWeeks         Int?     @map("total_weeks")
   totalProjects      Int?     @map("total_projects")
 
+  // fields optional
+  slug               String?  @unique @db.VarChar
+  isFeatured         Boolean  @default(false) @map("is_featured")
+  difficultyOrder    Int?     @map("difficulty_order")
+
   category           String?  @db.VarChar
   level              String?  @db.VarChar
 
@@ -1126,7 +1131,54 @@ model MentoringSection {
   @@map("mentoring_sections")
 }
 
+model MentoringTool {
+  id        String @id @default(cuid())
+  serviceId String
+  name      String
 
+  service   MentoringService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@map("mentoring_tools")
+}
+
+model MentoringSchedule {
+  id        String   @id @default(cuid())
+  serviceId String
+  date      DateTime
+
+  service   MentoringService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@map("mentoring_schedules")
+}
+
+model MentoringPortfolio {
+  id          String @id @default(cuid())
+  serviceId   String
+
+  title       String
+  description String?
+  menteeName  String
+  projectLink String
+  thumbnail   String?
+
+  service     MentoringService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@map("mentoring_portfolios")
+}
+
+model MentoringTestimonial {
+  id        String @id @default(cuid())
+  serviceId String
+
+  name      String
+  role      String?
+  comment   String
+  rating    Int
+
+  service   MentoringService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@map("mentoring_testimonials")
+}
 
 model MentoringServiceMentor {
   id                 String         @id @default(cuid())

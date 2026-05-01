@@ -9,7 +9,7 @@ export default function CTASection() {
 
   return (
     <>
-      <section className="relative py-20 mx-5 my-5 md:mx-12 md:my-12 lg:mx-20 lg:my-20 rounded-2xl overflow-hidden">
+      <section className="relative py-12 sm:py-16 md:py-20 mx-4 my-4 md:mx-12 md:my-12 lg:mx-20 lg:my-20 rounded-2xl overflow-hidden">
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
           <Image
@@ -23,16 +23,18 @@ export default function CTASection() {
 
         {/* Content */}
         <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            <span className="block mb-4">Siap Tingkatkan Karier di</span>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3 sm:mb-4 leading-snug">
+            <span className="block mb-2 sm:mb-4">
+              Siap Tingkatkan Karier di
+            </span>
             <span className="block">Dunia Data?</span>
           </h2>
-          <p className="text-blue-100 text-lg mb-8 max-w-xl mx-auto">
+          <p className="text-blue-100 text-sm sm:text-base md:text-lg mb-6 sm:mb-8 max-w-md sm:max-w-xl mx-auto leading-relaxed">
             Bergabunglah dengan TemuDataku dan mulai perjalananmu sekarang!
           </p>
           <button
             onClick={() => setShowRegister(true)}
-            className="text-white bg-[#0CA678] hover:bg-[#08916C]/80 hover:cursor-pointer font-semibold px-8 py-3 rounded-lg transition-colors duration-200"
+            className="w-full sm:w-auto text-white bg-[#0CA678] hover:bg-[#08916C]/80 font-semibold px-6 sm:px-8 py-3 rounded-lg transition-colors duration-200 text-sm sm:text-base"
           >
             Gabung Sekarang
           </button>

@@ -10,7 +10,7 @@ type Activity = {
   title: string;
   createdAt: string;
   status: string;
-  project?: any;
+  paymentId?: string;
 };
 
 export default function ActivitySection() {
@@ -22,56 +22,27 @@ export default function ActivitySection() {
       try {
         const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-        // Ambil bookings saja
-        const bookingsRes = await axios.get(
-          `${baseUrl}/api/booking/mentee/bookings`,
-          {
-            params: { page: 1, limit: 100, status: "confirmed" },
-            withCredentials: true,
-          },
+        const res = await axios.get(
+          `${baseUrl}/api/ayclbooking/mentee/incomplete`,
+          { withCredentials: true },
         );
 
-        /** ---------------- Mentoring Section ---------------- **/
-        const bookingsRaw = bookingsRes.data?.data?.data || [];
+        const mapped = (res.data?.data || []).map((b: any) => ({
+          id: b.id,
+          type: "AYCL_FORM",
+          title: b.batch?.title || "All You Can Learn",
+          createdAt: b.createdAt,
+          status: "Lengkapi Data AYCL",
+          paymentId: b.payment?.id,
+        }));
 
-        // hanya ambil booking yang punya project
-        const bookings = bookingsRaw
-          .filter(
-            (b: any) =>
-              Array.isArray(b.mentoringService?.projects) &&
-              b.mentoringService.projects.length > 0,
-          )
-          .map((b: any) => {
-            // ambil project terbaru (berdasarkan deadline atau createdAt)
-            const latestProject = [...b.mentoringService.projects].sort(
-              (a, b) => {
-                const da = new Date(a.deadline || a.createdAt || 0).getTime();
-                const db = new Date(b.deadline || b.createdAt || 0).getTime();
-                return db - da;
-              },
-            )[0];
-
-            return {
-              id: b.id,
-              type: "Mentoring",
-              title: b.mentoringService?.serviceName || "Mentoring Service",
-              createdAt: latestProject?.createdAt || b.createdAt,
-              status: "Project Mentoring",
-              project: latestProject,
-            };
-          });
-
-        /** ---------------- Sort ---------------- **/
-
-        const sorted = bookings.sort(
+        // SORT (biar konsisten)
+        const sorted = mapped.sort(
           (a: Activity, b: Activity) =>
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
         );
 
-        // ambil hanya 3 terbaru
-        const latestThree = sorted.slice(0, 3);
-
-        setActivities(latestThree);
+        setActivities(sorted.slice(0, 3));
       } catch (err) {
         console.error("Gagal mengambil aktivitas:", err);
         setActivities([]);
@@ -81,11 +52,9 @@ export default function ActivitySection() {
     fetchActivities();
   }, []);
 
-  const handleView = (activity: any) => {
-    if (activity.type === "Mentoring" && activity.project) {
-      router.push(`/dashboard/projects/${activity.project.id}`);
-    } else {
-      console.warn("Tidak ada target halaman untuk aktivitas ini.");
+  const handleView = (activity: Activity) => {
+    if (activity.type === "AYCL_FORM") {
+      router.push(`/aycl/complete/${activity.id}/${activity.paymentId}`);
     }
   };
 
@@ -100,7 +69,7 @@ export default function ActivitySection() {
       <div className="space-y-3 h-[180px] max-h-[180px] overflow-y-auto pr-1">
         {activities.length === 0 ? (
           <p className="text-gray-500 text-[12px] text-center">
-            Belum ada aktivitas terbaru.
+            Tidak ada aktivitas saat ini.
           </p>
         ) : (
           activities.map((item, index) => (
@@ -112,7 +81,7 @@ export default function ActivitySection() {
                 <span className="text-sm font-medium text-gray-800">
                   {item.title}
                 </span>
-                <span className="text-[12px] text-gray-500 mt-0.5">
+                <span className="text-[12px] text-orange-500 mt-0.5 font-medium">
                   {item.status}
                 </span>
               </div>
@@ -121,7 +90,7 @@ export default function ActivitySection() {
                 onClick={() => handleView(item)}
                 className="bg-emerald-500 text-white text-[12px] px-3 py-1 rounded-full hover:bg-emerald-600 transition"
               >
-                Lihat
+                Lengkapi
               </button>
             </div>
           ))

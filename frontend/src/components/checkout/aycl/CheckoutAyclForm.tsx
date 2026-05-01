@@ -18,16 +18,6 @@ export default function CheckoutAyclForm({
     city: "",
     province: "",
     phone: "",
-
-    // 🔥 NEW FIELDS
-    currentStatus: "",
-    otherStatus: "",
-    institution: "",
-    studyProgram: "",
-    semester: "",
-    age: "",
-    reason: "",
-    familiarity: "",
     selectedSchedules: [] as string[],
   });
 
@@ -47,8 +37,6 @@ export default function CheckoutAyclForm({
     onFormChange?.(updated);
   }, [userData]);
 
-  const [isOtherSelected, setIsOtherSelected] = useState(false);
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const updated = { ...formData, [e.target.name]: e.target.value };
     setFormData(updated);
@@ -56,22 +44,6 @@ export default function CheckoutAyclForm({
   };
 
   const cityOptions = formData.province ? regions[formData.province] : [];
-
-  // 🔥 OPTIONS
-  const statusOptions = [
-    "Mahasiswa",
-    "Fresh Graduate",
-    "Profesional",
-    "Career Switcher",
-    "Other",
-  ];
-
-  const familiarityOptions = [
-    "Belum pernah",
-    "Pernah dengar tapi belum praktik",
-    "Pernah ikut pelatihan",
-    "Sudah sering praktik",
-  ];
 
   return (
     <form className="p-4 md:p-5 md:pl-6 space-y-5 max-w-3xl mx-auto md:mx-0">
@@ -171,214 +143,53 @@ export default function CheckoutAyclForm({
         />
       </div>
 
-      {/* ========================= */}
-      {/* 🔥 NEW SECTION */}
-      {/* ========================= */}
+      {/* 🔥 SELECT KELAS */}
+      <div className="max-w-3xl">
+        <label className="text-xs font-medium text-gray-600">
+          Kelas apa yang ingin kamu ikuti pada program All You Can Learn ini?
+          <span className="text-red-500">*</span>
+        </label>
 
-      <div className="border-t pt-5 space-y-6">
-        <h3 className="text-sm font-semibold text-emerald-700 text-center md:text-left">
-          Informasi Tambahan
-        </h3>
+        <div className="mt-2 space-y-3 md:space-y-2 bg-emerald-50 p-3 md:p-4 rounded-lg border border-emerald-100">
+          {loadingSchedules ? (
+            <p className="text-sm text-gray-500">Memuat kelas...</p>
+          ) : schedules.length === 0 ? (
+            <p className="text-sm text-gray-500">Belum ada kelas tersedia</p>
+          ) : (
+            schedules.map((s: any) => (
+              <label
+                key={s.id}
+                className="flex items-center md:items-center gap-2 md:gap-2 text-sm justify-center md:justify-start text-center md:text-left"
+              >
+                <input
+                  type="checkbox"
+                  checked={formData.selectedSchedules.includes(s.id)}
+                  onChange={(e) => {
+                    let updatedSchedules = [...formData.selectedSchedules];
 
-        {/* Status */}
-        <div className="grid gap-1.5 max-w-3xl">
-          <label className="text-xs font-medium text-gray-600">
-            Status Saat Ini <span className="text-red-500">*</span>
-          </label>
-          <SelectInput
-            value={isOtherSelected ? "Other" : formData.currentStatus}
-            onValueChange={(value) => {
-              if (value === "Other") {
-                setIsOtherSelected(true);
+                    if (e.target.checked) {
+                      updatedSchedules.push(s.id);
+                    } else {
+                      updatedSchedules = updatedSchedules.filter(
+                        (id) => id !== s.id,
+                      );
+                    }
 
-                const updated = {
-                  ...formData,
-                  currentStatus: "",
-                  otherStatus: "",
-                };
+                    const updated = {
+                      ...formData,
+                      selectedSchedules: updatedSchedules,
+                    };
 
-                setFormData(updated);
-                onFormChange?.(updated);
-              } else {
-                setIsOtherSelected(false);
-
-                const updated = {
-                  ...formData,
-                  currentStatus: value,
-                  otherStatus: "",
-                };
-
-                setFormData(updated);
-                onFormChange?.(updated);
-              }
-            }}
-          >
-            {statusOptions.map((s) => (
-              <SelectItem key={s} value={s}>
-                {s}
-              </SelectItem>
-            ))}
-          </SelectInput>
-
-          {/* 🔥 TAMBAHKAN DI SINI */}
-          {isOtherSelected && (
-            <div className="mt-2">
-              <Input
-                placeholder="Tulis status kamu (contoh: Freelancer, Ibu Rumah Tangga, dll)"
-                value={formData.otherStatus}
-                onChange={(e) => {
-                  const updated = {
-                    ...formData,
-                    otherStatus: e.target.value,
-                    currentStatus: e.target.value, // 🔥 value final ke backend
-                  };
-                  setFormData(updated);
-                  onFormChange?.(updated);
-                }}
-              />
-            </div>
+                    setFormData(updated);
+                    onFormChange?.(updated);
+                  }}
+                />
+                <span className="leading-relaxed">
+                  {s.title} ({new Date(s.date).toLocaleDateString()})
+                </span>
+              </label>
+            ))
           )}
-        </div>
-
-        {/* Instansi */}
-        <div className="grid gap-1.5 max-w-3xl">
-          <label className="text-xs font-medium text-gray-600">
-            Instansi/Universitas saat ini<span className="text-red-500">*</span>
-          </label>
-          <Input
-            name="institution"
-            value={formData.institution}
-            onChange={handleChange}
-            placeholder="Isi 'umum' jika tidak ada"
-          />
-        </div>
-
-        {/* Prodi */}
-        <div className="grid gap-1.5 max-w-3xl">
-          <label className="text-xs font-medium text-gray-600">
-            Program Studi<span className="text-red-500">*</span>
-          </label>
-          <Input
-            name="studyProgram"
-            value={formData.studyProgram}
-            onChange={handleChange}
-            placeholder="Jika bukan mahasiswa bisa mengisi dengan '-'"
-          />
-        </div>
-
-        {/* Semester */}
-        <div className="grid gap-1.5 max-w-3xl">
-          <label className="text-xs font-medium text-gray-600">
-            Semester Saat Ini<span className="text-red-500">*</span>
-          </label>
-          <Input
-            name="semester"
-            value={formData.semester}
-            onChange={handleChange}
-            placeholder="Jika bukan mahasiswa bisa mengisi dengan '-'"
-          />
-        </div>
-
-        {/* Age */}
-        <div className="grid gap-1.5 max-w-3xl">
-          <label className="text-xs font-medium text-gray-600">
-            Usia<span className="text-red-500">*</span>
-          </label>
-          <Input
-            type="number"
-            name="age"
-            value={formData.age}
-            onChange={handleChange}
-          />
-        </div>
-
-        {/* 🔥 SELECT KELAS */}
-        <div className="max-w-3xl">
-          <label className="text-xs font-medium text-gray-600">
-            Kelas apa yang ingin kamu ikuti pada program All You Can Learn ini?
-            <span className="text-red-500">*</span>
-          </label>
-
-          <div className="mt-2 space-y-3 md:space-y-2 bg-emerald-50 p-3 md:p-4 rounded-lg border border-emerald-100">
-            {loadingSchedules ? (
-              <p className="text-sm text-gray-500">Memuat kelas...</p>
-            ) : schedules.length === 0 ? (
-              <p className="text-sm text-gray-500">Belum ada kelas tersedia</p>
-            ) : (
-              schedules.map((s: any) => (
-                <label
-                  key={s.id}
-                  className="flex items-center md:items-center gap-2 md:gap-2 text-sm justify-center md:justify-start text-center md:text-left"
-                >
-                  <input
-                    type="checkbox"
-                    checked={formData.selectedSchedules.includes(s.id)}
-                    onChange={(e) => {
-                      let updatedSchedules = [...formData.selectedSchedules];
-
-                      if (e.target.checked) {
-                        updatedSchedules.push(s.id);
-                      } else {
-                        updatedSchedules = updatedSchedules.filter(
-                          (id) => id !== s.id,
-                        );
-                      }
-
-                      const updated = {
-                        ...formData,
-                        selectedSchedules: updatedSchedules,
-                      };
-
-                      setFormData(updated);
-                      onFormChange?.(updated);
-                    }}
-                  />
-                  <span className="leading-relaxed">
-                    {s.title} ({new Date(s.date).toLocaleDateString()})
-                  </span>
-                </label>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Reason */}
-        <div className="grid gap-1.5 max-w-3xl">
-          <label className="text-xs font-medium text-gray-600">
-            Mengapa kamu tertarik mengikuti All You Can Learn ini?
-            <span className="text-red-500">*</span>
-          </label>
-          <textarea
-            value={formData.reason}
-            onChange={(e) => {
-              const updated = { ...formData, reason: e.target.value };
-              setFormData(updated);
-              onFormChange?.(updated);
-            }}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm leading-relaxed focus:ring-2 focus:ring-emerald-400"
-          />
-        </div>
-
-        {/* Familiarity */}
-        <div className="grid gap-1.5 max-w-3xl">
-          <label className="text-xs font-medium text-gray-600">
-            Sejauh mana kamu familiar dengan topik All You Can Learn ini?
-            <span className="text-red-500">*</span>
-          </label>
-          <SelectInput
-            value={formData.familiarity}
-            onValueChange={(value) => {
-              const updated = { ...formData, familiarity: value };
-              setFormData(updated);
-              onFormChange?.(updated);
-            }}
-          >
-            {familiarityOptions.map((f) => (
-              <SelectItem key={f} value={f}>
-                {f}
-              </SelectItem>
-            ))}
-          </SelectInput>
         </div>
       </div>
     </form>

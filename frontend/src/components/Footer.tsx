@@ -10,20 +10,47 @@ export default function Footer() {
           {/* Logo and Description */}
           <div className="lg:col-span-1 space-y-5 sm:space-y-6 text-center md:text-left">
             <div className="flex items-center justify-center md:justify-start">
-              <Image src="/images/footerLogo.svg" alt="TemuDataku Logo" width={134} height={50} className="w-[120px] sm:w-[134px] h-auto" />
+              <Image
+                src="/images/footerLogo.svg"
+                alt="TemuDataku Logo"
+                width={134}
+                height={50}
+                className="w-[120px] sm:w-[134px] h-auto"
+              />
             </div>
 
-            <p className="text-blue-100 text-sm leading-relaxed max-w-sm mx-auto md:mx-0">TemuDataku adalah platform mentoring data science terpersonalisasi yang menghubungkan Anda dengan mentor berpengalaman untuk mempercepat perjalanan belajar Anda.</p>
+            <p className="text-blue-100 text-sm leading-relaxed max-w-sm mx-auto md:mx-0">
+              TemuDataku adalah platform mentoring data science terpersonalisasi
+              yang menghubungkan Anda dengan mentor berpengalaman untuk
+              mempercepat perjalanan belajar Anda.
+            </p>
 
             {/* Social Media Icons */}
             <div className="flex justify-center md:justify-start space-x-3">
-              <Link href="#" className="w-10 h-10 bg-white rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors">
+              <Link
+                href="https://wa.me/6282234529895"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 bg-white rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors"
+              >
                 <MessageCircle className="w-5 h-5 text-blue-800" />
               </Link>
-              <Link href="#" className="w-10 h-10 bg-white rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors">
+
+              <Link
+                href="https://www.instagram.com/temudataku/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 bg-white rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors"
+              >
                 <Instagram className="w-5 h-5 text-blue-800" />
               </Link>
-              <Link href="#" className="w-10 h-10 bg-white rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors">
+
+              <Link
+                href="https://www.linkedin.com/company/temudataku/posts/?feedView=all"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 bg-white rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors"
+              >
                 <Linkedin className="w-5 h-5 text-blue-800" />
               </Link>
             </div>
@@ -31,30 +58,47 @@ export default function Footer() {
 
           {/* TemuDataku Links */}
           <div className="space-y-3 sm:space-y-4 text-center md:text-left">
-            <h3 className="text-base sm:text-lg font-semibold text-white">TemuDataku</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-white">
+              TemuDataku
+            </h3>
             <ul className="space-y-2.5 sm:space-y-3">
               <li>
-                <Link href="/programs" className="text-blue-100 hover:text-white transition-colors text-sm">
+                <Link
+                  href="/programs"
+                  className="text-blue-100 hover:text-white transition-colors text-sm"
+                >
                   Program & Bootcamp
                 </Link>
               </li>
               <li>
-                <Link href="/mentoring" className="text-blue-100 hover:text-white transition-colors text-sm">
+                <Link
+                  href="/mentoring"
+                  className="text-blue-100 hover:text-white transition-colors text-sm"
+                >
                   Mentoring
                 </Link>
               </li>
               <li>
-                <Link href="/elearning" className="text-blue-100 hover:text-white transition-colors text-sm">
+                <Link
+                  href="/elearning"
+                  className="text-blue-100 hover:text-white transition-colors text-sm"
+                >
                   E-Learning
                 </Link>
               </li>
               <li>
-                <Link href="/tentang-kami" className="text-blue-100 hover:text-white transition-colors text-sm">
+                <Link
+                  href="/tentang-kami"
+                  className="text-blue-100 hover:text-white transition-colors text-sm"
+                >
                   Tentang Kami
                 </Link>
               </li>
               <li>
-                <Link href="/faq" className="text-blue-100 hover:text-white transition-colors text-sm">
+                <Link
+                  href="/faq"
+                  className="text-blue-100 hover:text-white transition-colors text-sm"
+                >
                   FAQ
                 </Link>
               </li>
@@ -63,7 +107,9 @@ export default function Footer() {
 
           {/* Contact Information */}
           <div className="space-y-3 sm:space-y-4 text-center md:text-left">
-            <h3 className="text-base sm:text-lg font-semibold text-white">Hubungi Kami</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-white">
+              Hubungi Kami
+            </h3>
             <div className="space-y-2.5 sm:space-y-3 text-sm text-center md:text-left">
               <p className="text-blue-100 leading-relaxed">
                 Kelurahan Karangbesuki,
@@ -77,15 +123,23 @@ export default function Footer() {
 
           {/* Help Links */}
           <div className="space-y-3 sm:space-y-4 text-center md:text-left">
-            <h3 className="text-base sm:text-lg font-semibold text-white">Bantuan</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-white">
+              Bantuan
+            </h3>
             <ul className="space-y-3">
               <li>
-                <Link href="/terms" className="text-blue-100 hover:text-white transition-colors text-sm">
+                <Link
+                  href="/terms"
+                  className="text-blue-100 hover:text-white transition-colors text-sm"
+                >
                   Syarat & Ketentuan
                 </Link>
               </li>
               <li>
-                <Link href="/privacy" className="text-blue-100 hover:text-white transition-colors text-sm">
+                <Link
+                  href="/privacy"
+                  className="text-blue-100 hover:text-white transition-colors text-sm"
+                >
                   Kebijakan Privasi
                 </Link>
               </li>
@@ -95,7 +149,9 @@ export default function Footer() {
 
         {/* Copyright */}
         <div className="pt-6">
-          <p className="text-blue-100 text-xs sm:text-sm text-center md:text-left">© 2025 TemuDataku. All Rights Reserved</p>
+          <p className="text-blue-100 text-xs sm:text-sm text-center md:text-left">
+            © 2025 TemuDataku. All Rights Reserved
+          </p>
         </div>
       </div>
     </footer>

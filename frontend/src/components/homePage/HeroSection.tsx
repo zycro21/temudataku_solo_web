@@ -26,6 +26,8 @@ export default function HeroSection() {
               alt="ilustration"
               width={500}
               height={320}
+              priority
+              fetchPriority="high"
               className="w-full max-w-xs sm:max-w-md h-auto"
             />
           </div>

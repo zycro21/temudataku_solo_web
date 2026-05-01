@@ -126,7 +126,7 @@ const TestimonialSection = () => {
     <section className="py-12 mt-8 bg-[#E5E7EB] relative overflow-hidden">
       <div className="max-w-[1100px] mx-auto px-4 sm:px-5 lg:px-6 relative z-10">
         {/* HEADER */}
-        <div className="flex justify-between items-center mb-3">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4 text-center md:text-left">
           <div>
             <p className="text-sm font-semibold text-[#243A77] mb-2">
               Testimoni
@@ -145,7 +145,7 @@ const TestimonialSection = () => {
             align: "start",
             loop: true,
             skipSnaps: false,
-            dragFree: true,
+            dragFree: false,
           }}
         >
           <CarouselContent className="py-4 md:py-6 px-0">
@@ -156,9 +156,25 @@ const TestimonialSection = () => {
               return (
                 <CarouselItem
                   key={person.id}
-                  className="pl-2 md:pl-3 basis-[85%] sm:basis-[65%] md:basis-1/2 lg:basis-1/3"
+                  className="
+  pl-2 md:pl-3
+  basis-[90%]
+  sm:basis-[70%]
+  md:basis-1/2
+  lg:basis-1/3
+"
                 >
-                  <div className="bg-white rounded-md overflow-hidden h-full flex flex-col p-4">
+                  <div
+                    className="
+  bg-white rounded-lg
+  overflow-hidden h-full
+  flex flex-col
+  p-4 sm:p-5
+  mx-auto
+  max-w-[320px]
+  shadow-sm
+"
+                  >
                     {/* TEXT */}
                     <p
                       ref={(el) => {
@@ -200,14 +216,14 @@ const TestimonialSection = () => {
           </CarouselContent>
 
           {/* NAV BUTTON */}
-          <div className="absolute -top-12 right-8 md:flex gap-1 z-10">
+          <div className="hidden md:flex absolute -top-12 right-8 gap-1 z-10">
             <CarouselPrevious className="border border-gray-300 bg-white hover:bg-gray-100 text-gray-800 shadow-sm w-9 h-9" />
             <CarouselNext className="bg-[#0CA678] hover:bg-[#08916C] text-white shadow-sm w-9 h-9" />
           </div>
         </Carousel>
 
         {/* DOTS */}
-        <div className="flex justify-center mt-3 md:mt-4 space-x-1.5">
+        <div className="flex justify-center mt-4 md:mt-4 space-x-2">
           {Array.from({ length: count }).map((_, index) => (
             <button
               key={index}

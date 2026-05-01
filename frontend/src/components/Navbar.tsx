@@ -387,7 +387,7 @@ export default function Navbar() {
                 </li>
                 <li>
                   <Link
-                    href="/dashboard/jadwal"
+                    href="/dashboard/user/jadwal"
                     className="flex items-center gap-3 px-3 py-1.5 hover:bg-gray-100 text-sm"
                   >
                     <Image
@@ -402,7 +402,7 @@ export default function Navbar() {
                 </li>
                 <li>
                   <Link
-                    href="/dashboard/transaction"
+                    href="/dashboard/user/transaction"
                     className="flex items-center gap-3 px-3 py-1.5 hover:bg-gray-100 text-sm"
                   >
                     <Image

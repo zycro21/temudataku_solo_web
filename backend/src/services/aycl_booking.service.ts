@@ -684,4 +684,41 @@ export class AyclBookingService {
       totalMingguIni,
     };
   }
+
+  static async getIncompleteAyclBookings(userId: string) {
+    const bookings = await prisma.aYCLBooking.findMany({
+      where: {
+        userId,
+        status: "confirmed",
+
+        // 🔥 FILTER FIELD YANG MASIH KOSONG
+        OR: [
+          { currentStatus: null },
+          { institution: null },
+          { studyProgram: null },
+          { semester: null },
+          { age: null },
+          { reason: null },
+          { familiarity: null },
+        ],
+      },
+      include: {
+        batch: {
+          select: {
+            title: true,
+          },
+        },
+        payment: {
+          select: {
+            id: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return bookings;
+  }
 }

@@ -43,7 +43,7 @@ export default function RootLayout({
         {/* META PIXEL */}
         <Script
           id="meta-pixel"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
           dangerouslySetInnerHTML={{
             __html: `
             !function(f,b,e,v,n,t,s)

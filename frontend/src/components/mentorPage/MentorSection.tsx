@@ -183,9 +183,9 @@ const MentorSection = () => {
   }, [api]);
 
   return (
-    <section id="mentorSection" className="py-8 md:py-12">
+    <section id="mentorSection" className="py-6 md:py-12">
       <div className="max-w-[1100px] mx-auto px-4 sm:px-5 lg:px-6">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 text-center md:text-left">
           <div>
             <p className="text-xs font-semibold text-[#243A77] mb-1.5">
               Mentor
@@ -202,158 +202,167 @@ const MentorSection = () => {
           setApi={setApi}
           className="w-full"
           opts={{
-            align: "start",
-            loop: false,
-            containScroll: "keepSnaps",
+            align: "center",
+            loop: true,
+            containScroll: "trimSnaps",
             dragFree: false,
           }}
         >
           <CarouselContent>
-            {mentorGroups.map((group, groupIndex) => (
-              <CarouselItem key={groupIndex}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 py-4">
-                  {group.map((mentor) => (
-                    <div
-                      key={mentor.id}
-                      className="
-                    bg-white rounded-xl
-                    border border-gray-200
-                    overflow-hidden h-full
-                    transition-all duration-300
-                    hover:-translate-y-1
-                    hover:shadow-xl
-                    hover:border-emerald-300
-                    group
-                  "
-                    >
-                      {/* IMAGE */}
-                      <div className="relative h-56 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center overflow-hidden">
-                        <div className="absolute w-64 h-64 bg-emerald-100 rounded-full blur-3xl opacity-30 group-hover:opacity-50 transition duration-500"></div>
+            {mentors.map((mentor) => (
+              <CarouselItem
+                key={mentor.id}
+                className="
+        basis-full
+        sm:basis-[70%]
+        md:basis-1/2
+        lg:basis-1/3
+        pl-2 md:pl-3
+      "
+              >
+                <div
+                  className="
+          bg-white rounded-xl
+          border border-gray-200
+          overflow-hidden h-full
+          transition-all duration-300
+          hover:-translate-y-1
+          hover:shadow-xl
+          hover:border-emerald-300
+          group
+          mx-auto
+          max-w-[320px]
+        "
+                >
+                  {/* IMAGE */}
+                  <div className="relative h-48 sm:h-52 md:h-56 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center overflow-hidden">
+                    <div className="absolute w-64 h-64 bg-emerald-100 rounded-full blur-3xl opacity-30 group-hover:opacity-50 transition duration-500"></div>
 
-                        <Image
-                          src={mentor.image}
-                          alt={mentor.name}
-                          width={400}
-                          height={400}
-                          className="relative z-10 max-h-[85%] w-auto object-contain"
-                        />
-                      </div>
+                    <Image
+                      src={mentor.image}
+                      alt={mentor.name}
+                      width={400}
+                      height={400}
+                      className="relative z-10 max-h-[85%] w-auto object-contain"
+                    />
+                  </div>
 
-                      {/* ROLE BADGE */}
-                      <div className="flex justify-center">
-                        <div className="mt-4 bg-white px-4.5 py-2 rounded-full text-xs font-semibold text-emerald-600 shadow-sm border">
-                          {mentor.role}
-                        </div>
-                      </div>
+                  {/* ROLE BADGE */}
+                  <div className="flex justify-center">
+                    <div className="mt-4 bg-white px-4.5 py-2 rounded-full text-xs font-semibold text-emerald-600 shadow-sm border">
+                      {mentor.role}
+                    </div>
+                  </div>
 
-                      {/* CONTENT */}
-                      <div className="p-4">
-                        <h3 className="text-lg font-bold text-gray-900 mb-1">
-                          {mentor.name}
-                        </h3>
+                  {/* CONTENT */}
+                  <div className="p-4">
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">
+                      {mentor.name}
+                    </h3>
 
-                        <p className="text-xs text-gray-500 mb-3">
-                          {mentor.experience}
-                        </p>
+                    <p className="text-xs text-gray-500 mb-3">
+                      {mentor.experience}
+                    </p>
 
-                        <div className="space-y-2 mb-3">
-                          <div className="flex items-start gap-2 text-xs text-gray-700">
-                            <Code className="w-3.5 h-3.5 shrink-0 mt-1 text-emerald-500" />
-                            <span className="leading-relaxed line-clamp-3">
-                              {mentor.skills}
-                            </span>
-                          </div>
-                        </div>
-
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <button
-                              onClick={() => {
-                                setSelectedMentor(mentor);
-                                setIsDialogOpen(true);
-                              }}
-                              className="text-[#0CA678] font-semibold text-sm hover:underline"
-                            >
-                              Lihat Profil Lengkap
-                            </button>
-                          </DialogTrigger>
-
-                          <DialogContent
-                            className="max-w-md"
-                            onPointerDownOutside={(e) => e.preventDefault()}
-                          >
-                            <DialogHeader>
-                              <VisuallyHidden>
-                                <DialogTitle>
-                                  {selectedMentor?.name}
-                                </DialogTitle>
-                              </VisuallyHidden>
-
-                              <DialogDescription asChild>
-                                <div className="mt-3">
-                                  {/* HEADER */}
-                                  <div className="relative bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg p-4 mb-4 text-white text-center">
-                                    <div className="flex justify-center mb-3">
-                                      <Image
-                                        width={90}
-                                        height={90}
-                                        src={selectedMentor?.image}
-                                        alt={selectedMentor?.name}
-                                        className="rounded-full border-2 border-white shadow object-contain bg-white"
-                                      />
-                                    </div>
-
-                                    <h3 className="text-lg font-bold">
-                                      {selectedMentor?.name}
-                                    </h3>
-                                    <p className="text-sm opacity-90">
-                                      {selectedMentor?.role}
-                                    </p>
-                                  </div>
-
-                                  {/* DETAIL */}
-                                  <div className="space-y-3">
-                                    <div className="flex items-center gap-2 text-sm text-gray-700">
-                                      <Calendar className="w-4 h-4 text-emerald-500" />
-                                      <span>{selectedMentor?.experience}</span>
-                                    </div>
-
-                                    <div className="flex items-start gap-2 text-sm text-gray-700">
-                                      <Code className="w-4 h-4 text-emerald-500 shrink-0 mt-1" />
-                                      <span className="leading-relaxed break-words">
-                                        {selectedMentor?.skills}
-                                      </span>
-                                    </div>
-
-                                    <div className="flex items-center gap-2 text-sm text-gray-700">
-                                      <Linkedin className="w-4 h-4 text-emerald-500" />
-                                      <a
-                                        href={selectedMentor?.linkedin}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-emerald-600 hover:underline break-all"
-                                      >
-                                        Linkedin
-                                      </a>
-                                    </div>
-
-                                    <div className="mt-4 p-3 bg-gray-50 rounded-md border">
-                                      <p className="text-sm font-semibold mb-1">
-                                        Biografi
-                                      </p>
-                                      <p className="text-sm text-gray-700 leading-relaxed">
-                                        {selectedMentor?.biography}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </div>
-                              </DialogDescription>
-                            </DialogHeader>
-                          </DialogContent>
-                        </Dialog>
+                    <div className="space-y-2 mb-3">
+                      <div className="flex items-start gap-2 text-xs text-gray-700">
+                        <Code className="w-3.5 h-3.5 shrink-0 mt-1 text-emerald-500" />
+                        <span className="leading-relaxed line-clamp-3">
+                          {mentor.skills}
+                        </span>
                       </div>
                     </div>
-                  ))}
+
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <button
+                          onClick={() => {
+                            setSelectedMentor(mentor);
+                            setIsDialogOpen(true);
+                          }}
+                          className="text-[#0CA678] font-semibold text-sm hover:underline"
+                        >
+                          Lihat Profil Lengkap
+                        </button>
+                      </DialogTrigger>
+
+                      <DialogContent
+                        className="
+    w-[95vw] max-w-md
+    p-4 sm:p-5 md:p-6
+    rounded-xl
+    max-h-[90vh] overflow-y-auto
+  "
+                        onPointerDownOutside={(e) => e.preventDefault()}
+                      >
+                        <DialogHeader>
+                          <VisuallyHidden>
+                            <DialogTitle>{selectedMentor?.name}</DialogTitle>
+                          </VisuallyHidden>
+
+                          <DialogDescription asChild>
+                            <div className="mt-2 sm:mt-3 text-center sm:text-left">
+                              {/* HEADER */}
+                              <div className="relative bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg p-3 sm:p-4 mb-3 sm:mb-4 text-white text-center">
+                                <div className="flex justify-center mb-3">
+                                  <Image
+                                    width={85}
+                                    height={85}
+                                    src={selectedMentor?.image}
+                                    alt={selectedMentor?.name}
+                                    className="rounded-full border-2 border-white shadow object-contain bg-white"
+                                  />
+                                </div>
+
+                                <h3 className="text-lg font-bold">
+                                  {selectedMentor?.name}
+                                </h3>
+                                <p className="text-sm opacity-90">
+                                  {selectedMentor?.role}
+                                </p>
+                              </div>
+
+                              {/* DETAIL */}
+                              <div className="space-y-2 sm:space-y-3 text-left">
+                                <div className="flex items-center gap-2 text-sm text-gray-700">
+                                  <Calendar className="w-4 h-4 text-emerald-500" />
+                                  <span>{selectedMentor?.experience}</span>
+                                </div>
+
+                                <div className="flex items-start gap-2 text-sm text-gray-700">
+                                  <Code className="w-4 h-4 text-emerald-500 shrink-0 mt-1" />
+                                  <span className="leading-relaxed break-words">
+                                    {selectedMentor?.skills}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center gap-2 text-sm text-gray-700">
+                                  <Linkedin className="w-4 h-4 text-emerald-500" />
+                                  <a
+                                    href={selectedMentor?.linkedin}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-emerald-600 hover:underline break-all"
+                                  >
+                                    Linkedin
+                                  </a>
+                                </div>
+
+                                <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-gray-50 rounded-md border">
+                                  <p className="text-sm font-semibold mb-1">
+                                    Biografi
+                                  </p>
+                                  <p className="text-sm text-gray-700 leading-relaxed">
+                                    {selectedMentor?.biography}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </DialogDescription>
+                        </DialogHeader>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                 </div>
               </CarouselItem>
             ))}
@@ -386,7 +395,7 @@ const MentorSection = () => {
         </Carousel>
 
         {/* DOTS */}
-        <div className="flex justify-center mt-4 space-x-1.5">
+        <div className="flex justify-center mt-3 md:mt-4 space-x-2">
           {Array.from({ length: count }).map((_, index) => (
             <button
               key={index}

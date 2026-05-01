@@ -240,4 +240,35 @@ export class AyclBookingController {
       return;
     }
   }
+
+  static async getIncompleteAyclBookings(
+    req: AuthenticatedRequestAyclBooking,
+    res: Response,
+  ) {
+    try {
+      if (!req.user?.userId) {
+        res.status(401).json({
+          success: false,
+          message: "Unauthorized",
+        });
+        return;
+      }
+
+      const data = await AyclBookingService.getIncompleteAyclBookings(
+        req.user.userId,
+      );
+
+      res.status(200).json({
+        success: true,
+        data,
+      });
+      return;
+    } catch (err: any) {
+      res.status(500).json({
+        success: false,
+        message: err.message || "Server error",
+      });
+      return;
+    }
+  }
 }

@@ -22,6 +22,7 @@ const extraRemotePatterns = (() => {
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+
   images: {
     remotePatterns: [
       {
@@ -50,6 +51,20 @@ const nextConfig: NextConfig = {
       },
       ...(extraRemotePatterns as any),
     ],
+  },
+
+  async headers() {
+    return [
+      {
+        source: "/assets/(.*)", // ⬅️ folder asset kamu
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+    ];
   },
 };
 

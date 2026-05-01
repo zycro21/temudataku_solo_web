@@ -329,4 +329,10 @@ router.get(
   AyclBookingController.getAyclBookingStats
 );
 
+router.get(
+  "/mentee/incomplete",
+  authenticate,
+  AyclBookingController.getIncompleteAyclBookings
+);
+
 export default router;

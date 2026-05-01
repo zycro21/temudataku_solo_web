@@ -2,11 +2,11 @@ import Image from "next/image";
 
 export default function AboutSection() {
   return (
-    <section className="py-14 bg-gradient-to-b from-white to-emerald-50/40 relative overflow-hidden">
-      <div className="max-w-[1050px] mx-auto px-4 lg:px-6 relative">
-        <div className="grid lg:grid-cols-2 gap-10 items-center">
+    <section className="py-10 sm:py-12 md:py-14 bg-gradient-to-b from-white to-emerald-50/40 relative overflow-hidden">
+      <div className="max-w-[1050px] mx-auto px-4 sm:px-5 lg:px-6 relative">
+        <div className="grid lg:grid-cols-2 gap-8 sm:gap-10 items-center text-center lg:text-left">
           {/* LEFT SIDE - Logo Card */}
-          <div className="flex justify-center lg:justify-start">
+          <div className="flex justify-center lg:justify-start mb-6 lg:mb-0">
             <div className="relative group">
               {/* Glow Effect */}
               <div className="absolute -inset-3 bg-emerald-200/40 blur-xl rounded-2xl opacity-60 group-hover:opacity-90 transition duration-500"></div>
@@ -25,19 +25,19 @@ export default function AboutSection() {
           </div>
 
           {/* RIGHT SIDE - Content */}
-          <div className="space-y-5">
+          <div className="space-y-4 sm:space-y-5 max-w-md sm:max-w-lg mx-auto lg:mx-0">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
               Siapa Kami?
             </h2>
 
-            <div className="space-y-4 text-gray-700 leading-relaxed text-sm md:text-base">
+            <div className="space-y-3 sm:space-y-4 text-gray-700 leading-relaxed text-xs sm:text-sm md:text-base">
               <p>
                 <strong>TemuDataku</strong> adalah platform edukasi online yang
                 didesain khusus untuk membantu kamu memahami dan menguasai dunia
                 data science dan AI secara praktis.
                 <br />
-                Kami percaya bahwa setiap orang—baik mahasiswa, fresh graduate,
-                maupun profesional—berhak mendapatkan akses belajar yang
+                Kami percaya bahwa setiap orang, baik mahasiswa, fresh graduate,
+                maupun profesional berhak mendapatkan akses belajar yang
                 personal dan relevan.
                 <br />
                 Dengan pendekatan{" "}

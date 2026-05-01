@@ -86,41 +86,6 @@ export default function CheckoutSummary({
     }
 
     if (type === "aycl") {
-      if (!formData.currentStatus?.trim()) {
-        toast.error("Status saat ini wajib diisi.");
-        return false;
-      }
-
-      if (!formData.institution?.trim()) {
-        toast.error("Instansi/Universitas wajib diisi.");
-        return false;
-      }
-
-      if (!formData.studyProgram?.trim()) {
-        toast.error("Program studi wajib diisi.");
-        return false;
-      }
-
-      if (!formData.semester?.trim()) {
-        toast.error("Semester wajib diisi.");
-        return false;
-      }
-
-      if (!formData.age?.toString().trim()) {
-        toast.error("Usia wajib diisi.");
-        return false;
-      }
-
-      if (!formData.reason?.trim()) {
-        toast.error("Alasan mengikuti AYCL wajib diisi.");
-        return false;
-      }
-
-      if (!formData.familiarity?.trim()) {
-        toast.error("Tingkat familiaritas wajib dipilih.");
-        return false;
-      }
-
       // TAMBAH VALIDASI SCHEDULE
       if (
         !formData.selectedSchedules ||
@@ -300,13 +265,6 @@ export default function CheckoutSummary({
           await axios.patch(
             `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/ayclbooking/${ayclBooking.id}`,
             {
-              currentStatus: formData.currentStatus,
-              institution: formData.institution,
-              studyProgram: formData.studyProgram,
-              semester: formData.semester,
-              age: Number(formData.age),
-              reason: formData.reason,
-              familiarity: formData.familiarity,
               selectedSchedules: formData.selectedSchedules ?? [],
             },
             { withCredentials: true },
