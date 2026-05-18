@@ -2,159 +2,241 @@ import { PrismaClient, Prisma } from "@prisma/client";
 import { parseAsync } from "json2csv";
 import ExcelJS from "exceljs";
 import { format as formatDate } from "date-fns";
+import fs from "fs";
+import path from "path";
+import { mentoringThumbnailPath } from "../middlewares/uploadImage.js";
 
 const prisma = new PrismaClient();
 
-export const createMentoringService = async (input: {
-  serviceName: string;
-  description?: string;
-  price: number;
-  serviceType:
-    | "one-on-one"
-    | "group"
-    | "bootcamp"
-    | "shortclass"
-    | "live class";
-  maxParticipants?: number;
-  durationDays: number;
-  mentorProfileIds: string[];
-  benefits?: string;
-  mechanism?: string;
-  syllabusPath?: string;
-  toolsUsed?: string;
-  targetAudience?: string;
-  schedule?: string;
-  alumniPortfolio?: any;
-  category?: string;
-  level?: string;
-  isActive?: boolean;
-  testimonials?: any;
-}) => {
+export const createMentoringService = async (input: any) => {
   const {
     serviceName,
     description,
     price,
-    serviceType,
-    maxParticipants,
+    strikePrice,
     durationDays,
+    startDate,
+    endDate,
+    maxParticipants,
     mentorProfileIds,
-    benefits,
-    mechanism,
-    syllabusPath,
-    toolsUsed,
-    targetAudience,
-    schedule,
-    alumniPortfolio,
+
+    thumbnail,
+
+    programAbout,
+    totalWeeks,
+    totalProjects,
+    whatsappGroup,
+    slug,
+    isFeatured,
+
     category,
     level,
     isActive,
+
+    sections,
+    tools,
+    schedules,
+    portfolios,
     testimonials,
   } = input;
+
+  const serviceType = input.serviceType || "bootcamp";
+
+  if (serviceType === "bootcamp" && startDate && endDate) {
+    if (new Date(endDate) < new Date(startDate)) {
+      throw new Error("End date must be after start date");
+    }
+  }
 
   const slugify = (text: string) =>
     text
       .toLowerCase()
       .trim()
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_+|_+$/g, "");
+      .replace(/[^a-z0-9]+/g, "-");
 
-  const typeSlug = slugify(serviceType);
+  const finalSlug = slug || slugify(serviceName);
 
-  // 1. Cek duplikasi nama + type
+  // cek duplicate
   const duplicate = await prisma.mentoringService.findFirst({
-    where: {
-      serviceName,
-      serviceType,
-    },
+    where: { serviceName, serviceType },
   });
 
   if (duplicate) {
-    throw new Error(
-      "Mentoring service with this name and type already exists.",
-    );
+    throw new Error("Mentoring service already exists.");
   }
 
-  const typesRequireMentor = ["bootcamp", "shortclass", "live class"] as const;
-
-  if (typesRequireMentor.includes(serviceType as any)) {
-    if (!mentorProfileIds || mentorProfileIds.length === 0) {
-      throw new Error(`${serviceType} service must include at least 1 mentor.`);
-    }
-  }
-
-  // 2. Validasi mentorProfileIds
-  if (mentorProfileIds && mentorProfileIds.length > 0) {
-    const foundMentors = await prisma.mentorProfile.findMany({
-      where: { id: { in: mentorProfileIds } },
-      select: { id: true },
-    });
-
-    const foundIds = foundMentors.map((m) => m.id);
-    const notFound = mentorProfileIds.filter((id) => !foundIds.includes(id));
-
-    if (notFound.length > 0) {
-      throw new Error(`Invalid mentor profile ID(s): ${notFound.join(", ")}`);
-    }
-  }
-
-  // 3. Gunakan transaksi
-  const newService = await prisma.$transaction(async (tx) => {
-    const lastService = await tx.mentoringService.findFirst({
+  return await prisma.$transaction(async (tx) => {
+    // generate ID
+    const last = await tx.mentoringService.findFirst({
       where: { serviceType },
       orderBy: { createdAt: "desc" },
-      select: { id: true },
     });
 
-    let nextNumber = 1;
-
-    if (lastService) {
-      const lastNumber = parseInt(lastService.id.split("-").pop() || "0", 10);
-      nextNumber = lastNumber + 1;
+    let next = 1;
+    if (last) {
+      next = parseInt(last.id.split("-").pop() || "0") + 1;
     }
 
-    const paddedNumber = String(nextNumber).padStart(6, "0");
-    const generatedId = `${typeSlug}-${paddedNumber}`;
+    const id = `bootcamp-${String(next).padStart(6, "0")}`;
 
-    const createdService = await tx.mentoringService.create({
+    // const generateId = async (tx: any, table: any, prefix: string) => {
+    //   const last = await tx[table].findFirst({
+    //     orderBy: { id: "desc" },
+    //   });
+
+    //   let next = 1;
+
+    //   if (last?.id) {
+    //     next = parseInt(last.id.split("-").pop() || "0") + 1;
+    //   }
+
+    //   return `${prefix}-${String(next).padStart(6, "0")}`;
+    // };
+
+    let finalDurationDays: number = 1;
+    let finalStartDate: Date | null = null;
+    let finalEndDate: Date | null = null;
+
+    if (serviceType === "bootcamp") {
+      if (startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+
+        if (end < start) {
+          throw new Error("End date must be after start date");
+        }
+
+        const diff = end.getTime() - start.getTime();
+
+        finalDurationDays = Math.ceil(diff / (1000 * 60 * 60 * 24));
+        finalStartDate = start;
+        finalEndDate = end;
+      }
+    } else {
+      finalDurationDays = 1;
+    }
+
+    const created = await tx.mentoringService.create({
       data: {
-        id: generatedId,
+        id,
         serviceName,
         description,
+        thumbnail,
         price,
+        strikePrice,
         serviceType,
+
+        durationDays: finalDurationDays ?? undefined,
+        startDate: finalStartDate ?? undefined,
+        endDate: finalEndDate ?? undefined,
         maxParticipants,
-        durationDays,
-        benefits,
-        mechanism,
-        syllabusPath,
-        toolsUsed,
-        targetAudience,
-        schedule,
+
+        programAbout,
+        totalWeeks,
+        totalProjects,
+
+        whatsappGroup,
+
+        slug: finalSlug,
+        isFeatured: isFeatured ?? false,
+
         category,
         level,
         isActive,
-        alumniPortfolio,
-        testimonials,
 
-        ...(mentorProfileIds && mentorProfileIds.length > 0
+        // 🔥 SECTION
+        sections: sections
+          ? {
+              create: await Promise.all(
+                sections.map(async (s: any, i: number) => ({
+                  // id: await generateId(tx, "mentoringSection", "section"),
+                  type: s.type,
+                  title: s.title,
+                  content: {
+                    title: s.title,
+                    description: s.description,
+                  },
+                  order: i + 1,
+                })),
+              ),
+            }
+          : undefined,
+
+        // 🔥 TOOLS
+        tools: tools
+          ? {
+              create: await Promise.all(
+                tools.map(async (t: string) => ({
+                  // id: await generateId(tx, "mentoringTool", "tool"),
+                  name: t,
+                })),
+              ),
+            }
+          : undefined,
+
+        // 🔥 SCHEDULE
+        schedules: schedules
+          ? {
+              create: await Promise.all(
+                schedules.map(async (d: string) => ({
+                  // id: await generateId(tx, "mentoringSchedule", "schedule"),
+                  date: new Date(d),
+                })),
+              ),
+            }
+          : undefined,
+
+        // 🔥 PORTFOLIO
+        portfolios: portfolios
+          ? {
+              create: await Promise.all(
+                portfolios.map(async (p: any) => ({
+                  // id: await generateId(tx, "mentoringPortfolio", "portfolio"),
+                  ...p,
+                })),
+              ),
+            }
+          : undefined,
+
+        // 🔥 TESTIMONIAL
+        testimonials: testimonials
+          ? {
+              create: await Promise.all(
+                testimonials.map(async (t: any) => ({
+                  // id: await generateId(
+                  //   tx,
+                  //   "mentoringTestimonial",
+                  //   "testimonial",
+                  // ),
+                  ...t,
+                })),
+              ),
+            }
+          : undefined,
+
+        // 🔥 MENTOR RELATION
+        ...(mentorProfileIds?.length
           ? {
               mentors: {
-                create: mentorProfileIds.map((mentorProfileId) => ({
-                  mentorProfile: { connect: { id: mentorProfileId } },
+                create: mentorProfileIds.map((id: string) => ({
+                  mentorProfile: { connect: { id } },
                 })),
               },
             }
           : {}),
       },
       include: {
+        sections: true,
+        tools: true,
+        schedules: true,
+        portfolios: true,
+        testimonials: true,
         mentors: true,
       },
     });
 
-    return createdService;
+    return created;
   });
-
-  return newService;
 };
 
 export const getAllMentoringServices = async ({
@@ -189,6 +271,18 @@ export const getAllMentoringServices = async ({
             mode: Prisma.QueryMode.insensitive,
           },
         },
+        {
+          category: {
+            contains: search,
+            mode: Prisma.QueryMode.insensitive,
+          },
+        },
+        {
+          level: {
+            contains: search,
+            mode: Prisma.QueryMode.insensitive,
+          },
+        },
       ],
     };
   }
@@ -218,6 +312,15 @@ export const getAllMentoringServices = async ({
             },
           },
         },
+
+        // ✅ TAMBAHAN BARU
+        sections: {
+          orderBy: { order: "asc" },
+        },
+        tools: true,
+        schedules: true,
+        portfolios: true,
+        testimonials: true,
       },
     }),
   ]);
@@ -227,11 +330,69 @@ export const getAllMentoringServices = async ({
     page,
     limit,
     data: data.map((svc) => ({
-      ...svc,
+      id: svc.id,
+      serviceName: svc.serviceName,
+      description: svc.description,
+      whatsappGroup: svc.whatsappGroup,
+      thumbnail: svc.thumbnail,
+      serviceType: svc.serviceType,
+      price: Number(svc.price),
+      strikePrice: svc.strikePrice ? Number(svc.strikePrice) : null,
+      maxParticipants: svc.maxParticipants,
+      durationDays: svc.durationDays,
+      startDate: svc.startDate?.toISOString() ?? null,
+      endDate: svc.endDate?.toISOString() ?? null,
+
+      isActive: svc.isActive,
+      category: svc.category,
+      level: svc.level,
+      createdAt: svc.createdAt,
+
+      // ✅ mentors
       mentors: svc.mentors.map((m) => ({
         mentorProfileId: m.mentorProfile.id,
         userId: m.mentorProfile.user.id,
         fullName: m.mentorProfile.user.fullName,
+      })),
+
+      // ✅ sections
+      sections: svc.sections.map((s) => ({
+        id: s.id,
+        type: s.type,
+        title: s.title,
+        description: (s.content as any)?.description,
+        order: s.order,
+      })),
+
+      // ✅ tools
+      tools: svc.tools.map((t) => ({
+        id: t.id,
+        name: t.name,
+      })),
+
+      // ✅ schedules
+      schedules: svc.schedules.map((s) => ({
+        id: s.id,
+        date: s.date,
+      })),
+
+      // ✅ portfolios
+      portfolios: svc.portfolios.map((p) => ({
+        id: p.id,
+        title: p.title,
+        description: p.description,
+        menteeName: p.menteeName,
+        projectLink: p.projectLink,
+        thumbnail: p.thumbnail,
+      })),
+
+      // ✅ testimonials
+      testimonials: svc.testimonials.map((t) => ({
+        id: t.id,
+        name: t.name,
+        role: t.role,
+        comment: t.comment,
+        rating: t.rating,
       })),
     })),
   };
@@ -243,6 +404,7 @@ export const getMentoringServiceDetailById = async (id: string) => {
       where: { id },
       include: {
         certificates: true,
+
         mentors: {
           include: {
             mentorProfile: {
@@ -259,6 +421,7 @@ export const getMentoringServiceDetailById = async (id: string) => {
             },
           },
         },
+
         mentoringSessions: {
           select: {
             id: true,
@@ -271,6 +434,7 @@ export const getMentoringServiceDetailById = async (id: string) => {
           },
           take: 10,
         },
+
         bookings: {
           select: {
             id: true,
@@ -288,6 +452,15 @@ export const getMentoringServiceDetailById = async (id: string) => {
           },
           take: 50,
         },
+
+        // ✅ TAMBAHAN BARU (WAJIB)
+        sections: {
+          orderBy: { order: "asc" },
+        },
+        tools: true,
+        schedules: true,
+        portfolios: true,
+        testimonials: true,
       },
     });
 
@@ -315,25 +488,75 @@ export const getMentoringServiceDetailById = async (id: string) => {
       id: service.id,
       serviceName: service.serviceName,
       description: service.description,
-      price: service.price,
+      thumbnail: service.thumbnail,
+
+      price: Number(service.price),
+      strikePrice: service.strikePrice ? Number(service.strikePrice) : null,
+
       serviceType: service.serviceType,
       maxParticipants: service.maxParticipants,
       durationDays: service.durationDays,
+      startDate: service.startDate?.toISOString() ?? null,
+      endDate: service.endDate?.toISOString() ?? null,
+
+      // ✅ NEW FIELDS (WAJIB DARI SCHEMA BARU)
+      programAbout: service.programAbout,
+      totalWeeks: service.totalWeeks,
+      totalProjects: service.totalProjects,
+      whatsappGroup: service.whatsappGroup,
+
+      slug: service.slug,
+      isFeatured: service.isFeatured,
+      difficultyOrder: service.difficultyOrder,
+
+      category: service.category,
+      level: service.level,
+
       isActive: service.isActive,
+
       createdAt: service.createdAt,
       updatedAt: service.updatedAt,
 
       // Tambahan kolom dari tabel baru
-      benefits: service.benefits,
-      mechanism: service.mechanism,
-      syllabusPath: service.syllabusPath,
-      toolsUsed: service.toolsUsed,
-      targetAudience: service.targetAudience,
-      schedule: service.schedule,
-      category: service.category,
-      level: service.level,
-      alumniPortfolio: service.alumniPortfolio ?? [],
-      testimonials: service.testimonials ?? [],
+      // ✅ SECTIONS (GROUP BY TYPE)
+      sections: service.sections.map((s) => ({
+        id: s.id,
+        type: s.type,
+        title: s.title,
+        description: (s.content as any)?.description,
+        order: s.order,
+      })),
+
+      // ✅ TOOLS
+      tools: service.tools.map((t) => ({
+        id: t.id,
+        name: t.name,
+      })),
+
+      // ✅ SCHEDULES
+      schedules: service.schedules.map((s) => ({
+        id: s.id,
+        date: s.date,
+      })),
+
+      // ✅ PORTFOLIOS
+      portfolios: service.portfolios.map((p) => ({
+        id: p.id,
+        title: p.title,
+        description: p.description,
+        menteeName: p.menteeName,
+        projectLink: p.projectLink,
+        thumbnail: p.thumbnail,
+      })),
+
+      // ✅ TESTIMONIALS
+      testimonials: service.testimonials.map((t) => ({
+        id: t.id,
+        name: t.name,
+        role: t.role,
+        comment: t.comment,
+        rating: t.rating,
+      })),
 
       totalBookings,
       remainingSlots,
@@ -384,46 +607,98 @@ export const updateMentoringServiceById = async (
     serviceName?: string;
     description?: string | null;
     price?: number;
+    strikePrice?: number;
+
     maxParticipants?: number;
-    durationDays?: number;
+    // durationDays?: number;
+    startDate?: string;
+    endDate?: string;
     isActive?: boolean;
+
     mentorProfileIds?: string[];
+    thumbnail?: string;
     serviceType?:
       | "one-on-one"
       | "group"
       | "bootcamp"
       | "shortclass"
       | "live class";
-    benefits?: string | null;
-    mechanism?: string | null;
-    syllabusPath?: string | null;
-    toolsUsed?: string | null;
-    targetAudience?: string | null;
-    schedule?: string | null;
+
+    programAbout?: string;
+    totalWeeks?: number;
+    totalProjects?: number;
+
+    whatsappGroup?: string;
+
+    slug?: string;
+    isFeatured?: boolean;
+
     category?: string;
     level?: string;
-    alumniPortfolio?: any;
-    testimonials?: any;
+
+    sections?: {
+      id?: string;
+      type: "BENEFIT" | "MECHANISM" | "SYLLABUS" | "TARGET";
+      title: string;
+      description: string;
+    }[];
+
+    tools?: {
+      id?: string;
+      name: string;
+    }[];
+
+    schedules?: {
+      id?: string;
+      date: string;
+    }[];
+
+    portfolios?: {
+      id?: string;
+      title: string;
+      description?: string;
+      menteeName: string;
+      projectLink: string;
+      thumbnail?: string;
+    }[];
+
+    testimonials?: {
+      id?: string;
+      name: string;
+      role?: string;
+      comment: string;
+      rating: number;
+    }[];
   },
 ) => {
   const {
     serviceName,
     description,
     price,
+    strikePrice,
     maxParticipants,
-    durationDays,
+    // durationDays,
+    startDate, // ✅ TAMBAHAN
+    endDate, // ✅ TAMBAHAN
     isActive,
     mentorProfileIds,
+    thumbnail,
     serviceType,
-    benefits,
-    mechanism,
-    syllabusPath,
-    toolsUsed,
-    targetAudience,
-    schedule,
+
+    programAbout,
+    totalWeeks,
+    totalProjects,
+    whatsappGroup,
+    slug,
+    isFeatured,
+
     category,
     level,
-    alumniPortfolio,
+
+    sections,
+    tools,
+    schedules,
+    portfolios,
     testimonials,
   } = data;
 
@@ -440,28 +715,105 @@ export const updateMentoringServiceById = async (
     throw new Error("Mentoring service not found");
   }
 
+  if (thumbnail && existingService.thumbnail) {
+    try {
+      const oldPath = path.join(
+        mentoringThumbnailPath,
+        path.basename(existingService.thumbnail),
+      );
+
+      if (fs.existsSync(oldPath)) {
+        fs.unlinkSync(oldPath);
+        console.log("Deleted old thumbnail:", oldPath);
+      }
+    } catch (err) {
+      console.error("Gagal hapus thumbnail lama:", err);
+    }
+  }
+
+  let finalDurationDays: number | undefined;
+  let finalStartDate: Date | null | undefined;
+  let finalEndDate: Date | null | undefined;
+
+  // fallback ke existing kalau tidak dikirim
+  const effectiveServiceType = serviceType ?? existingService.serviceType;
+  const incomingStartDate = data.startDate;
+  const incomingEndDate = data.endDate;
+
+  if (effectiveServiceType === "bootcamp") {
+    const start = incomingStartDate
+      ? new Date(incomingStartDate)
+      : existingService.startDate;
+
+    const end = incomingEndDate
+      ? new Date(incomingEndDate)
+      : existingService.endDate;
+
+    if (start && end) {
+      if (end < start) {
+        throw new Error("End date must be after start date");
+      }
+
+      const diff = end.getTime() - start.getTime();
+      finalDurationDays = Math.ceil(diff / (1000 * 60 * 60 * 24));
+      finalStartDate = start;
+      finalEndDate = end;
+    } else {
+      // kalau salah satu kosong → null semua
+      finalDurationDays = undefined;
+      finalStartDate = null;
+      finalEndDate = null;
+    }
+  } else {
+    // selain bootcamp
+    finalDurationDays = 1;
+    finalStartDate = null;
+    finalEndDate = null;
+  }
+
   const updatePayload: any = {
     serviceName,
     description,
     price,
+    strikePrice,
     maxParticipants,
-    durationDays,
     isActive,
     serviceType,
-    benefits,
-    mechanism,
-    syllabusPath,
-    toolsUsed,
-    targetAudience,
-    schedule,
+
+    durationDays: finalDurationDays,
+    startDate: finalStartDate,
+    endDate: finalEndDate,
+
+    programAbout,
+    totalWeeks,
+    totalProjects,
+    whatsappGroup,
+    slug,
+    isFeatured,
+
     category,
     level,
-    alumniPortfolio,
-    testimonials,
+
+    thumbnail,
+
     updatedAt: new Date(),
   };
 
-  // Hapus key undefined agar tidak ditulis ulang
+  // const generateId = async (tx: any, table: any, prefix: string) => {
+  //   const last = await tx[table].findFirst({
+  //     orderBy: { id: "desc" },
+  //   });
+
+  //   let next = 1;
+
+  //   if (last?.id) {
+  //     next = parseInt(last.id.split("-").pop() || "0") + 1;
+  //   }
+
+  //   return `${prefix}-${String(next).padStart(6, "0")}`;
+  // };
+
+  // remove undefined
   Object.keys(updatePayload).forEach(
     (key) => updatePayload[key] === undefined && delete updatePayload[key],
   );
@@ -471,55 +823,265 @@ export const updateMentoringServiceById = async (
   for (const key of Object.keys(updatePayload)) {
     const oldVal = (existingService as any)[key];
     const newVal = updatePayload[key];
-    const isChanged = JSON.stringify(oldVal) !== JSON.stringify(newVal);
-    if (isChanged) {
+    if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
       updatedFields.push(key);
     }
   }
 
-  // Jalankan transaksi
   await prisma.$transaction(async (tx) => {
+    // ================= UPDATE MAIN =================
     await tx.mentoringService.update({
       where: { id },
       data: updatePayload,
     });
 
+    // ================= MENTOR =================
     if (mentorProfileIds) {
-      const existingMentors = await tx.mentorProfile.findMany({
-        where: { id: { in: mentorProfileIds } },
-        select: { id: true },
+      await tx.mentoringServiceMentor.deleteMany({
+        where: { mentoringServiceId: id },
       });
 
-      const existingIds = new Set(existingMentors.map((m) => m.id));
-      const invalidIds = mentorProfileIds.filter((id) => !existingIds.has(id));
+      await tx.mentoringServiceMentor.createMany({
+        data: mentorProfileIds.map((mentorProfileId) => ({
+          mentoringServiceId: id,
+          mentorProfileId,
+        })),
+      });
 
-      if (invalidIds.length > 0) {
-        throw new Error(`Invalid mentorProfileIds: ${invalidIds.join(", ")}`);
+      updatedFields.push("mentorProfileIds");
+    }
+
+    // ================= SECTIONS =================
+    if (sections) {
+      const existing = await tx.mentoringSection.findMany({
+        where: { serviceId: id },
+      });
+
+      const existingMap = new Map(existing.map((s) => [s.id, s]));
+
+      const incomingIds = sections
+        .filter((s): s is typeof s & { id: string } => !!s.id)
+        .map((s) => s.id);
+
+      // ================= DELETE =================
+      const toDelete = existing.filter((s) => !incomingIds.includes(s.id));
+
+      if (toDelete.length) {
+        await tx.mentoringSection.deleteMany({
+          where: { id: { in: toDelete.map((s) => s.id) } },
+        });
       }
 
-      // Cek apakah mentor berubah
-      const oldMentorIds = existingService.mentors.map(
-        (m) => m.mentorProfileId,
-      );
-      const isMentorChanged =
-        mentorProfileIds.length !== oldMentorIds.length ||
-        !mentorProfileIds.every((id) => oldMentorIds.includes(id));
+      // ================= UPDATE & CREATE =================
+      for (let i = 0; i < sections.length; i++) {
+        const s = sections[i];
 
-      if (isMentorChanged) {
-        updatedFields.push("mentorProfileIds");
+        if (s.id && existingMap.has(s.id)) {
+          // UPDATE
+          await tx.mentoringSection.update({
+            where: { id: s.id },
+            data: {
+              type: s.type,
+              title: s.title,
+              content: {
+                title: s.title,
+                description: s.description,
+              },
+              order: i + 1,
+            },
+          });
+        } else {
+          // CREATE
+          await tx.mentoringSection.create({
+            data: {
+              // id: await generateId(tx, "mentoringSection", "section"),
+              serviceId: id,
+              type: s.type,
+              title: s.title,
+              content: {
+                title: s.title,
+                description: s.description,
+              },
+              order: i + 1,
+            },
+          });
+        }
+      }
 
-        await tx.mentoringServiceMentor.deleteMany({
-          where: { mentoringServiceId: id },
-        });
+      updatedFields.push("sections");
+    }
 
-        await tx.mentoringServiceMentor.createMany({
-          data: mentorProfileIds.map((mentorProfileId) => ({
-            mentoringServiceId: id,
-            mentorProfileId,
-          })),
-          skipDuplicates: true,
+    // ================= TOOLS =================
+    if (tools) {
+      const existing = await tx.mentoringTool.findMany({
+        where: { serviceId: id },
+      });
+
+      const existingMap = new Map(existing.map((t) => [t.id, t]));
+
+      const incomingIds = tools
+        .filter((t): t is typeof t & { id: string } => !!t.id)
+        .map((t) => t.id);
+
+      // DELETE
+      const toDelete = existing.filter((t) => !incomingIds.includes(t.id));
+
+      if (toDelete.length) {
+        await tx.mentoringTool.deleteMany({
+          where: { id: { in: toDelete.map((t) => t.id) } },
         });
       }
+
+      // UPDATE & CREATE
+      for (const t of tools) {
+        if (t.id && existingMap.has(t.id)) {
+          await tx.mentoringTool.update({
+            where: { id: t.id },
+            data: { name: t.name },
+          });
+        } else {
+          await tx.mentoringTool.create({
+            data: {
+              // id: await generateId(tx, "mentoringTool", "tool"),
+              serviceId: id,
+              name: t.name,
+            },
+          });
+        }
+      }
+
+      updatedFields.push("tools");
+    }
+
+    // ================= SCHEDULE =================
+    if (schedules) {
+      const existing = await tx.mentoringSchedule.findMany({
+        where: { serviceId: id },
+      });
+
+      const existingMap = new Map(existing.map((s) => [s.id, s]));
+
+      const incomingIds = schedules
+        .filter((s): s is typeof s & { id: string } => !!s.id)
+        .map((s) => s.id);
+
+      const toDelete = existing.filter((s) => !incomingIds.includes(s.id));
+
+      if (toDelete.length) {
+        await tx.mentoringSchedule.deleteMany({
+          where: { id: { in: toDelete.map((s) => s.id) } },
+        });
+      }
+
+      for (const s of schedules) {
+        if (s.id && existingMap.has(s.id)) {
+          await tx.mentoringSchedule.update({
+            where: { id: s.id },
+            data: { date: new Date(s.date) },
+          });
+        } else {
+          await tx.mentoringSchedule.create({
+            data: {
+              // id: await generateId(tx, "mentoringSchedule", "schedule"),
+              serviceId: id,
+              date: new Date(s.date),
+            },
+          });
+        }
+      }
+
+      updatedFields.push("schedules");
+    }
+
+    // ================= PORTFOLIO =================
+    if (portfolios) {
+      const existing = await tx.mentoringPortfolio.findMany({
+        where: { serviceId: id },
+      });
+
+      const existingMap = new Map(existing.map((p) => [p.id, p]));
+
+      const incomingIds = portfolios
+        .filter((p): p is typeof p & { id: string } => !!p.id)
+        .map((p) => p.id);
+
+      const toDelete = existing.filter((p) => !incomingIds.includes(p.id));
+
+      if (toDelete.length) {
+        await tx.mentoringPortfolio.deleteMany({
+          where: { id: { in: toDelete.map((p) => p.id) } },
+        });
+      }
+
+      for (const p of portfolios) {
+        if (p.id && existingMap.has(p.id)) {
+          await tx.mentoringPortfolio.update({
+            where: { id: p.id },
+            data: {
+              title: p.title,
+              description: p.description,
+              menteeName: p.menteeName,
+              projectLink: p.projectLink,
+              thumbnail: p.thumbnail,
+            },
+          });
+        } else {
+          await tx.mentoringPortfolio.create({
+            data: {
+              // id: await generateId(tx, "mentoringPortfolio", "portfolio"),
+              serviceId: id,
+              ...p,
+            },
+          });
+        }
+      }
+
+      updatedFields.push("portfolios");
+    }
+
+    // ================= TESTIMONIAL =================
+    if (testimonials) {
+      const existing = await tx.mentoringTestimonial.findMany({
+        where: { serviceId: id },
+      });
+
+      const existingMap = new Map(existing.map((t) => [t.id, t]));
+
+      const incomingIds = testimonials
+        .filter((t): t is typeof t & { id: string } => !!t.id)
+        .map((t) => t.id);
+
+      const toDelete = existing.filter((t) => !incomingIds.includes(t.id));
+
+      if (toDelete.length) {
+        await tx.mentoringTestimonial.deleteMany({
+          where: { id: { in: toDelete.map((t) => t.id) } },
+        });
+      }
+
+      for (const t of testimonials) {
+        if (t.id && existingMap.has(t.id)) {
+          await tx.mentoringTestimonial.update({
+            where: { id: t.id },
+            data: {
+              name: t.name,
+              role: t.role,
+              comment: t.comment,
+              rating: t.rating,
+            },
+          });
+        } else {
+          await tx.mentoringTestimonial.create({
+            data: {
+              // id: await generateId(tx, "mentoringTestimonial", "testimonial"),
+              serviceId: id,
+              ...t,
+            },
+          });
+        }
+      }
+
+      updatedFields.push("testimonials");
     }
   });
 
@@ -558,7 +1120,7 @@ export const updateMentoringServiceById = async (
     },
   });
 
-  // Helper khusus MentoringSession (format dd-mm-yyyy)
+  // ❗ JANGAN DIUBAH (sesuai request kamu)
   const parseDateTime = (date: string, time: string) => {
     if (!date || !time) return null;
 
@@ -643,6 +1205,13 @@ export const exportMentoringServicesToFile = async (
           },
         },
       },
+
+      // ✅ TAMBAHAN BARU (WAJIB)
+      sections: true,
+      tools: true,
+      schedules: true,
+      portfolios: true,
+      testimonials: true,
     },
   });
 
@@ -658,27 +1227,37 @@ export const exportMentoringServicesToFile = async (
     return {
       ID: service.id,
       "Service Name": service.serviceName,
+      Thumbnail: service.thumbnail
+        ? `${process.env.BACKEND_URL}${service.thumbnail}`
+        : "-",
       Description: service.description || "-",
+
       Price: service.price?.toString() ?? "0",
+      "Strike Price": service.strikePrice?.toString() ?? "-",
+
       "Service Type": service.serviceType || "-",
+
       Category: service.category || "-",
       Level: service.level || "-",
+
+      "Program About": service.programAbout || "-",
+      "Total Weeks": service.totalWeeks ?? "-",
+      "Total Projects": service.totalProjects ?? "-",
+      "Whatsapp Group": service.whatsappGroup,
+
+      Slug: service.slug || "-",
+      "Is Featured": service.isFeatured ? "Yes" : "No",
+      "Difficulty Order": service.difficultyOrder ?? "-",
+
       "Max Participants": service.maxParticipants ?? "-",
       "Duration (Days)": service.durationDays,
-      Benefits: service.benefits || "-",
-      Mechanism: service.mechanism || "-",
-      "Syllabus Path": service.syllabusPath || "-",
-      "Tools Used": service.toolsUsed || "-",
-      "Target Audience": service.targetAudience || "-",
-      Schedule: service.schedule || "-",
 
-      // JSON → stringify supaya tidak jadi [object Object]
-      "Alumni Portfolio": service.alumniPortfolio
-        ? JSON.stringify(service.alumniPortfolio)
+      "Start Date": service.startDate
+        ? formatDate(service.startDate, "yyyy-MM-dd HH:mm:ss")
         : "-",
 
-      Testimonials: service.testimonials
-        ? JSON.stringify(service.testimonials)
+      "End Date": service.endDate
+        ? formatDate(service.endDate, "yyyy-MM-dd HH:mm:ss")
         : "-",
 
       "Is Active": service.isActive ? "Yes" : "No",
@@ -692,6 +1271,34 @@ export const exportMentoringServicesToFile = async (
         "yyyy-MM-dd HH:mm:ss",
       ),
 
+      // ✅ RELATIONS (DI-STRINGIFY)
+      Sections: service.sections.length
+        ? JSON.stringify(
+            service.sections.map((s) => ({
+              type: s.type,
+              title: s.title,
+              description: (s.content as any)?.description,
+            })),
+          )
+        : "-",
+
+      Tools: service.tools.length
+        ? service.tools.map((t) => t.name).join(", ")
+        : "-",
+
+      Schedules: service.schedules.length
+        ? service.schedules.map((s) => s.date.toISOString()).join(", ")
+        : "-",
+
+      Portfolios: service.portfolios.length
+        ? JSON.stringify(service.portfolios)
+        : "-",
+
+      Testimonials: service.testimonials.length
+        ? JSON.stringify(service.testimonials)
+        : "-",
+
+      // ✅ MENTORS
       "Mentor IDs": mentorIds || "-",
       "Mentor Names": mentorNames || "-",
       "Mentor Emails": mentorEmails || "-",
@@ -745,7 +1352,8 @@ export const getMentoringServicesByMentor = async (mentorId: string) => {
           include: {
             mentoringService: {
               include: {
-                mentoringSessions: true, // ⬅ include sessions
+                mentoringSessions: true,
+
                 mentors: {
                   include: {
                     mentorProfile: {
@@ -755,6 +1363,15 @@ export const getMentoringServicesByMentor = async (mentorId: string) => {
                     },
                   },
                 },
+
+                // ✅ TAMBAHAN BARU
+                sections: {
+                  orderBy: { order: "asc" },
+                },
+                tools: true,
+                schedules: true,
+                portfolios: true,
+                testimonials: true,
               },
             },
           },
@@ -765,52 +1382,99 @@ export const getMentoringServicesByMentor = async (mentorId: string) => {
     if (!mentorProfile) return [];
 
     const today = new Date();
-    const todayFormatted = `${String(today.getDate()).padStart(2, "0")}-${String(
-      today.getMonth() + 1,
-    ).padStart(2, "0")}-${today.getFullYear()}`;
 
     const services = mentorProfile.mentoringServices
       .map((link) => link.mentoringService)
 
-      // ✅ FILTER: hanya yang punya session
+      // punya session
       .filter((service) => service.mentoringSessions.length > 0)
 
-      // ✅ FILTER: hanya yang punya session >= hari ini
+      // session >= hari ini
       .filter((service) =>
         service.mentoringSessions.some((session) => {
           const [day, month, year] = session.date.split("-");
           const sessionDate = new Date(`${year}-${month}-${day}`);
-          return (
-            sessionDate >=
-            new Date(todayFormatted.split("-").reverse().join("-"))
-          );
+
+          return sessionDate >= today;
         }),
       );
 
     return services.map((service) => ({
       id: service.id,
       serviceName: service.serviceName,
+      thumbnail: service.thumbnail,
       description: service.description,
-      price: Number(service.price), // ✅ Decimal → number
+
+      price: Number(service.price),
+      strikePrice: service.strikePrice ? Number(service.strikePrice) : null,
+
       serviceType: service.serviceType,
       maxParticipants: service.maxParticipants,
       durationDays: service.durationDays,
-      benefits: service.benefits,
-      mechanism: service.mechanism,
-      syllabusPath: service.syllabusPath,
-      toolsUsed: service.toolsUsed,
-      targetAudience: service.targetAudience,
-      schedule: service.schedule,
-      alumniPortfolio: service.alumniPortfolio,
-      category: service.category, // ✅ tambahan
-      level: service.level, // ✅ tambahan
-      testimonials: service.testimonials, // ✅ tambahan
+
+      startDate: service.startDate?.toISOString() ?? null,
+      endDate: service.endDate?.toISOString() ?? null,
+
+      // ✅ NEW FIELDS
+      programAbout: service.programAbout,
+      totalWeeks: service.totalWeeks,
+      totalProjects: service.totalProjects,
+      whatsappGroup: service.whatsappGroup,
+
+      slug: service.slug,
+      isFeatured: service.isFeatured,
+      difficultyOrder: service.difficultyOrder,
+
+      category: service.category,
+      level: service.level,
+
       isActive: service.isActive,
       createdAt: service.createdAt,
       updatedAt: service.updatedAt,
 
-      mentoringSessions: service.mentoringSessions, // optional kalau mau kirim ke frontend
+      // ✅ SECTIONS
+      sections: service.sections.map((s) => ({
+        id: s.id,
+        type: s.type,
+        title: s.title,
+        description: (s.content as any)?.description,
+        order: s.order,
+      })),
 
+      // ✅ TOOLS
+      tools: service.tools.map((t) => ({
+        id: t.id,
+        name: t.name,
+      })),
+
+      // ✅ SCHEDULES
+      schedules: service.schedules.map((s) => ({
+        id: s.id,
+        date: s.date,
+      })),
+
+      // ✅ PORTFOLIOS
+      portfolios: service.portfolios.map((p) => ({
+        id: p.id,
+        title: p.title,
+        description: p.description,
+        menteeName: p.menteeName,
+        projectLink: p.projectLink,
+        thumbnail: p.thumbnail,
+      })),
+
+      // ✅ TESTIMONIALS
+      testimonials: service.testimonials.map((t) => ({
+        id: t.id,
+        name: t.name,
+        role: t.role,
+        comment: t.comment,
+        rating: t.rating,
+      })),
+
+      mentoringSessions: service.mentoringSessions,
+
+      // ✅ MENTORS
       mentors: service.mentors.map((mentorLink) => ({
         mentorProfileId: mentorLink.mentorProfile.id,
         expertise: mentorLink.mentorProfile.expertise,
@@ -873,7 +1537,17 @@ export const getMentoringServiceDetailForMentor = async (
             },
           },
         },
+
         mentoringSessions: true,
+
+        // ✅ NEW RELATIONS
+        sections: {
+          orderBy: { order: "asc" },
+        },
+        tools: true,
+        schedules: true,
+        portfolios: true,
+        testimonials: true,
       },
     });
 
@@ -884,9 +1558,16 @@ export const getMentoringServiceDetailForMentor = async (
     const upcomingSessions = service.mentoringSessions
       .map((session) => {
         const [day, month, year] = session.date.split("-");
-        const formattedDate = `${year}-${month}-${day}`;
-        const startDateTime = new Date(`${formattedDate}T${session.startTime}`);
-        const endDateTime = new Date(`${formattedDate}T${session.endTime}`);
+
+        // pad biar selalu 2 digit
+        const dd = day.padStart(2, "0");
+        const mm = month.padStart(2, "0");
+
+        // pastikan format ISO valid
+        const isoDate = `${year}-${mm}-${dd}`;
+
+        const startDateTime = new Date(`${isoDate}T${session.startTime}:00`);
+        const endDateTime = new Date(`${isoDate}T${session.endTime}:00`);
 
         return {
           raw: session,
@@ -908,23 +1589,72 @@ export const getMentoringServiceDetailForMentor = async (
       id: service.id,
       serviceName: service.serviceName,
       description: service.description,
-      price: Number(service.price), // ✅ Decimal fix
+      thumbnail: service.thumbnail,
+      price: Number(service.price),
+      strikePrice: service.strikePrice ? Number(service.strikePrice) : null,
+
       serviceType: service.serviceType,
       maxParticipants: service.maxParticipants,
       durationDays: service.durationDays,
-      benefits: service.benefits,
-      mechanism: service.mechanism,
-      syllabusPath: service.syllabusPath,
-      toolsUsed: service.toolsUsed,
-      targetAudience: service.targetAudience,
-      schedule: service.schedule,
-      alumniPortfolio: service.alumniPortfolio,
-      category: service.category, // ✅ tambahan
-      level: service.level, // ✅ tambahan
-      testimonials: service.testimonials, // ✅ tambahan
+      startDate: service.startDate?.toISOString() ?? null,
+      endDate: service.endDate?.toISOString() ?? null,
+
+      // ✅ NEW SIMPLE FIELDS
+      programAbout: service.programAbout,
+      totalWeeks: service.totalWeeks,
+      totalProjects: service.totalProjects,
+      whatsappGroup: service.whatsappGroup,
+
+      slug: service.slug,
+      isFeatured: service.isFeatured,
+      difficultyOrder: service.difficultyOrder,
+
+      category: service.category,
+      level: service.level,
+
       isActive: service.isActive,
       createdAt: service.createdAt,
       updatedAt: service.updatedAt,
+
+      // ✅ SECTIONS (replace benefits, dll)
+      sections: service.sections.map((s) => ({
+        id: s.id,
+        type: s.type,
+        title: s.title,
+        content: s.content,
+        order: s.order,
+      })),
+
+      // ✅ TOOLS
+      tools: service.tools.map((t) => ({
+        id: t.id,
+        name: t.name,
+      })),
+
+      // ✅ SCHEDULES
+      schedules: service.schedules.map((s) => ({
+        id: s.id,
+        date: s.date,
+      })),
+
+      // ✅ PORTFOLIOS
+      portfolios: service.portfolios.map((p) => ({
+        id: p.id,
+        title: p.title,
+        description: p.description,
+        menteeName: p.menteeName,
+        projectLink: p.projectLink,
+        thumbnail: p.thumbnail,
+      })),
+
+      // ✅ TESTIMONIALS
+      testimonials: service.testimonials.map((t) => ({
+        id: t.id,
+        name: t.name,
+        role: t.role,
+        comment: t.comment,
+        rating: t.rating,
+      })),
 
       mentors: service.mentors.map((m) => ({
         mentorProfileId: m.mentorProfile.id,
@@ -1022,7 +1752,7 @@ export const getPublicMentoringServices = async (
       },
     });
 
-    const totalPage = Math.ceil(totalData / limit);
+    const totalPage = Math.ceil(totalData / finalLimit);
 
     const services = await prisma.mentoringService.findMany({
       where: {
@@ -1048,6 +1778,15 @@ export const getPublicMentoringServices = async (
             },
           },
         },
+
+        // ✅ NEW RELATIONS
+        sections: {
+          orderBy: { order: "asc" },
+        },
+        tools: true,
+        schedules: true,
+        portfolios: true,
+        testimonials: true,
       },
     });
 
@@ -1055,25 +1794,72 @@ export const getPublicMentoringServices = async (
       id: service.id,
       serviceName: service.serviceName,
       description: service.description,
+      thumbnail: service.thumbnail,
       price: Number(service.price),
+      strikePrice: service.strikePrice ? Number(service.strikePrice) : null,
+
       serviceType: service.serviceType,
       maxParticipants: service.maxParticipants,
       durationDays: service.durationDays,
-      benefits: service.benefits,
-      mechanism: service.mechanism,
-      syllabusPath: service.syllabusPath,
-      toolsUsed: service.toolsUsed,
-      targetAudience: service.targetAudience,
-      schedule: service.schedule,
-      alumniPortfolio: service.alumniPortfolio,
+      startDate: service.startDate?.toISOString() ?? null,
+      endDate: service.endDate?.toISOString() ?? null,
 
-      // ✅ TAMBAHAN
+      // ✅ NEW FIELDS
+      programAbout: service.programAbout,
+      totalWeeks: service.totalWeeks,
+      totalProjects: service.totalProjects,
+      whatsappGroup: service.whatsappGroup,
+
+      slug: service.slug,
+      isFeatured: service.isFeatured,
+      difficultyOrder: service.difficultyOrder,
+
       category: service.category,
       level: service.level,
-      testimonials: service.testimonials,
+
       isActive: service.isActive,
       createdAt: service.createdAt,
       updatedAt: service.updatedAt,
+
+      // ✅ SECTIONS
+      sections: service.sections.map((s) => ({
+        id: s.id,
+        type: s.type,
+        title: s.title,
+        content: s.content,
+        order: s.order,
+      })),
+
+      // ✅ TOOLS
+      tools: service.tools.map((t) => ({
+        id: t.id,
+        name: t.name,
+      })),
+
+      // ✅ SCHEDULES
+      schedules: service.schedules.map((s) => ({
+        id: s.id,
+        date: s.date,
+      })),
+
+      // ✅ PORTFOLIOS
+      portfolios: service.portfolios.map((p) => ({
+        id: p.id,
+        title: p.title,
+        description: p.description,
+        menteeName: p.menteeName,
+        projectLink: p.projectLink,
+        thumbnail: p.thumbnail,
+      })),
+
+      // ✅ TESTIMONIALS
+      testimonials: service.testimonials.map((t) => ({
+        id: t.id,
+        name: t.name,
+        role: t.role,
+        comment: t.comment,
+        rating: t.rating,
+      })),
 
       mentors: service.mentors.map((m) => ({
         mentorProfileId: m.mentorProfile.id,
@@ -1114,11 +1900,6 @@ export const getPublicBootcamps = async (
     const today = new Date();
     const fiveDaysLater = new Date();
     fiveDaysLater.setDate(today.getDate() + 1);
-
-    const parseDDMMYYYY = (dateString: string) => {
-      const [day, month, year] = dateString.split("-");
-      return new Date(Number(year), Number(month) - 1, Number(day));
-    };
 
     const where: any = {
       isActive: true,
@@ -1169,7 +1950,7 @@ export const getPublicBootcamps = async (
             },
           },
         },
-        mentoringSessions: true,
+        // mentoringSessions: true,
         mentors: {
           include: {
             mentorProfile: {
@@ -1185,12 +1966,55 @@ export const getPublicBootcamps = async (
             },
           },
         },
+
+        // ✅ NEW RELATIONS
+        sections: {
+          orderBy: { order: "asc" },
+        },
+        tools: true,
+        schedules: true,
+        portfolios: true,
+        testimonials: true,
       },
     });
 
     // 🔥 FILTER LOGIC FIXED
+    // 🔥 FILTER BERDASARKAN:
+    // 1. isActive = true
+    // 2. masih dalam rentang startDate - endDate
+    // 3. kuota belum penuh
+
+    const normalizedToday = new Date();
+    normalizedToday.setHours(0, 0, 0, 0);
+
     const filtered = services.filter((service) => {
-      // 1️⃣ CEK KUOTA
+      // ✅ HARUS ACTIVE
+      if (!service.isActive) {
+        return false;
+      }
+
+      // ✅ HARUS PUNYA START & END DATE
+      if (!service.startDate || !service.endDate) {
+        return false;
+      }
+
+      const startDate = new Date(service.startDate);
+      const endDate = new Date(service.endDate);
+
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(23, 59, 59, 999);
+
+      // ✅ BELUM MASUK RENTANG
+      if (normalizedToday < startDate) {
+        return false;
+      }
+
+      // ✅ SUDAH LEWAT
+      if (normalizedToday > endDate) {
+        return false;
+      }
+
+      // ✅ KUOTA PENUH
       if (
         service.maxParticipants &&
         service.bookings.length >= service.maxParticipants
@@ -1198,34 +2022,6 @@ export const getPublicBootcamps = async (
         return false;
       }
 
-      // 2️⃣ HARUS PUNYA SESSION
-      if (
-        !service.mentoringSessions ||
-        service.mentoringSessions.length === 0
-      ) {
-        return false;
-      }
-
-      // 🔥 SORT SEMUA SESSION (BUKAN HANYA FUTURE)
-      const sortedSessions = [...service.mentoringSessions].sort(
-        (a, b) =>
-          parseDDMMYYYY(a.date).getTime() - parseDDMMYYYY(b.date).getTime(),
-      );
-
-      const firstSessionDate = parseDDMMYYYY(sortedSessions[0].date);
-
-      // NORMALISASI TODAY KE JAM 00:00
-      const normalizedToday = new Date();
-      normalizedToday.setHours(0, 0, 0, 0);
-
-      // 🔥 H-1 DARI TANGGAL SESSION PERTAMA
-      const hMinusOneDate = new Date(firstSessionDate);
-      hMinusOneDate.setDate(firstSessionDate.getDate() - 1);
-
-      // 🔥 JIKA SUDAH MASUK H-1 ATAU LEWAT → HILANGKAN
-      if (normalizedToday >= hMinusOneDate) {
-        return false;
-      }
       return true;
     });
 
@@ -1235,52 +2031,80 @@ export const getPublicBootcamps = async (
     const paginated = filtered.slice(skip, skip + limit);
 
     const formatted = paginated.map((service) => {
-      // let nextSessionDate: string | null = null;
-      // if (service.mentoringSessions.length > 0) {
-      //   const sortedSessions = [...service.mentoringSessions].sort(
-      //     (a, b) =>
-      //       parseDDMMYYYY(a.date).getTime() - parseDDMMYYYY(b.date).getTime(),
-      //   );
-
-      //   nextSessionDate = sortedSessions[0].date;
-      // }
-
-      let sessionDateRange: string | null = null;
-      if (service.mentoringSessions.length > 0) {
-        const sortedSessions = [...service.mentoringSessions].sort(
-          (a, b) =>
-            parseDDMMYYYY(a.date).getTime() - parseDDMMYYYY(b.date).getTime(),
-        );
-
-        const firstDate = sortedSessions[0].date;
-        const lastDate = sortedSessions[sortedSessions.length - 1].date;
-
-        sessionDateRange =
-          firstDate === lastDate ? firstDate : `${firstDate} - ${lastDate}`;
-      }
-
       return {
         id: service.id,
         serviceName: service.serviceName,
         description: service.description,
-        price: service.price,
+        thumbnail: service.thumbnail,
+
+        price: Number(service.price),
+        strikePrice: service.strikePrice ? Number(service.strikePrice) : null,
+
         category: service.category,
         level: service.level,
+
         durationDays: service.durationDays,
         maxParticipants: service.maxParticipants,
-        benefits: service.benefits,
-        mechanism: service.mechanism,
-        syllabusPath: service.syllabusPath,
-        toolsUsed: service.toolsUsed,
-        targetAudience: service.targetAudience,
-        schedule: service.schedule,
-        alumniPortfolio: service.alumniPortfolio,
-        testimonials: service.testimonials,
+
+        startDate: service.startDate?.toISOString() ?? null,
+        endDate: service.endDate?.toISOString() ?? null,
+
+        // ✅ NEW FIELDS
+        programAbout: service.programAbout,
+        totalWeeks: service.totalWeeks,
+        totalProjects: service.totalProjects,
+        whatsappGroup: service.whatsappGroup,
+
+        slug: service.slug,
+        isFeatured: service.isFeatured,
+        difficultyOrder: service.difficultyOrder,
+
+        isActive: service.isActive,
+        createdAt: service.createdAt,
+        updatedAt: service.updatedAt,
+
+        // ✅ RELATIONS
+        sections: service.sections.map((s) => ({
+          id: s.id,
+          type: s.type,
+          title: s.title,
+          content: s.content,
+          order: s.order,
+        })),
+
+        tools: service.tools.map((t) => ({
+          id: t.id,
+          name: t.name,
+        })),
+
+        schedules: service.schedules.map((s) => ({
+          id: s.id,
+          date: s.date,
+        })),
+
+        portfolios: service.portfolios.map((p) => ({
+          id: p.id,
+          title: p.title,
+          description: p.description,
+          menteeName: p.menteeName,
+          projectLink: p.projectLink,
+          thumbnail: p.thumbnail,
+        })),
+
+        testimonials: service.testimonials.map((t) => ({
+          id: t.id,
+          name: t.name,
+          role: t.role,
+          comment: t.comment,
+          rating: t.rating,
+        })),
+
         availableSlots: service.maxParticipants
           ? service.maxParticipants - service.bookings.length
           : null,
-        // nextSessionDate,
-        sessionDateRange,
+
+        // sessionDateRange,
+
         mentors: service.mentors.map((m) => ({
           mentorProfileId: m.mentorProfile.id,
           expertise: m.mentorProfile.expertise,
@@ -1332,6 +2156,9 @@ export const getRecommendedBootcamps = async (
       include: {
         bookings: true,
         mentoringSessions: true,
+
+        // ✅ TAMBAHAN
+        tools: true,
       },
     });
 
@@ -1386,10 +2213,14 @@ export const getRecommendedBootcamps = async (
       return {
         id: service.id,
         serviceName: service.serviceName,
-        price: service.price,
+        thumbnail: service.thumbnail,
+        price: Number(service.price),
+        strikePrice: service.strikePrice ? Number(service.strikePrice) : null,
         category: service.category,
         level: service.level,
-        toolsUsed: service.toolsUsed,
+        startDate: service.startDate?.toISOString() ?? null,
+        endDate: service.endDate?.toISOString() ?? null,
+        toolsUsed: service.tools.map((t) => t.name).join(", "),
         availableSlots: service.maxParticipants
           ? service.maxParticipants - confirmedCount
           : null,
@@ -1401,10 +2232,10 @@ export const getRecommendedBootcamps = async (
   }
 };
 
-export const getPublicMentoringServiceDetail = async (id: string) => {
+export const getPublicMentoringServiceDetail = async (slug: string) => {
   const service = await prisma.mentoringService.findFirst({
     where: {
-      id,
+      slug,
       isActive: true,
       mentors: {
         some: {
@@ -1432,6 +2263,7 @@ export const getPublicMentoringServiceDetail = async (id: string) => {
           },
         },
       },
+
       mentoringSessions: {
         orderBy: {
           date: "asc",
@@ -1446,6 +2278,15 @@ export const getPublicMentoringServiceDetail = async (id: string) => {
           notes: true,
         },
       },
+
+      // ✅ NEW RELATIONS
+      sections: {
+        orderBy: { order: "asc" },
+      },
+      tools: true,
+      schedules: true,
+      portfolios: true,
+      testimonials: true,
     },
   });
 
@@ -1496,27 +2337,79 @@ export const getPublicMentoringServiceDetail = async (id: string) => {
     id: service.id,
     serviceName: service.serviceName,
     description: service.description,
-    price: service.price,
+    thumbnail: service.thumbnail,
+
+    price: Number(service.price),
+    strikePrice: service.strikePrice ? Number(service.strikePrice) : null,
+
     serviceType: service.serviceType,
     maxParticipants: service.maxParticipants,
     durationDays: service.durationDays,
-    benefits: service.benefits,
-    mechanism: service.mechanism,
-    syllabusPath: service.syllabusPath,
-    toolsUsed: service.toolsUsed,
-    targetAudience: service.targetAudience,
-    schedule: service.schedule,
-    alumniPortfolio: service.alumniPortfolio,
+
+    startDate: service.startDate?.toISOString() ?? null,
+    endDate: service.endDate?.toISOString() ?? null,
+
+    // ✅ NEW SIMPLE FIELDS
+    programAbout: service.programAbout,
+    totalWeeks: service.totalWeeks ?? totalWeeks,
+    totalProjects: service.totalProjects ?? totalProjects,
+    whatsappGroup: service.whatsappGroup,
+
+    slug: service.slug,
+    isFeatured: service.isFeatured,
+    difficultyOrder: service.difficultyOrder,
+
     category: service.category,
     level: service.level,
-    testimonials: service.testimonials,
+
     isActive: service.isActive,
     createdAt: service.createdAt,
     updatedAt: service.updatedAt,
+
     sessionDateRange,
-    totalWeeks,
-    totalProjects,
+
+    // ✅ SECTIONS (replace benefits dll)
+    sections: service.sections.map((s) => ({
+      id: s.id,
+      type: s.type,
+      title: s.title,
+      content: s.content,
+      order: s.order,
+    })),
+
+    // ✅ TOOLS (replace toolsUsed)
+    tools: service.tools.map((t) => ({
+      id: t.id,
+      name: t.name,
+    })),
+
+    // ✅ SCHEDULES
+    schedules: service.schedules.map((s) => ({
+      id: s.id,
+      date: s.date,
+    })),
+
+    // ✅ PORTFOLIOS
+    portfolios: service.portfolios.map((p) => ({
+      id: p.id,
+      title: p.title,
+      description: p.description,
+      menteeName: p.menteeName,
+      projectLink: p.projectLink,
+      thumbnail: p.thumbnail,
+    })),
+
+    // ✅ TESTIMONIALS
+    testimonials: service.testimonials.map((t) => ({
+      id: t.id,
+      name: t.name,
+      role: t.role,
+      comment: t.comment,
+      rating: t.rating,
+    })),
+
     mentoringSessions: service.mentoringSessions,
+
     mentors: service.mentors
       .filter((m) => m.mentorProfile?.isVerified)
       .map((m) => ({
@@ -1563,11 +2456,6 @@ export const getNewServices = async (
 
   // 🔹 Ambil semua practiceId & mentoringServiceId yang sudah dibeli/dibooking
 
-  // const purchasedPractices = await prisma.practicePurchase.findMany({
-  //   where: { userId },
-  //   select: { practiceId: true },
-  // });
-
   const bookedServices = await prisma.booking.findMany({
     where: {
       menteeId: userId,
@@ -1594,19 +2482,18 @@ export const getNewServices = async (
 
   const mentoringServices = await prisma.mentoringService.findMany({
     where: mentoringWhere,
-    select: {
-      id: true,
-      serviceName: true,
-      description: true,
-      price: true,
-      durationDays: true,
-      benefits: true,
-      serviceType: true,
-      createdAt: true,
+    include: {
       mentoringSessions: {
         select: { date: true },
         orderBy: { date: "asc" },
       },
+
+      // ✅ NEW RELATIONS
+      tools: true,
+      sections: true,
+      testimonials: true,
+      portfolios: true,
+      schedules: true,
     },
   });
 
@@ -1628,31 +2515,6 @@ export const getNewServices = async (
   });
 
   // ======================================================
-  // 🔹 Ambil Practice (TIDAK DIPAKAI LAGI)
-  // ======================================================
-
-  // const practiceWhere: Prisma.PracticeWhereInput = {
-  //   isActive: true,
-  //   id: { notIn: purchasedPracticeIds },
-  //   ...(search && {
-  //     title: { contains: search, mode: "insensitive" },
-  //   }),
-  // };
-
-  // const practices = await prisma.practice.findMany({
-  //   where: practiceWhere,
-  //   select: {
-  //     id: true,
-  //     title: true,
-  //     description: true,
-  //     price: true,
-  //     category: true,
-  //     mentorId: true,
-  //     createdAt: true,
-  //   },
-  // });
-
-  // ======================================================
   // 🔹 Mapping hasil
   // ======================================================
 
@@ -1663,44 +2525,66 @@ export const getNewServices = async (
       );
     });
 
-    let dateStart: string | null = null;
-    let dateEnd: string | null = null;
+    // let dateStart: string | null = null;
+    // let dateEnd: string | null = null;
 
-    if (sortedSessions.length > 0) {
-      dateStart = sortedSessions[0].date;
-      dateEnd = sortedSessions[sortedSessions.length - 1].date;
-    }
+    // if (sortedSessions.length > 0) {
+    //   dateStart = sortedSessions[0].date;
+    //   dateEnd = sortedSessions[sortedSessions.length - 1].date;
+    // }
 
     return {
       type: "mentoring",
       id: m.id,
       title: m.serviceName,
       description: m.description ?? "-",
-      price: m.price,
-      durationDays: m.durationDays,
-      benefits: m.benefits,
+      thumbnail: m.thumbnail,
+      price: Number(m.price),
+      strikePrice: m.strikePrice ? Number(m.strikePrice) : null,
+
       serviceType: m.serviceType,
-      dateStart,
-      dateEnd,
+      durationDays: m.durationDays,
+
+      startDate: m.startDate?.toISOString() ?? null,
+      endDate: m.endDate?.toISOString() ?? null,
+
+      // ✅ NEW FIELDS
+      programAbout: m.programAbout,
+      totalWeeks: m.totalWeeks,
+      totalProjects: m.totalProjects,
+      whatsappGroup: m.whatsappGroup,
+      slug: m.slug,
+      isFeatured: m.isFeatured,
+      difficultyOrder: m.difficultyOrder,
+      category: m.category,
+      level: m.level,
+
+      // ✅ REPLACEMENT benefits
+      sections: m.sections.map((s) => ({
+        id: s.id,
+        type: s.type,
+        title: s.title,
+        content: s.content,
+        order: s.order,
+      })),
+
+      // ✅ REPLACEMENT toolsUsed
+      tools: m.tools.map((t) => ({
+        id: t.id,
+        name: t.name,
+      })),
+
+      // Tambahan saja
+      testimonials: m.testimonials,
+      portfolios: m.portfolios,
+      schedules: m.schedules,
+
+      // dateStart,
+      // dateEnd,
       schedule: "Online",
       createdAt: m.createdAt,
     };
   });
-
-  // const practiceMapped = practices.map((p) => ({
-  //   type: "practice",
-  //   id: p.id,
-  //   title: p.title,
-  //   description: p.description ?? "-",
-  //   price: p.price,
-  //   category: p.category,
-  //   mentorId: p.mentorId,
-  //   dateStart: p.createdAt?.toISOString() ?? null,
-  //   dateEnd: p.createdAt?.toISOString() ?? null,
-  //   schedule: "Tugas Online",
-  //   createdAt: p.createdAt,
-  // }));
-
   // ======================================================
   // 🔹 Sorting
   // ======================================================

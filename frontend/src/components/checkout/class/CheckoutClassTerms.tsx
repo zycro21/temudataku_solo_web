@@ -75,25 +75,27 @@ export default function CheckoutClassTerms({
   }, [isChecked]);
 
   return (
-    <div className="mt-0 p-6 pl-6 md:pl-10 space-y-5 max-w-[60rem]">
-      <h2 className="text-2xl font-bold">Syarat dan Ketentuan</h2>
+    <div className="mt-0 p-4 md:p-6 md:pl-10 space-y-5 max-w-[60rem]">
+      <h2 className="text-lg md:text-2xl font-bold text-center md:text-left">
+        Syarat dan Ketentuan
+      </h2>
 
       {/* ===============================
          COUPON SECTION
       =============================== */}
-      <div className="border rounded-xl px-3 py-4 md:px-5 md:py-5 flex items-center gap-3 w-full">
-        <span className="shrink-0 text-base md:text-lg font-semibold">
+      <div className="border rounded-xl px-3 py-3 md:px-5 md:py-4 flex flex-col md:flex-row items-stretch md:items-center gap-3 w-full">
+        <span className="shrink-0 text-sm md:text-base font-semibold text-center md:text-left w-full md:w-auto">
           Kode Kupon
         </span>
 
-        <div className="flex items-stretch ml-2 flex-1 w-full relative group">
+        <div className="flex flex-col md:flex-row gap-2 md:gap-0 md:ml-2 flex-1 w-full relative group min-w-0">
           <input
             type="text"
             value={coupon}
             onChange={(e) => setCoupon(e.target.value)}
             placeholder="XXXX-9267"
             disabled={isVoucherApplied}
-            className={`rounded-l-full border border-r-0 bg-transparent px-4 py-2 text-sm outline-none flex-1
+            className={`w-full md:flex-1 rounded-full md:rounded-l-full border md:border-r-0 bg-transparent px-3 py-2 text-xs md:text-sm outline-none
               ${isVoucherApplied ? "cursor-not-allowed bg-gray-100" : ""}`}
           />
 
@@ -101,13 +103,13 @@ export default function CheckoutClassTerms({
             type="button"
             onClick={handleApplyCoupon}
             disabled={!coupon.trim() || loading || isVoucherApplied}
-            className="rounded-r-full bg-green-600 text-white text-sm font-medium px-5 py-2 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full md:w-auto rounded-full md:rounded-r-full bg-green-600 text-white text-xs md:text-sm font-medium px-4 md:px-5 py-2 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Memproses..." : "Gunakan Kupon"}
           </button>
 
           {isVoucherApplied && (
-            <div className="absolute -top-10 left-0 bg-black text-white text-xs px-3 py-1 rounded opacity-0 group-hover:opacity-100 transition pointer-events-none">
+            <div className="absolute -top-9 left-0 bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition pointer-events-none">
               Anda telah menggunakan voucher di pembelian ini
             </div>
           )}
@@ -115,8 +117,8 @@ export default function CheckoutClassTerms({
       </div>
 
       {/* Terms Scroll Box */}
-      <div className="border rounded-md p-5 h-96 overflow-y-auto text-sm space-y-4 scroll-thin leading-relaxed">
-        <p className="font-bold text-base">
+      <div className="border rounded-md p-4 md:p-5 h-72 md:h-96 overflow-y-auto text-xs md:text-sm space-y-4 scroll-thin leading-relaxed">
+        <p className="font-bold text-base md:text-lg tracking-tight text-center md:text-left">
           SYARAT DAN KETENTUAN UMUM TEMUDATAKU
         </p>
 
@@ -253,7 +255,10 @@ export default function CheckoutClassTerms({
           onChange={(e) => setIsChecked(e.target.checked)}
           className="w-4 h-4 accent-green-600"
         />
-        <label htmlFor="terms-class" className="text-sm cursor-pointer">
+        <label
+          htmlFor="terms-class"
+          className="text-xs md:text-sm text-gray-700 cursor-pointer"
+        >
           Saya setuju dengan ketentuan dan syarat
         </label>
       </div>

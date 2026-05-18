@@ -11,12 +11,13 @@ import {
   PublicMentoringServiceQuery,
   PublicBootcampQuery,
   getRecommendedBootcampsSchema,
-  PublicMentoringServiceIdParamSchema,
+  PublicMentoringServiceSlugParamSchema,
   getNewServicesSchema,
 } from "../validations/mentor_service.validation.js";
 import { validate } from "../middlewares/validate.js";
 import { authenticate } from "../middlewares/authenticate.js";
 import { authorizeRoles } from "../middlewares/authorizeRole.js";
+import { handleMentoringThumbnailUpload } from "../middlewares/uploadImage.js";
 
 const router = Router();
 
@@ -38,15 +39,13 @@ const router = Router();
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             required:
  *               - serviceName
  *               - price
- *               - serviceType
  *               - durationDays
- *               - mentorProfileIds
  *             properties:
  *               serviceName:
  *                 type: string
@@ -54,10 +53,15 @@ const router = Router();
  *               description:
  *                 type: string
  *                 nullable: true
- *                 example: Belajar dasar-dasar UI/UX selama 2 minggu
+ *               thumbnail:
+ *                 type: string
+ *                 format: binary
  *               price:
  *                 type: number
  *                 example: 150000
+ *               strikePrice:
+ *                 type: number
+ *                 nullable: true
  *               serviceType:
  *                 type: string
  *                 enum: [one-on-one, group, bootcamp, shortclass, live class]
@@ -65,43 +69,89 @@ const router = Router();
  *               maxParticipants:
  *                 type: integer
  *                 nullable: true
- *                 example: 30
  *               durationDays:
  *                 type: integer
- *                 example: 14
  *               mentorProfileIds:
  *                 type: array
  *                 items:
  *                   type: string
  *                 example: ["mentor-123", "mentor-456"]
- *               benefits:
+
+ *               programAbout:
  *                 type: string
- *                 nullable: true
- *                 example: Sertifikat, portofolio, bimbingan langsung
- *               mechanism:
+ *               totalWeeks:
+ *                 type: integer
+ *               totalProjects:
+ *                 type: integer
+
+ *               slug:
  *                 type: string
- *                 nullable: true
- *                 example: Zoom meeting setiap hari pukul 19.00
- *               syllabusPath:
+ *               isFeatured:
+ *                 type: boolean
+
+ *               category:
  *                 type: string
- *                 nullable: true
- *                 example: uploads/syllabus/design_basic.pdf
- *               toolsUsed:
+ *               level:
  *                 type: string
- *                 nullable: true
- *                 example: Figma, Miro, Notion
- *               targetAudience:
- *                 type: string
- *                 nullable: true
- *                 example: Mahasiswa, fresh graduate
- *               schedule:
- *                 type: string
- *                 nullable: true
- *                 example: Senin - Jumat, pukul 19.00 - 21.00
- *               alumniPortfolio:
- *                 type: string
- *                 nullable: true
- *                 example: www.behance.net/portofolio-alumni
+ *               isActive:
+ *                 type: boolean
+
+ *               sections:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     type:
+ *                       type: string
+ *                       enum: [BENEFIT, MECHANISM, SYLLABUS, TARGET]
+ *                     title:
+ *                       type: string
+ *                     description:
+ *                       type: string
+
+ *               tools:
+ *                 type: array
+ *                 items:
+ *                   type: string
+
+ *               schedules:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   example: 2026-05-01
+
+ *               portfolios:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     title:
+ *                       type: string
+ *                     description:
+ *                       type: string
+ *                     menteeName:
+ *                       type: string
+ *                     projectLink:
+ *                       type: string
+ *                     thumbnail:
+ *                       type: string
+
+ *               testimonials:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     name:
+ *                       type: string
+ *                     role:
+ *                       type: string
+ *                     comment:
+ *                       type: string
+ *                     rating:
+ *                       type: integer
+ *                       minimum: 1
+ *                       maximum: 5
+
  *     responses:
  *       201:
  *         description: Layanan mentoring berhasil dibuat
@@ -118,10 +168,9 @@ const router = Router();
  *                   properties:
  *                     id:
  *                       type: string
- *                       example: bootcamp-000012
  *                     serviceName:
  *                       type: string
- *                     description:
+ *                     thumbnail:
  *                       type: string
  *                       nullable: true
  *                     price:
@@ -130,9 +179,6 @@ const router = Router();
  *                       type: string
  *                     durationDays:
  *                       type: integer
- *                     maxParticipants:
- *                       type: integer
- *                       nullable: true
  *                     mentors:
  *                       type: array
  *                       items:
@@ -140,16 +186,9 @@ const router = Router();
  *                         properties:
  *                           mentorProfileId:
  *                             type: string
+
  *       400:
  *         description: Data tidak valid atau duplikat service
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Mentoring service with this name and type already exists.
  *       401:
  *         description: Tidak terautentikasi
  *       403:
@@ -161,6 +200,7 @@ router.post(
   "/mentoring-services",
   authenticate,
   authorizeRoles("admin", "cm", "curdev"),
+  handleMentoringThumbnailUpload("thumbnail"),
   validate(createMentoringServiceSchema),
   MentorServiceController.createMentoringServiceController,
 );
@@ -472,7 +512,7 @@ router.get(
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             properties:
@@ -622,6 +662,7 @@ router.patch(
   "/admin/mentoring-services/:id",
   authenticate,
   authorizeRoles("admin", "cm", "curdev"),
+  handleMentoringThumbnailUpload("thumbnail"),
   validate(updateMentoringServiceSchema),
   MentorServiceController.updateMentoringServiceController,
 );
@@ -1174,7 +1215,7 @@ router.get(
 
 /**
  * @swagger
- * /api/mentorService/public-mentoring-services/{id}:
+ * /api/mentorService/public-mentoring-services/{slug}:
  *   get:
  *     summary: Detail layanan mentoring publik
  *     tags: [MentorService]
@@ -1236,8 +1277,8 @@ router.get(
  *         description: Terjadi kesalahan di server
  */
 router.get(
-  "/public-mentoring-services/:id",
-  validate(PublicMentoringServiceIdParamSchema),
+  "/public-mentoring-services/:slug",
+  validate(PublicMentoringServiceSlugParamSchema),
   MentorServiceController.getPublicMentoringServiceDetailController,
 );
 

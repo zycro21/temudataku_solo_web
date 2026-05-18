@@ -295,7 +295,7 @@ export default function CheckoutSummary({
       <div
         className="border rounded-lg p-4 md:p-5 shadow-sm bg-white space-y-5 
     max-h-[125vh] md:max-h-[750px] overflow-y-auto 
-    mt-4 ml-0 lg:ml-3 
+    mt-4 ml-4 lg:ml-3 
     w-full max-w-md mx-auto lg:max-w-none"
       >
         {/* Header */}
@@ -314,9 +314,11 @@ export default function CheckoutSummary({
               className="rounded-md w-14 h-14"
             />
 
-            <div className="flex justify-between w-full items-start">
-              <div className="flex flex-col">
-                <span className="font-medium text-xs">{serviceTitle}</span>
+            <div className="flex justify-between w-full items-start gap-2">
+              <div className="flex flex-col min-w-0">
+                <span className="font-medium text-xs leading-snug">
+                  {serviceTitle}
+                </span>
 
                 {priceSummary && (
                   <span className="text-[11px] text-gray-400">
@@ -325,7 +327,7 @@ export default function CheckoutSummary({
                 )}
               </div>
 
-              <span className="font-semibold text-sm">
+              <span className="font-semibold text-sm shrink-0">
                 {formatRupiah(originalPrice)}
               </span>
             </div>
@@ -365,7 +367,7 @@ export default function CheckoutSummary({
             {paymentOptions.map((option) => (
               <label
                 key={option.id}
-                className="flex flex-col md:flex-row justify-between items-start md:items-center 
+                className="flex flex-row justify-between items-center 
                   cursor-pointer rounded-md px-3 py-2 hover:bg-gray-50 shadow-sm gap-2"
               >
                 <div className="flex items-center gap-2">
@@ -375,14 +377,14 @@ export default function CheckoutSummary({
                     value={option.id}
                     checked={paymentMethod === option.id}
                     onChange={() => setPaymentMethod(option.id)}
-                    className="text-emerald-600 focus:ring-emerald-500"
+                    className="text-emerald-600 focus:ring-emerald-500 shrink-0"
                   />
                   <span className="text-xs leading-relaxed">
                     {option.label}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   {option.logo?.map((logo, idx) => (
                     <Image
                       key={idx}
@@ -390,7 +392,7 @@ export default function CheckoutSummary({
                       alt={option.label}
                       width={32}
                       height={18}
-                      className="object-contain h-8 md:h-8"
+                      className="object-contain h-6 md:h-8"
                     />
                   ))}
                 </div>

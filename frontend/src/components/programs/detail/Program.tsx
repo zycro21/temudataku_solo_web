@@ -11,7 +11,13 @@ import ProgramDetailSection from "./ProgramDetailSection";
 import ProgramSelection from "./ProgramSelection";
 import NeedHelp from "@/components/mentoring/NeedHelp";
 
-export default function ProgramsDetail({ data }: { data: any }) {
+export default function ProgramsDetail({
+  data,
+  openLoginModal,
+}: {
+  data: any;
+  openLoginModal: () => void;
+}) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [alreadyPurchased, setAlreadyPurchased] = useState(false);
@@ -85,9 +91,7 @@ export default function ProgramsDetail({ data }: { data: any }) {
       toast.dismiss(loadingToast);
 
       if (error.response?.status === 401) {
-        toast.error("Silakan login terlebih dahulu", {
-          description: "Kamu harus login untuk mendaftar bootcamp.",
-        });
+        openLoginModal();
         return;
       }
 
@@ -134,7 +138,10 @@ export default function ProgramsDetail({ data }: { data: any }) {
         checkingPurchase={checkingPurchase}
       />
 
-      <ProgramSelection currentServiceId={data.id} />
+      <ProgramSelection
+        currentServiceId={data.id}
+        openLoginModal={openLoginModal}
+      />
       <NeedHelp />
     </>
   );

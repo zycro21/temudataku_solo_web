@@ -20,7 +20,7 @@ import certificateRoute from "./routes/certificate.route.js";
 import practiceRoute from "./routes/practice.route.js";
 import behaviorRoute from "./routes/behavior.route.js";
 import referralRoute from "./routes/referral.route.js";
-import paymentRoute from "./routes/payment.route.js";
+import paymentRoute from "./routes/payment.route.js"; 
 import withdrawalRoute from "./routes/withdrawal.route.js";
 import mentorReportRoute from "./routes/mentor_report.route.js";
 import userActivityLog from "./routes/userActivityLog.route.js";

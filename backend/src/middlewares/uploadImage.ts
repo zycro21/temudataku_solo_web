@@ -562,3 +562,71 @@ const uploader = multer({
 export const handleELearningVideoUpload = () => uploader.single("video");
 
 export { resolvedPath as eLearningVideoUploadPath };
+
+// === Untuk Thumnail Mentoring Service ===
+const mentoringThumbnailPath = path.join(
+  __dirname,
+  "../../images/mentoringThumbnail",
+);
+
+// 🔥 lebih jelas
+const normalizedMentoringThumbnailPath = path.normalize(
+  mentoringThumbnailPath,
+);
+
+const cleanMentoringThumbnailPath =
+  normalizedMentoringThumbnailPath.replace(/^\\/, "");
+
+// ensure folder exists
+if (!fs.existsSync(cleanMentoringThumbnailPath)) {
+  fs.mkdirSync(cleanMentoringThumbnailPath, { recursive: true });
+}
+
+// === Middleware ===
+export const handleMentoringThumbnailUpload = (
+  field: string,
+  isMultiple: boolean = false,
+) => {
+  const storage = multer.diskStorage({
+    destination: (req, file, cb) =>
+      cb(null, cleanMentoringThumbnailPath),
+
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname);
+
+      const rawTitle =
+        (req as any).mentoringTitle ||
+        (req as any).body?.serviceName ||
+        "mentoring";
+
+      const title = rawTitle
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9\-]/g, "")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
+
+      const now = new Date();
+      const dateString = `${now.getFullYear()}${(now.getMonth() + 1)
+        .toString()
+        .padStart(2, "0")}${now
+        .getDate()
+        .toString()
+        .padStart(2, "0")}`;
+
+      const random = Math.random().toString(36).substring(2, 7);
+
+      const fileName = `thumbnail-mentoring-${title}-${dateString}-${random}${ext}`;
+
+      cb(null, fileName);
+    },
+  });
+
+  const upload = multer({ storage });
+
+  return isMultiple ? upload.array(field, 3) : upload.single(field);
+};
+
+// export path
+export { cleanMentoringThumbnailPath as mentoringThumbnailPath };

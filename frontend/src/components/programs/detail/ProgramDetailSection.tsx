@@ -70,9 +70,6 @@ export default function ProgramDetailSection({
   const [projectCurrent, setProjectCurrent] = useState(0);
   const [projectCount, setProjectCount] = useState(0);
 
-  const [showAllSessions, setShowAllSessions] = useState(false);
-  const MAX_VISIBLE = 4;
-
   const programItems = [
     "Deskripsi Bootcamp",
     "Benefit Bootcamp",
@@ -168,53 +165,65 @@ export default function ProgramDetailSection({
     return text;
   };
 
-  const benefitsArray =
-    typeof data?.benefits === "string"
-      ? data.benefits.split(",").map((item: string) => item.trim())
-      : [];
+  const sectionsArray: {
+    id: string;
+    type: string;
+    title: string;
+    content: any;
+    order: number;
+  }[] = Array.isArray(data?.sections) ? data.sections : [];
 
-  const mechanismArray =
-    typeof data?.mechanism === "string"
-      ? data.mechanism.split(",").map((item: string) => item.trim())
-      : [];
+  const benefitsArray = sectionsArray
+    .filter((s) => s.type === "BENEFIT")
+    .map((s) => ({
+      title: s.title,
+      description: (s.content as any)?.description ?? "",
+    }));
 
-  const toolsUsedArray =
-    typeof data?.toolsUsed === "string"
-      ? data.toolsUsed.split(",").map((item: string) => item.trim())
-      : [];
+  const mechanismArray = sectionsArray
+    .filter((s) => s.type === "MECHANISM")
+    .map((s) => ({
+      title: s.title,
+      description: (s.content as any)?.description ?? "",
+    }));
 
-  const targetAudienceArray =
-    typeof data?.targetAudience === "string"
-      ? data.targetAudience.split(",").map((item: string) => item.trim())
-      : [];
+  const syllabusArray = sectionsArray
+    .filter((s) => s.type === "SYLLABUS")
+    .map((s) => ({
+      title: s.title,
+      description: (s.content as any)?.description ?? "",
+    }));
 
-  const alumniPortfolioArray = Array.isArray(data?.alumniPortfolio)
-    ? data.alumniPortfolio
-    : typeof data?.alumniPortfolio === "string"
-      ? JSON.parse(data.alumniPortfolio)
-      : [];
+  const targetAudienceArray = sectionsArray
+    .filter((s) => s.type === "TARGET")
+    .map((s) => ({
+      title: s.title,
+      description: (s.content as any)?.description ?? "",
+    }));
+
+  const toolsArray: { id: string; name: string }[] = Array.isArray(data?.tools)
+    ? data.tools
+    : [];
+
+  const schedulesArray: { id: string; date: string | Date }[] = Array.isArray(
+    data?.schedules,
+  )
+    ? data.schedules
+    : [];
+
+  const alumniPortfolioArray = Array.isArray(data?.portfolios)
+    ? data.portfolios
+    : [];
 
   const totalProjects = alumniPortfolioArray.length;
   const canScroll = totalProjects > 2;
 
   const testimonialsArray = Array.isArray(data?.testimonials)
     ? data.testimonials
-    : typeof data?.testimonials === "string"
-      ? JSON.parse(data.testimonials)
-      : [];
+    : [];
 
   const totalTestimonials = testimonialsArray.length;
   const canScrollTestimonial = totalTestimonials > 2;
-
-  const mentoringSessionsArray = Array.isArray(data?.mentoringSessions)
-    ? data.mentoringSessions
-    : [];
-
-  const isExpandable = mentoringSessionsArray.length > MAX_VISIBLE;
-
-  const visibleSessions = showAllSessions
-    ? mentoringSessionsArray
-    : mentoringSessionsArray.slice(0, MAX_VISIBLE);
 
   const iconMap: { keywords: string[]; icons: any[] }[] = [
     {
@@ -321,6 +330,72 @@ export default function ProgramDetailSection({
         return `<p class="${index === 0 ? "" : "mt-2"}">${formatted}</p>`;
       })
       .join("");
+  };
+
+  const formatScheduleDisplay = (
+    schedules: { id: string; date: string | Date }[],
+  ): string => {
+    if (!schedules || schedules.length === 0) return "Jadwal belum tersedia";
+
+    const HARI = [
+      "Minggu",
+      "Senin",
+      "Selasa",
+      "Rabu",
+      "Kamis",
+      "Jumat",
+      "Sabtu",
+    ];
+    const BULAN = [
+      "Januari",
+      "Februari",
+      "Maret",
+      "April",
+      "Mei",
+      "Juni",
+      "Juli",
+      "Agustus",
+      "September",
+      "Oktober",
+      "November",
+      "Desember",
+    ];
+
+    const sorted = [...schedules]
+      .map((s) => new Date(s.date))
+      .sort((a, b) => a.getTime() - b.getTime());
+
+    if (sorted.length === 1) {
+      const d = sorted[0];
+      return `${HARI[d.getDay()]}, ${d.getDate()} ${BULAN[d.getMonth()]} ${d.getFullYear()}`;
+    }
+
+    if (sorted.length === 2) {
+      const [a, b] = sorted;
+      if (
+        a.getMonth() === b.getMonth() &&
+        a.getFullYear() === b.getFullYear()
+      ) {
+        // Bulan & tahun sama
+        return `(${HARI[a.getDay()]}, ${a.getDate()}) &amp; (${HARI[b.getDay()]}, ${b.getDate()}) - ${BULAN[a.getMonth()]} ${a.getFullYear()}`;
+      } else if (a.getFullYear() === b.getFullYear()) {
+        // Bulan beda, tahun sama
+        return `(${HARI[a.getDay()]}, ${a.getDate()} - ${BULAN[a.getMonth()]}) &amp; (${HARI[b.getDay()]}, ${b.getDate()} - ${BULAN[b.getMonth()]}) - ${a.getFullYear()}`;
+      } else {
+        // Tahun beda
+        return `(${HARI[a.getDay()]}, ${a.getDate()} - ${BULAN[a.getMonth()]} ${a.getFullYear()}) &amp; (${HARI[b.getDay()]}, ${b.getDate()} - ${BULAN[b.getMonth()]} ${b.getFullYear()})`;
+      }
+    }
+
+    // Lebih dari 2 tanggal → tampil tanggal pertama SAMPAI tanggal terakhir
+    const first = sorted[0];
+    const last = sorted[sorted.length - 1];
+    return (
+      `${HARI[first.getDay()]}, ${first.getDate()} ${BULAN[first.getMonth()]} ${first.getFullYear()} ` +
+      `<strong>-</strong> ` +
+      `${HARI[last.getDay()]}, ${last.getDate()} ${BULAN[last.getMonth()]} ${last.getFullYear()}` +
+      ` (Detailnya akan disampaikan lebih lanjut)`
+    );
   };
 
   const normalizeToolName = (tool: string) =>
@@ -572,7 +647,7 @@ export default function ProgramDetailSection({
             <div className="bg-white p-6">
               <div
                 dangerouslySetInnerHTML={{
-                  __html: formatDescription(data?.description),
+                  __html: formatDescription(data?.programAbout),
                 }}
               />
             </div>
@@ -599,36 +674,43 @@ export default function ProgramDetailSection({
               {/* Benefits Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {benefitsArray.length > 0 ? (
-                  benefitsArray.map((benefit: string, index: number) => (
-                    <div
-                      key={index}
-                      className="flex gap-4 bg-gray-50 rounded-sm p-6"
-                    >
-                      <div className="flex-shrink-0">
-                        <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-                          {(() => {
-                            const IconComponent = getIconForBenefit(benefit);
-                            return (
-                              <IconComponent className="w-7 h-7 text-brand-color-primary" />
-                            );
-                          })()}
+                  benefitsArray.map(
+                    (
+                      benefit: { title: string; description: string },
+                      index: number,
+                    ) => (
+                      <div
+                        key={index}
+                        className="flex gap-4 bg-gray-50 rounded-sm p-6"
+                      >
+                        <div className="flex-shrink-0">
+                          <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
+                            {(() => {
+                              const IconComponent = getIconForBenefit(
+                                benefit.title + " " + benefit.description,
+                              );
+                              return (
+                                <IconComponent className="w-7 h-7 text-brand-color-primary" />
+                              );
+                            })()}
+                          </div>
+                        </div>
+
+                        <div>
+                          <h5 className="font-semibold text-gray-900 mb-2">
+                            {benefit.title}
+                          </h5>
+
+                          <p
+                            className="text-gray-600 text-sm leading-relaxed"
+                            dangerouslySetInnerHTML={{
+                              __html: formatText(benefit.description),
+                            }}
+                          />
                         </div>
                       </div>
-
-                      <div>
-                        <h5 className="font-semibold text-gray-900 mb-2">
-                          Benefit {index + 1}
-                        </h5>
-
-                        <p
-                          className="text-gray-600 text-sm leading-relaxed"
-                          dangerouslySetInnerHTML={{
-                            __html: formatText(benefit),
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))
+                    ),
+                  )
                 ) : (
                   <p className="text-gray-500 col-span-2">
                     Benefit belum tersedia
@@ -660,34 +742,41 @@ export default function ProgramDetailSection({
               {/* Tasks Section with Gray Background */}
               <div className="p-6 rounded-sm space-y-8">
                 {mechanismArray.length > 0 ? (
-                  mechanismArray.map((item: string, index: number) => (
-                    <div
-                      key={index}
-                      className="flex gap-4 bg-gray-50 rounded-sm p-6"
-                    >
-                      <div className="flex-shrink-0">
-                        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
-                          {(() => {
-                            const IconComponent = getIconForBenefit(item);
-                            return (
-                              <IconComponent className="w-7 h-7 text-brand-color-primary" />
-                            );
-                          })()}
+                  mechanismArray.map(
+                    (
+                      item: { title: string; description: string },
+                      index: number,
+                    ) => (
+                      <div
+                        key={index}
+                        className="flex gap-4 bg-gray-50 rounded-sm p-6"
+                      >
+                        <div className="flex-shrink-0">
+                          <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+                            {(() => {
+                              const IconComponent = getIconForBenefit(
+                                item.title + " " + item.description,
+                              );
+                              return (
+                                <IconComponent className="w-7 h-7 text-brand-color-primary" />
+                              );
+                            })()}
+                          </div>
+                        </div>
+                        <div>
+                          <h5 className="font-semibold text-gray-900 text-lg mb-2">
+                            {item.title}
+                          </h5>
+                          <p
+                            className="text-gray-600 leading-relaxed"
+                            dangerouslySetInnerHTML={{
+                              __html: formatText(item.description),
+                            }}
+                          />
                         </div>
                       </div>
-                      <div>
-                        <h5 className="font-semibold text-gray-900 text-lg mb-2">
-                          Step {index + 1}
-                        </h5>
-                        <p
-                          className="text-gray-600 leading-relaxed"
-                          dangerouslySetInnerHTML={{
-                            __html: formatText(item),
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))
+                    ),
+                  )
                 ) : (
                   <p className="text-gray-500">Mekanisme belum tersedia</p>
                 )}
@@ -716,61 +805,45 @@ export default function ProgramDetailSection({
 
               {/* Collapsible Items */}
               <div className="space-y-4">
-                {mentoringSessionsArray.length > 0 ? (
+                {syllabusArray.length > 0 ? (
                   <>
-                    {visibleSessions.map((session: any, index: number) => {
-                      const IconComponent = getIconForSession(
-                        session.notes || "",
-                        index,
-                      );
+                    {syllabusArray.map(
+                      (
+                        item: { title: string; description: string },
+                        index: number,
+                      ) => {
+                        const IconComponent = getIconForSession(
+                          item.title + " " + item.description,
+                          index,
+                        );
 
-                      return (
-                        <div
-                          key={session.id}
-                          className="bg-gray-50 rounded-sm p-6"
-                        >
-                          <div className="flex items-start gap-4">
-                            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center flex-shrink-0">
-                              <IconComponent className="w-5 h-5 text-brand-color-primary" />
-                            </div>
+                        return (
+                          <div
+                            key={index}
+                            className="bg-gray-50 rounded-sm p-6"
+                          >
+                            <div className="flex items-start gap-4">
+                              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center flex-shrink-0">
+                                <IconComponent className="w-5 h-5 text-brand-color-primary" />
+                              </div>
 
-                            <div>
-                              <h5 className="font-semibold text-gray-900 text-lg">
-                                Pertemuan {index + 1}
-                              </h5>
+                              <div>
+                                <h5 className="font-semibold text-gray-900 text-lg">
+                                  {item.title}
+                                </h5>
 
-                              <p
-                                className="text-gray-600 mt-1 leading-relaxed"
-                                dangerouslySetInnerHTML={{
-                                  __html: formatText(session.notes || "-"),
-                                }}
-                              />
+                                <p
+                                  className="text-gray-600 mt-1 leading-relaxed"
+                                  dangerouslySetInnerHTML={{
+                                    __html: formatText(item.description),
+                                  }}
+                                />
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
-
-                    {/* Toggle Button */}
-                    <div className="pt-4 text-center">
-                      <button
-                        disabled={!isExpandable}
-                        onClick={() => {
-                          if (isExpandable) {
-                            setShowAllSessions(!showAllSessions);
-                          }
-                        }}
-                        className={`px-6 py-3 rounded-lg font-semibold transition ${
-                          isExpandable
-                            ? "bg-emerald-500 hover:bg-emerald-600 text-white"
-                            : "bg-gray-200 text-gray-400 cursor-not-allowed"
-                        }`}
-                      >
-                        {showAllSessions
-                          ? "Lihat Lebih Sedikit"
-                          : "Lihat Lebih Banyak"}
-                      </button>
-                    </div>
+                        );
+                      },
+                    )}
                   </>
                 ) : (
                   <p className="text-gray-500">
@@ -802,28 +875,30 @@ export default function ProgramDetailSection({
               </p>
 
               <div className="flex flex-wrap items-center gap-6 mt-6">
-                {toolsUsedArray.length > 0 ? (
-                  toolsUsedArray.map((tool: string, index: number) => (
-                    <div
-                      key={index}
-                      className="relative group flex items-center justify-center"
-                    >
-                      <div className="w-14 h-14 bg-gray-50 rounded-xl flex items-center justify-center shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-200">
-                        <Image
-                          src={getToolIcon(tool)}
-                          alt={tool}
-                          width={32}
-                          height={32}
-                          className="object-contain"
-                        />
-                      </div>
+                {toolsArray.length > 0 ? (
+                  toolsArray.map(
+                    (tool: { id: string; name: string }, index: number) => (
+                      <div
+                        key={tool.id ?? index}
+                        className="relative group flex items-center justify-center"
+                      >
+                        <div className="w-14 h-14 bg-gray-50 rounded-xl flex items-center justify-center shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-200">
+                          <Image
+                            src={getToolIcon(tool.name)}
+                            alt={tool.name}
+                            width={32}
+                            height={32}
+                            className="object-contain"
+                          />
+                        </div>
 
-                      {/* Tooltip */}
-                      <div className="absolute -bottom-10 scale-0 group-hover:scale-100 transition-transform duration-200 bg-gray-900 text-white text-xs px-3 py-1 rounded-md whitespace-nowrap">
-                        {tool}
+                        {/* Tooltip */}
+                        <div className="absolute -bottom-10 scale-0 group-hover:scale-100 transition-transform duration-200 bg-gray-900 text-white text-xs px-3 py-1 rounded-md whitespace-nowrap">
+                          {tool.name}
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    ),
+                  )
                 ) : (
                   <p className="text-gray-500">Tools belum tersedia</p>
                 )}
@@ -854,40 +929,47 @@ export default function ProgramDetailSection({
               {/* Participant Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {targetAudienceArray.length > 0 ? (
-                  targetAudienceArray.map((audience: string, index: number) => (
-                    <div
-                      key={index}
-                      className="text-center bg-gray-50 rounded-xl p-6 
+                  targetAudienceArray.map(
+                    (
+                      audience: { title: string; description: string },
+                      index: number,
+                    ) => (
+                      <div
+                        key={index}
+                        className="text-center bg-gray-50 rounded-xl p-6 
            transition-all duration-300 ease-out
            hover:-translate-y-2 
            hover:shadow-2xl 
            hover:bg-white
            group cursor-pointer"
-                    >
-                      <div className="w-32 h-32 mx-auto mb-4 rounded-xl overflow-hidden relative shadow-md group-hover:shadow-xl transition-all duration-300">
-                        <Image
-                          src={getAudienceImage(audience)}
-                          alt={audience}
-                          fill
-                          className="object-cover transition-transform duration-500 group-hover:scale-110"
+                      >
+                        <div className="w-32 h-32 mx-auto mb-4 rounded-xl overflow-hidden relative shadow-md group-hover:shadow-xl transition-all duration-300">
+                          <Image
+                            src={getAudienceImage(
+                              audience.title + " " + audience.description,
+                            )}
+                            alt={audience.title}
+                            fill
+                            className="object-cover transition-transform duration-500 group-hover:scale-110"
+                          />
+
+                          {/* Overlay */}
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300" />
+                        </div>
+
+                        <h5 className="font-bold text-gray-900 text-lg mb-2 transition-colors duration-300 group-hover:text-blue-900">
+                          {audience.title}
+                        </h5>
+
+                        <p
+                          className="text-gray-600 text-sm leading-relaxed transition-colors duration-300 group-hover:text-gray-700"
+                          dangerouslySetInnerHTML={{
+                            __html: formatText(audience.description),
+                          }}
                         />
-
-                        {/* Overlay */}
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300" />
                       </div>
-
-                      <h5 className="font-bold text-gray-900 text-lg mb-2 transition-colors duration-300 group-hover:text-blue-900">
-                        Target {index + 1}
-                      </h5>
-
-                      <p
-                        className="text-gray-600 text-sm leading-relaxed transition-colors duration-300 group-hover:text-gray-700"
-                        dangerouslySetInnerHTML={{
-                          __html: formatText(audience),
-                        }}
-                      />
-                    </div>
-                  ))
+                    ),
+                  )
                 ) : (
                   <p className="text-gray-500 col-span-3">
                     Target audience belum tersedia
@@ -914,9 +996,12 @@ export default function ProgramDetailSection({
                 pelatihan yang perlu diperhatikan oleh setiap peserta untuk
                 kelancaran koordinasi belajar:
                 <div className="text-black p-6 rounded-lg shadow-xl border-l-4 border-emerald-400 my-6">
-                  <p className="leading-relaxed text-base font-medium">
-                    {data?.schedule}
-                  </p>
+                  <p
+                    className="leading-relaxed text-base font-medium"
+                    dangerouslySetInnerHTML={{
+                      __html: formatScheduleDisplay(schedulesArray),
+                    }}
+                  />
                 </div>
                 Seluruh pertemuan diatur dalam zona waktu yang sama yakni{" "}
                 <b>WIB</b> untuk memudahkan sinkronisasi antara mentor dan
@@ -967,9 +1052,14 @@ export default function ProgramDetailSection({
                           {/* Project Image */}
                           <div className="relative h-48 sm:h-56 md:h-64 lg:h-72 bg-gradient-to-br from-blue-50 to-indigo-100 flex-shrink-0 overflow-hidden">
                             <Image
-                              src={getProjectImage(project)}
+                              src={
+                                project.thumbnail
+                                  ? `${process.env.NEXT_PUBLIC_API_BASE_URL}${project.thumbnail}`
+                                  : getProjectImage(project)
+                              }
                               alt={project.title}
                               fill
+                              unoptimized
                               className="object-cover transition-transform duration-500 hover:scale-105"
                             />
                           </div>
@@ -1111,7 +1201,7 @@ export default function ProgramDetailSection({
                                   Alumni Bootcamp
                                 </p>
                                 <p className="text-gray-500 text-xs">
-                                  {testimonial.status}
+                                  Mentee temudataku
                                 </p>
                               </div>
                             </div>

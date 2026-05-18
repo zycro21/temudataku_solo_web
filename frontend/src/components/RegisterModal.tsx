@@ -31,10 +31,9 @@ export default function RegisterModal({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const returnUrl =
-    pathname === "/aycl"
-      ? `${pathname}${searchParams.toString() ? `?${searchParams}` : ""}`
-      : null;
+  const returnUrl = `${pathname}${
+    searchParams.toString() ? `?${searchParams.toString()}` : ""
+  }`;
 
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -259,6 +258,10 @@ export default function RegisterModal({
                   <GoogleLogin
                     onSuccess={async (credentialResponse) => {
                       try {
+                        if (returnUrl) {
+                          localStorage.setItem("returnUrl", returnUrl);
+                        }
+
                         await axios.post(
                           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/google`,
                           {
@@ -288,13 +291,17 @@ export default function RegisterModal({
                         setIsOpen(false);
                         toast.success("Login Google berhasil");
 
+                        const savedReturnUrl =
+                          localStorage.getItem("returnUrl");
+
                         if (roles.some((r) => adminRoles.includes(r))) {
                           router.push("/admin");
                         } else if (roles.includes("mentor")) {
                           router.push("/dashboard/mentor");
                         } else {
-                          if (returnUrl) {
-                            router.push(returnUrl);
+                          if (savedReturnUrl) {
+                            router.push(savedReturnUrl);
+                            localStorage.removeItem("returnUrl");
                           } else {
                             router.push("/");
                           }

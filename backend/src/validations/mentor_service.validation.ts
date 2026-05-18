@@ -12,40 +12,72 @@ export const createMentoringServiceSchema = z.object({
   body: z.object({
     serviceName: z.string().min(3).max(100),
     description: z.string().max(1000).optional(),
+
     price: z.number().positive(),
-    serviceType: z.enum(allowedServiceTypes),
+    strikePrice: z.number().optional(),
+
+    // durationDays: z.number().int().positive().optional(),
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
     maxParticipants: z.number().int().positive().optional(),
-    durationDays: z.number().int().positive(),
 
-    mentorProfileIds: z.array(z.string().regex(/^mentor-\d{6}$/i)).optional(),
+    // auto bootcamp (frontend ga perlu kirim)
+    serviceType: z.enum(allowedServiceTypes).optional(),
 
-    benefits: z.string().max(1000).optional(),
-    mechanism: z.string().max(1000).optional(),
-    syllabusPath: z.string().url().optional(),
-    toolsUsed: z.string().max(500).optional(),
-    targetAudience: z.string().max(500).optional(),
-    schedule: z.string().max(1000).optional(),
-    category: z.string().max(100).optional(),
-    level: z.string().max(100).optional(),
+    mentorProfileIds: z.array(z.string()).optional(),
+
+    // NEW FIELDS
+    programAbout: z.string().optional(),
+    totalWeeks: z.number().optional(),
+    totalProjects: z.number().optional(),
+
+    whatsappGroup: z.string().url().optional(),
+
+    slug: z.string().optional(),
+    isFeatured: z.boolean().optional(),
+
+    category: z.string().optional(),
+    level: z.string().optional(),
     isActive: z.boolean().optional(),
-    alumniPortfolio: z
+
+    // 🔥 SECTION
+    sections: z
       .array(
         z.object({
-          thumbnail: z.string().nullable().optional(),
+          type: z.enum(["BENEFIT", "MECHANISM", "SYLLABUS", "TARGET"]),
           title: z.string(),
           description: z.string(),
-          menteeName: z.string(),
-          projectLink: z.string().url(),
         }),
       )
       .optional(),
+
+    // 🔥 TOOLS
+    tools: z.array(z.string()).optional(),
+
+    // 🔥 SCHEDULE
+    schedules: z.array(z.string()).optional(), // ISO string date
+
+    // 🔥 PORTFOLIO
+    portfolios: z
+      .array(
+        z.object({
+          title: z.string(),
+          description: z.string().optional(),
+          menteeName: z.string(),
+          projectLink: z.string().url(),
+          thumbnail: z.string().optional(),
+        }),
+      )
+      .optional(),
+
+    // 🔥 TESTIMONIAL
     testimonials: z
       .array(
         z.object({
-          photo: z.string().nullable().optional(),
           name: z.string(),
-          status: z.string(),
+          role: z.string().optional(),
           comment: z.string(),
+          rating: z.number().min(1).max(5),
         }),
       )
       .optional(),
@@ -58,7 +90,13 @@ export const getAllMentoringServicesSchema = z.object({
     limit: z.string().regex(/^\d+$/).optional().default("10000"),
     search: z.string().optional(),
     sort_by: z
-      .enum(["createdAt", "price", "durationDays"])
+      .enum([
+        "createdAt",
+        "price",
+        "durationDays",
+        "serviceName",
+        "maxParticipants",
+      ])
       .optional()
       .default("createdAt"),
     order: z.enum(["asc", "desc"]).optional().default("desc"),
@@ -81,48 +119,93 @@ export const updateMentoringServiceSchema = z.object({
   }),
   body: z
     .object({
-      serviceName: z.string().min(1).optional(),
+      serviceName: z.string().optional(),
       description: z.string().nullable().optional(),
-      price: z.number().nonnegative().optional(),
-      maxParticipants: z.number().int().nonnegative().optional(),
-      durationDays: z.number().int().positive().optional(),
-      isActive: z.boolean().optional(),
 
-      mentorProfileIds: z.array(z.string().regex(/^mentor-\d{6}$/i)).optional(),
+      price: z.number().optional(),
+      strikePrice: z.number().optional(),
+
+      durationDays: z.number().optional(),
+      startDate: z.string().optional(),
+      endDate: z.string().optional(),
+      maxParticipants: z.number().optional(),
+
+      isActive: z.boolean().optional(),
 
       serviceType: z
         .enum(["one-on-one", "group", "bootcamp", "shortclass", "live class"])
         .optional(),
 
-      benefits: z.string().nullable().optional(),
-      mechanism: z.string().nullable().optional(),
-      syllabusPath: z.string().nullable().optional(),
-      toolsUsed: z.string().nullable().optional(),
-      targetAudience: z.string().nullable().optional(),
-      schedule: z.string().nullable().optional(),
+      mentorProfileIds: z.array(z.string()).optional(),
+
+      // NEW
+      programAbout: z.string().optional(),
+      totalWeeks: z.number().optional(),
+      totalProjects: z.number().optional(),
+
+      whatsappGroup: z.string().url().optional(),
+
+      slug: z.string().optional(),
+      isFeatured: z.boolean().optional(),
 
       category: z.string().optional(),
       level: z.string().optional(),
 
-      alumniPortfolio: z
+      // SECTION
+      sections: z
         .array(
           z.object({
-            thumbnail: z.string(),
+            id: z.string().optional(),
+            type: z.enum(["BENEFIT", "MECHANISM", "SYLLABUS", "TARGET"]),
             title: z.string(),
             description: z.string(),
-            menteeName: z.string(),
-            projectLink: z.string(),
           }),
         )
         .optional(),
 
+      // TOOLS
+      tools: z
+        .array(
+          z.object({
+            id: z.string().optional(),
+            name: z.string(),
+          }),
+        )
+        .optional(),
+
+      // SCHEDULE
+      schedules: z
+        .array(
+          z.object({
+            id: z.string().optional(),
+            date: z.string(),
+          }),
+        )
+        .optional(),
+
+      // PORTFOLIO
+      portfolios: z
+        .array(
+          z.object({
+            id: z.string().optional(),
+            title: z.string(),
+            description: z.string().optional(),
+            menteeName: z.string(),
+            projectLink: z.string().url(),
+            thumbnail: z.string().optional(),
+          }),
+        )
+        .optional(),
+
+      // TESTIMONIAL
       testimonials: z
         .array(
           z.object({
-            photo: z.string(),
+            id: z.string().optional(),
             name: z.string(),
-            status: z.string(),
+            role: z.string().optional(),
             comment: z.string(),
+            rating: z.number().min(1).max(5),
           }),
         )
         .optional(),
@@ -187,9 +270,9 @@ export const getRecommendedBootcampsSchema = z.object({
   }),
 });
 
-export const PublicMentoringServiceIdParamSchema = z.object({
+export const PublicMentoringServiceSlugParamSchema = z.object({
   params: z.object({
-    id: z.string().min(1, "Service ID is required"),
+    slug: z.string().min(1, "Slug is required"),
   }),
 });
 

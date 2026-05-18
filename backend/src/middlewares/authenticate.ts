@@ -11,6 +11,7 @@ export interface AuthenticatedRequest extends Request {
     phoneNumber?: string;
     fullName?: string;
   };
+
   validatedQuery?: {
     page: string;
     limit: string;
@@ -36,38 +37,89 @@ export interface AuthenticatedRequest extends Request {
       | "shortclass"
       | "live class";
   };
+
   validatedParams?: {
     id: string;
+    slug?: string;
     userId: string;
     currentServiceId?: string;
   };
+
   validatedBody?: {
     serviceName?: string;
     description?: string | null;
     price?: number;
+    strikePrice?: number;
+
     serviceType?:
       | "one-on-one"
       | "group"
       | "bootcamp"
       | "shortclass"
       | "live class";
+
     maxParticipants?: number;
     durationDays?: number;
+
+    startDate?: string;
+    endDate?: string;
     mentorProfileIds?: string[];
-    isActive?: boolean;
-    benefits?: string | null;
-    mechanism?: string | null;
-    syllabusPath?: string | null;
-    toolsUsed?: string | null;
-    targetAudience?: string | null;
-    schedule?: string | null;
-    alumniPortfolio?: any;
-    testimonials?: any;
+
+    programAbout?: string;
+    totalWeeks?: number;
+    totalProjects?: number;
+
+    whatsappGroup?: string;
+
+    slug?: string;
+    isFeatured?: boolean;
+
     category?: string;
     level?: string;
+    isActive?: boolean;
+
+    sections?: {
+      id?: string;
+      type: "BENEFIT" | "MECHANISM" | "SYLLABUS" | "TARGET";
+      title: string;
+      description: string;
+    }[];
+
+    tools?: {
+      id?: string;
+      name: string;
+    }[];
+
+    schedules?: {
+      id?: string;
+      date: string;
+    }[];
+
+    portfolios?: {
+      id?: string;
+      title: string;
+      description?: string;
+      menteeName: string;
+      projectLink: string;
+      thumbnail?: string;
+    }[];
+
+    testimonials?: {
+      id?: string;
+      name: string;
+      role?: string;
+      comment: string;
+      rating: number;
+    }[];
 
     isVerified?: boolean;
   };
+
+  // ✅ TAMBAHAN UNTUK MULTER
+  file?: Express.Multer.File;
+  files?:
+    | Express.Multer.File[]
+    | { [fieldname: string]: Express.Multer.File[] };
 }
 
 export interface AuthenticatedRequestForMentoringSession extends Request {
@@ -319,7 +371,11 @@ export interface AuthenticatedRequestReferralCode extends Request {
       }
     | {
         code: string;
-        context: "booking" | "practice_purchase" | "elearning_subscription" | "ayclpurchase";
+        context:
+          | "booking"
+          | "practice_purchase"
+          | "elearning_subscription"
+          | "ayclpurchase";
       }
     | {
         referralCodeId: string;
@@ -336,7 +392,11 @@ export interface AuthenticatedRequestReferralCode extends Request {
     referralCodeId?: string;
     startDate?: string;
     endDate?: string;
-    context?: "booking" | "practice_purchase" | "elearning_subscription";
+    context?:
+      | "booking"
+      | "practice_purchase"
+      | "elearning_subscription"
+      | "ayclpurchase";
   };
 }
 
@@ -558,7 +618,7 @@ export interface AuthenticatedRequestSubBab extends Request {
     title?: string;
     estimatedTime?: string;
     orderNumber?: number;
-    status?: CourseStatus; 
+    status?: CourseStatus;
     // Untuk duplikasi
     targetSubChapterId?: string;
     newTitle?: string;

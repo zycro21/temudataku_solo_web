@@ -20,8 +20,6 @@ export default function CheckoutClassForm({
   });
 
   const isEmailLocked = !!currentUser?.email;
-  const isFullNameLocked = !!currentUser?.fullName;
-  const isPhoneLocked = !!currentUser?.phoneNumber;
 
   /* ===============================
      PREFILL USER
@@ -50,12 +48,14 @@ export default function CheckoutClassForm({
   const cityOptions = formData.province ? regions[formData.province] : [];
 
   return (
-    <form className="p-6 pl-6 md:pl-10 space-y-6">
-      <h2 className="text-2xl font-bold">Informasi Pemesanan</h2>
+    <form className="p-4 md:p-6 md:pl-10 space-y-5 max-w-3xl mx-auto md:mx-0">
+      <h2 className="text-lg md:text-2xl font-bold text-center md:text-left">
+        Informasi Pemesanan
+      </h2>
 
       {/* Email */}
-      <div className="grid gap-2 max-w-4xl">
-        <label className="text-sm font-medium">Email</label>
+      <div className="grid gap-1.5 max-w-3xl">
+        <label className="text-xs font-medium text-gray-600">Email</label>
         <Input
           name="email"
           value={formData.email}
@@ -67,22 +67,24 @@ export default function CheckoutClassForm({
       </div>
 
       {/* Nama */}
-      <div className="grid gap-2 max-w-4xl">
-        <label className="text-sm font-medium">Nama Lengkap</label>
+      <div className="grid gap-1.5 max-w-3xl">
+        <label className="text-xs font-medium text-gray-600">
+          Nama Lengkap
+        </label>
         <Input
           name="fullName"
           value={formData.fullName}
           onChange={handleChange}
           required
-          readOnly={isFullNameLocked}
-          className={isFullNameLocked ? "bg-gray-100 cursor-not-allowed" : ""}
         />
       </div>
 
       {/* Province & City */}
-      <div className="flex gap-4">
-        <div className="flex flex-col w-1/3">
-          <label className="text-sm font-medium mb-2">Provinsi</label>
+      <div className="flex flex-col md:flex-row gap-3 max-w-3xl">
+        <div className="flex flex-col flex-1">
+          <label className="text-xs font-medium text-gray-600 mb-1">
+            Provinsi
+          </label>
           <SelectInput
             value={formData.province}
             onValueChange={(value) => {
@@ -101,8 +103,10 @@ export default function CheckoutClassForm({
           </SelectInput>
         </div>
 
-        <div className="flex flex-col w-1/3">
-          <label className="text-sm font-medium mb-2">Kota/Kabupaten</label>
+        <div className="flex flex-col flex-1">
+          <label className="text-xs font-medium text-gray-600 mb-1">
+            Kota/Kabupaten
+          </label>
           <SelectInput
             value={formData.city}
             onValueChange={(value) => {
@@ -124,15 +128,9 @@ export default function CheckoutClassForm({
       </div>
 
       {/* Phone */}
-      <div className="grid gap-2 max-w-4xl">
-        <label className="text-sm font-medium">No. Telepon</label>
-        <Input
-          name="phone"
-          value={formData.phone}
-          onChange={handleChange}
-          readOnly={isPhoneLocked}
-          className={isPhoneLocked ? "bg-gray-100 cursor-not-allowed" : ""}
-        />
+      <div className="grid gap-1.5 max-w-3xl">
+        <label className="text-xs font-medium text-gray-600">No. Telepon</label>
+        <Input name="phone" value={formData.phone} onChange={handleChange} />
       </div>
     </form>
   );

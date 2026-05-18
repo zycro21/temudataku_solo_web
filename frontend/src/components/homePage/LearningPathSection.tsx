@@ -92,6 +92,28 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
     });
   };
 
+  const formatScheduleRange = (schedules: any[]) => {
+    if (!schedules || schedules.length === 0) {
+      return "Tanggal belum tersedia";
+    }
+
+    const sorted = [...schedules].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+    );
+
+    const firstDate = new Date(sorted[0].date);
+    const lastDate = new Date(sorted[sorted.length - 1].date);
+
+    const format = (date: Date) =>
+      date.toLocaleDateString("id-ID", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      });
+
+    return `${format(firstDate)} - ${format(lastDate)}`;
+  };
+
   const getLevelLabel = (level?: string) => {
     if (!level) return "";
 
@@ -116,6 +138,9 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
     return tool
       .toLowerCase()
       .replace(/\(.*?\)/g, "")
+      .replace(/&/g, "and")
+      .replace(/\./g, "")
+      .replace(/-/g, "")
       .replace(/\s+/g, "")
       .trim();
   };
@@ -130,6 +155,7 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
       sql: "/assets/toolIcons/mysql.svg",
       postgresql: "/assets/toolIcons/postgresql.svg",
       pytorch: "/assets/toolIcons/pytorch.svg",
+      scikitlearn: "/assets/toolIcons/scikitlearn.svg",
       "scikit-learn": "/assets/toolIcons/scikitlearn.svg",
       tensorflow: "/assets/toolIcons/tensorflow.svg",
       docker: "/assets/toolIcons/docker.svg",
@@ -169,10 +195,75 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
       rlanguage: "/assets/toolIcons/r.svg",
       git: "/assets/toolIcons/git.svg",
       github: "/assets/toolIcons/github.svg",
+      // ================= ONLINE FALLBACK ICONS =================
+      seaborn: "https://cdn.simpleicons.org/seaborn",
+      matplotlib: "https://cdn.simpleicons.org/plotly",
+      plotly: "https://cdn.simpleicons.org/plotly",
+      xgboost: "https://cdn.simpleicons.org/xgboost",
+      lightgbm: "https://cdn.simpleicons.org/lightgbm",
+      catboost: "https://cdn.simpleicons.org/catboost",
+      dask: "https://cdn.simpleicons.org/dask",
+      polars: "https://cdn.simpleicons.org/polars",
+      nltk: "https://cdn.simpleicons.org/python",
+      spacy: "https://cdn.simpleicons.org/spacy",
+      langchain: "https://cdn.simpleicons.org/langchain",
+      llamaindex: "https://cdn.simpleicons.org/llamaindex",
+      transformers: "https://cdn.simpleicons.org/huggingface",
+      onnx: "https://cdn.simpleicons.org/onnx",
+      tritoninferenceserver: "https://cdn.simpleicons.org/nvidia",
+      ray: "https://cdn.simpleicons.org/ray",
+      raytune: "https://cdn.simpleicons.org/ray",
+      optuna: "https://cdn.simpleicons.org/optuna",
+      deepspeed: "https://cdn.simpleicons.org/pytorch",
+      accelerate: "https://cdn.simpleicons.org/huggingface",
+      bokeh: "https://cdn.simpleicons.org/bokeh",
+      altair: "https://cdn.simpleicons.org/vega",
+      dash: "https://cdn.simpleicons.org/plotly",
+      plotnine: "https://cdn.simpleicons.org/python",
+      kafka: "https://cdn.simpleicons.org/apachekafka",
+      apacheflink: "https://cdn.simpleicons.org/apacheflink",
+      apachebeam: "https://cdn.simpleicons.org/apachebeam",
+      deltalake: "https://cdn.simpleicons.org/delta",
+      databricks: "https://cdn.simpleicons.org/databricks",
+      presto: "https://cdn.simpleicons.org/presto",
+      trino: "https://cdn.simpleicons.org/trino",
+      clickhouse: "https://cdn.simpleicons.org/clickhouse",
+      azure: "https://cdn.simpleicons.org/microsoftazure",
+      azureml: "https://cdn.simpleicons.org/microsoftazure",
+      sagemaker: "https://cdn.simpleicons.org/amazonaws",
+      vertexai: "https://cdn.simpleicons.org/googlecloud",
+      terraform: "https://cdn.simpleicons.org/terraform",
+      pulumi: "https://cdn.simpleicons.org/pulumi",
+      circleci: "https://cdn.simpleicons.org/circleci",
+      gitlabci: "https://cdn.simpleicons.org/gitlab",
+      argocd: "https://cdn.simpleicons.org/argo",
+      prefect: "https://cdn.simpleicons.org/prefect",
+      dvc: "https://cdn.simpleicons.org/dvc",
+      greatexpectations: "https://cdn.simpleicons.org/python",
+      evidentlyai: "https://cdn.simpleicons.org/python",
+      nodejs: "https://cdn.simpleicons.org/nodedotjs",
+      expressjs: "https://cdn.simpleicons.org/express",
+      nestjs: "https://cdn.simpleicons.org/nestjs",
+      go: "https://cdn.simpleicons.org/go",
+      gin: "https://cdn.simpleicons.org/go",
+      redis: "https://cdn.simpleicons.org/redis",
+      graphql: "https://cdn.simpleicons.org/graphql",
+      grpc: "https://cdn.simpleicons.org/grpc",
+      pinecone: "https://cdn.simpleicons.org/pinecone",
+      weaviate: "https://cdn.simpleicons.org/weaviate",
+      faiss: "https://cdn.simpleicons.org/meta",
+      chroma: "https://cdn.simpleicons.org/chromatic",
+      milvus: "https://cdn.simpleicons.org/milvus",
+      elasticsearch: "https://cdn.simpleicons.org/elasticsearch",
+      opensearch: "https://cdn.simpleicons.org/opensearch",
+      gensim: "https://cdn.simpleicons.org/python",
+      textblob: "https://cdn.simpleicons.org/python",
+      tesseractocr: "https://cdn.simpleicons.org/tesseract",
+      detectron2: "https://cdn.simpleicons.org/meta",
     };
 
     const normalized = normalizeToolName(tool);
-    const src = toolPaths[normalized] || "/assets/toolIcons/python.svg";
+    const src = toolPaths[normalized] || "/assets/toolIcons/default.svg";
 
     return (
       <TooltipProvider key={tool}>
@@ -185,6 +276,10 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
                 width={20}
                 height={20}
                 className="w-5 h-5"
+                unoptimized
+                onError={(e) => {
+                  e.currentTarget.src = "/assets/toolIcons/default.svg";
+                }}
               />
             </div>
           </TooltipTrigger>
@@ -325,6 +420,7 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
                     alt={option.title}
                     width={400}
                     height={220}
+                    unoptimized
                     className="w-full h-44 sm:h-48 object-cover"
                   />
                   {option.badge && (
@@ -546,13 +642,15 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
                       <div className="relative">
                         <Image
                           src={
-                            bootcamp.thumbnail ??
-                            "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=200&fit=crop"
+                            bootcamp.thumbnail
+                              ? `${process.env.NEXT_PUBLIC_API_BASE_URL}${bootcamp.thumbnail}`
+                              : "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=200&fit=crop"
                           }
                           alt={bootcamp.serviceName}
                           width={400}
                           height={180}
                           className="w-full h-48 object-cover"
+                          unoptimized
                         />
 
                         <div className="absolute top-0 right-0 bg-gray-500 text-white px-2 py-1 rounded-bl-lg text-xs font-medium">
@@ -610,7 +708,7 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
                         <div className="space-y-2">
                           <Button
                             onClick={() =>
-                              router.push(`/programs/${bootcamp.id}`)
+                              router.push(`/programs/${bootcamp.slug}`)
                             }
                             className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 text-sm"
                           >
@@ -619,7 +717,7 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
 
                           <Button
                             onClick={() =>
-                              router.push(`/programs/${bootcamp.id}`)
+                              router.push(`/programs/${bootcamp.slug}`)
                             }
                             variant="outline"
                             className="w-full border-emerald-600 text-emerald-600 hover:bg-emerald-50 py-2 text-sm"

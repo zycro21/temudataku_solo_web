@@ -5,6 +5,39 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowUp, ArrowDown } from "lucide-react";
 import Image from "next/image";
 
+// ── Section item types (sesuai skema DB terbaru) ────────────────────────────
+type SectionItem = {
+  title: string;
+  description: string;
+};
+
+type ToolItem = {
+  id?: string;
+  name: string;
+};
+
+type ScheduleItem = {
+  id?: string;
+  date: string;
+};
+
+type PortfolioItem = {
+  id?: string;
+  title: string;
+  description?: string | null;
+  menteeName: string;
+  projectLink: string;
+  thumbnail?: string | null;
+};
+
+type TestimonialItem = {
+  id?: string;
+  name: string;
+  role?: string | null;
+  comment: string;
+  rating: number;
+};
+
 export type Project = {
   id: string;
   foto: string;
@@ -28,10 +61,34 @@ export type Project = {
   mentorNames?: string[]; // 🟢 mentoring (multi)
   mentorName?: string; // 🔵 e-learning (single)
 
-  maxParticipants?: number; // 🆕
-  durationDays?: number; // 🆕
+  maxParticipants?: number;
+  durationDays?: number;
+  startDate?: string | null;
+  endDate?: string | null;
 
-  benefits?: string;
+  // ── NEW SIMPLE FIELDS (skema DB terbaru) ──
+  strikePrice?: number | null;
+  programAbout?: string | null;
+  totalWeeks?: number | null;
+  totalProjects?: number | null;
+  slug?: string | null;
+  isFeatured?: boolean;
+  whatsappGroup?: string | null;
+
+  // ── SECTIONS (split per type, skema DB terbaru) ──
+  // benefits pakai union: SectionItem[] untuk Mentoring, string untuk E-Learning
+  benefits?: SectionItem[] | string;
+  mechanisms?: SectionItem[];
+  syllabuses?: SectionItem[];
+  targets?: SectionItem[];
+
+  // ── RELATIONS (skema DB terbaru) ──
+  tools?: ToolItem[];
+  schedules?: ScheduleItem[];
+  portfolios?: PortfolioItem[];
+  testimonials?: TestimonialItem[];
+
+  // ── FIELD LAMA (tetap dipertahankan untuk E-Learning & backward compat) ──
   mechanism?: string;
   syllabusPath?: string;
   toolsUsed?: string;
@@ -55,6 +112,7 @@ export type Project = {
   hargaDiskon: string;
   deskripsi: string;
   status: string;
+  isActive?: boolean | null;
   diskonTipe: string;
   diskon: number;
   tanggalDitambahkan?: string;
@@ -129,17 +187,18 @@ export const columns: ColumnDef<Project>[] = [
     cell: ({ cell }) => {
       const url = cell.getValue() as string;
       return (
-        <Image
-          src={url}
-          alt="Foto Produk"
-          width={40}
-          height={40}
-          unoptimized
-          className="rounded object-cover border"
-        />
+        <div className="w-[72px] h-[48px] relative rounded overflow-hidden border flex-shrink-0">
+          <Image
+            src={url}
+            alt="Foto Produk"
+            fill
+            unoptimized
+            className="object-cover"
+          />
+        </div>
       );
     },
-    size: 80,
+    size: 88,
   },
 
   /* ============================
@@ -233,34 +292,48 @@ export const columns: ColumnDef<Project>[] = [
   },
 
   /* ============================
-     SORT 3 MODE – DESKRIPSI
+     WHATSAPP GROUP (NO SORT)
   ============================ */
   {
-    accessorKey: "deskripsi",
-    header: ({ column }) => {
-      const sort = column.getIsSorted();
+    accessorKey: "whatsappGroup",
+    enableSorting: false,
+    header: () => <div className="px-2 py-1">WhatsApp Group</div>,
+    cell: ({ getValue }) => {
+      const val = getValue() as string | null | undefined;
+      if (!val) return <span className="text-gray-400 text-xs">-</span>;
       return (
-        <button
-          onClick={() => {
-            if (!sort) column.toggleSorting(false);
-            else if (sort === "asc") column.toggleSorting(true);
-            else column.clearSorting();
-          }}
-          className={`flex items-center gap-1 w-full cursor-pointer 
-          ${sort ? "bg-emerald-200" : ""}`}
+        <a
+          href={val}
+          target="_blank"
+          rel="noreferrer"
+          className="text-xs text-emerald-600 underline break-all"
         >
-          Deskripsi
-          {sort === "asc" && <ArrowDown className="w-4 h-4" />}
-          {sort === "desc" && <ArrowUp className="w-4 h-4" />}
-        </button>
+          {val}
+        </a>
       );
     },
+  },
 
-    // TAMBAHKAN INI (PALING PENTING)
-    cell: ({ getValue }) => (
-      <div className="break-words whitespace-normal max-w-[350px]">
-        {getValue() as string}
-      </div>
-    ),
+  /* ============================
+     AKTIF
+  ============================ */
+  {
+    accessorKey: "isActive",
+    enableSorting: false,
+    header: () => <div className="px-2 py-1">Aktif</div>,
+    cell: ({ getValue }) => {
+      const active = getValue() as boolean | null | undefined;
+      return (
+        <span
+          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+            active
+              ? "bg-emerald-100 text-emerald-700"
+              : "bg-red-100 text-red-600"
+          }`}
+        >
+          {active ? "Aktif" : "Nonaktif"}
+        </span>
+      );
+    },
   },
 ];

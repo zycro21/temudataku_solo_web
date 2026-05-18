@@ -13,6 +13,7 @@ import axios from "axios";
 import crypto from "crypto";
 import moment from "moment-timezone";
 import { sendAyclPaymentSuccessEmail } from "../utils/sendAyclPaymentSuccess.js";
+import { sendBookingPaymentSuccessEmail } from "../utils/sendBookingPaymentSuccessEmail.js";
 
 const prisma = new PrismaClient();
 
@@ -281,6 +282,31 @@ export const processDuitkuCallback = async ({
         where: { id: payment.bookingId },
         data: { status: "confirmed", updatedAt: now },
       });
+
+      // 🔥 Fetch data lengkap untuk email
+      const booking = await tx.booking.findUnique({
+        where: { id: payment.bookingId },
+        include: {
+          mentee: true,
+          mentoringService: true,
+        },
+      });
+
+      if (booking) {
+        // 🔥 Kirim email — tidak await agar tidak block callback response
+        sendBookingPaymentSuccessEmail({
+          email: booking.mentee.email,
+          fullName: booking.mentee.fullName,
+          serviceName: booking.mentoringService.serviceName,
+          merchantOrderId: payment.merchantOrderId ?? "-",
+          paymentMethod: payment.paymentMethod,
+          amount: payment.amount.toNumber(),
+          paymentDate: now,
+          whatsappGroup: booking.mentoringService.whatsappGroup ?? null,
+        }).catch((err) => {
+          console.error("Gagal mengirim email konfirmasi booking:", err);
+        });
+      }
     }
 
     if (payment.practicePurchaseId) {

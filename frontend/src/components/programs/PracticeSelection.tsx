@@ -36,8 +36,8 @@ export default function PracticeSelection() {
   const [showAll, setShowAll] = useState(false);
   const router = useRouter();
 
-  const handleNavigate = (id: string) => {
-    router.push(`/programs/${id}`);
+  const handleNavigate = (slug: string) => {
+    router.push(`/programs/${slug}`);
   };
 
   useEffect(() => {
@@ -75,75 +75,260 @@ export default function PracticeSelection() {
     });
   };
 
+  const formatScheduleRange = (schedules: any[]) => {
+    if (!schedules || schedules.length === 0) {
+      return "Tanggal belum tersedia";
+    }
+
+    const sorted = [...schedules].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+    );
+
+    const firstDate = new Date(sorted[0].date);
+    const lastDate = new Date(sorted[sorted.length - 1].date);
+
+    const format = (date: Date) =>
+      date.toLocaleDateString("id-ID", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      });
+
+    return `${format(firstDate)} - ${format(lastDate)}`;
+  };
+
   const normalizeToolName = (tool: string) => {
     return tool
       .toLowerCase()
-      .replace(/\(.*?\)/g, "") // hapus (Expert)
-      .replace(/\s+/g, "") // hapus semua spasi
+      .replace(/\(.*?\)/g, "")
+      .replace(/&/g, "and")
+      .replace(/\./g, "")
+      .replace(/-/g, "")
+      .replace(/\s+/g, "")
       .trim();
   };
 
   const getToolIcon = (tool: string) => {
     const toolPaths: Record<string, string> = {
+      // ================= EXISTING LOCAL ASSETS =================
       excel: "/assets/toolIcons/excel.svg",
       microsoftexcel: "/assets/toolIcons/excel.svg",
+
       python: "/assets/toolIcons/python.svg",
+
       powerbi: "/assets/toolIcons/powerbi.svg",
+
       mysql: "/assets/toolIcons/mysql.svg",
       sql: "/assets/toolIcons/mysql.svg",
+
       postgresql: "/assets/toolIcons/postgresql.svg",
+
       pytorch: "/assets/toolIcons/pytorch.svg",
-      "scikit-learn": "/assets/toolIcons/scikitlearn.svg",
+
+      scikitlearn: "/assets/toolIcons/scikitlearn.svg",
+
       tensorflow: "/assets/toolIcons/tensorflow.svg",
+
       docker: "/assets/toolIcons/docker.svg",
+
       kubernetes: "/assets/toolIcons/kubernetes.svg",
+
       aws: "/assets/toolIcons/aws.svg",
+
       mlflow: "/assets/toolIcons/mlflow.svg",
+
       jupyter: "/assets/toolIcons/jupyter.svg",
       jupyternotebook: "/assets/toolIcons/jupyter.svg",
+
       statistics: "/assets/toolIcons/statistic.svg",
+
       tableau: "/assets/toolIcons/tableau.svg",
+
       googlelookerstudio: "/assets/toolIcons/looker.svg",
       looker: "/assets/toolIcons/looker.svg",
+
       opencv: "/assets/toolIcons/opencv.svg",
+
       googlecolab: "/assets/toolIcons/googlecolab.svg",
+
       keras: "/assets/toolIcons/keras.svg",
+
       huggingface: "/assets/toolIcons/hf.svg",
-      // --- 1. Data Visualization & BI (Tambahan) ---
+
       metabase: "/assets/toolIcons/metabase.svg",
+
       superset: "/assets/toolIcons/superset.svg",
 
-      // --- 2. Data Engineering & Big Data ---
       spark: "/assets/toolIcons/spark.svg",
       apachespark: "/assets/toolIcons/spark.svg",
+
       hadoop: "/assets/toolIcons/hadoop.svg",
+
       airflow: "/assets/toolIcons/airflow.svg",
       apacheairflow: "/assets/toolIcons/airflow.svg",
+
       dbt: "/assets/toolIcons/dbt.svg",
 
-      // --- 3. Machine Learning & MLOps (Tambahan) ---
       pandas: "/assets/toolIcons/pandas.svg",
+
       numpy: "/assets/toolIcons/numpy.svg",
+
       fastapi: "/assets/toolIcons/fastapi.svg",
+
       streamlit: "/assets/toolIcons/streamlit.svg",
+
       wandb: "/assets/toolIcons/wandb.svg",
       weightsandbiases: "/assets/toolIcons/wandb.svg",
 
-      // --- 4. Cloud & Database Lainnya ---
       gcp: "/assets/toolIcons/gcp.svg",
       googlecloud: "/assets/toolIcons/gcp.svg",
+
       bigquery: "/assets/toolIcons/bigquery.svg",
+
       snowflake: "/assets/toolIcons/snowflake.svg",
+
       mongodb: "/assets/toolIcons/mongodb.svg",
 
-      // --- 5. Programming & Version Control ---
       r: "/assets/toolIcons/r.svg",
       rlanguage: "/assets/toolIcons/r.svg",
+
       git: "/assets/toolIcons/git.svg",
+
       github: "/assets/toolIcons/github.svg",
+
+      // ================= ONLINE FALLBACK ICONS =================
+
+      seaborn: "https://cdn.simpleicons.org/seaborn",
+
+      matplotlib: "https://cdn.simpleicons.org/plotly",
+
+      plotly: "https://cdn.simpleicons.org/plotly",
+
+      xgboost: "https://cdn.simpleicons.org/xgboost",
+
+      lightgbm: "https://cdn.simpleicons.org/lightgbm",
+
+      catboost: "https://cdn.simpleicons.org/catboost",
+
+      dask: "https://cdn.simpleicons.org/dask",
+
+      polars: "https://cdn.simpleicons.org/polars",
+
+      nltk: "https://cdn.simpleicons.org/python",
+
+      spacy: "https://cdn.simpleicons.org/spacy",
+
+      langchain: "https://cdn.simpleicons.org/langchain",
+
+      llamaindex: "https://cdn.simpleicons.org/llamaindex",
+
+      transformers: "https://cdn.simpleicons.org/huggingface",
+
+      onnx: "https://cdn.simpleicons.org/onnx",
+
+      tritoninferenceserver: "https://cdn.simpleicons.org/nvidia",
+
+      ray: "https://cdn.simpleicons.org/ray",
+
+      raytune: "https://cdn.simpleicons.org/ray",
+
+      optuna: "https://cdn.simpleicons.org/optuna",
+
+      deepspeed: "https://cdn.simpleicons.org/pytorch",
+
+      accelerate: "https://cdn.simpleicons.org/huggingface",
+
+      bokeh: "https://cdn.simpleicons.org/bokeh",
+
+      altair: "https://cdn.simpleicons.org/vega",
+
+      dash: "https://cdn.simpleicons.org/plotly",
+
+      plotnine: "https://cdn.simpleicons.org/python",
+
+      kafka: "https://cdn.simpleicons.org/apachekafka",
+
+      apacheflink: "https://cdn.simpleicons.org/apacheflink",
+
+      apachebeam: "https://cdn.simpleicons.org/apachebeam",
+
+      deltalake: "https://cdn.simpleicons.org/delta",
+
+      databricks: "https://cdn.simpleicons.org/databricks",
+
+      presto: "https://cdn.simpleicons.org/presto",
+
+      trino: "https://cdn.simpleicons.org/trino",
+
+      clickhouse: "https://cdn.simpleicons.org/clickhouse",
+
+      azure: "https://cdn.simpleicons.org/microsoftazure",
+
+      azureml: "https://cdn.simpleicons.org/microsoftazure",
+
+      sagemaker: "https://cdn.simpleicons.org/amazonaws",
+
+      vertexai: "https://cdn.simpleicons.org/googlecloud",
+
+      terraform: "https://cdn.simpleicons.org/terraform",
+
+      pulumi: "https://cdn.simpleicons.org/pulumi",
+
+      circleci: "https://cdn.simpleicons.org/circleci",
+
+      gitlabci: "https://cdn.simpleicons.org/gitlab",
+
+      argocd: "https://cdn.simpleicons.org/argo",
+
+      prefect: "https://cdn.simpleicons.org/prefect",
+
+      dvc: "https://cdn.simpleicons.org/dvc",
+
+      greatexpectations: "https://cdn.simpleicons.org/python",
+
+      evidentlyai: "https://cdn.simpleicons.org/python",
+
+      nodejs: "https://cdn.simpleicons.org/nodedotjs",
+
+      expressjs: "https://cdn.simpleicons.org/express",
+
+      nestjs: "https://cdn.simpleicons.org/nestjs",
+
+      go: "https://cdn.simpleicons.org/go",
+
+      gin: "https://cdn.simpleicons.org/go",
+
+      redis: "https://cdn.simpleicons.org/redis",
+
+      graphql: "https://cdn.simpleicons.org/graphql",
+
+      grpc: "https://cdn.simpleicons.org/grpc",
+
+      pinecone: "https://cdn.simpleicons.org/pinecone",
+
+      weaviate: "https://cdn.simpleicons.org/weaviate",
+
+      faiss: "https://cdn.simpleicons.org/meta",
+
+      chroma: "https://cdn.simpleicons.org/chromatic",
+
+      milvus: "https://cdn.simpleicons.org/milvus",
+
+      elasticsearch: "https://cdn.simpleicons.org/elasticsearch",
+
+      opensearch: "https://cdn.simpleicons.org/opensearch",
+
+      gensim: "https://cdn.simpleicons.org/python",
+
+      textblob: "https://cdn.simpleicons.org/python",
+
+      tesseractocr: "https://cdn.simpleicons.org/tesseract",
+
+      detectron2: "https://cdn.simpleicons.org/meta",
     };
 
     const normalized = normalizeToolName(tool);
+
     const src = toolPaths[normalized] || "/assets/toolIcons/default.svg";
 
     return (
@@ -156,10 +341,15 @@ export default function PracticeSelection() {
                 alt={tool}
                 width={20}
                 height={20}
-                className="w-4 h-4"
+                className="w-4 h-4 object-contain"
+                unoptimized
+                onError={(e) => {
+                  e.currentTarget.src = "/assets/toolIcons/default.svg";
+                }}
               />
             </div>
           </TooltipTrigger>
+
           <TooltipContent>
             <p>{tool}</p>
           </TooltipContent>
@@ -344,13 +534,15 @@ export default function PracticeSelection() {
                 <div className="relative">
                   <Image
                     src={
-                      bootcamp.thumbnail ??
-                      "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=200&fit=crop"
+                      bootcamp.thumbnail
+                        ? `${process.env.NEXT_PUBLIC_API_BASE_URL}${bootcamp.thumbnail}`
+                        : "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=200&fit=crop"
                     }
                     alt={bootcamp.serviceName}
                     width={400}
                     height={200}
                     className="w-full h-52 object-cover"
+                    unoptimized
                   />
 
                   <div className="absolute top-0 right-0 px-2.5 py-1.5 bg-gray-500 text-white rounded-bl-lg text-xs font-medium">
@@ -369,23 +561,13 @@ export default function PracticeSelection() {
                     {bootcamp.serviceName}
                   </h3>
 
-                  <div className="flex gap-1.5 mb-3">
-                    {bootcamp.toolsUsed
-                      ?.split(",")
-                      .map((tool: string) => tool.trim())
-                      .map((tool: string) => getToolIcon(tool))}
+                  <div className="flex gap-1.5 mb-3 flex-wrap">
+                    {bootcamp.tools?.map((tool: any) => getToolIcon(tool.name))}
                   </div>
 
                   <div className="flex items-center gap-2 text-gray-700 text-sm font-medium mb-3">
                     <Calendar className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                    <span>
-                      {bootcamp.sessionDateRange
-                        ? bootcamp.sessionDateRange
-                            .split(" - ")
-                            .map((date: string) => formatDate(date))
-                            .join(" - ")
-                        : "Tanggal belum tersedia"}
-                    </span>
+                    <span>{formatScheduleRange(bootcamp.schedules)}</span>
                   </div>
 
                   <div className="flex items-center gap-3 mb-6">
@@ -409,13 +591,13 @@ export default function PracticeSelection() {
 
                   <div className="space-y-3">
                     <Button
-                      onClick={() => handleNavigate(bootcamp.id)}
+                      onClick={() => handleNavigate(bootcamp.slug)}
                       className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 text-sm"
                     >
                       Daftar Sekarang
                     </Button>
                     <Button
-                      onClick={() => handleNavigate(bootcamp.id)}
+                      onClick={() => handleNavigate(bootcamp.slug)}
                       variant="outline"
                       className="w-full border-emerald-600 text-emerald-600 hover:bg-emerald-50 py-2.5 text-sm"
                     >

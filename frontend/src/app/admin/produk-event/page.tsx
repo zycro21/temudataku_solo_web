@@ -41,6 +41,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { MentorOption } from "@/types/mentor";
+import BootcampPreviewModal, { PreviewData } from "./BootcampPreviewModal";
 
 type EditFieldProps = {
   label: string;
@@ -211,10 +212,13 @@ export default function AdminMentorPage() {
 
   const mapMentoringToProject = (item: any): Project => {
     const mentors = item.mentors ?? [];
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
     return {
       id: item.id,
-      foto: "/images/Navbar_logo.png",
+      foto: item.thumbnail
+        ? `${baseUrl}${item.thumbnail}`
+        : "/images/Navbar_logo.png",
       nama: item.serviceName,
       kategori: "Mentoring",
       tipeMentoring: mapServiceTypeToProgram(item.serviceType),
@@ -231,6 +235,7 @@ export default function AdminMentorPage() {
       hargaDiskon: formatRupiah(Number(item.price)),
       deskripsi: item.description ?? "-",
       status: item.isActive ? "Aktif" : "Nonaktif",
+      isActive: item.isActive,
 
       diskonTipe: "-",
       diskon: 0,
@@ -245,6 +250,7 @@ export default function AdminMentorPage() {
       alumniPortfolio: item.alumniPortfolio ?? "-",
 
       tanggalDitambahkan: formatDate(item.createdAt),
+      whatsappGroup: item.whatsappGroup ?? null,
     };
   };
 
@@ -297,56 +303,57 @@ export default function AdminMentorPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const fetchProjects = async () => {
+    try {
+      setLoading(true);
+
+      const [mentoringRes, elearningRes] = await Promise.all([
+        axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentorService/admin/mentoring-services`,
+          {
+            withCredentials: true,
+            params: {
+              page: 1,
+              limit: 10000,
+            },
+          },
+        ),
+        axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/elearningCourse/courses`,
+          {
+            withCredentials: true,
+            params: {
+              page: 1,
+              limit: 10000,
+            },
+          },
+        ),
+      ]);
+
+      const mentoringProjects = mentoringRes.data.data
+        .filter((item: any) => item.serviceType === "bootcamp")
+        .map(mapMentoringToProject);
+
+      const elearningProjects = elearningRes.data.data.map(
+        mapELearningToProject,
+      );
+
+      console.log(elearningProjects.map((p: any) => p.foto));
+
+      setProjects([...mentoringProjects, ...elearningProjects]);
+    } catch (error) {
+      console.error("Gagal fetch products:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        setLoading(true);
-
-        const [mentoringRes, elearningRes] = await Promise.all([
-          axios.get(
-            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentorService/admin/mentoring-services`,
-            {
-              withCredentials: true,
-              params: {
-                page: 1,
-                limit: 10000,
-              },
-            },
-          ),
-          axios.get(
-            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/elearningCourse/courses`,
-            {
-              withCredentials: true,
-              params: {
-                page: 1,
-                limit: 10000,
-              },
-            },
-          ),
-        ]);
-
-        const mentoringProjects = mentoringRes.data.data.map(
-          mapMentoringToProject,
-        );
-
-        const elearningProjects = elearningRes.data.data.map(
-          mapELearningToProject,
-        );
-
-        console.log(elearningProjects.map((p: any) => p.foto));
-
-        setProjects([...mentoringProjects, ...elearningProjects]);
-      } catch (error) {
-        console.error("Gagal fetch products:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchProjects();
   }, []);
 
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [addStep, setAddStep] = useState(1);
 
   const mapServiceType = (type?: TipeMentoring): string | undefined => {
@@ -391,7 +398,6 @@ export default function AdminMentorPage() {
     description: string;
     menteeName: string;
     projectLink: string;
-    thumbnail: string;
   };
   type TestimonialItem = {
     name: string;
@@ -420,7 +426,8 @@ export default function AdminMentorPage() {
     hargaDiskon: string;
 
     maxParticipants?: string;
-    durationDays?: string;
+    startDate?: string;
+    endDate?: string;
 
     // 🟢 MENTORING — simple fields
     slug?: string;
@@ -428,6 +435,7 @@ export default function AdminMentorPage() {
     programAbout?: string;
     totalWeeks?: string;
     totalProjects?: string;
+    whatsappGroup?: string;
 
     // 🟢 MENTORING — sections (BENEFIT, MECHANISM, SYLLABUS, TARGET)
     benefits?: SectionItem[];
@@ -467,7 +475,8 @@ export default function AdminMentorPage() {
     hargaDiskon: "",
 
     maxParticipants: "",
-    durationDays: "",
+    startDate: "",
+    endDate: "",
 
     // mentoring simple fields
     slug: "",
@@ -495,14 +504,148 @@ export default function AdminMentorPage() {
     tags: [],
   };
 
+  const [calculatedDays, setCalculatedDays] = useState<number>(0);
+
   const [addFormData, setAddFormData] =
     useState<AddFormData>(initialAddFormData);
+
+  // Hitung durationDays otomatis dari startDate & endDate
+  useEffect(() => {
+    const start = addFormData.startDate;
+    const end = addFormData.endDate;
+
+    if (!start || !end) {
+      setCalculatedDays(0);
+      return;
+    }
+
+    const startD = new Date(start);
+    const endD = new Date(end);
+
+    startD.setHours(0, 0, 0, 0);
+    endD.setHours(0, 0, 0, 0);
+
+    const diffTime = endD.getTime() - startD.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    setCalculatedDays(diffDays > 0 ? diffDays : 0);
+  }, [addFormData.startDate, addFormData.endDate]);
+
+  const TOOL_OPTIONS = [
+    "Excel",
+    "Python",
+    "Pandas",
+    "NumPy",
+    "Power BI",
+    "Tableau",
+    "SQL",
+    "MySQL",
+    "PostgreSQL",
+    "MongoDB",
+    "BigQuery",
+    "Snowflake",
+    "Apache Spark",
+    "Hadoop",
+    "Airflow",
+    "dbt",
+    "Jupyter Notebook",
+    "Google Colab",
+    "TensorFlow",
+    "PyTorch",
+    "Scikit-learn",
+    "Keras",
+    "OpenCV",
+    "FastAPI",
+    "Streamlit",
+    "MLflow",
+    "Weights & Biases",
+    "Docker",
+    "Kubernetes",
+    "AWS",
+    "GCP",
+    "Git",
+    "GitHub",
+    "R",
+    "Statistics",
+    "Looker",
+    "Metabase",
+    "Superset",
+    "Hugging Face",
+    // tambahan
+    "Seaborn",
+    "Matplotlib",
+    "Plotly",
+    "XGBoost",
+    "LightGBM",
+    "CatBoost",
+    "Dask",
+    "Polars",
+    "NLTK",
+    "SpaCy",
+    "LangChain",
+    "LlamaIndex",
+    "Transformers",
+    "ONNX",
+    "Triton Inference Server",
+    "Ray",
+    "Ray Tune",
+    "Optuna",
+    "DeepSpeed",
+    "Accelerate",
+    "Bokeh",
+    "Altair",
+    "Dash",
+    "Streamlit",
+    "Plotnine",
+    "Kafka",
+    "Apache Flink",
+    "Apache Beam",
+    "Delta Lake",
+    "Databricks",
+    "Presto",
+    "Trino",
+    "ClickHouse",
+    "Azure",
+    "Azure ML",
+    "SageMaker",
+    "Vertex AI",
+    "Terraform",
+    "Pulumi",
+    "CircleCI",
+    "GitLab CI",
+    "ArgoCD",
+    "Prefect",
+    "DVC",
+    "Great Expectations",
+    "Evidently AI",
+    "Node.js",
+    "Express.js",
+    "NestJS",
+    "Go",
+    "Gin",
+    "Redis",
+    "GraphQL",
+    "gRPC",
+    "Pinecone",
+    "Weaviate",
+    "FAISS",
+    "Chroma",
+    "Milvus",
+    "Elasticsearch",
+    "OpenSearch",
+    "Gensim",
+    "TextBlob",
+    "Tesseract OCR",
+    "Detectron2",
+  ];
 
   const resetAddModal = () => {
     setAddFormData(initialAddFormData);
     setSelectedMentorIds([]); // mentoring
     setSelectedMentorId(""); // e-learning
+    setCalculatedDays(0);
     setAddStep(1);
+    setShowPreviewDialog(false);
   };
 
   const handleCloseAddDialog = () => {
@@ -510,109 +653,265 @@ export default function AdminMentorPage() {
     resetAddModal();
   };
 
-  const handleNextStep = () => setAddStep(2);
+  const handleNextStep = () => {
+    const missing: string[] = [];
+
+    // ── Semua kategori ──
+    if (!addFormData.foto) missing.push("Foto Produk");
+    if (!addFormData.nama.trim()) missing.push("Nama Produk");
+
+    // ── Mentoring step-1 ──
+    if (addFormData.kategori === "Mentoring") {
+      if (!addFormData.tipeMentoring) missing.push("Tipe Mentoring");
+      if (!addFormData.slug?.trim()) missing.push("Slug");
+      if (selectedMentorIds.length === 0)
+        missing.push("Pilih minimal 1 Mentor");
+    }
+
+    if (missing.length > 0) {
+      toast.error(
+        `Lengkapi field berikut sebelum melanjutkan:\n• ${missing.join("\n• ")}`,
+        { duration: 5000 },
+      );
+      return;
+    }
+
+    setAddStep(2);
+  };
+
   const handlePrevStep = () => setAddStep(1);
 
   const handleSave = async () => {
     // =====================
-    // ✅ VALIDASI WAJIB
+    // ✅ VALIDASI STEP 2
     // =====================
-    if (!addFormData.nama || !addFormData.harga) {
-      toast.error("Nama dan harga wajib diisi");
-      return;
-    }
+    const missing2: string[] = [];
+
+    if (!addFormData.deskripsi?.trim()) missing2.push("Deskripsi");
+    if (!addFormData.harga?.trim()) missing2.push("Harga");
 
     if (addFormData.kategori === "Mentoring") {
-      if (!addFormData.maxParticipants || !addFormData.durationDays) {
-        toast.error("Max participants dan duration wajib diisi");
-        return;
+      if (!addFormData.maxParticipants?.trim())
+        missing2.push("Max Participants");
+      if (!addFormData.startDate?.trim()) missing2.push("Start Date");
+      if (!addFormData.endDate?.trim()) missing2.push("End Date");
+      if (!addFormData.category?.trim()) missing2.push("Category");
+      if (!addFormData.level?.trim()) missing2.push("Level");
+      if (!addFormData.strikePrice?.trim())
+        missing2.push("Harga Coret / Strike Price");
+      if (!addFormData.programAbout?.trim()) missing2.push("Program About");
+      if (!addFormData.totalWeeks?.trim()) missing2.push("Total Minggu");
+      if (!addFormData.totalProjects?.trim()) missing2.push("Total Proyek");
+      if (!addFormData.whatsappGroup?.trim()) missing2.push("Group Whatsapp");
+
+      // Sections — wajib minimal 1 item + tiap item harus terisi
+      if (!addFormData.benefits || addFormData.benefits.length === 0) {
+        missing2.push("Benefit (minimal 1 item)");
+      } else {
+        addFormData.benefits.forEach((b, i) => {
+          if (!b.title.trim()) missing2.push(`Benefit #${i + 1}: Title`);
+          if (!b.description.trim())
+            missing2.push(`Benefit #${i + 1}: Description`);
+        });
       }
+
+      if (!addFormData.mechanisms || addFormData.mechanisms.length === 0) {
+        missing2.push("Mechanism (minimal 1 item)");
+      } else {
+        addFormData.mechanisms.forEach((m, i) => {
+          if (!m.title.trim()) missing2.push(`Mechanism #${i + 1}: Title`);
+          if (!m.description.trim())
+            missing2.push(`Mechanism #${i + 1}: Description`);
+        });
+      }
+
+      if (!addFormData.syllabuses || addFormData.syllabuses.length === 0) {
+        missing2.push("Syllabus (minimal 1 item)");
+      } else {
+        addFormData.syllabuses.forEach((s, i) => {
+          if (!s.title.trim()) missing2.push(`Syllabus #${i + 1}: Title`);
+          if (!s.description.trim())
+            missing2.push(`Syllabus #${i + 1}: Description`);
+        });
+      }
+
+      if (!addFormData.targets || addFormData.targets.length === 0) {
+        missing2.push("Target Audience (minimal 1 item)");
+      } else {
+        addFormData.targets.forEach((t, i) => {
+          if (!t.title.trim()) missing2.push(`Target #${i + 1}: Title`);
+          if (!t.description.trim())
+            missing2.push(`Target #${i + 1}: Description`);
+        });
+      }
+
+      // Tools — wajib minimal 1
+      if (!addFormData.tools || addFormData.tools.length === 0) {
+        missing2.push("Tools yang Digunakan (minimal 1)");
+      } else {
+        addFormData.tools.forEach((t, i) => {
+          if (!t.name.trim()) missing2.push(`Tool #${i + 1}: Nama`);
+        });
+      }
+
+      // Schedules — wajib minimal 1
+      if (!addFormData.schedules || addFormData.schedules.length === 0) {
+        missing2.push("Jadwal (minimal 1 tanggal)");
+      } else {
+        addFormData.schedules.forEach((s, i) => {
+          if (!s.date) missing2.push(`Jadwal #${i + 1}: Tanggal`);
+        });
+      }
+
+      // Portfolios — wajib minimal 1 + semua field terisi
+      if (!addFormData.portfolios || addFormData.portfolios.length === 0) {
+        missing2.push("Portfolio Alumni (minimal 1 item)");
+      } else {
+        addFormData.portfolios.forEach((p, i) => {
+          if (!p.title.trim()) missing2.push(`Portfolio #${i + 1}: Judul`);
+          if (!p.menteeName.trim())
+            missing2.push(`Portfolio #${i + 1}: Nama Mentee`);
+          if (!p.projectLink.trim())
+            missing2.push(`Portfolio #${i + 1}: Link Proyek`);
+          if (!p.description.trim())
+            missing2.push(`Portfolio #${i + 1}: Deskripsi`);
+        });
+      }
+
+      // Testimonials — wajib minimal 1 + semua field terisi
+      if (!addFormData.testimonials || addFormData.testimonials.length === 0) {
+        missing2.push("Testimonial (minimal 1 item)");
+      } else {
+        addFormData.testimonials.forEach((t, i) => {
+          if (!t.name.trim()) missing2.push(`Testimonial #${i + 1}: Nama`);
+          if (!t.role.trim()) missing2.push(`Testimonial #${i + 1}: Role`);
+          if (!t.comment.trim())
+            missing2.push(`Testimonial #${i + 1}: Komentar`);
+        });
+      }
+    }
+
+    if (missing2.length > 0) {
+      toast.error(
+        `Lengkapi field berikut sebelum menyimpan:\n• ${missing2.join("\n• ")}`,
+        { duration: 7000 },
+      );
+      return;
     }
 
     try {
       // =====================
-      // 🟢 MENTORING (JSON)
+      // 🟢 MENTORING
+      // Strategi: POST JSON dulu (nested objects supported) → dapat ID
+      //           → PATCH multipart hanya jika ada foto (multer upload thumbnail)
+      // Ini menghindari "expected object, received string" karena FormData
+      // tidak bisa kirim nested array of objects tanpa JSON.stringify,
+      // sedangkan Zod validator backend tidak punya transform JSON.parse.
       // =====================
-      const payload = {
+      const sections = [
+        ...(addFormData.benefits ?? []).map((item) => ({
+          type: "BENEFIT",
+          title: item.title,
+          description: item.description,
+        })),
+        ...(addFormData.mechanisms ?? []).map((item) => ({
+          type: "MECHANISM",
+          title: item.title,
+          description: item.description,
+        })),
+        ...(addFormData.syllabuses ?? []).map((item) => ({
+          type: "SYLLABUS",
+          title: item.title,
+          description: item.description,
+        })),
+        ...(addFormData.targets ?? []).map((item) => ({
+          type: "TARGET",
+          title: item.title,
+          description: item.description,
+        })),
+      ];
+
+      // tools: string[]  (sesuai validator: z.array(z.string()))
+      const tools = (addFormData.tools ?? []).map((t) => t.name);
+
+      // schedules: string[] ISO date  (sesuai validator: z.array(z.string()))
+      const schedules = (addFormData.schedules ?? [])
+        .filter((s) => s.date)
+        .map((s) => new Date(s.date).toISOString());
+
+      const portfolios = (addFormData.portfolios ?? []).map((p) => ({
+        title: p.title,
+        description: p.description,
+        menteeName: p.menteeName,
+        projectLink: p.projectLink,
+        // thumbnail: p.thumbnail || undefined,
+      }));
+
+      const testimonials = (addFormData.testimonials ?? []).map((t) => ({
+        name: t.name,
+        role: t.role || undefined,
+        comment: t.comment,
+        rating: t.rating,
+      }));
+
+      // ── STEP 1: POST JSON (nested objects dikirim as-is, tidak stringify) ──
+      const jsonPayload = {
         serviceName: addFormData.nama,
-        description: addFormData.deskripsi || undefined,
+        description: addFormData.deskripsi,
         price: Number(addFormData.harga),
-        strikePrice: addFormData.strikePrice
-          ? Number(addFormData.strikePrice)
-          : undefined,
-        serviceType: "bootcamp", // otomatis bootcamp
-
+        strikePrice: Number(addFormData.strikePrice),
+        serviceType: "bootcamp",
         maxParticipants: Number(addFormData.maxParticipants),
-        durationDays: Number(addFormData.durationDays),
-
-        slug: addFormData.slug || undefined,
+        startDate: addFormData.startDate,
+        endDate: addFormData.endDate,
+        whatsappGroup: addFormData.whatsappGroup ?? "",
+        slug: addFormData.slug ?? "",
         isFeatured: addFormData.isFeatured ?? false,
-        programAbout: addFormData.programAbout || undefined,
-        totalWeeks: addFormData.totalWeeks
-          ? Number(addFormData.totalWeeks)
-          : undefined,
-        totalProjects: addFormData.totalProjects
-          ? Number(addFormData.totalProjects)
-          : undefined,
-
+        programAbout: addFormData.programAbout ?? "",
+        totalWeeks: Number(addFormData.totalWeeks),
+        totalProjects: Number(addFormData.totalProjects),
         mentorProfileIds: selectedMentorIds,
-
-        sections: [
-          ...(addFormData.benefits ?? []).map((item, i) => ({
-            type: "BENEFIT",
-            title: item.title,
-            content: { title: item.title, description: item.description },
-            order: i,
-          })),
-          ...(addFormData.mechanisms ?? []).map((item, i) => ({
-            type: "MECHANISM",
-            title: item.title,
-            content: { title: item.title, description: item.description },
-            order: i,
-          })),
-          ...(addFormData.syllabuses ?? []).map((item, i) => ({
-            type: "SYLLABUS",
-            title: item.title,
-            content: { title: item.title, description: item.description },
-            order: i,
-          })),
-          ...(addFormData.targets ?? []).map((item, i) => ({
-            type: "TARGET",
-            title: item.title,
-            content: { title: item.title, description: item.description },
-            order: i,
-          })),
-        ],
-
-        tools: (addFormData.tools ?? []).map((t) => ({ name: t.name })),
-
-        schedules: (addFormData.schedules ?? [])
-          .filter((s) => s.date)
-          .map((s) => ({ date: new Date(s.date).toISOString() })),
-
-        portfolios: (addFormData.portfolios ?? []).map((p) => ({
-          title: p.title,
-          description: p.description || undefined,
-          menteeName: p.menteeName,
-          projectLink: p.projectLink,
-          thumbnail: p.thumbnail || undefined,
-        })),
-
-        testimonials: (addFormData.testimonials ?? []).map((t) => ({
-          name: t.name,
-          role: t.role || undefined,
-          comment: t.comment,
-          rating: t.rating,
-        })),
+        category: addFormData.category ?? undefined,
+        level: addFormData.level ?? undefined,
+        sections,
+        tools,
+        schedules,
+        portfolios,
+        testimonials,
       };
 
-      await axios.post(
+      const createRes = await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentorService/mentoring-services`,
-        payload,
+        jsonPayload,
         {
           withCredentials: true,
+          headers: { "Content-Type": "application/json" },
         },
       );
+
+      // ── STEP 2: PATCH thumbnail via multipart ──
+      // Catatan: updateMentoringServiceSchema punya .refine() yang cek
+      // Object.keys(body).length > 0. Kalau hanya kirim file (thumbnail),
+      // req.body akan kosong karena multer tidak parse body field teks.
+      // Solusi: ikutkan satu scalar field (serviceType) agar body tidak kosong
+      // sehingga refine validator lolos, sekaligus thumbnail ter-upload via multer.
+      if (addFormData.foto) {
+        const createdId = createRes.data?.data?.id;
+        if (createdId) {
+          const thumbForm = new FormData();
+          thumbForm.append("thumbnail", addFormData.foto);
+          // Minimal satu field body agar Zod refine tidak gagal
+          thumbForm.append("serviceType", "bootcamp");
+          await axios.patch(
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentorService/admin/mentoring-services/${createdId}`,
+            thumbForm,
+            {
+              withCredentials: true,
+              headers: { "Content-Type": "multipart/form-data" },
+            },
+          );
+        }
+      }
 
       toast.success("Produk mentoring berhasil ditambahkan");
 
@@ -620,6 +919,7 @@ export default function AdminMentorPage() {
       // ✅ SUCCESS
       // =====================
       handleCloseAddDialog();
+      fetchProjects();
     } catch (err: any) {
       console.error(err);
       toast.error(err?.response?.data?.message || "Gagal menyimpan data");
@@ -654,35 +954,10 @@ export default function AdminMentorPage() {
 
         const mentoringData = mentoringRes.data.data || [];
 
-        // === TIPE KHUSUS ===
-        const ONE_ON_ONE_TYPES = ["one-on-one", "1-on-1", "one on one"];
-        const GROUP_TYPES = ["group", "group mentoring"];
-
-        // flag untuk cek keberadaan
-        let hasOneOnOne = false;
-        let hasGroup = false;
-
-        // counter untuk tipe lain
-        let otherTypesCount = 0;
-
-        mentoringData.forEach((item: any) => {
-          const type = item.serviceType?.toLowerCase();
-
-          if (!type) return;
-
-          if (ONE_ON_ONE_TYPES.includes(type)) {
-            hasOneOnOne = true;
-          } else if (GROUP_TYPES.includes(type)) {
-            hasGroup = true;
-          } else {
-            // tipe lain dihitung semua
-            otherTypesCount += 1;
-          }
-        });
-
-        // one-on-one + group masing-masing max 1
-        const totalMentoring =
-          (hasOneOnOne ? 1 : 0) + (hasGroup ? 1 : 0) + otherTypesCount;
+        // Hanya hitung yang serviceType === "bootcamp"
+        const totalMentoring = mentoringData.filter(
+          (item: any) => item.serviceType?.toLowerCase() === "bootcamp",
+        ).length;
 
         // =====================
         // FETCH E-LEARNING
@@ -700,9 +975,7 @@ export default function AdminMentorPage() {
 
         const totalELearning = elearningRes.data.total || 0;
 
-        // =====================
-        // TOTAL PRODUK & EVENT
-        // =====================
+        // Total Produk & Event = bootcamp + e-learning
         const totalProdukEvent = totalMentoring + totalELearning;
 
         // =====================
@@ -737,6 +1010,59 @@ export default function AdminMentorPage() {
   }, []);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  function ToolSelect({
+    value,
+    onChange,
+  }: {
+    value: string;
+    onChange: (val: string) => void;
+  }) {
+    const [query, setQuery] = useState(value || "");
+    const [open, setOpen] = useState(false);
+
+    const filtered = TOOL_OPTIONS.filter((tool) =>
+      tool.toLowerCase().includes(query.toLowerCase()),
+    );
+
+    return (
+      <div className="relative w-full">
+        <Input
+          placeholder="Cari tools... (contoh: python)"
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+        />
+
+        {open && filtered.length > 0 && (
+          <div
+            className="absolute z-50 bg-white border rounded-md shadow-md w-full max-h-40 overflow-auto mt-1"
+            onMouseDown={(e) => e.preventDefault()}
+          >
+            {filtered.map((tool, i) => (
+              <div
+                key={i}
+                onMouseDown={(e) => {
+                  e.preventDefault(); // 🔥 penting biar ga trigger blur
+
+                  onChange(tool);
+                  setQuery(tool);
+                  setOpen(false);
+                }}
+                className="px-3 py-2 text-sm hover:bg-emerald-50 cursor-pointer"
+              >
+                {tool}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <>
@@ -849,629 +1175,943 @@ export default function AdminMentorPage() {
           columns={columns}
           data={projects}
           mentorOptions={mentorOptions}
+          onRefresh={fetchProjects}
         />
       </Card>
 
-      {/* Add Dialog */}
-      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent
-          className="max-w-4xl max-h-[88vh] flex flex-col"
-          onInteractOutside={(e) => e.preventDefault()}
-          onOpenAutoFocus={(e) => e.preventDefault()}
-          onCloseAutoFocus={(e) => e.preventDefault()}
-        >
-          <DialogHeader>
-            <div className="flex items-center justify-between">
-              <DialogTitle className="text-sm font-semibold">
+      {/* Add Dialog + Preview — wrapper biar bisa side-by-side */}
+      <div
+        className={`fixed inset-0 z-50 flex items-center justify-center ${showAddDialog ? "" : "hidden"}`}
+        aria-hidden={!showAddDialog}
+      >
+        {/* Overlay */}
+        <div
+          className="absolute inset-0 bg-black/50"
+          onClick={() => {
+            /* tidak close saat klik overlay, konsisten dgn onInteractOutside prevent */
+          }}
+        />
+
+        {/* Side-by-side wrapper */}
+        <div className="relative z-10 flex items-start gap-3 max-w-[95vw]">
+          {/* ── ADD FORM MODAL ── */}
+          <div className="bg-white rounded-xl shadow-xl flex flex-col w-[520px] max-h-[88vh]">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 pt-5 pb-0">
+              <h2 className="text-sm font-semibold text-gray-800">
                 Tambah Produk / Event Baru
-              </DialogTitle>
-            </div>
-          </DialogHeader>
-
-          {/* Step Indicator */}
-          <div className="my-3 mb-1">
-            <div className="flex items-center space-x-4">
-              {/* Step 1 */}
-              <div className="flex items-center space-x-2">
-                <div
-                  className={`w-6 h-6 rounded-full flex items-center justify-center font-semibold text-xs ${
-                    addStep >= 1
-                      ? "bg-[#0CA678] text-white"
-                      : "bg-gray-300 text-gray-600"
-                  }`}
-                >
-                  1
-                </div>
-                <span
-                  className={`text-xs font-semibold ${
-                    addStep === 1 ? "text-[#0CA678]" : "text-gray-400"
-                  }`}
-                >
-                  Informasi Dasar
-                </span>
-              </div>
-
-              {/* Step 2 */}
-              <div className="flex items-center space-x-2">
-                <div
-                  className={`w-6 h-6 rounded-full flex items-center justify-center font-semibold text-xs ${
-                    addStep >= 2
-                      ? "bg-[#0CA678] text-white"
-                      : "bg-gray-300 text-gray-600"
-                  }`}
-                >
-                  2
-                </div>
-                <span
-                  className={`text-xs font-semibold ${
-                    addStep === 2 ? "text-[#0CA678]" : "text-gray-400"
-                  }`}
-                >
-                  Deskripsi & Harga
-                </span>
-              </div>
-            </div>
-
-            {/* Garis pemisah bawah */}
-            <div className="border-b pb-2 mt-2" />
-          </div>
-
-          {/* Form Content (scrollable) */}
-          <div
-            ref={scrollRef}
-            className="space-y-3 max-h-[440px] overflow-y-auto pr-2 py-2"
-          >
-            {addStep === 1 ? (
-              <>
-                {/* Foto */}
-                <div>
-                  <label className="text-xs font-semibold text-gray-900 block mb-1">
-                    Foto Produk Atau Event
-                  </label>
-
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                    {addFormData.foto ? (
-                      <img
-                        src={URL.createObjectURL(addFormData.foto)}
-                        alt="Preview"
-                        className="mx-auto mb-2 w-14 h-14 object-cover rounded"
-                      />
-                    ) : (
-                      <>
-                        <Upload className="w-7 h-7 text-[#0CA678] mx-auto mb-1" />
-                        <p className="text-xs text-gray-600 mb-0.5">
-                          Pilih file atau seret di sini
-                        </p>
-                        <p className="text-xs text-gray-500 mb-2">
-                          png atau jpg
-                        </p>
-                      </>
-                    )}
-
-                    <input
-                      id="fileUpload"
-                      type="file"
-                      accept="image/png, image/jpeg"
-                      className="hidden"
-                      onChange={(e) =>
-                        setAddFormData({
-                          ...addFormData,
-                          foto: e.target.files ? e.target.files[0] : null,
-                        })
-                      }
-                    />
-
-                    <Button
-                      className="bg-[#0CA678] hover:bg-[#08916C] text-white text-xs h-7 px-3"
-                      onClick={() =>
-                        document.getElementById("fileUpload")?.click()
-                      }
-                    >
-                      Upload
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Nama */}
-                <div>
-                  <label className="text-xs font-semibold text-gray-900 block mb-1">
-                    Nama Produk
-                  </label>
-                  <Input
-                    placeholder="Contoh: Bootcamp UI/UX"
-                    value={addFormData.nama}
-                    onChange={(e) =>
-                      setAddFormData({ ...addFormData, nama: e.target.value })
-                    }
-                  />
-                </div>
-
-                {/* Kategori */}
-                <div>
-                  <label className="text-xs font-semibold text-gray-900 block mb-1">
-                    Kategori
-                  </label>
-                  <Select
-                    value={addFormData.kategori}
-                    onValueChange={(value) => {
-                      // update kategori & tipe mentoring
-                      setAddFormData((prev) => ({
-                        ...prev,
-                        kategori: value as Kategori,
-                        tipeMentoring:
-                          value === "Mentoring"
-                            ? prev.tipeMentoring
-                            : undefined,
-                      }));
-
-                      // reset mentor biar tidak nyangkut
-                      setSelectedMentorIds([]);
-                      setSelectedMentorId("");
-                    }}
-                  >
-                    <SelectTrigger className="w-full border border-gray-200 rounded-lg px-2 py-1 text-xs h-8">
-                      <SelectValue placeholder="Pilih kategori" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Mentoring">Mentoring</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Tipe Mentoring */}
+              </h2>
+              <div className="flex items-center gap-2">
                 {addFormData.kategori === "Mentoring" && (
+                  <button
+                    type="button"
+                    onClick={() => setShowPreviewDialog((v) => !v)}
+                    className={`text-[10px] px-2.5 py-1 rounded border font-medium transition ${
+                      showPreviewDialog
+                        ? "bg-emerald-600 text-white border-emerald-600"
+                        : "border-emerald-600 text-emerald-600 hover:bg-emerald-50"
+                    }`}
+                  >
+                    {showPreviewDialog
+                      ? "Sembunyikan Preview"
+                      : "Lihat Preview"}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleCloseAddDialog}
+                  className="text-gray-400 hover:text-gray-700 text-lg leading-none"
+                  aria-label="Tutup"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Step Indicator */}
+            <div className="px-6 my-3 mb-1">
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <div
+                    className={`w-6 h-6 rounded-full flex items-center justify-center font-semibold text-xs ${
+                      addStep >= 1
+                        ? "bg-[#0CA678] text-white"
+                        : "bg-gray-300 text-gray-600"
+                    }`}
+                  >
+                    1
+                  </div>
+                  <span
+                    className={`text-xs font-semibold ${addStep === 1 ? "text-[#0CA678]" : "text-gray-400"}`}
+                  >
+                    Informasi Dasar
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div
+                    className={`w-6 h-6 rounded-full flex items-center justify-center font-semibold text-xs ${
+                      addStep >= 2
+                        ? "bg-[#0CA678] text-white"
+                        : "bg-gray-300 text-gray-600"
+                    }`}
+                  >
+                    2
+                  </div>
+                  <span
+                    className={`text-xs font-semibold ${addStep === 2 ? "text-[#0CA678]" : "text-gray-400"}`}
+                  >
+                    Deskripsi &amp; Harga
+                  </span>
+                </div>
+              </div>
+              <div className="border-b pb-2 mt-2" />
+            </div>
+
+            {/* Form Content (scrollable) */}
+            <div
+              ref={scrollRef}
+              className="space-y-3 max-h-[440px] overflow-y-auto pr-2 py-2 px-6"
+            >
+              {addStep === 1 ? (
+                <>
+                  {/* Foto */}
                   <div>
                     <label className="text-xs font-semibold text-gray-900 block mb-1">
-                      Tipe Mentoring
+                      Foto Produk Atau Event
                     </label>
 
-                    <Select
-                      value={addFormData.tipeMentoring}
-                      onValueChange={(value) =>
-                        setAddFormData({
-                          ...addFormData,
-                          tipeMentoring: value as TipeMentoring,
-                        })
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                      {addFormData.foto ? (
+                        <>
+                          <img
+                            src={URL.createObjectURL(addFormData.foto)}
+                            alt="Preview"
+                            className="mx-auto mb-3 w-48 h-48 object-cover rounded-lg shadow"
+                          />
+                          <p className="text-xs text-gray-500 mb-2 truncate max-w-xs mx-auto">
+                            {addFormData.foto.name}
+                          </p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="border-red-400 text-red-500 hover:bg-red-50 hover:text-red-700 text-xs h-7 px-3 gap-1"
+                            onClick={() => {
+                              setAddFormData((prev) => ({
+                                ...prev,
+                                foto: null,
+                              }));
+                              const input = document.getElementById(
+                                "fileUpload",
+                              ) as HTMLInputElement;
+                              if (input) input.value = "";
+                            }}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Hapus Foto
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-7 h-7 text-[#0CA678] mx-auto mb-1" />
+                          <p className="text-xs text-gray-600 mb-0.5">
+                            Pilih file atau seret di sini
+                          </p>
+                          <p className="text-xs text-gray-500 mb-2">
+                            png atau jpg
+                          </p>
+                          <Button
+                            type="button"
+                            className="bg-[#0CA678] hover:bg-[#08916C] text-white text-xs h-7 px-3"
+                            onClick={() =>
+                              document.getElementById("fileUpload")?.click()
+                            }
+                          >
+                            Upload
+                          </Button>
+                        </>
+                      )}
+
+                      <input
+                        id="fileUpload"
+                        type="file"
+                        accept="image/png, image/jpeg"
+                        className="hidden"
+                        onChange={(e) =>
+                          setAddFormData({
+                            ...addFormData,
+                            foto: e.target.files ? e.target.files[0] : null,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  {/* Nama */}
+                  <div>
+                    <label className="text-xs font-semibold text-gray-900 block mb-1">
+                      Nama Produk
+                    </label>
+                    <Input
+                      placeholder="Contoh: Bootcamp UI/UX"
+                      value={addFormData.nama}
+                      onChange={(e) =>
+                        setAddFormData({ ...addFormData, nama: e.target.value })
                       }
+                    />
+                  </div>
+
+                  {/* Kategori */}
+                  <div>
+                    <label className="text-xs font-semibold text-gray-900 block mb-1">
+                      Kategori
+                    </label>
+                    <Select
+                      value={addFormData.kategori}
+                      onValueChange={(value) => {
+                        // update kategori & tipe mentoring
+                        setAddFormData((prev) => ({
+                          ...prev,
+                          kategori: value as Kategori,
+                          tipeMentoring:
+                            value === "Mentoring"
+                              ? prev.tipeMentoring
+                              : undefined,
+                        }));
+
+                        // reset mentor biar tidak nyangkut
+                        setSelectedMentorIds([]);
+                        setSelectedMentorId("");
+                      }}
                     >
                       <SelectTrigger className="w-full border border-gray-200 rounded-lg px-2 py-1 text-xs h-8">
-                        <SelectValue placeholder="Pilih tipe mentoring" />
+                        <SelectValue placeholder="Pilih kategori" />
                       </SelectTrigger>
-
                       <SelectContent>
-                        <SelectItem value="Bootcamp">Bootcamp</SelectItem>
-                        <SelectItem value="1 on 1 Mentoring">
-                          1 on 1 Mentoring
-                        </SelectItem>
-                        <SelectItem value="Group Mentoring">
-                          Group Mentoring
-                        </SelectItem>
+                        <SelectItem value="Mentoring">Mentoring</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                )}
 
-                {addFormData.kategori === "Mentoring" && (
-                  <div className="space-y-3">
-                    {/* Slug */}
+                  {/* Tipe Mentoring */}
+                  {addFormData.kategori === "Mentoring" && (
                     <div>
                       <label className="text-xs font-semibold text-gray-900 block mb-1">
-                        Slug (opsional)
+                        Tipe Mentoring
                       </label>
-                      <Input
-                        placeholder="Contoh: bootcamp-uiux-2025"
-                        value={addFormData.slug ?? ""}
-                        onChange={(e) =>
-                          setAddFormData((prev) => ({
-                            ...prev,
-                            slug: e.target.value,
-                          }))
+
+                      <Select
+                        value={addFormData.tipeMentoring}
+                        onValueChange={(value) =>
+                          setAddFormData({
+                            ...addFormData,
+                            tipeMentoring: value as TipeMentoring,
+                          })
                         }
-                      />
-                    </div>
+                      >
+                        <SelectTrigger className="w-full border border-gray-200 rounded-lg px-2 py-1 text-xs h-8">
+                          <SelectValue placeholder="Pilih tipe mentoring" />
+                        </SelectTrigger>
 
-                    {/* Is Featured */}
-                    <div>
-                      <label className="text-xs font-semibold text-gray-900 block mb-1">
-                        Is Featured
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id="isFeatured"
-                          checked={addFormData.isFeatured ?? false}
+                        <SelectContent>
+                          <SelectItem value="Bootcamp">Bootcamp</SelectItem>
+                          <SelectItem value="1 on 1 Mentoring">
+                            1 on 1 Mentoring
+                          </SelectItem>
+                          <SelectItem value="Group Mentoring">
+                            Group Mentoring
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {addFormData.kategori === "Mentoring" && (
+                    <div className="space-y-3">
+                      {/* Slug */}
+                      <div>
+                        <label className="text-xs font-semibold text-gray-900 block mb-1">
+                          Slug
+                        </label>
+
+                        <Input
+                          placeholder="contoh: bootcamp-uiux-2025"
+                          value={addFormData.slug ?? ""}
+                          onChange={(e) => {
+                            let value = e.target.value.toLowerCase();
+
+                            // 🔥 filter hanya a-z 0-9 dan -
+                            value = value.replace(/[^a-z0-9-]/g, "");
+
+                            setAddFormData((prev) => ({
+                              ...prev,
+                              slug: value,
+                            }));
+                          }}
+                        />
+
+                        <p className="text-[10px] text-gray-500 mt-1">
+                          Hanya huruf kecil, angka, dan tanda strip (-). Tanpa
+                          spasi.
+                        </p>
+                      </div>
+
+                      {/* Is Featured */}
+                      <div>
+                        <label className="text-xs font-semibold text-gray-900 block mb-1">
+                          Is Featured
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id="isFeatured"
+                            checked={addFormData.isFeatured ?? false}
+                            onChange={(e) =>
+                              setAddFormData((prev) => ({
+                                ...prev,
+                                isFeatured: e.target.checked,
+                              }))
+                            }
+                            className="w-4 h-4 accent-emerald-600"
+                          />
+                          <label
+                            htmlFor="isFeatured"
+                            className="text-xs text-gray-700 cursor-pointer"
+                          >
+                            Tampilkan sebagai featured
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Whatsapp Group */}
+                      <div>
+                        <label className="text-xs font-semibold text-gray-900 block mb-1">
+                          Whatsapp Group
+                        </label>
+
+                        <Input
+                          placeholder="Contoh: https://chat.whatsapp.com/xxxxx"
+                          value={addFormData.whatsappGroup ?? ""}
                           onChange={(e) =>
                             setAddFormData((prev) => ({
                               ...prev,
-                              isFeatured: e.target.checked,
+                              whatsappGroup: e.target.value,
                             }))
                           }
-                          className="w-4 h-4 accent-emerald-600"
                         />
-                        <label
-                          htmlFor="isFeatured"
-                          className="text-xs text-gray-700 cursor-pointer"
-                        >
-                          Tampilkan sebagai featured
-                        </label>
+
+                        <p className="text-[10px] text-gray-500 mt-1">
+                          Link grup WhatsApp untuk peserta mentoring.
+                        </p>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {addFormData.kategori === "Mentoring" && (
-                  <div>
-                    <label className="text-xs font-semibold text-gray-900 block mb-1">
-                      Pilih Mentor (bisa lebih dari 1)
-                    </label>
+                  {addFormData.kategori === "Mentoring" && (
+                    <div>
+                      <label className="text-xs font-semibold text-gray-900 block mb-1">
+                        Pilih Mentor (bisa lebih dari 1)
+                      </label>
 
-                    <div
-                      className={`
+                      <div
+                        className={`
     border rounded-lg p-2 space-y-1
     ${mentorOptions.length > 6 ? "max-h-[160px] overflow-y-auto" : ""}
   `}
-                    >
-                      {mentorOptions.map((mentor) => {
-                        const checked = selectedMentorIds.includes(mentor.id);
+                      >
+                        {mentorOptions.map((mentor) => {
+                          const checked = selectedMentorIds.includes(mentor.id);
 
-                        return (
-                          <label
-                            key={mentor.id}
-                            className="flex items-center gap-2 text-xs cursor-pointer"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => {
-                                setSelectedMentorIds((prev) =>
-                                  checked
-                                    ? prev.filter((id) => id !== mentor.id)
-                                    : [...prev, mentor.id],
-                                );
-                              }}
-                            />
-                            {mentor.name}
-                          </label>
-                        );
-                      })}
+                          return (
+                            <label
+                              key={mentor.id}
+                              className="flex items-center gap-2 text-xs cursor-pointer"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => {
+                                  setSelectedMentorIds((prev) =>
+                                    checked
+                                      ? prev.filter((id) => id !== mentor.id)
+                                      : [...prev, mentor.id],
+                                  );
+                                }}
+                              />
+                              {mentor.name}
+                            </label>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </>
-            ) : (
-              <>
-                {/* Deskripsi */}
-                <div>
-                  <label className="text-xs font-semibold text-gray-900 block mb-1">
-                    Deskripsi
-                  </label>
-                  <textarea
-                    placeholder="Masukkan deskripsi produk"
-                    value={addFormData.deskripsi}
-                    onChange={(e) =>
-                      setAddFormData({
-                        ...addFormData,
-                        deskripsi: e.target.value,
-                      })
-                    }
-                    rows={3}
-                    className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 transition"
-                  />
-                </div>
-
-                {addFormData.kategori === "Mentoring" && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {/* Max Participants */}
-                    <div>
-                      <label className="text-xs font-semibold text-gray-900 block mb-1">
-                        Max Participants
-                      </label>
-                      <Input
-                        type="number"
-                        min={1}
-                        placeholder="Contoh: 20"
-                        value={addFormData.maxParticipants}
-                        onChange={(e) =>
-                          setAddFormData((prev) => ({
-                            ...prev,
-                            maxParticipants: e.target.value,
-                          }))
-                        }
-                      />
-                    </div>
-
-                    {/* Duration Days */}
-                    <div>
-                      <label className="text-xs font-semibold text-gray-900 block mb-1">
-                        Duration (Days)
-                      </label>
-                      <Input
-                        type="number"
-                        min={1}
-                        placeholder="Contoh: 14"
-                        value={addFormData.durationDays}
-                        onChange={(e) =>
-                          setAddFormData((prev) => ({
-                            ...prev,
-                            durationDays: e.target.value,
-                          }))
-                        }
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Harga */}
-                <div>
-                  <label className="text-xs font-semibold text-gray-900 block mb-1">
-                    Harga
-                  </label>
-                  <Input
-                    placeholder="Contoh: 250000"
-                    value={addFormData.harga}
-                    onChange={(e) =>
-                      setAddFormData({ ...addFormData, harga: e.target.value })
-                    }
-                  />
-                </div>
-
-                {/* Harga Coret */}
-                {addFormData.kategori === "Mentoring" && (
+                  )}
+                </>
+              ) : (
+                <>
+                  {/* Deskripsi */}
                   <div>
                     <label className="text-xs font-semibold text-gray-900 block mb-1">
-                      Harga Coret / Strike Price (opsional)
+                      Deskripsi Produk
                     </label>
-                    <Input
-                      type="number"
-                      placeholder="Contoh: 3000000"
-                      value={addFormData.strikePrice ?? ""}
+                    <textarea
+                      placeholder="Masukkan deskripsi produk"
+                      value={addFormData.deskripsi}
                       onChange={(e) =>
-                        setAddFormData((prev) => ({
-                          ...prev,
-                          strikePrice: e.target.value,
-                        }))
+                        setAddFormData({
+                          ...addFormData,
+                          deskripsi: e.target.value,
+                        })
                       }
+                      rows={3}
+                      className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 transition"
                     />
                   </div>
-                )}
 
-                {/* Status */}
-                <div>
-                  <label className="text-xs font-semibold text-gray-900 block mb-1">
-                    Status
-                  </label>
-                  <Select
-                    value={addFormData.status}
-                    onValueChange={(value) =>
-                      setAddFormData({ ...addFormData, status: value })
-                    }
-                  >
-                    <SelectTrigger className="w-full border border-gray-200 rounded-lg px-2 py-1 text-xs h-8">
-                      <SelectValue placeholder="Pilih Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Aktif">Aktif</SelectItem>
-                      <SelectItem value="Non Aktif">Non Aktif</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Diskon */}
-                {/* <div>
-                  <label className="text-xs font-semibold text-gray-900 block mb-1">
-                    Diskon
-                  </label> */}
-
-                {/* Pilihan diskon horizontal */}
-                {/* <div className="flex flex-row items-center gap-6 mb-3">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="diskonTipe"
-                        checked={addFormData.diskonTipe === "persentase"}
-                        onChange={() =>
-                          setAddFormData({
-                            ...addFormData,
-                            diskonTipe: "persentase",
-                            diskon: 0,
-                          })
-                        }
-                      />
-                      <span className="text-sm font-bold text-gray-700">
-                        Persentase (%)
-                      </span>
-                    </label>
-
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="diskonTipe"
-                        checked={addFormData.diskonTipe === "angka"}
-                        onChange={() =>
-                          setAddFormData({
-                            ...addFormData,
-                            diskonTipe: "angka",
-                            diskon: 0,
-                          })
-                        }
-                      />
-                      <span className="text-sm font-bold text-gray-700">
-                        Nominal (Rp)
-                      </span>
-                    </label>
-                  </div> */}
-
-                {/* Input muncul jika radio dipilih */}
-                {/* {addFormData.diskonTipe && (
-                    <Input
-                      className="mt-2"
-                      placeholder={
-                        addFormData.diskonTipe === "persentase"
-                          ? "Isikan persentase diskon"
-                          : "Isikan jumlah diskon dalam rupiah"
-                      }
-                      value={addFormData.diskon === 0 ? "" : addFormData.diskon} // ← kalau 0, kosong
-                      onChange={(e) => {
-                        const value = Number(e.target.value);
-                        const harga = Number(addFormData.harga);
-
-                        if (addFormData.diskonTipe === "persentase") {
-                          const diskon = (harga * value) / 100;
-                          setAddFormData({
-                            ...addFormData,
-                            diskon: value,
-                            hargaDiskon: String(harga - diskon),
-                          });
-                        } else {
-                          setAddFormData({
-                            ...addFormData,
-                            diskon: value,
-                            hargaDiskon: String(harga - value),
-                          });
-                        }
-                      }}
-                    />
-                  )}
-                </div> */}
-
-                {/* Harga Setelah Diskon */}
-                {/* {addFormData.hargaDiskon && (
-                  <div className="bg-green-50 p-2 rounded-lg text-sm font-medium text-green-700">
-                    Harga Setelah Diskon: Rp{addFormData.hargaDiskon}
-                  </div>
-                )} */}
-
-                {addFormData.kategori === "Mentoring" && (
-                  <div className="space-y-4 pt-3 border-t">
-                    <h3 className="text-xs font-bold text-emerald-700">
-                      Detail Mentoring
-                    </h3>
-
-                    {/* ── Total Weeks & Total Projects ── */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      <EditField label="Total Minggu">
+                  {addFormData.kategori === "Mentoring" && (
+                    <div className="space-y-3">
+                      {/* Max Participants */}
+                      <div>
+                        <label className="text-xs font-semibold text-gray-900 block mb-1">
+                          Jumlah Maksimal Peserta
+                        </label>
                         <Input
                           type="number"
                           min={1}
-                          placeholder="Contoh: 12"
-                          value={addFormData.totalWeeks ?? ""}
+                          placeholder="Contoh: 20"
+                          value={addFormData.maxParticipants}
                           onChange={(e) =>
                             setAddFormData((prev) => ({
                               ...prev,
-                              totalWeeks: e.target.value,
+                              maxParticipants: e.target.value,
                             }))
                           }
                         />
-                      </EditField>
-                      <EditField label="Total Proyek">
-                        <Input
-                          type="number"
-                          min={0}
-                          placeholder="Contoh: 5"
-                          value={addFormData.totalProjects ?? ""}
-                          onChange={(e) =>
-                            setAddFormData((prev) => ({
-                              ...prev,
-                              totalProjects: e.target.value,
-                            }))
-                          }
-                        />
-                      </EditField>
-                    </div>
+                      </div>
 
-                    {/* ── Program About ── */}
-                    <EditField label="Program About (opsional)">
-                      <textarea
-                        rows={3}
-                        placeholder="Deskripsi singkat tentang program ini"
-                        className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 transition"
-                        value={addFormData.programAbout ?? ""}
+                      {/* Start Date & End Date */}
+                      <div>
+                        <label className="text-xs font-semibold text-gray-900 block mb-1">
+                          Tanggal Mulai Ditampilkan
+                        </label>
+                        <Input
+                          type="date"
+                          value={addFormData.startDate ?? ""}
+                          onChange={(e) =>
+                            setAddFormData((prev) => ({
+                              ...prev,
+                              startDate: e.target.value,
+                            }))
+                          }
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-semibold text-gray-900 block mb-1">
+                          Tanggal Akhir Ditampilkan
+                        </label>
+                        <Input
+                          type="date"
+                          value={addFormData.endDate ?? ""}
+                          min={addFormData.startDate ?? ""}
+                          onChange={(e) =>
+                            setAddFormData((prev) => ({
+                              ...prev,
+                              endDate: e.target.value,
+                            }))
+                          }
+                        />
+                        {addFormData.startDate &&
+                          addFormData.endDate &&
+                          calculatedDays > 0 && (
+                            <p className="text-xs text-emerald-600 mt-1">
+                              Durasi otomatis: <b>{calculatedDays} hari</b>
+                            </p>
+                          )}
+                        {addFormData.startDate &&
+                          addFormData.endDate &&
+                          calculatedDays <= 0 && (
+                            <p className="text-xs text-red-500 mt-1">
+                              End Date harus setelah Start Date
+                            </p>
+                          )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Category */}
+                  {addFormData.kategori === "Mentoring" && (
+                    <div>
+                      <label className="text-xs font-semibold text-gray-900 block mb-1">
+                        Category
+                      </label>
+                      <Select
+                        value={addFormData.category ?? ""}
+                        onValueChange={(value) =>
+                          setAddFormData((prev) => ({
+                            ...prev,
+                            category: value,
+                          }))
+                        }
+                      >
+                        <SelectTrigger className="w-full border border-gray-200 rounded-lg px-2 py-1 text-xs h-8">
+                          <SelectValue placeholder="Pilih category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Machine Learning">
+                            Machine Learning
+                          </SelectItem>
+                          <SelectItem value="Data Analyst">
+                            Data Analyst
+                          </SelectItem>
+                          <SelectItem value="Data Scientist">
+                            Data Scientist
+                          </SelectItem>
+                          <SelectItem value="Data Engineer">
+                            Data Engineer
+                          </SelectItem>
+                          <SelectItem value="MLOps Engineer">
+                            MLOps Engineer
+                          </SelectItem>
+                          <SelectItem value="Analytics Engineer">
+                            Analytics Engineer
+                          </SelectItem>
+                          <SelectItem value="AI Engineer">
+                            AI Engineer
+                          </SelectItem>
+                          <SelectItem value="Data Architect">
+                            Data Architect
+                          </SelectItem>
+                          <SelectItem value="Business Intelligence (BI) Developer">
+                            Business Intelligence (BI) Developer
+                          </SelectItem>
+                          <SelectItem value="Data Governance & Privacy Specialist">
+                            Data Governance &amp; Privacy Specialist
+                          </SelectItem>
+                          <SelectItem value="AI Research Scientist">
+                            AI Research Scientist
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {/* Level */}
+                  {addFormData.kategori === "Mentoring" && (
+                    <div>
+                      <label className="text-xs font-semibold text-gray-900 block mb-1">
+                        Level
+                      </label>
+                      <Select
+                        value={addFormData.level ?? ""}
+                        onValueChange={(value) =>
+                          setAddFormData((prev) => ({ ...prev, level: value }))
+                        }
+                      >
+                        <SelectTrigger className="w-full border border-gray-200 rounded-lg px-2 py-1 text-xs h-8">
+                          <SelectValue placeholder="Pilih level" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Beginner">Beginner</SelectItem>
+                          <SelectItem value="Intermediate">
+                            Intermediate
+                          </SelectItem>
+                          <SelectItem value="Advance">Advance</SelectItem>
+                          <SelectItem value="Professional">
+                            Professional
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {/* Harga */}
+                  <div>
+                    <label className="text-xs font-semibold text-gray-900 block mb-1">
+                      Harga
+                    </label>
+                    <Input
+                      placeholder="Contoh: 250000"
+                      value={addFormData.harga}
+                      onChange={(e) =>
+                        setAddFormData({
+                          ...addFormData,
+                          harga: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+
+                  {/* Harga Coret */}
+                  {addFormData.kategori === "Mentoring" && (
+                    <div>
+                      <label className="text-xs font-semibold text-gray-900 block mb-1">
+                        Harga Coret / Strike Price
+                      </label>
+                      <Input
+                        type="number"
+                        placeholder="Contoh: 3000000"
+                        value={addFormData.strikePrice ?? ""}
                         onChange={(e) =>
                           setAddFormData((prev) => ({
                             ...prev,
-                            programAbout: e.target.value,
+                            strikePrice: e.target.value,
                           }))
                         }
                       />
-                    </EditField>
+                    </div>
+                  )}
 
-                    {/* ════════════════════════════════════════
+                  {/* Status */}
+                  <div>
+                    <label className="text-xs font-semibold text-gray-900 block mb-1">
+                      Status
+                    </label>
+                    <Select
+                      value={addFormData.status}
+                      onValueChange={(value) =>
+                        setAddFormData({ ...addFormData, status: value })
+                      }
+                    >
+                      <SelectTrigger className="w-full border border-gray-200 rounded-lg px-2 py-1 text-xs h-8">
+                        <SelectValue placeholder="Pilih Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Aktif">Aktif</SelectItem>
+                        <SelectItem value="Non Aktif">Non Aktif</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {addFormData.kategori === "Mentoring" && (
+                    <div className="space-y-4 pt-3 border-t">
+                      <h3 className="text-xs font-bold text-emerald-700">
+                        Detail Mentoring
+                      </h3>
+
+                      {/* ── Total Weeks & Total Projects ── */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <EditField label="Total Minggu Pelaksanaan">
+                          <Input
+                            type="number"
+                            min={1}
+                            placeholder="Contoh: 12"
+                            value={addFormData.totalWeeks ?? ""}
+                            onChange={(e) =>
+                              setAddFormData((prev) => ({
+                                ...prev,
+                                totalWeeks: e.target.value,
+                              }))
+                            }
+                          />
+                        </EditField>
+                        <EditField label="Total Proyek di Bootcamp">
+                          <Input
+                            type="number"
+                            min={0}
+                            placeholder="Contoh: 5"
+                            value={addFormData.totalProjects ?? ""}
+                            onChange={(e) =>
+                              setAddFormData((prev) => ({
+                                ...prev,
+                                totalProjects: e.target.value,
+                              }))
+                            }
+                          />
+                        </EditField>
+                      </div>
+
+                      {/* ── Program About ── */}
+                      <EditField label="Program Tentang Apa?">
+                        <textarea
+                          rows={3}
+                          placeholder="Deskripsi Detail tentang program ini"
+                          className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 transition"
+                          value={addFormData.programAbout ?? ""}
+                          onChange={(e) =>
+                            setAddFormData((prev) => ({
+                              ...prev,
+                              programAbout: e.target.value,
+                            }))
+                          }
+                        />
+                      </EditField>
+
+                      {/* ════════════════════════════════════════
                         SECTIONS
                     ════════════════════════════════════════ */}
 
-                    {/* ── BENEFIT ── */}
-                    {(
-                      [
-                        {
-                          key: "benefits" as const,
-                          label: "Benefit",
-                          placeholder: {
-                            title: "Contoh: Kuasai UI/UX",
-                            desc: "Contoh: Peserta mampu membuat desain profesional",
+                      {/* ── BENEFIT ── */}
+                      {(
+                        [
+                          {
+                            key: "benefits" as const,
+                            label: "Benefit Program",
+                            placeholder: {
+                              title: "Contoh: Kuasai UI/UX",
+                              desc: "Contoh: Peserta mampu membuat desain profesional",
+                            },
                           },
-                        },
-                        {
-                          key: "mechanisms" as const,
-                          label: "Mechanism",
-                          placeholder: {
-                            title: "Contoh: Live Session",
-                            desc: "Contoh: Sesi live 2x seminggu bersama mentor",
+                          {
+                            key: "mechanisms" as const,
+                            label: "Mekanisme Program",
+                            placeholder: {
+                              title: "Contoh: Live Session",
+                              desc: "Contoh: Sesi live 2x seminggu bersama mentor",
+                            },
                           },
-                        },
-                        {
-                          key: "syllabuses" as const,
-                          label: "Syllabus",
-                          placeholder: {
-                            title: "Contoh: Week 1 — Dasar Desain",
-                            desc: "Contoh: Pengenalan Figma, prinsip dasar UI",
+                          {
+                            key: "syllabuses" as const,
+                            label: "Silabus Program",
+                            placeholder: {
+                              title: "Contoh: Week 1 — Dasar Desain",
+                              desc: "Contoh: Pengenalan Figma, prinsip dasar UI",
+                            },
                           },
-                        },
-                        {
-                          key: "targets" as const,
-                          label: "Target Audience",
-                          placeholder: {
-                            title: "Contoh: Fresh Graduate",
-                            desc: "Contoh: Lulusan baru yang ingin masuk industri desain",
+                          {
+                            key: "targets" as const,
+                            label: "Target Audience",
+                            placeholder: {
+                              title: "Contoh: Fresh Graduate",
+                              desc: "Contoh: Lulusan baru yang ingin masuk industri desain",
+                            },
                           },
-                        },
-                      ] as const
-                    ).map(({ key, label, placeholder }) => (
-                      <div key={key} className="space-y-2">
+                        ] as const
+                      ).map(({ key, label, placeholder }) => (
+                        <div key={key} className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-gray-600">
+                              {label}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setAddFormData((prev) => ({
+                                  ...prev,
+                                  [key]: [
+                                    ...(prev[key] ?? []),
+                                    { title: "", description: "" },
+                                  ],
+                                }))
+                              }
+                              className="text-xs text-emerald-600 hover:text-emerald-800 font-medium flex items-center gap-1"
+                            >
+                              <Plus className="w-3 h-3" /> Tambah {label}
+                            </button>
+                          </div>
+                          {(addFormData[key] ?? []).map((item, idx) => (
+                            <div
+                              key={idx}
+                              className="border border-gray-200 rounded-lg p-2 space-y-1.5 bg-gray-50"
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-semibold text-gray-500">
+                                  {label} #{idx + 1}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setAddFormData((prev) => ({
+                                      ...prev,
+                                      [key]: (prev[key] ?? []).filter(
+                                        (_, i) => i !== idx,
+                                      ),
+                                    }))
+                                  }
+                                  className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
+                                  title="Hapus"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                              <Input
+                                placeholder={placeholder.title}
+                                value={item.title}
+                                onChange={(e) =>
+                                  setAddFormData((prev) => ({
+                                    ...prev,
+                                    [key]: (prev[key] ?? []).map((it, i) =>
+                                      i === idx
+                                        ? { ...it, title: e.target.value }
+                                        : it,
+                                    ),
+                                  }))
+                                }
+                              />
+                              <textarea
+                                rows={2}
+                                placeholder={placeholder.desc}
+                                className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 transition"
+                                value={item.description}
+                                onChange={(e) =>
+                                  setAddFormData((prev) => ({
+                                    ...prev,
+                                    [key]: (prev[key] ?? []).map((it, i) =>
+                                      i === idx
+                                        ? { ...it, description: e.target.value }
+                                        : it,
+                                    ),
+                                  }))
+                                }
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+
+                      {/* ════════════════════════════════════════
+                        TOOLS
+                    ════════════════════════════════════════ */}
+                      <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-semibold text-gray-600">
-                            {label}
+                            Tools yang Digunakan
                           </span>
                           <button
                             type="button"
                             onClick={() =>
                               setAddFormData((prev) => ({
                                 ...prev,
-                                [key]: [
-                                  ...(prev[key] ?? []),
-                                  { title: "", description: "" },
+                                tools: [...(prev.tools ?? []), { name: "" }],
+                              }))
+                            }
+                            className="text-xs text-emerald-600 hover:text-emerald-800 font-medium flex items-center gap-1"
+                          >
+                            <Plus className="w-3 h-3" /> Tambah Tool
+                          </button>
+                        </div>
+                        {(addFormData.tools ?? []).map((tool, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <ToolSelect
+                              value={tool.name}
+                              onChange={(val) =>
+                                setAddFormData((prev) => ({
+                                  ...prev,
+                                  tools: (prev.tools ?? []).map((t, i) =>
+                                    i === idx ? { name: val } : t,
+                                  ),
+                                }))
+                              }
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setAddFormData((prev) => ({
+                                  ...prev,
+                                  tools: (prev.tools ?? []).filter(
+                                    (_, i) => i !== idx,
+                                  ),
+                                }))
+                              }
+                              className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors flex-shrink-0"
+                              title="Hapus"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* ════════════════════════════════════════
+                        SCHEDULES
+                    ════════════════════════════════════════ */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-gray-600">
+                            Jadwal (Tanggal)
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setAddFormData((prev) => ({
+                                ...prev,
+                                schedules: [
+                                  ...(prev.schedules ?? []),
+                                  { date: "" },
                                 ],
                               }))
                             }
                             className="text-xs text-emerald-600 hover:text-emerald-800 font-medium flex items-center gap-1"
                           >
-                            <Plus className="w-3 h-3" /> Tambah {label}
+                            <Plus className="w-3 h-3" /> Tambah Jadwal
                           </button>
                         </div>
-                        {(addFormData[key] ?? []).map((item, idx) => (
+                        {(addFormData.schedules ?? []).map((sched, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <Input
+                              type="date"
+                              value={sched.date}
+                              onChange={(e) =>
+                                setAddFormData((prev) => ({
+                                  ...prev,
+                                  schedules: (prev.schedules ?? []).map(
+                                    (s, i) =>
+                                      i === idx ? { date: e.target.value } : s,
+                                  ),
+                                }))
+                              }
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setAddFormData((prev) => ({
+                                  ...prev,
+                                  schedules: (prev.schedules ?? []).filter(
+                                    (_, i) => i !== idx,
+                                  ),
+                                }))
+                              }
+                              className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors flex-shrink-0"
+                              title="Hapus"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* ════════════════════════════════════════
+                        PORTFOLIO
+                    ════════════════════════════════════════ */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-gray-600">
+                            Portfolio Alumni
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setAddFormData((prev) => ({
+                                ...prev,
+                                portfolios: [
+                                  ...(prev.portfolios ?? []),
+                                  {
+                                    title: "",
+                                    description: "",
+                                    menteeName: "",
+                                    projectLink: "",
+                                  },
+                                ],
+                              }))
+                            }
+                            className="text-xs text-emerald-600 hover:text-emerald-800 font-medium flex items-center gap-1"
+                          >
+                            <Plus className="w-3 h-3" /> Tambah Portfolio
+                          </button>
+                        </div>
+                        {(addFormData.portfolios ?? []).map((p, idx) => (
                           <div
                             key={idx}
                             className="border border-gray-200 rounded-lg p-2 space-y-1.5 bg-gray-50"
                           >
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-semibold text-gray-500">
-                                {label} #{idx + 1}
+                                Portfolio #{idx + 1}
                               </span>
                               <button
                                 type="button"
                                 onClick={() =>
                                   setAddFormData((prev) => ({
                                     ...prev,
-                                    [key]: (prev[key] ?? []).filter(
+                                    portfolios: (prev.portfolios ?? []).filter(
                                       (_, i) => i !== idx,
                                     ),
                                   }))
@@ -1483,31 +2123,63 @@ export default function AdminMentorPage() {
                               </button>
                             </div>
                             <Input
-                              placeholder={placeholder.title}
-                              value={item.title}
+                              placeholder="Judul proyek"
+                              value={p.title}
                               onChange={(e) =>
                                 setAddFormData((prev) => ({
                                   ...prev,
-                                  [key]: (prev[key] ?? []).map((it, i) =>
-                                    i === idx
-                                      ? { ...it, title: e.target.value }
-                                      : it,
+                                  portfolios: (prev.portfolios ?? []).map(
+                                    (it, i) =>
+                                      i === idx
+                                        ? { ...it, title: e.target.value }
+                                        : it,
+                                  ),
+                                }))
+                              }
+                            />
+                            <Input
+                              placeholder="Nama mentee"
+                              value={p.menteeName}
+                              onChange={(e) =>
+                                setAddFormData((prev) => ({
+                                  ...prev,
+                                  portfolios: (prev.portfolios ?? []).map(
+                                    (it, i) =>
+                                      i === idx
+                                        ? { ...it, menteeName: e.target.value }
+                                        : it,
+                                  ),
+                                }))
+                              }
+                            />
+                            <Input
+                              placeholder="Link proyek (URL)"
+                              value={p.projectLink}
+                              onChange={(e) =>
+                                setAddFormData((prev) => ({
+                                  ...prev,
+                                  portfolios: (prev.portfolios ?? []).map(
+                                    (it, i) =>
+                                      i === idx
+                                        ? { ...it, projectLink: e.target.value }
+                                        : it,
                                   ),
                                 }))
                               }
                             />
                             <textarea
                               rows={2}
-                              placeholder={placeholder.desc}
+                              placeholder="Deskripsi"
                               className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 transition"
-                              value={item.description}
+                              value={p.description}
                               onChange={(e) =>
                                 setAddFormData((prev) => ({
                                   ...prev,
-                                  [key]: (prev[key] ?? []).map((it, i) =>
-                                    i === idx
-                                      ? { ...it, description: e.target.value }
-                                      : it,
+                                  portfolios: (prev.portfolios ?? []).map(
+                                    (it, i) =>
+                                      i === idx
+                                        ? { ...it, description: e.target.value }
+                                        : it,
                                   ),
                                 }))
                               }
@@ -1515,421 +2187,231 @@ export default function AdminMentorPage() {
                           </div>
                         ))}
                       </div>
-                    ))}
 
-                    {/* ════════════════════════════════════════
-                        TOOLS
-                    ════════════════════════════════════════ */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-gray-600">
-                          Tools yang Digunakan
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setAddFormData((prev) => ({
-                              ...prev,
-                              tools: [...(prev.tools ?? []), { name: "" }],
-                            }))
-                          }
-                          className="text-xs text-emerald-600 hover:text-emerald-800 font-medium flex items-center gap-1"
-                        >
-                          <Plus className="w-3 h-3" /> Tambah Tool
-                        </button>
-                      </div>
-                      {(addFormData.tools ?? []).map((tool, idx) => (
-                        <div key={idx} className="flex items-center gap-2">
-                          <Input
-                            placeholder="Contoh: Figma"
-                            value={tool.name}
-                            onChange={(e) =>
-                              setAddFormData((prev) => ({
-                                ...prev,
-                                tools: (prev.tools ?? []).map((t, i) =>
-                                  i === idx ? { name: e.target.value } : t,
-                                ),
-                              }))
-                            }
-                          />
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setAddFormData((prev) => ({
-                                ...prev,
-                                tools: (prev.tools ?? []).filter(
-                                  (_, i) => i !== idx,
-                                ),
-                              }))
-                            }
-                            className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors flex-shrink-0"
-                            title="Hapus"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* ════════════════════════════════════════
-                        SCHEDULES
-                    ════════════════════════════════════════ */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-gray-600">
-                          Jadwal (Tanggal)
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setAddFormData((prev) => ({
-                              ...prev,
-                              schedules: [
-                                ...(prev.schedules ?? []),
-                                { date: "" },
-                              ],
-                            }))
-                          }
-                          className="text-xs text-emerald-600 hover:text-emerald-800 font-medium flex items-center gap-1"
-                        >
-                          <Plus className="w-3 h-3" /> Tambah Jadwal
-                        </button>
-                      </div>
-                      {(addFormData.schedules ?? []).map((sched, idx) => (
-                        <div key={idx} className="flex items-center gap-2">
-                          <Input
-                            type="date"
-                            value={sched.date}
-                            onChange={(e) =>
-                              setAddFormData((prev) => ({
-                                ...prev,
-                                schedules: (prev.schedules ?? []).map((s, i) =>
-                                  i === idx ? { date: e.target.value } : s,
-                                ),
-                              }))
-                            }
-                          />
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setAddFormData((prev) => ({
-                                ...prev,
-                                schedules: (prev.schedules ?? []).filter(
-                                  (_, i) => i !== idx,
-                                ),
-                              }))
-                            }
-                            className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors flex-shrink-0"
-                            title="Hapus"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* ════════════════════════════════════════
-                        PORTFOLIO
-                    ════════════════════════════════════════ */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-gray-600">
-                          Portfolio Alumni
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setAddFormData((prev) => ({
-                              ...prev,
-                              portfolios: [
-                                ...(prev.portfolios ?? []),
-                                {
-                                  title: "",
-                                  description: "",
-                                  menteeName: "",
-                                  projectLink: "",
-                                  thumbnail: "",
-                                },
-                              ],
-                            }))
-                          }
-                          className="text-xs text-emerald-600 hover:text-emerald-800 font-medium flex items-center gap-1"
-                        >
-                          <Plus className="w-3 h-3" /> Tambah Portfolio
-                        </button>
-                      </div>
-                      {(addFormData.portfolios ?? []).map((p, idx) => (
-                        <div
-                          key={idx}
-                          className="border border-gray-200 rounded-lg p-2 space-y-1.5 bg-gray-50"
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-gray-500">
-                              Portfolio #{idx + 1}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setAddFormData((prev) => ({
-                                  ...prev,
-                                  portfolios: (prev.portfolios ?? []).filter(
-                                    (_, i) => i !== idx,
-                                  ),
-                                }))
-                              }
-                              className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
-                              title="Hapus"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                          <Input
-                            placeholder="Judul proyek"
-                            value={p.title}
-                            onChange={(e) =>
-                              setAddFormData((prev) => ({
-                                ...prev,
-                                portfolios: (prev.portfolios ?? []).map(
-                                  (it, i) =>
-                                    i === idx
-                                      ? { ...it, title: e.target.value }
-                                      : it,
-                                ),
-                              }))
-                            }
-                          />
-                          <Input
-                            placeholder="Nama mentee"
-                            value={p.menteeName}
-                            onChange={(e) =>
-                              setAddFormData((prev) => ({
-                                ...prev,
-                                portfolios: (prev.portfolios ?? []).map(
-                                  (it, i) =>
-                                    i === idx
-                                      ? { ...it, menteeName: e.target.value }
-                                      : it,
-                                ),
-                              }))
-                            }
-                          />
-                          <Input
-                            placeholder="Link proyek (URL)"
-                            value={p.projectLink}
-                            onChange={(e) =>
-                              setAddFormData((prev) => ({
-                                ...prev,
-                                portfolios: (prev.portfolios ?? []).map(
-                                  (it, i) =>
-                                    i === idx
-                                      ? { ...it, projectLink: e.target.value }
-                                      : it,
-                                ),
-                              }))
-                            }
-                          />
-                          <Input
-                            placeholder="Thumbnail (URL, opsional)"
-                            value={p.thumbnail}
-                            onChange={(e) =>
-                              setAddFormData((prev) => ({
-                                ...prev,
-                                portfolios: (prev.portfolios ?? []).map(
-                                  (it, i) =>
-                                    i === idx
-                                      ? { ...it, thumbnail: e.target.value }
-                                      : it,
-                                ),
-                              }))
-                            }
-                          />
-                          <textarea
-                            rows={2}
-                            placeholder="Deskripsi (opsional)"
-                            className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 transition"
-                            value={p.description}
-                            onChange={(e) =>
-                              setAddFormData((prev) => ({
-                                ...prev,
-                                portfolios: (prev.portfolios ?? []).map(
-                                  (it, i) =>
-                                    i === idx
-                                      ? { ...it, description: e.target.value }
-                                      : it,
-                                ),
-                              }))
-                            }
-                          />
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* ════════════════════════════════════════
+                      {/* ════════════════════════════════════════
                         TESTIMONIALS
                     ════════════════════════════════════════ */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-gray-600">
-                          Testimonial
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setAddFormData((prev) => ({
-                              ...prev,
-                              testimonials: [
-                                ...(prev.testimonials ?? []),
-                                { name: "", role: "", comment: "", rating: 5 },
-                              ],
-                            }))
-                          }
-                          className="text-xs text-emerald-600 hover:text-emerald-800 font-medium flex items-center gap-1"
-                        >
-                          <Plus className="w-3 h-3" /> Tambah Testimonial
-                        </button>
-                      </div>
-                      {(addFormData.testimonials ?? []).map((t, idx) => (
-                        <div
-                          key={idx}
-                          className="border border-gray-200 rounded-lg p-2 space-y-1.5 bg-gray-50"
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-gray-500">
-                              Testimonial #{idx + 1}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setAddFormData((prev) => ({
-                                  ...prev,
-                                  testimonials: (
-                                    prev.testimonials ?? []
-                                  ).filter((_, i) => i !== idx),
-                                }))
-                              }
-                              className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
-                              title="Hapus"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                          <Input
-                            placeholder="Nama"
-                            value={t.name}
-                            onChange={(e) =>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-gray-600">
+                            Testimonial
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
                               setAddFormData((prev) => ({
                                 ...prev,
-                                testimonials: (prev.testimonials ?? []).map(
-                                  (it, i) =>
-                                    i === idx
-                                      ? { ...it, name: e.target.value }
-                                      : it,
-                                ),
+                                testimonials: [
+                                  ...(prev.testimonials ?? []),
+                                  {
+                                    name: "",
+                                    role: "",
+                                    comment: "",
+                                    rating: 5,
+                                  },
+                                ],
                               }))
                             }
-                          />
-                          <Input
-                            placeholder="Role / Jabatan (opsional)"
-                            value={t.role}
-                            onChange={(e) =>
-                              setAddFormData((prev) => ({
-                                ...prev,
-                                testimonials: (prev.testimonials ?? []).map(
-                                  (it, i) =>
-                                    i === idx
-                                      ? { ...it, role: e.target.value }
-                                      : it,
-                                ),
-                              }))
-                            }
-                          />
-                          <textarea
-                            rows={2}
-                            placeholder="Komentar"
-                            className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 transition"
-                            value={t.comment}
-                            onChange={(e) =>
-                              setAddFormData((prev) => ({
-                                ...prev,
-                                testimonials: (prev.testimonials ?? []).map(
-                                  (it, i) =>
-                                    i === idx
-                                      ? { ...it, comment: e.target.value }
-                                      : it,
-                                ),
-                              }))
-                            }
-                          />
-                          <EditField label={`Rating: ${t.rating} / 5`}>
-                            <input
-                              type="range"
-                              min={1}
-                              max={5}
-                              value={t.rating}
-                              className="w-full accent-emerald-600"
+                            className="text-xs text-emerald-600 hover:text-emerald-800 font-medium flex items-center gap-1"
+                          >
+                            <Plus className="w-3 h-3" /> Tambah Testimonial
+                          </button>
+                        </div>
+                        {(addFormData.testimonials ?? []).map((t, idx) => (
+                          <div
+                            key={idx}
+                            className="border border-gray-200 rounded-lg p-2 space-y-1.5 bg-gray-50"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-gray-500">
+                                Testimonial #{idx + 1}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setAddFormData((prev) => ({
+                                    ...prev,
+                                    testimonials: (
+                                      prev.testimonials ?? []
+                                    ).filter((_, i) => i !== idx),
+                                  }))
+                                }
+                                className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
+                                title="Hapus"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                            <Input
+                              placeholder="Nama"
+                              value={t.name}
                               onChange={(e) =>
                                 setAddFormData((prev) => ({
                                   ...prev,
                                   testimonials: (prev.testimonials ?? []).map(
                                     (it, i) =>
                                       i === idx
-                                        ? {
-                                            ...it,
-                                            rating: Number(e.target.value),
-                                          }
+                                        ? { ...it, name: e.target.value }
                                         : it,
                                   ),
                                 }))
                               }
                             />
-                          </EditField>
-                        </div>
-                      ))}
+                            <Input
+                              placeholder="Role / Jabatan"
+                              value={t.role}
+                              onChange={(e) =>
+                                setAddFormData((prev) => ({
+                                  ...prev,
+                                  testimonials: (prev.testimonials ?? []).map(
+                                    (it, i) =>
+                                      i === idx
+                                        ? { ...it, role: e.target.value }
+                                        : it,
+                                  ),
+                                }))
+                              }
+                            />
+                            <textarea
+                              rows={2}
+                              placeholder="Komentar"
+                              className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 transition"
+                              value={t.comment}
+                              onChange={(e) =>
+                                setAddFormData((prev) => ({
+                                  ...prev,
+                                  testimonials: (prev.testimonials ?? []).map(
+                                    (it, i) =>
+                                      i === idx
+                                        ? { ...it, comment: e.target.value }
+                                        : it,
+                                  ),
+                                }))
+                              }
+                            />
+                            <EditField label={`Rating: ${t.rating} / 5`}>
+                              <input
+                                type="range"
+                                min={1}
+                                max={5}
+                                value={t.rating}
+                                className="w-full accent-emerald-600"
+                                onChange={(e) =>
+                                  setAddFormData((prev) => ({
+                                    ...prev,
+                                    testimonials: (prev.testimonials ?? []).map(
+                                      (it, i) =>
+                                        i === idx
+                                          ? {
+                                              ...it,
+                                              rating: Number(e.target.value),
+                                            }
+                                          : it,
+                                    ),
+                                  }))
+                                }
+                              />
+                            </EditField>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
+                  )}
+                </>
+              )}
+            </div>
 
-          {/* Action Buttons */}
-          <div className="flex space-x-3 pt-3 border-t">
-            {addStep === 1 ? (
-              <>
-                <Button
-                  variant="outline"
-                  className="flex-1 border-[#0CA678] text-[#0CA678] bg-transparent text-xs h-8"
-                  onClick={handleCloseAddDialog}
-                >
-                  Kembali
-                </Button>
-                <Button
-                  className="flex-1 bg-[#0CA678] hover:bg-[#08916C] text-white text-xs h-8"
-                  onClick={handleNextStep}
-                >
-                  Selanjutnya
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  variant="outline"
-                  className="flex-1 border-[#0CA678] text-[#0CA678] bg-transparent text-xs h-8"
-                  onClick={handlePrevStep}
-                >
-                  Sebelumnya
-                </Button>
-                <Button
-                  className="flex-1 bg-[#0CA678] hover:bg-[#08916C] text-white text-xs h-8"
-                  onClick={handleSave}
-                >
-                  Simpan
-                </Button>
-              </>
-            )}
+            {/* Action Buttons */}
+            <div className="flex space-x-3 pt-3 border-t px-6 pb-5">
+              {addStep === 1 ? (
+                <>
+                  <Button
+                    variant="outline"
+                    className="flex-1 border-[#0CA678] text-[#0CA678] bg-transparent text-xs h-8"
+                    onClick={handleCloseAddDialog}
+                  >
+                    Kembali
+                  </Button>
+                  <Button
+                    className="flex-1 bg-[#0CA678] hover:bg-[#08916C] text-white text-xs h-8"
+                    onClick={handleNextStep}
+                  >
+                    Selanjutnya
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    className="flex-1 border-[#0CA678] text-[#0CA678] bg-transparent text-xs h-8"
+                    onClick={handlePrevStep}
+                  >
+                    Sebelumnya
+                  </Button>
+                  <Button
+                    className="flex-1 bg-[#0CA678] hover:bg-[#08916C] text-white text-xs h-8"
+                    onClick={handleSave}
+                  >
+                    Simpan
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
-        </DialogContent>
-      </Dialog>
+          {/* ── END ADD FORM MODAL ── */}
+
+          {/* ── PREVIEW PANEL ── */}
+          {showPreviewDialog && addFormData.kategori === "Mentoring" && (
+            <div className="bg-white rounded-xl shadow-xl flex flex-col w-[560px] max-h-[88vh] overflow-hidden min-w-0">
+              {/* Preview Header */}
+              <div className="flex items-center justify-between px-5 py-3 border-b bg-gray-50 rounded-t-xl">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-gray-800">
+                      Preview Publik
+                    </h3>
+                    <span className="text-[10px] px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-medium whitespace-nowrap">
+                      Live Preview
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-gray-500 mt-0.5">
+                    Tampilan ini diperbarui otomatis saat kamu mengisi form
+                  </p>
+                </div>
+              </div>
+
+              {/* Scrollable preview content */}
+              <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 min-w-0">
+                <BootcampPreviewModal
+                  data={{
+                    nama: addFormData.nama,
+                    foto: addFormData.foto,
+                    level: addFormData.level,
+                    category: addFormData.category,
+                    deskripsi: addFormData.deskripsi,
+                    harga: addFormData.harga,
+                    strikePrice: addFormData.strikePrice,
+                    totalWeeks: addFormData.totalWeeks,
+                    totalProjects: addFormData.totalProjects,
+                    programAbout: addFormData.programAbout,
+                    benefits: addFormData.benefits,
+                    mechanisms: addFormData.mechanisms,
+                    syllabuses: addFormData.syllabuses,
+                    targets: addFormData.targets,
+                    tools: addFormData.tools,
+                    schedules: addFormData.schedules,
+                    portfolios: addFormData.portfolios,
+                    testimonials: addFormData.testimonials,
+                  }}
+                />
+              </div>
+            </div>
+          )}
+          {/* ── END PREVIEW PANEL ── */}
+        </div>
+        {/* end side-by-side wrapper */}
+      </div>
+      {/* end Add Dialog + Preview wrapper */}
     </>
   );
 }

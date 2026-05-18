@@ -17,8 +17,10 @@ import { Calendar } from "lucide-react";
 
 export default function ProgramSelection({
   currentServiceId,
+  openLoginModal,
 }: {
   currentServiceId: string;
+  openLoginModal: () => void;
 }) {
   const [bootcamps, setBootcamps] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,7 +75,7 @@ export default function ProgramSelection({
             Kami hanya menampilkan bootcamp yang belum pernah kamu ikuti.
           </p>
           <Button
-            onClick={() => router.push("/login")}
+            onClick={openLoginModal}
             className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3"
           >
             Login Sekarang

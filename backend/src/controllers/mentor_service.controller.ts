@@ -28,7 +28,16 @@ export const createMentoringServiceController = async (
 
     const input = req.validatedBody ?? req.body;
 
-    const result = await MentorServiceService.createMentoringService(input);
+    // 🔥 TAMBAHAN: ambil thumbnail dari upload
+    const uploadedThumbnail = req.file
+      ? `/images/mentoringThumbnail/${req.file.filename}`
+      : null;
+
+    // 🔥 inject ke service
+    const result = await MentorServiceService.createMentoringService({
+      ...input,
+      thumbnail: uploadedThumbnail,
+    });
 
     // sekarang cm dan curdev juga tercatat log
     if (isAdminLike && userId) {
@@ -139,6 +148,7 @@ export const updateMentoringServiceController = async (
       res.status(401).json({ message: "Unauthorized. User ID not found." });
       return;
     }
+
     const adminId = req.user.userId;
     const rolesLog = req.user?.roles || [];
 
@@ -148,47 +158,75 @@ export const updateMentoringServiceController = async (
     }
 
     const { id } = req.validatedParams;
+
     const {
       serviceName,
       description,
       price,
+      strikePrice,
       maxParticipants,
       durationDays,
+      startDate, // ✅
+      endDate, // ✅
       isActive,
       mentorProfileIds,
       serviceType,
-      benefits,
-      mechanism,
-      syllabusPath,
-      toolsUsed,
-      targetAudience,
-      schedule,
-      alumniPortfolio,
+
+      programAbout,
+      totalWeeks,
+      totalProjects,
+      whatsappGroup,
+      slug,
+      isFeatured,
+
       category,
       level,
+
+      sections,
+      tools,
+      schedules,
+      portfolios,
       testimonials,
     } = req.validatedBody;
 
+    // ✅ AMBIL FILE UPLOAD
+    const uploadedThumbnail = req.file
+      ? `/images/mentoringThumbnail/${req.file.filename}`
+      : undefined;
+
+    // ✅ KIRIM KE SERVICE
     const updatedService =
       await MentorServiceService.updateMentoringServiceById(id, {
         serviceName,
         description,
         price,
+        strikePrice,
         maxParticipants,
-        durationDays,
+        // durationDays,
+        startDate, // ✅
+        endDate, // ✅
         isActive,
         mentorProfileIds,
         serviceType,
-        benefits,
-        mechanism,
-        syllabusPath,
-        toolsUsed,
-        targetAudience,
-        schedule,
-        alumniPortfolio,
+
+        programAbout,
+        totalWeeks,
+        totalProjects,
+        whatsappGroup,
+        slug,
+        isFeatured,
+
         category,
         level,
+
+        sections,
+        tools,
+        schedules,
+        portfolios,
         testimonials,
+
+        // ✅ INJECT THUMBNAIL HANYA JIKA ADA
+        ...(uploadedThumbnail && { thumbnail: uploadedThumbnail }),
       });
 
     const allowedRoles = ["admin", "cm", "curdev"];
@@ -494,9 +532,10 @@ export const getPublicMentoringServiceDetailController = async (
   next: NextFunction,
 ) => {
   try {
-    const { id } = req.validatedParams!;
+    const slug = req.validatedParams!.slug!;
 
-    const data = await MentorServiceService.getPublicMentoringServiceDetail(id);
+    const data =
+      await MentorServiceService.getPublicMentoringServiceDetail(slug);
 
     if (!data) {
       res

@@ -1069,6 +1069,13 @@ model MentoringService {
   serviceType        String?  @db.VarChar @map("service_type")
   maxParticipants    Int?     @map("max_participants")
   durationDays       Int      @map("duration_days")
+  startDate          DateTime? @map("start_date")
+  endDate            DateTime? @map("end_date")
+
+  thumbnail          String?  @db.VarChar
+
+  // WHATSAPP GROUP
+  whatsappGroup      String?  @db.VarChar @map("whatsapp_group")
 
   // NEW SIMPLE FIELDS
   programAbout       String?  @map("program_about")

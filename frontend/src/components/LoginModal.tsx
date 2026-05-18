@@ -31,7 +31,7 @@ export default function LoginModal({
   const searchParams = useSearchParams();
 
   const returnUrl =
-    pathname === "/aycl"
+    pathname === "/aycl" || pathname.startsWith("/programs/")
       ? `${pathname}${searchParams.toString() ? `?${searchParams}` : ""}`
       : null;
 

@@ -710,23 +710,60 @@ export const ELearningCourseService = {
             },
           },
         },
+        sections: true,
+        tools: true,
+        schedules: true,
+        portfolios: true,
+        testimonials: true,
       },
     });
+
+    const getSectionByType = (sections: any[], type: string) => {
+      return sections
+        .filter((s) => s.type === type)
+        .map((s) => (s.content as any)?.description || "-")
+        .join(" | ");
+    };
 
     const mentoringRows = mentoringServices.map((m) => ({
       TYPE: "MENTORING",
       ID: m.id,
       Name: m.serviceName,
       Description: m.description || "-",
+
+      Thumbnail: m.thumbnail || "-",
       ServiceType: m.serviceType || "-",
       Price: m.price.toString(),
+      StrikePrice: m.strikePrice?.toString() || "-",
+
       MaxParticipants: m.maxParticipants ?? "-",
       DurationDays: m.durationDays,
-      Benefits: m.benefits || "-",
-      ToolsUsed: m.toolsUsed || "-",
-      TargetAudience: m.targetAudience || "-",
+
+      // ✅ NEW FIELDS
+      ProgramAbout: m.programAbout || "-",
+      TotalWeeks: m.totalWeeks ?? "-",
+      TotalProjects: m.totalProjects ?? "-",
+
+      Category: m.category || "-",
+      Level: m.level || "-",
+      IsFeatured: m.isFeatured ? "Yes" : "No",
+
+      // ✅ FROM RELATIONS
+      Benefits: getSectionByType(m.sections, "BENEFIT"),
+      TargetAudience: getSectionByType(m.sections, "TARGET"),
+      Mechanism: getSectionByType(m.sections, "MECHANISM"),
+      Syllabus: getSectionByType(m.sections, "SYLLABUS"),
+
+      ToolsUsed: m.tools.map((t) => t.name).join(", ") || "-",
+
+      TotalSchedules: m.schedules.length,
+      TotalPortfolios: m.portfolios.length,
+      TotalTestimonials: m.testimonials.length,
+
       IsActive: m.isActive ? "Yes" : "No",
+
       Mentors: m.mentors.map((x) => x.mentorProfile.user.fullName).join(", "),
+
       CreatedAt: formatDate(m.createdAt ?? new Date(), "yyyy-MM-dd HH:mm:ss"),
       UpdatedAt: formatDate(m.updatedAt ?? new Date(), "yyyy-MM-dd HH:mm:ss"),
     }));
@@ -777,6 +814,10 @@ export const ELearningCourseService = {
     // GABUNG DATA
     // =========================
     const rows = [...mentoringRows, ...elearningRows];
+
+    if (rows.length === 0) {
+      throw new Error("No data to export");
+    }
 
     // =========================
     // EXPORT

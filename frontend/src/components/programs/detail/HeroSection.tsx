@@ -27,34 +27,38 @@ export default function HeroSection({
   const formatDescription = (text: string) => {
     if (!text) return "";
 
-    // Pisahkan berdasarkan newline
     const paragraphs = text.split("\n");
 
     return paragraphs
       .map((para) => {
         let formatted = para;
-
-        // bold **text**
         formatted = formatted.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-
-        // underline _text_
         formatted = formatted.replace(/_(.*?)_/g, "<u>$1</u>");
-
         return `<p class="mb-2">${formatted}</p>`;
       })
       .join("");
   };
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "";
-    const [day, month, year] = dateString.split("-");
-    const date = new Date(Number(year), Number(month) - 1, Number(day));
-    return date.toLocaleDateString("id-ID", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
-  };
+  const scheduleDateRange = useMemo(() => {
+    const schedules: { date: string | Date }[] = data?.schedules ?? [];
+    if (schedules.length === 0) return null;
+
+    const dates = schedules
+      .map((s) => new Date(s.date))
+      .sort((a, b) => a.getTime() - b.getTime());
+
+    const formatScheduleDate = (date: Date) =>
+      date.toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+
+    const first = formatScheduleDate(dates[0]);
+    const last = formatScheduleDate(dates[dates.length - 1]);
+
+    return first === last ? first : `${first} - ${last}`;
+  }, [data?.schedules]);
 
   return (
     <section className="bg-gradient-to-br py-8 px-3 md:px-5 lg:px-6 relative overflow-hidden">
@@ -83,13 +87,11 @@ export default function HeroSection({
           {/* Left Illustration */}
           <div className="relative flex items-center justify-center">
             <Image
-              src={
-                data?.thumbnail ||
-                "/assets/programsPage/programsIllustration.svg"
-              }
+              src="/assets/programsPage/programsIllustration.svg"
               alt="programs illustration"
               width={560}
               height={360}
+              unoptimized
               className="w-[100%] h-auto"
             />
           </div>
@@ -127,12 +129,7 @@ border-t-transparent border-b-transparent border-r-white"
               <div className="flex items-center gap-3">
                 <Clock className="w-5 h-5 text-gray-700" />
                 <span className="text-sm font-semibold text-gray-800">
-                  {data?.sessionDateRange
-                    ? data.sessionDateRange
-                        .split(" - ")
-                        .map((date: string) => formatDate(date))
-                        .join(" - ")
-                    : "Tanggal belum tersedia"}
+                  {scheduleDateRange ?? "Tanggal belum tersedia"}
                 </span>
               </div>
 
