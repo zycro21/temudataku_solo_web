@@ -293,7 +293,11 @@ export const useReferralCodeService = async ({
 }: {
   userId: string;
   code: string;
-  context: "booking" | "practice_purchase" | "elearning_subscription" | "ayclpurchase";
+  context:
+    | "booking"
+    | "practice_purchase"
+    | "elearning_subscription"
+    | "ayclpurchase";
 }) => {
   /* ================================
    * 1. VALIDASI REFERRAL CODE
@@ -694,7 +698,7 @@ export const applyReferralToAyclBookingService = async ({
       commissionAmount,
     };
   });
-}
+};
 
 export const getReferralCommissions = async (input: {
   referralCodeId?: string;
@@ -882,7 +886,11 @@ export const getAffiliatorReferralCodes = async (input: {
 export const getReferralUsages = async (input: {
   referralCodeId: string;
   ownerId: string;
-  context?: "booking" | "practice_purchase" | "elearning_subscription";
+  context?:
+    | "booking"
+    | "practice_purchase"
+    | "elearning_subscription"
+    | "ayclpurchase";
   page: number;
   limit: number;
 }) => {

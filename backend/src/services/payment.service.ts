@@ -7,7 +7,6 @@ import PDFDocument from "pdfkit";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-// import { AuthenticatedRequestPractice } from "../middlewares/authenticate.js";
 import { uploadToGoogleDrive } from "../utils/googleDrive.js";
 import axios from "axios";
 import crypto from "crypto";
