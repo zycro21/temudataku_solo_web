@@ -1193,7 +1193,11 @@ export const getMentorServiceSubmissionsService = async ({
     include: {
       mentoringServices: {
         include: {
-          mentoringService: { select: { id: true } },
+          mentoringService: {
+            select: {
+              id: true,
+            },
+          },
         },
       },
     },
@@ -1228,88 +1232,114 @@ export const getMentorServiceSubmissionsService = async ({
           profilePicture: true,
         },
       },
+
       gradedByUser: {
-        select: { fullName: true },
+        select: {
+          fullName: true,
+        },
       },
+
       project: {
         include: {
           mentoringService: {
-            select: {
-              id: true,
-              serviceName: true,
-              description: true,
-              price: true,
-              serviceType: true,
-              maxParticipants: true,
-              durationDays: true,
-              benefits: true,
-              mechanism: true,
-              syllabusPath: true,
-              toolsUsed: true,
-              targetAudience: true,
-              schedule: true,
-              alumniPortfolio: true,
-              isActive: true,
-              createdAt: true,
-              updatedAt: true,
+            include: {
+              sections: true,
+              tools: true,
+              schedules: true,
+              portfolios: true,
+              testimonials: true,
             },
           },
         },
       },
     },
-    orderBy: { submissionDate: "desc" },
+
+    orderBy: {
+      submissionDate: "desc",
+    },
   });
 
   return submissions.map((sub) => ({
     id: sub.id,
+
     menteeId: sub.user?.id,
     menteeName: sub.user?.fullName,
     menteeEmail: sub.user?.email,
     menteePhoto: sub.user?.profilePicture,
+
     projectId: sub.project?.id,
     projectTitle: sub.project?.title,
     projectDescription: sub.project?.description,
     projectCreatedAt: sub.project?.createdAt,
     projectUpdatedAt: sub.project?.updatedAt,
+
     mentoringService: sub.project?.mentoringService
       ? {
           id: sub.project.mentoringService.id,
           serviceName: sub.project.mentoringService.serviceName,
           description: sub.project.mentoringService.description,
           price: sub.project.mentoringService.price,
+          strikePrice: sub.project.mentoringService.strikePrice,
+
           serviceType: sub.project.mentoringService.serviceType,
           maxParticipants: sub.project.mentoringService.maxParticipants,
           durationDays: sub.project.mentoringService.durationDays,
-          benefits: sub.project.mentoringService.benefits,
-          mechanism: sub.project.mentoringService.mechanism,
-          syllabusPath: sub.project.mentoringService.syllabusPath,
-          toolsUsed: sub.project.mentoringService.toolsUsed,
-          targetAudience: sub.project.mentoringService.targetAudience,
-          schedule: sub.project.mentoringService.schedule,
-          alumniPortfolio: sub.project.mentoringService.alumniPortfolio,
+
+          startDate: sub.project.mentoringService.startDate,
+          endDate: sub.project.mentoringService.endDate,
+
+          thumbnail: sub.project.mentoringService.thumbnail,
+          whatsappGroup: sub.project.mentoringService.whatsappGroup,
+
+          programAbout: sub.project.mentoringService.programAbout,
+          totalWeeks: sub.project.mentoringService.totalWeeks,
+          totalProjects: sub.project.mentoringService.totalProjects,
+
+          slug: sub.project.mentoringService.slug,
+          isFeatured: sub.project.mentoringService.isFeatured,
+          difficultyOrder: sub.project.mentoringService.difficultyOrder,
+
+          category: sub.project.mentoringService.category,
+          level: sub.project.mentoringService.level,
+
           isActive: sub.project.mentoringService.isActive,
           createdAt: sub.project.mentoringService.createdAt,
           updatedAt: sub.project.mentoringService.updatedAt,
+
+          sections: sub.project.mentoringService.sections,
+          tools: sub.project.mentoringService.tools,
+          schedules: sub.project.mentoringService.schedules,
+          portfolios: sub.project.mentoringService.portfolios,
+          testimonials: sub.project.mentoringService.testimonials,
         }
       : null,
+
     title: sub.title,
     filePaths: sub.filePaths,
     projectLink: sub.projectLink,
+
     submissionDate: sub.submissionDate,
+
     plagiarismScore: sub.plagiarismScore,
     score: sub.score,
+
     briefScore: sub.briefScore,
     technicalScore: sub.technicalScore,
     creativityScore: sub.creativityScore,
     completenessScore: sub.completenessScore,
+
     mentorFeedback: sub.mentorFeedback,
     mentorSuggestion: sub.mentorSuggestion,
+
     isReviewed: sub.isReviewed,
     reviewStatus: sub.reviewStatus,
+
     isRevisedRequired: sub.isRevisedRequired,
     revisionDeadline: sub.revisionDeadline,
+
     gradedBy: sub.gradedBy,
     gradedByName: sub.gradedByUser?.fullName,
+
     createdAt: sub.createdAt,
     updatedAt: sub.updatedAt,
   }));
