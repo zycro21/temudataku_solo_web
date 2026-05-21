@@ -121,6 +121,7 @@ export default function DashboardHeaderAffiliator() {
                 width={36}
                 height={36}
                 className="rounded-full object-cover"
+                unoptimized
               />
               <div className="flex flex-col text-left">
                 <span className="text-sm font-medium text-gray-800">

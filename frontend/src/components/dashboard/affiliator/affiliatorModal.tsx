@@ -99,6 +99,7 @@ export default function ProfileModal({
                   width={400}
                   height={250}
                   className="object-cover w-full h-full"
+                  unoptimized
                 />
               </div>
             </div>

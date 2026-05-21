@@ -188,6 +188,7 @@ export default function AffProfileInfo() {
               height={80}
               className="h-full w-full object-cover"
               priority
+              unoptimized
             />
           </div>
 

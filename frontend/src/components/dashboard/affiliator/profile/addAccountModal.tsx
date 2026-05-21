@@ -49,7 +49,7 @@ export default function AddAccountModal({
         {
           params: { page: 1, limit: 15 },
           withCredentials: true,
-        }
+        },
       );
 
       if (res.data.success) {
@@ -73,7 +73,7 @@ export default function AddAccountModal({
   // toggle active/inactive (sementara masih local state)
   const toggleMethod = (id: string) => {
     setMethods((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, isActive: !m.isActive } : m))
+      prev.map((m) => (m.id === id ? { ...m, isActive: !m.isActive } : m)),
     );
   };
 
@@ -86,6 +86,12 @@ export default function AddAccountModal({
   });
 
   const handleSave = async () => {
+    // Validasi: semua field form wajib diisi sebelum menyimpan
+    if (!form.bankOrWallet || !form.number || !form.name) {
+      toast.error("Harap isi semua data metode pembayaran terlebih dahulu");
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -94,24 +100,22 @@ export default function AddAccountModal({
         axios.patch(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/withdrawals/${m.id}/activate`,
           { isActive: m.isActive },
-          { withCredentials: true }
-        )
+          { withCredentials: true },
+        ),
       );
       await Promise.all(updatePromises);
 
-      // Kalau form isi → create baru
-      if (form.bankOrWallet && form.number && form.name) {
-        await axios.post(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/withdrawals`,
-          {
-            type: withdrawType === "bank" ? "bank" : "eWallet",
-            providerName: form.bankOrWallet,
-            accountNumber: form.number,
-            accountName: form.name,
-          },
-          { withCredentials: true }
-        );
-      }
+      // Create metode baru
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/withdrawals`,
+        {
+          type: withdrawType === "bank" ? "bank" : "eWallet",
+          providerName: form.bankOrWallet,
+          accountNumber: form.number,
+          accountName: form.name,
+        },
+        { withCredentials: true },
+      );
 
       toast.success("Perubahan berhasil disimpan");
       onClose();
@@ -120,7 +124,7 @@ export default function AddAccountModal({
     } catch (err: any) {
       console.error("Gagal menyimpan perubahan:", err);
       toast.error(
-        err.response?.data?.message || "Gagal menyimpan perubahan, coba lagi"
+        err.response?.data?.message || "Gagal menyimpan perubahan, coba lagi",
       );
     } finally {
       setLoading(false);
@@ -246,7 +250,7 @@ export default function AddAccountModal({
                       <option key={opt} value={opt}>
                         {opt}
                       </option>
-                    )
+                    ),
                   )}
                 </select>
               </div>
