@@ -492,7 +492,7 @@ export default function BootcampPreviewModal({ data }: { data: PreviewData }) {
                 Live Session
               </div>
               <div className="text-[9px] text-gray-500 leading-tight">
-                Dengan Mentor Setiap Week
+                Dengan Mentor Setiap Pertemuan
               </div>
             </div>
           </div>

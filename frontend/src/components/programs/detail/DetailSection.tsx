@@ -60,7 +60,7 @@ export default function DetailSection({ data }: { data: any }) {
             <div className="text-sm text-gray-600 leading-snug">
               Dengan Mentor
               <br />
-              Setiap Week
+              Setiap Pertemuan
             </div>
           </div>
         </div>
