@@ -59,7 +59,7 @@ export const sendBookingPaymentSuccessEmail = async ({
           🟢 Bergabung ke Grup WhatsApp Bootcamp
         </p>
         <p style="margin: 0 0 14px 0; font-size: 14px; color: #374151; line-height: 1.6;">
-          Klik tombol di bawah untuk bergabung ke grup WhatsApp eksklusif peserta <strong>${serviceName}</strong>. 
+          Klik tombol di bawah untuk bergabung ke grup WhatsApp eksklusif peserta program<strong>${serviceName}</strong>. 
           Di sini kamu akan mendapat info jadwal, materi, dan update terbaru dari Tim TemuDataku.
         </p>
         <a href="${whatsappGroup}"

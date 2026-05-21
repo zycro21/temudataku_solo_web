@@ -480,7 +480,7 @@ export default function AdminMentorPage() {
 
     // mentoring simple fields
     slug: "",
-    isFeatured: false,
+    isFeatured: true,
     programAbout: "",
     totalWeeks: "",
     totalProjects: "",
@@ -567,7 +567,7 @@ export default function AdminMentorPage() {
     "GitHub",
     "R",
     "Statistics",
-    "Looker",
+    "Data Studio",
     "Metabase",
     "Superset",
     "Hugging Face",
@@ -600,6 +600,7 @@ export default function AdminMentorPage() {
     "Kafka",
     "Apache Flink",
     "Apache Beam",
+    "Apache Hop",
     "Delta Lake",
     "Databricks",
     "Presto",
@@ -637,6 +638,15 @@ export default function AdminMentorPage() {
     "TextBlob",
     "Tesseract OCR",
     "Detectron2",
+    "Visual Studio Code",
+    "Spreadsheet",
+    "Dbeaver",
+    "PG Admin",
+    "Grafana",
+    "Prometheus",
+    "Microsoft Power Point",
+    "Microsoft Word",
+    "Microsoft Excel",
   ];
 
   const resetAddModal = () => {
@@ -1453,33 +1463,6 @@ export default function AdminMentorPage() {
                           Hanya huruf kecil, angka, dan tanda strip (-). Tanpa
                           spasi.
                         </p>
-                      </div>
-
-                      {/* Is Featured */}
-                      <div>
-                        <label className="text-xs font-semibold text-gray-900 block mb-1">
-                          Is Featured
-                        </label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            id="isFeatured"
-                            checked={addFormData.isFeatured ?? false}
-                            onChange={(e) =>
-                              setAddFormData((prev) => ({
-                                ...prev,
-                                isFeatured: e.target.checked,
-                              }))
-                            }
-                            className="w-4 h-4 accent-emerald-600"
-                          />
-                          <label
-                            htmlFor="isFeatured"
-                            className="text-xs text-gray-700 cursor-pointer"
-                          >
-                            Tampilkan sebagai featured
-                          </label>
-                        </div>
                       </div>
 
                       {/* Whatsapp Group */}

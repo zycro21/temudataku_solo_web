@@ -108,7 +108,7 @@ const TOOL_OPTIONS = [
   "GitHub",
   "R",
   "Statistics",
-  "Looker",
+  "Data Studio",
   "Metabase",
   "Superset",
   "Hugging Face",
@@ -139,6 +139,7 @@ const TOOL_OPTIONS = [
   "Kafka",
   "Apache Flink",
   "Apache Beam",
+  "Apache Hop",
   "Delta Lake",
   "Databricks",
   "Presto",
@@ -176,6 +177,15 @@ const TOOL_OPTIONS = [
   "TextBlob",
   "Tesseract OCR",
   "Detectron2",
+  "Visual Studio Code",
+  "Spreadsheet",
+  "Dbeaver",
+  "PG Admin",
+  "Grafana",
+  "Prometheus",
+  "Microsoft Power Point",
+  "Microsoft Word",
+  "Microsoft Excel",
 ];
 
 export function DataTable<TData extends Project, TValue>({
@@ -1211,7 +1221,7 @@ export function DataTable<TData extends Project, TValue>({
                   </div>
                 )}
 
-                {/* ── Slug + isFeatured ── */}
+                {/* ── Slug + WhatsApp Group ── */}
                 {editFormData.kategori === "Mentoring" && (
                   <div className="space-y-3">
                     <div>
@@ -1234,31 +1244,6 @@ export function DataTable<TData extends Project, TValue>({
                       </p>
                     </div>
 
-                    <div>
-                      <label className="text-xs font-semibold text-gray-900 block mb-1">
-                        Is Featured
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id="editIsFeatured"
-                          checked={editFormData.isFeatured ?? false}
-                          onChange={(e) =>
-                            setEditFormData((prev) => ({
-                              ...prev,
-                              isFeatured: e.target.checked,
-                            }))
-                          }
-                          className="w-4 h-4 accent-emerald-600"
-                        />
-                        <label
-                          htmlFor="editIsFeatured"
-                          className="text-xs text-gray-700 cursor-pointer"
-                        >
-                          Tampilkan sebagai featured
-                        </label>
-                      </div>
-                    </div>
                     <div>
                       <label className="text-xs font-semibold text-gray-900 block mb-1">
                         WhatsApp Group
@@ -2604,24 +2589,10 @@ export function DataTable<TData extends Project, TValue>({
                             />
                           </div>
 
-                          {/* MENTORING: Slug + isFeatured (atas mentor) */}
+                          {/* MENTORING: Slug + WhatsApp Group (atas mentor) */}
                           {isMentoring && (
                             <div className="space-y-2">
                               <DetailItem label="Slug" value={d?.slug ?? "-"} />
-                              <div>
-                                <label className="text-xs font-semibold text-gray-600 block mb-1">
-                                  Is Featured
-                                </label>
-                                <p
-                                  className={`text-xs font-semibold ${
-                                    d?.isFeatured
-                                      ? "text-emerald-600"
-                                      : "text-gray-500"
-                                  }`}
-                                >
-                                  {d?.isFeatured ? "Ya" : "Tidak"}
-                                </p>
-                              </div>
                               <div>
                                 <label className="text-xs font-semibold text-gray-600 block mb-1">
                                   WhatsApp Group

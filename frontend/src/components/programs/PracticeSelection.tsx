@@ -144,7 +144,7 @@ export default function PracticeSelection() {
 
       tableau: "/assets/toolIcons/tableau.svg",
 
-      googlelookerstudio: "/assets/toolIcons/looker.svg",
+      datastudio: "/assets/toolIcons/looker.svg",
       looker: "/assets/toolIcons/looker.svg",
 
       opencv: "/assets/toolIcons/opencv.svg",
@@ -196,135 +196,82 @@ export default function PracticeSelection() {
 
       github: "/assets/toolIcons/github.svg",
 
+      apachehop: "/assets/toolIcons/apachehop.png",
+
       // ================= ONLINE FALLBACK ICONS =================
 
-      seaborn: "https://cdn.simpleicons.org/seaborn",
-
-      matplotlib: "https://cdn.simpleicons.org/plotly",
-
-      plotly: "https://cdn.simpleicons.org/plotly",
-
-      xgboost: "https://cdn.simpleicons.org/xgboost",
-
-      lightgbm: "https://cdn.simpleicons.org/lightgbm",
-
-      catboost: "https://cdn.simpleicons.org/catboost",
-
-      dask: "https://cdn.simpleicons.org/dask",
-
-      polars: "https://cdn.simpleicons.org/polars",
-
-      nltk: "https://cdn.simpleicons.org/python",
-
-      spacy: "https://cdn.simpleicons.org/spacy",
-
-      langchain: "https://cdn.simpleicons.org/langchain",
-
-      llamaindex: "https://cdn.simpleicons.org/llamaindex",
-
-      transformers: "https://cdn.simpleicons.org/huggingface",
-
-      onnx: "https://cdn.simpleicons.org/onnx",
-
-      tritoninferenceserver: "https://cdn.simpleicons.org/nvidia",
-
-      ray: "https://cdn.simpleicons.org/ray",
-
-      raytune: "https://cdn.simpleicons.org/ray",
-
-      optuna: "https://cdn.simpleicons.org/optuna",
-
-      deepspeed: "https://cdn.simpleicons.org/pytorch",
-
-      accelerate: "https://cdn.simpleicons.org/huggingface",
-
-      bokeh: "https://cdn.simpleicons.org/bokeh",
-
-      altair: "https://cdn.simpleicons.org/vega",
-
-      dash: "https://cdn.simpleicons.org/plotly",
-
-      plotnine: "https://cdn.simpleicons.org/python",
-
-      kafka: "https://cdn.simpleicons.org/apachekafka",
-
-      apacheflink: "https://cdn.simpleicons.org/apacheflink",
-
-      apachebeam: "https://cdn.simpleicons.org/apachebeam",
-
-      deltalake: "https://cdn.simpleicons.org/delta",
-
-      databricks: "https://cdn.simpleicons.org/databricks",
-
-      presto: "https://cdn.simpleicons.org/presto",
-
-      trino: "https://cdn.simpleicons.org/trino",
-
-      clickhouse: "https://cdn.simpleicons.org/clickhouse",
-
-      azure: "https://cdn.simpleicons.org/microsoftazure",
-
-      azureml: "https://cdn.simpleicons.org/microsoftazure",
-
-      sagemaker: "https://cdn.simpleicons.org/amazonaws",
-
-      vertexai: "https://cdn.simpleicons.org/googlecloud",
-
-      terraform: "https://cdn.simpleicons.org/terraform",
-
-      pulumi: "https://cdn.simpleicons.org/pulumi",
-
-      circleci: "https://cdn.simpleicons.org/circleci",
-
-      gitlabci: "https://cdn.simpleicons.org/gitlab",
-
-      argocd: "https://cdn.simpleicons.org/argo",
-
-      prefect: "https://cdn.simpleicons.org/prefect",
-
-      dvc: "https://cdn.simpleicons.org/dvc",
-
-      greatexpectations: "https://cdn.simpleicons.org/python",
-
-      evidentlyai: "https://cdn.simpleicons.org/python",
-
-      nodejs: "https://cdn.simpleicons.org/nodedotjs",
-
-      expressjs: "https://cdn.simpleicons.org/express",
-
-      nestjs: "https://cdn.simpleicons.org/nestjs",
-
-      go: "https://cdn.simpleicons.org/go",
-
-      gin: "https://cdn.simpleicons.org/go",
-
-      redis: "https://cdn.simpleicons.org/redis",
-
-      graphql: "https://cdn.simpleicons.org/graphql",
-
-      grpc: "https://cdn.simpleicons.org/grpc",
-
-      pinecone: "https://cdn.simpleicons.org/pinecone",
-
-      weaviate: "https://cdn.simpleicons.org/weaviate",
-
-      faiss: "https://cdn.simpleicons.org/meta",
-
-      chroma: "https://cdn.simpleicons.org/chromatic",
-
-      milvus: "https://cdn.simpleicons.org/milvus",
-
-      elasticsearch: "https://cdn.simpleicons.org/elasticsearch",
-
-      opensearch: "https://cdn.simpleicons.org/opensearch",
-
-      gensim: "https://cdn.simpleicons.org/python",
-
-      textblob: "https://cdn.simpleicons.org/python",
-
-      tesseractocr: "https://cdn.simpleicons.org/tesseract",
-
-      detectron2: "https://cdn.simpleicons.org/meta",
+      seaborn: "/assets/toolIcons/seaborn.svg",
+      matplotlib: "/assets/toolIcons/matplotlib.svg",
+      plotly: "/assets/toolIcons/plotly.svg",
+      xgboost: "/assets/toolIcons/xgboost.svg",
+      lightgbm: "/assets/toolIcons/lightbgm.svg",
+      catboost: "/assets/toolIcons/catboost.svg",
+      dask: "/assets/toolIcons/dask.svg",
+      polars: "/assets/toolIcons/polars.svg",
+      nltk: "/assets/toolIcons/nltk.png",
+      spacy: "/assets/toolIcons/spacy.svg",
+      langchain: "/assets/toolIcons/langchain.svg",
+      llamaindex: "/assets/toolIcons/llamaindex.svg",
+      transformers: "/assets/toolIcons/huggingface.svg",
+      onnx: "/assets/toolIcons/onxx.svg",
+      tritoninferenceserver: "/assets/toolIcons/triton.png",
+      ray: "/assets/toolIcons/ray.png",
+      raytune: "/assets/toolIcons/ray.png",
+      optuna: "/assets/toolIcons/optuna.svg",
+      deepspeed: "/assets/toolIcons/deepspeed.svg",
+      accelerate: "/assets/toolIcons/accelerate.svg",
+      bokeh: "/assets/toolIcons/bokeh.svg",
+      altair: "/assets/toolIcons/altair.svg",
+      dash: "/assets/toolIcons/dash.svg",
+      plotnine: "/assets/toolIcons/plotnine.svg",
+      kafka: "/assets/toolIcons/kafka.svg",
+      apacheflink: "/assets/toolIcons/apacheflink.svg",
+      apachebeam: "/assets/toolIcons/beam.svg",
+      deltalake: "/assets/toolIcons/deltalake.svg",
+      databricks: "/assets/toolIcons/databricks.svg",
+      presto: "/assets/toolIcons/presto.svg",
+      trino: "/assets/toolIcons/trino.svg",
+      clickhouse: "/assets/toolIcons/clickhouse.svg",
+      azure: "/assets/toolIcons/azure.svg",
+      azureml: "/assets/toolIcons/azureml.svg",
+      sagemaker: "/assets/toolIcons/sagemaker.svg",
+      vertexai: "/assets/toolIcons/vertexai.svg",
+      terraform: "/assets/toolIcons/terraform.svg",
+      pulumi: "/assets/toolIcons/pulumi.svg",
+      circleci: "/assets/toolIcons/circleci.svg",
+      gitlabci: "/assets/toolIcons/gitlabci.svg",
+      argocd: "/assets/toolIcons/argocd.svg",
+      prefect: "/assets/toolIcons/prefect.svg",
+      dvc: "/assets/toolIcons/dvc.svg",
+      greatexpectations: "/assets/toolIcons/ge.svg",
+      evidentlyai: "/assets/toolIcons/evidentlyai.svg",
+      nodejs: "/assets/toolIcons/nodejs.svg",
+      expressjs: "/assets/toolIcons/expressjs.svg",
+      nestjs: "/assets/toolIcons/nestjs.svg",
+      go: "/assets/toolIcons/go.svg",
+      gin: "/assets/toolIcons/gin.svg",
+      redis: "/assets/toolIcons/redis.svg",
+      graphql: "/assets/toolIcons/graphql.svg",
+      grpc: "/assets/toolIcons/grpc.svg",
+      pinecone: "/assets/toolIcons/pinecone.svg",
+      weaviate: "/assets/toolIcons/weaviate.svg",
+      faiss: "/assets/toolIcons/faiss.png",
+      chroma: "/assets/toolIcons/chroma.svg",
+      milvus: "/assets/toolIcons/milvus.svg",
+      elasticsearch: "/assets/toolIcons/elasticsearch.svg",
+      opensearch: "/assets/toolIcons/opensearch.svg",
+      gensim: "/assets/toolIcons/gensim.png",
+      textblob: "/assets/toolIcons/textblob.svg",
+      tesseractocr: "/assets/toolIcons/tesseract.svg",
+      detectron2: "/assets/toolIcons/detectron.png",
+      visualstudiocode: "/assets/toolIcons/vsc.svg",
+      spreadsheet: "/assets/toolIcons/spreadsheet.svg",
+      dbeaver: "/assets/toolIcons/dbeaver.svg",
+      pgadmin: "/assets/toolIcons/pgadmin.svg",
+      grafana: "/assets/toolIcons/grafana.svg",
+      prometheus: "/assets/toolIcons/prometheus.svg",
+      microsoftpowerpoint: "/assets/toolIcons/powerpoint.svg",
+      microsoftword: "/assets/toolIcons/word.svg",
     };
 
     const normalized = normalizeToolName(tool);
@@ -456,6 +403,7 @@ export default function PracticeSelection() {
                   <SelectItem value="Machine Learning">
                     Machine Learning
                   </SelectItem>
+                  <SelectItem value="Data Engineer">Data Engineer</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -472,6 +420,7 @@ export default function PracticeSelection() {
                 "Data Analyst",
                 "Data Scientist",
                 "Machine Learning",
+                "Data Engineer",
               ].map((skill) => (
                 <Button
                   key={skill}

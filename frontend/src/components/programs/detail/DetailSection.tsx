@@ -56,11 +56,11 @@ export default function DetailSection({ data }: { data: any }) {
           </div>
 
           <div>
-            <div className="text-3xl font-bold text-gray-900 mb-1">1 on 1</div>
+            <div className="text-3xl font-bold text-gray-900 mb-1">Live Session</div>
             <div className="text-sm text-gray-600 leading-snug">
-              Mentoring setiap minggu +
+              Dengan Mentor
               <br />
-              sesi review project
+              Setiap Week
             </div>
           </div>
         </div>
