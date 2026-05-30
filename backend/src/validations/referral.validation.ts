@@ -109,12 +109,18 @@ export const useReferralCodeSchema = z.object({
       .min(6)
       .max(10)
       .regex(/^[A-Za-z0-9-_]+$/),
+
     context: z.enum(
-      ["booking", "practice_purchase", "elearning_subscription"],
+      [
+        "booking",
+        "practice_purchase",
+        "elearning_subscription",
+        "ayclpurchase",
+      ],
       {
         errorMap: () => ({
           message:
-            "Context must be 'booking', 'practice_purchase', or 'elearning_subscription'",
+            "Context must be 'booking', 'practice_purchase', 'elearning_subscription', or 'ayclpurchase'",
         }),
       },
     ),

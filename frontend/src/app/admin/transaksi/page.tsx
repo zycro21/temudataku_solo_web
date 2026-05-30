@@ -158,9 +158,16 @@ export default function AdminMentorPage() {
           // TYPE
           // --------------------------
           let typeLabel = "-";
-          if (p.bookingId) typeLabel = "Mentoring";
-          else if (p.eLearningSubscriptionId) typeLabel = "E-Learning";
-          else if (p.ayclBookingId) typeLabel = "AYCL";
+
+          if (p.bookingInvoice) {
+            typeLabel = "Mentoring";
+          } else if (p.eLearningSubscription) {
+            typeLabel = "E-Learning";
+          } else if (p.ayclBooking) {
+            typeLabel = "AYCL";
+          } else if (p.practicePurchase) {
+            typeLabel = "Practice";
+          }
 
           // --------------------------
           // PROGRAM
@@ -187,8 +194,18 @@ export default function AdminMentorPage() {
           // TOPIK / NAMA PRODUK
           // --------------------------
           let topic = "-";
+
           if (typeLabel === "Mentoring") {
-            topic = p.booking?.mentoringService?.serviceName ?? "-";
+            /**
+             * serviceName dari backend sudah otomatis:
+             *
+             * INSTALLMENT:
+             * "Pembayaran Cicilan ke-1 - Bootcamp XYZ"
+             *
+             * FULL:
+             * "Bootcamp XYZ"
+             */
+            topic = p.booking?.serviceName ?? "-";
           }
 
           // --------------------------

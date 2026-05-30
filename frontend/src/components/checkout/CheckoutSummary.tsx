@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import QrisModal from "./QrisModal";
@@ -11,16 +11,39 @@ import axios from "axios";
 export default function CheckoutSummary({
   booking,
   ayclBooking,
-  paymentId,
   priceSummary,
   formData,
   isTermsChecked,
   type,
+  paymentId,
+  paymentPlan,
+  onPaymentPlanChange,
+  onBookingCreated,
+  onPaymentPlanConfirmed,
 }: any) {
+  const [paymentType, setPaymentType] = useState<"FULL" | "INSTALLMENT" | null>(
+    null,
+  );
+  const [installmentCount, setInstallmentCount] = useState(2);
+  const [isPaymentTypeConfirmed, setIsPaymentTypeConfirmed] = useState(false);
+  const [createdBooking, setCreatedBooking] = useState<any>(null);
+  const [createdPaymentId, setCreatedPaymentId] = useState<string | null>(null);
+
   const [paymentMethod, setPaymentMethod] = useState("atm");
   const [showQRIS, setShowQRIS] = useState(false);
   const [showATM, setShowATM] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // FIX: Untuk type "mentoring", paymentId sudah dibuat sebelumnya di
+  // DetailMentoringModal dan dikirim via URL query param sebagai prop.
+  // Sync prop paymentId ke state createdPaymentId supaya handlePesan bisa jalan.
+  // Untuk type "class", createdPaymentId diset via handleConfirmPaymentPlan —
+  // tidak ada konflik karena paymentId prop-nya null/undefined.
+  useEffect(() => {
+    if (paymentId && !createdPaymentId) {
+      setCreatedPaymentId(paymentId);
+    }
+  }, [paymentId]);
 
   // ── Dynamic Price Logic ───────────────────────────────────────────────────
   const basePrice =
@@ -38,9 +61,63 @@ export default function CheckoutSummary({
       ? (ayclBooking?.batch?.title ?? "All You Can Learn")
       : (booking?.mentoringService?.serviceName ?? "Mentoring Session");
 
+  const installmentAvailable =
+    type === "class" &&
+    booking?.mentoringService?.serviceType === "bootcamp" &&
+    booking?.mentoringService?.installmentAvailable;
+
+  const maxInstallmentMonths =
+    booking?.mentoringService?.maxInstallmentMonths || 1;
+
   const formatRupiah = (value: number | string) => {
     return `Rp${Number(value).toLocaleString("id-ID")}`;
   };
+
+  const installmentBreakdown = (() => {
+    if (paymentType !== "INSTALLMENT") return [];
+
+    // 2x => 60 : 40
+    if (installmentCount === 2) {
+      return [
+        {
+          label: "Pembayaran Pertama",
+          percentage: 60,
+          amount: Math.round(finalPrice * 0.6),
+        },
+        {
+          label: "Pembayaran Kedua",
+          percentage: 40,
+          amount: finalPrice - Math.round(finalPrice * 0.6),
+        },
+      ];
+    }
+
+    // 3x => 50 : 30 : 20
+    if (installmentCount === 3) {
+      const first = Math.round(finalPrice * 0.5);
+      const second = Math.round(finalPrice * 0.3);
+
+      return [
+        {
+          label: "Pembayaran Pertama",
+          percentage: 50,
+          amount: first,
+        },
+        {
+          label: "Pembayaran Kedua",
+          percentage: 30,
+          amount: second,
+        },
+        {
+          label: "Pembayaran Ketiga",
+          percentage: 20,
+          amount: finalPrice - first - second,
+        },
+      ];
+    }
+
+    return [];
+  })();
 
   const validateForm = () => {
     if (!formData) {
@@ -86,7 +163,6 @@ export default function CheckoutSummary({
     }
 
     if (type === "aycl") {
-      // TAMBAH VALIDASI SCHEDULE
       if (
         !formData.selectedSchedules ||
         formData.selectedSchedules.length === 0
@@ -150,6 +226,84 @@ export default function CheckoutSummary({
     return map[method];
   };
 
+  // Hanya dipakai oleh type="class" (bootcamp dengan installment)
+  const handleConfirmPaymentPlan = async () => {
+    if (!validateForm()) return;
+
+    if (!paymentType) {
+      toast.error("Pilih tipe pembayaran.");
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+
+      const loadingToast = toast.loading("Membuat booking...");
+
+      const formPayload = new FormData();
+
+      formPayload.append("mentoringServiceId", booking?.mentoringService?.id);
+      formPayload.append("paymentType", paymentType);
+
+      if (paymentType === "INSTALLMENT") {
+        formPayload.append("installmentCount", String(installmentCount));
+      }
+
+      if (formData?.description) {
+        formPayload.append("material", formData.description);
+      }
+
+      if (formData?.expectedOutput) {
+        formPayload.append("expectedOutput", formData.expectedOutput);
+      }
+
+      if (formData?.supportingDocs?.length > 0) {
+        for (const file of formData.supportingDocs) {
+          formPayload.append("supportDocument", file);
+        }
+      }
+
+      const res = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/booking/createBooking`,
+        formPayload,
+        {
+          withCredentials: true,
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        },
+      );
+
+      const bookingData = res.data.data;
+
+      setCreatedBooking(bookingData);
+      onBookingCreated?.(bookingData);
+
+      // Ambil payment pertama dari invoice.payments (struktur baru),
+      // fallback ke payments langsung untuk kompatibilitas.
+      setCreatedPaymentId(
+        bookingData?.invoice?.payments?.[0]?.id ??
+          bookingData?.payments?.[0]?.id ??
+          null,
+      );
+
+      onPaymentPlanChange?.({
+        paymentType,
+        installmentCount,
+      });
+
+      setIsPaymentTypeConfirmed(true);
+      onPaymentPlanConfirmed?.(true);
+
+      toast.dismiss(loadingToast);
+      toast.success("Booking berhasil dibuat");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Gagal membuat booking.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handlePesan = async () => {
     if (isProcessing) return;
     setIsProcessing(true);
@@ -159,7 +313,7 @@ export default function CheckoutSummary({
       return;
     }
 
-    if (!paymentId) {
+    if (!createdPaymentId) {
       toast.error("Payment ID tidak ditemukan.");
       setIsProcessing(false);
       return;
@@ -174,7 +328,7 @@ export default function CheckoutSummary({
       const paymentRes = await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/payment/payments/create`,
         {
-          referenceId: paymentId,
+          referenceId: createdPaymentId,
           paymentMethod: mapToDuitkuCode(paymentMethod),
         },
         { withCredentials: true },
@@ -193,7 +347,7 @@ export default function CheckoutSummary({
       // ==============================
       // UPDATE BOOKING CONTENT (mentoring only)
       // ==============================
-      if (type === "mentoring" && booking?.id) {
+      if (type === "mentoring" && createdBooking?.id) {
         const formPayload = new FormData();
 
         if (formData.description)
@@ -210,7 +364,7 @@ export default function CheckoutSummary({
 
         if ([...formPayload.keys()].length > 0) {
           await axios.patch(
-            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/booking/${booking.id}/content`,
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/booking/${createdBooking.id}/content`,
             formPayload,
             {
               withCredentials: true,
@@ -294,7 +448,7 @@ export default function CheckoutSummary({
     <>
       <div
         className="border rounded-lg p-4 md:p-5 shadow-sm bg-white space-y-5 
-    max-h-[125vh] md:max-h-[750px] overflow-y-auto 
+    max-h-[150vh] md:max-h-[920px] overflow-y-auto 
     mt-4 ml-4 lg:ml-3 
     w-full max-w-md mx-auto lg:max-w-none"
       >
@@ -360,56 +514,164 @@ export default function CheckoutSummary({
           </div>
         </div>
 
-        {/* Pembayaran */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold">Pembayaran</h3>
-          <div className="space-y-2">
-            {paymentOptions.map((option) => (
-              <label
-                key={option.id}
-                className="flex flex-row justify-between items-center 
-                  cursor-pointer rounded-md px-3 py-2 hover:bg-gray-50 shadow-sm gap-2"
-              >
-                <div className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name="payment"
-                    value={option.id}
-                    checked={paymentMethod === option.id}
-                    onChange={() => setPaymentMethod(option.id)}
-                    className="text-emerald-600 focus:ring-emerald-500 shrink-0"
-                  />
-                  <span className="text-xs leading-relaxed">
-                    {option.label}
-                  </span>
-                </div>
+        {/* PAYMENT TYPE — hanya untuk type="class" bootcamp dengan installment */}
+        {type === "class" && installmentAvailable ? (
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold">Pilih Tipe Pembayaran</h3>
 
-                <div className="flex items-center gap-2 shrink-0">
-                  {option.logo?.map((logo, idx) => (
-                    <Image
-                      key={idx}
-                      src={logo}
-                      alt={option.label}
-                      width={32}
-                      height={18}
-                      className="object-contain h-6 md:h-8"
-                    />
+            {/* FULL */}
+            <label className="border rounded-lg p-4 flex items-center gap-3 cursor-pointer">
+              <input
+                type="radio"
+                checked={paymentType === "FULL"}
+                onChange={() => setPaymentType("FULL")}
+                className="accent-emerald-500 w-4 h-4 shrink-0"
+              />
+
+              <div>
+                <p className="font-medium text-sm">Bayar Penuh</p>
+
+                <p className="text-xs text-gray-500">
+                  Bayar seluruh tagihan sekaligus
+                </p>
+              </div>
+            </label>
+
+            {/* INSTALLMENT */}
+            <label className="border rounded-lg p-4 flex items-center gap-3 cursor-pointer">
+              <input
+                type="radio"
+                checked={paymentType === "INSTALLMENT"}
+                onChange={() => setPaymentType("INSTALLMENT")}
+                className="accent-emerald-500 w-4 h-4 shrink-0 self-start mt-1"
+              />
+
+              <div className="w-full">
+                <p className="font-medium text-sm">Cicilan</p>
+
+                <p className="text-xs text-gray-500 mb-3">Bayar bertahap</p>
+
+                {paymentType === "INSTALLMENT" && (
+                  <select
+                    value={installmentCount}
+                    onChange={(e) =>
+                      setInstallmentCount(Number(e.target.value))
+                    }
+                    className="border rounded-md px-3 py-2 text-sm w-full"
+                  >
+                    {Array.from(
+                      {
+                        length: maxInstallmentMonths - 1,
+                      },
+                      (_, i) => i + 2,
+                    ).map((month) => (
+                      <option key={month} value={month}>
+                        {month}x Cicilan
+                      </option>
+                    ))}
+                  </select>
+                )}
+
+                <div className="mt-4 space-y-3">
+                  {installmentBreakdown.map((item, index) => (
+                    <div
+                      key={index}
+                      className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3.5"
+                    >
+                      <div className="flex justify-between items-center gap-4">
+                        <div className="space-y-0.5">
+                          <p className="text-sm font-semibold text-emerald-700">
+                            {item.label}
+                          </p>
+
+                          <p className="text-xs text-emerald-500 font-medium">
+                            {item.percentage}%
+                          </p>
+                        </div>
+
+                        <p className="text-sm font-bold text-emerald-700 shrink-0">
+                          {formatRupiah(item.amount)}
+                        </p>
+                      </div>
+                    </div>
                   ))}
                 </div>
-              </label>
-            ))}
+              </div>
+            </label>
+
+            {!isPaymentTypeConfirmed && (
+              <Button
+                type="button"
+                onClick={handleConfirmPaymentPlan}
+                disabled={isProcessing}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                {isProcessing ? "Memproses..." : "Konfirmasi Pilihan"}
+              </Button>
+            )}
           </div>
-        </div>
+        ) : null}
+
+        {/* PAYMENT METHOD */}
+        {(type !== "class" ||
+          isPaymentTypeConfirmed ||
+          !installmentAvailable) && (
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold">Metode Pembayaran</h3>
+
+            <div className="space-y-2">
+              {paymentOptions.map((option) => (
+                <label
+                  key={option.id}
+                  className="flex flex-row justify-between items-center 
+          cursor-pointer rounded-md px-3 py-2 hover:bg-gray-50 shadow-sm gap-2"
+                >
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="payment"
+                      value={option.id}
+                      checked={paymentMethod === option.id}
+                      onChange={() => setPaymentMethod(option.id)}
+                      className="accent-emerald-500 w-4 h-4 shrink-0"
+                    />
+
+                    <span className="text-xs leading-relaxed">
+                      {option.label}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    {option.logo?.map((logo, idx) => (
+                      <Image
+                        key={idx}
+                        src={logo}
+                        alt={option.label}
+                        width={32}
+                        height={18}
+                        className="object-contain h-6 md:h-8"
+                      />
+                    ))}
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Tombol Pesan */}
-        <Button
-          onClick={handlePesan}
-          disabled={isProcessing}
-          className="w-full md:w-[200px] mx-auto bg-emerald-500 hover:bg-emerald-600 
-           text-white rounded-md py-2 text-sm md:text-xs font-medium block"
-        >
-          {isProcessing ? "Memproses..." : "Pesan"}
-        </Button>
+        {(type !== "class" ||
+          isPaymentTypeConfirmed ||
+          !installmentAvailable) && (
+          <Button
+            onClick={handlePesan}
+            disabled={isProcessing}
+            className="w-full md:w-[200px] mx-auto bg-emerald-500 hover:bg-emerald-600 
+    text-white rounded-md py-2 text-sm md:text-xs font-medium block"
+          >
+            {isProcessing ? "Memproses..." : "Pesan"}
+          </Button>
+        )}
       </div>
 
       <QrisModal open={showQRIS} onOpenChange={setShowQRIS} />

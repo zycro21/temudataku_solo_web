@@ -259,7 +259,11 @@ export const useReferralCodeController = async (
 
     const { code, context } = req.validatedBody as {
       code: string;
-      context: "booking" | "practice_purchase" | "elearning_subscription";
+      context:
+        | "booking"
+        | "practice_purchase"
+        | "elearning_subscription"
+        | "ayclpurchase";
     };
 
     const result = await ReferralService.useReferralCodeService({
@@ -373,12 +377,11 @@ export const applyReferralToAyclBookingController = async (
       throw { status: 400, message: "Kode referral wajib diisi." };
     }
 
-    const result =
-      await ReferralService.applyReferralToAyclBookingService({
-        userId: req.user.userId,
-        bookingId,
-        code: body.code,
-      });
+    const result = await ReferralService.applyReferralToAyclBookingService({
+      userId: req.user.userId,
+      bookingId,
+      code: body.code,
+    });
 
     res.status(200).json({
       success: true,
@@ -388,7 +391,7 @@ export const applyReferralToAyclBookingController = async (
   } catch (err) {
     next(err);
   }
-}
+};
 
 export const getReferralCommissionsController = async (
   req: AuthenticatedRequestReferralCode,

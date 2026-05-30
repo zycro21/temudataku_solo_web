@@ -501,3 +501,29 @@ export const publicGetMentoringSessionByIdController = async (
     next(error);
   }
 };
+
+export const getMentoringAvailabilityController = async (
+  req: AuthenticatedRequestForMentoringSession,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { mentorId, date } = req.validatedQuery!;
+
+    const result =
+      await MentoringSessionService.getMentoringAvailability({
+        mentorId: mentorId!,
+        date: date!,
+      });
+
+    res.status(200).json({
+      success: true,
+      message: "Berhasil mengambil booked slot mentoring",
+      data: result,
+    });
+
+    return;
+  } catch (error) {
+    next(error);
+  }
+};

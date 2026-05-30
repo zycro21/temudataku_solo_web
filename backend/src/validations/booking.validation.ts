@@ -28,6 +28,8 @@ export const createBookingSchema = z.object({
         minute: z.number().min(0).max(59),
       })
       .optional(),
+    paymentType: z.enum(["FULL", "INSTALLMENT"]),
+    installmentCount: z.coerce.number().min(2).max(12).optional(),
   }),
 });
 

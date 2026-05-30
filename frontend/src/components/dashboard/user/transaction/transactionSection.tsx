@@ -62,11 +62,7 @@ export default function TransactionSection() {
         );
 
         const data: ApiPayment[] = res.data.data.map((p: any) => {
-          let title = p.title || "-";
-
-          if (title) {
-            title = title.replace(/\s-\s\d+$/, "");
-          }
+          const title = p.title || "-";
 
           let status = p.status || "-";
           if (status === "pending") {

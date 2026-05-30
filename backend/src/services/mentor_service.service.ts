@@ -42,6 +42,14 @@ export const createMentoringService = async (input: any) => {
 
   const serviceType = input.serviceType || "bootcamp";
 
+  /**
+   * 🔥 AUTO INSTALLMENT CONFIG
+   * Bootcamp selalu bisa cicilan
+   */
+  const installmentAvailable = serviceType === "bootcamp";
+
+  const maxInstallmentMonths = serviceType === "bootcamp" ? 3 : null;
+
   if (serviceType === "bootcamp" && startDate && endDate) {
     if (new Date(endDate) < new Date(startDate)) {
       throw new Error("End date must be after start date");
@@ -143,6 +151,10 @@ export const createMentoringService = async (input: any) => {
         category,
         level,
         isActive,
+
+        // 🔥 AUTO INSTALLMENT
+        installmentAvailable,
+        maxInstallmentMonths,
 
         // 🔥 SECTION
         sections: sections
@@ -2407,6 +2419,12 @@ export const getPublicMentoringServiceDetail = async (slug: string) => {
       comment: t.comment,
       rating: t.rating,
     })),
+
+    installmentAvailable: service.serviceType === "bootcamp",
+
+    maxInstallmentMonths: service.serviceType === "bootcamp" ? 3 : 1,
+
+    minimumDownPaymentPercentage: service.serviceType === "bootcamp" ? 30 : 100,
 
     mentoringSessions: service.mentoringSessions,
 

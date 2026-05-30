@@ -156,28 +156,52 @@ model AYCLParticipant {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model Booking {
-  id                  String              @id @default(cuid())
+  id                  String   @id @default(cuid())
   menteeId            String
-  mentoringServiceId  String              @map("mentoring_service_id")
-  referralUsageId     String?             @unique
-  bookingDate         DateTime?           @default(now())
-  status              String?             @db.VarChar
+  mentoringServiceId  String   @map("mentoring_service_id")
+  referralUsageId     String?  @unique
+
+  bookingDate         DateTime? @default(now())
+  status              String?   @db.VarChar
+
   specialRequests     String?
-  material            String?             // materi yang diminta mentee
-  expectedOutput      String?             // ekspektasi output dari mentee
-  supportDocument     String?             // dokumen tambahan dari mentee
-  createdAt           DateTime?           @default(now())
+  material            String?
+  expectedOutput      String?
+  supportDocument     String?
+
+  createdAt           DateTime? @default(now())
   updatedAt           DateTime?
 
   // Relations
-  mentee              User                @relation(fields: [menteeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  mentoringService    MentoringService    @relation(fields: [mentoringServiceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  referralUsage       ReferralUsage?      @relation("ReferralUsageBooking", fields: [referralUsageId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  payment             Payment?            @relation("BookingPayment") // satu payment untuk booking
+  mentee              User      @relation(fields: [menteeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  mentoringService    MentoringService  @relation(fields: [mentoringServiceId], references: [id], onDelete: Cascade, onUpdate: Cascade) 
+  referralUsage       ReferralUsage?    @relation("ReferralUsageBooking", fields: [referralUsageId],  references: [id], onDelete: Cascade, onUpdate: Cascade)
+  invoice             BookingInvoice?
   participants        BookingParticipant[]
 
   @@map("bookings")
+}
+
+model BookingInvoice {
+  id                  String    @id @default(cuid())
+
+  bookingId           String    @unique
+
+  totalAmount         Decimal   @db.Decimal
+  paidAmount          Decimal   @default(0) @db.Decimal
+  remainingAmount     Decimal   @db.Decimal
+
+  paymentType         String    @db.VarChar // FULL, INSTALLMENT
+  installmentCount    Int?
+  status              String    @db.VarChar // PAID_DONE, PARTIALLY_PAID, HAVENT_PAID
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime?
+
+  booking             Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  payments            Payment[]
+
+  @@map("booking_invoices")
 }
 
 model BookingParticipant {
@@ -1089,8 +1113,12 @@ model MentoringService {
 
   category           String?  @db.VarChar
   level              String?  @db.VarChar
-
   isActive           Boolean? @default(true) @map("is_active")
+
+  // INSTALLMENT
+  installmentAvailable   Boolean @default(false) @map("installment_available")
+  maxInstallmentMonths   Int?    @map("max_installment_months")
+  
   createdAt          DateTime? @default(now()) @map("created_at")
   updatedAt          DateTime? @map("updated_at")
 
@@ -1273,26 +1301,43 @@ model NotificationRecipient {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model Payment {
-  id                    String              @id @default(cuid())
-  bookingId             String?             @unique @map("booking_id")
-  practicePurchaseId    String?             @unique @map("practice_purchase_id")
-  eLearningSubscriptionId  String?          @unique @map("e_learning_subscription_id")
-  ayclBookingId         String?             @unique @map("aycl_booking_id")
-  merchantOrderId       String?             @unique @map("merchant_order_id")
-  amount                Decimal             @db.Decimal
-  paymentDate           DateTime?           @db.Timestamp(6) @map("payment_date")
-  paymentMethod         String?             @db.VarChar @map("payment_method")
-  transactionId         String?             @db.VarChar @map("transaction_id")
-  status                String?             @db.VarChar
-  createdAt             DateTime?           @default(now()) @db.Timestamp(6) @map("created_at")
-  updatedAt             DateTime?           @db.Timestamp(6) @map("updated_at")
+  id                       String   @id @default(cuid())
 
-  booking               Booking?             @relation("BookingPayment", fields: [bookingId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  practicePurchase      PracticePurchase?    @relation("PracticePurchasePayment", fields: [practicePurchaseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  bookingParticipants   BookingParticipant[] @relation("ParticipantPayment")
-  eLearningSubscription ELearningSubscription? @relation(fields: [eLearningSubscriptionId], references: [id], onDelete: Cascade)
-  ayclBooking           AYCLBooking?         @relation(fields: [ayclBookingId], references: [id])
+  // booking installment
+  bookingInvoiceId         String?  @map("booking_invoice_id")
 
+  // non-booking payment (tetap seperti lama)
+  practicePurchaseId       String?  @unique @map("practice_purchase_id")
+  eLearningSubscriptionId  String?  @unique @map("e_learning_subscription_id")
+  ayclBookingId            String?  @unique @map("aycl_booking_id")
+
+  merchantOrderId          String?  @unique @map("merchant_order_id")
+
+  amount                   Decimal  @db.Decimal
+
+  // hanya dipakai booking cicilan
+  installmentNumber        Int?     @map("installment_number")
+
+  dueDate                  DateTime? @map("due_date")
+  reminderCount            Int       @default(0) @map("reminder_count")
+  lastReminderSentAt       DateTime? @map("last_reminder_sent_at")
+
+  paymentDate              DateTime? @db.Timestamp(6) @map("payment_date")
+  paymentMethod            String?   @db.VarChar @map("payment_method")
+  transactionId            String?   @db.VarChar @map("transaction_id")
+  status                   String?   @db.VarChar
+
+  createdAt                DateTime? @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt                DateTime? @db.Timestamp(6) @map("updated_at")
+
+  // Relations
+  bookingInvoice           BookingInvoice? @relation(fields: [bookingInvoiceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  practicePurchase         PracticePurchase?  @relation("PracticePurchasePayment", fields: [practicePurchaseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  eLearningSubscription    ELearningSubscription?  @relation(fields: [eLearningSubscriptionId], references: [id], onDelete: Cascade)
+  ayclBooking              AYCLBooking? @relation(fields: [ayclBookingId], references: [id])
+  bookingParticipants      BookingParticipant[]  @relation("ParticipantPayment")
+
+  @@index([bookingInvoiceId])
   @@map("payments")
 }
 

@@ -223,14 +223,18 @@ export const cancelMenteeBookingController = async (
 ) => {
   try {
     if (!req.user?.userId) {
-      res.status(401).json({ message: "Unauthorized. User ID not found." });
+      res.status(401).json({
+        message: "Unauthorized. User ID not found.",
+      });
       return;
     }
 
-    const bookingId = req.params.id;
+    const bookingId = req.validatedParams?.id;
 
     if (!bookingId) {
-      res.status(400).json({ message: "Booking ID tidak ditemukan." });
+      res.status(400).json({
+        message: "Booking ID tidak ditemukan.",
+      });
       return;
     }
 
@@ -240,9 +244,12 @@ export const cancelMenteeBookingController = async (
     );
 
     res.status(200).json({
+      success: true,
       message: "Booking berhasil dibatalkan.",
       data: cancelledBooking,
     });
+
+    return;
   } catch (error: any) {
     next(error);
   }

@@ -10,44 +10,39 @@ import CheckoutClassTerms from "./CheckoutClassTerms";
 
 export default function CheckoutClassPage() {
   const searchParams = useSearchParams();
-  const bookingId = searchParams.get("bookingId");
-  const paymentId = searchParams.get("paymentId");
+  const slug = searchParams.get("slug");
+
+  const [isPaymentPlanConfirmed, setIsPaymentPlanConfirmed] = useState(false);
+
+  const [createdBooking, setCreatedBooking] = useState<any>(null);
 
   const [booking, setBooking] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [checkoutData, setCheckoutData] = useState<any>(null);
   const [priceSummary, setPriceSummary] = useState<any>(null);
+  const [paymentPlan, setPaymentPlan] = useState<any>(null);
   const [isTermsChecked, setIsTermsChecked] = useState(false);
 
   /* ===============================
-     FETCH BOOKING
-  =============================== */
+   FETCH SERVICE
+=============================== */
   useEffect(() => {
-    if (!bookingId) return;
+    if (!slug) return;
 
-    const fetchBooking = async () => {
+    const fetchService = async () => {
       const res = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/booking/mentee/bookings/${bookingId}`,
-        { withCredentials: true },
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentorService/public-mentoring-services/${slug}`,
       );
 
-      const bookingData = res.data.data;
-      setBooking(bookingData);
+      const serviceData = res.data.data;
 
-      // Auto detect referral
-      if (bookingData.referralUsageId && bookingData.payment) {
-        const originalPrice = bookingData.mentoringService.price;
-        const finalPrice = Number(bookingData.payment.amount);
-
-        setPriceSummary({
-          originalPrice,
-          finalPrice,
-        });
-      }
+      setBooking({
+        mentoringService: serviceData,
+      });
     };
 
-    fetchBooking();
-  }, [bookingId]);
+    fetchService();
+  }, [slug]);
 
   /* ===============================
      FETCH CURRENT USER
@@ -77,10 +72,12 @@ export default function CheckoutClassPage() {
           />
 
           <CheckoutClassTerms
-            bookingId={bookingId}
+            serviceSlug={slug}
+            bookingId={createdBooking?.id}
             onReferralApplied={setPriceSummary}
             priceSummary={priceSummary}
             onTermsChange={setIsTermsChecked}
+            isPaymentPlanConfirmed={isPaymentPlanConfirmed}
           />
         </div>
 
@@ -88,11 +85,14 @@ export default function CheckoutClassPage() {
         <div className="pr-9">
           <CheckoutSummary
             booking={booking}
-            paymentId={paymentId}
             priceSummary={priceSummary}
             formData={checkoutData}
             isTermsChecked={isTermsChecked}
             type="class"
+            paymentPlan={paymentPlan}
+            onPaymentPlanChange={setPaymentPlan}
+            onBookingCreated={setCreatedBooking}
+            onPaymentPlanConfirmed={setIsPaymentPlanConfirmed}
           />
         </div>
       </div>

@@ -13,6 +13,7 @@ import {
   publicGetSessionsSchema,
   publicGetSessionByIdSchema,
   exportMentoringSessionsSchema,
+  getMentoringAvailabilitySchema,
 } from "../validations/mentoring_session.validation.js";
 import { validate } from "../middlewares/validate.js";
 import { authenticate } from "../middlewares/authenticate.js";
@@ -1476,6 +1477,80 @@ router.get(
   authorizeRoles("admin", "cm", "curdev"),
   validate(exportMentoringSessionsSchema),
   MentoringSessionController.exportSessionsController
+);
+
+/**
+ * @swagger
+ * /api/mentoringSession/public/availability:
+ *   get:
+ *     summary: Cek slot mentoring yang sudah dibooking
+ *     tags: [MentoringSession]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: mentorId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID mentor profile
+ *
+ *       - in: query
+ *         name: date
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Format YYYY-MM-DD
+ *
+ *     responses:
+ *       200:
+ *         description: Berhasil mengambil slot yang sudah dibooking
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     bookedSlots:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           mentoringSessionId:
+ *                             type: string
+ *                           time:
+ *                             type: string
+ *                             example: "19.00 - 20.00"
+ *                           startTime:
+ *                             type: string
+ *                           endTime:
+ *                             type: string
+ *                           status:
+ *                             type: string
+ *                           serviceType:
+ *                             type: string
+ *
+ *       400:
+ *         description: Validation error
+ *
+ *       404:
+ *         description: Mentor tidak ditemukan
+ *
+ *       500:
+ *         description: Internal server error
+ */
+router.get(
+  "/public/availability",
+  authenticate,
+  validate(getMentoringAvailabilitySchema),
+  MentoringSessionController.getMentoringAvailabilityController
 );
 
 export default router;

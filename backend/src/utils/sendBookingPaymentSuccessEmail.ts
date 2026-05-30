@@ -13,21 +13,45 @@ const PAYMENT_METHOD_MAP: Record<string, string> = {
 export const sendBookingPaymentSuccessEmail = async ({
   email,
   fullName,
+
+  // ubah
   serviceName,
+  programName,
+
   merchantOrderId,
   paymentMethod,
   amount,
   paymentDate,
   whatsappGroup,
+
+  paymentType,
+  invoiceStatus,
+  remainingAmount,
+  nextDueDate,
+  installmentNumber,
+  installmentCount,
 }: {
   email: string;
   fullName: string;
+
+  // NEW
   serviceName: string;
+  programName: string;
+
   merchantOrderId: string;
   paymentMethod: string | null;
   amount: number;
   paymentDate: Date;
   whatsappGroup: string | null;
+
+  paymentType: "FULL" | "INSTALLMENT";
+  invoiceStatus: string;
+
+  remainingAmount?: number;
+  nextDueDate?: Date | null;
+
+  installmentNumber?: number | null;
+  installmentCount?: number | null;
 }) => {
   const transporter = nodemailer.createTransport({
     service: "gmail",
@@ -59,7 +83,7 @@ export const sendBookingPaymentSuccessEmail = async ({
           🟢 Bergabung ke Grup WhatsApp Bootcamp
         </p>
         <p style="margin: 0 0 14px 0; font-size: 14px; color: #374151; line-height: 1.6;">
-          Klik tombol di bawah untuk bergabung ke grup WhatsApp eksklusif peserta program<strong>${serviceName}</strong>. 
+          Klik tombol di bawah untuk bergabung ke grup WhatsApp eksklusif peserta program <strong>${programName}</strong>.
           Di sini kamu akan mendapat info jadwal, materi, dan update terbaru dari Tim TemuDataku.
         </p>
         <a href="${whatsappGroup}"
@@ -75,6 +99,74 @@ export const sendBookingPaymentSuccessEmail = async ({
       </div>
     `
     : "";
+
+  const isFullyPaid = invoiceStatus === "PAID_DONE";
+
+  const paymentStatusBadge = isFullyPaid
+    ? `
+    <span style="display:inline-block; background-color:#dcfce7; color:#166534; font-size:13px; font-weight:600; padding:7px 20px; border-radius:999px; border:1px solid #bbf7d0;">
+      ✅ Status: LUNAS
+    </span>
+  `
+    : `
+    <span style="display:inline-block; background-color:#fef3c7; color:#92400e; font-size:13px; font-weight:600; padding:7px 20px; border-radius:999px; border:1px solid #fde68a;">
+      ⏳ Status: CICILAN BERHASIL
+    </span>
+  `;
+
+  const installmentInfoSection =
+    paymentType === "INSTALLMENT" && !isFullyPaid
+      ? `
+      <div style="margin-top: 22px; background-color:#fffbeb; border:1px solid #fde68a; border-radius:10px; padding:18px;">
+        <p style="margin:0 0 12px 0; font-size:15px; font-weight:700; color:#92400e;">
+          📌 Informasi Cicilan
+        </p>
+
+        <table style="width:100%; border-collapse:collapse;">
+          <tr>
+            <td style="padding:8px 0; color:#6b7280; font-size:13px;">
+              Cicilan
+            </td>
+
+            <td style="padding:8px 0; text-align:right; color:#111827; font-size:13px; font-weight:600;">
+              ${installmentNumber}/${installmentCount}
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:8px 0; color:#6b7280; font-size:13px;">
+              Sisa Pembayaran
+            </td>
+
+            <td style="padding:8px 0; text-align:right; color:#b45309; font-size:13px; font-weight:700;">
+              ${formatRupiah(remainingAmount || 0)}
+            </td>
+          </tr>
+
+          ${
+            nextDueDate
+              ? `
+              <tr>
+                <td style="padding:8px 0; color:#6b7280; font-size:13px;">
+                  Jatuh Tempo Berikutnya
+                </td>
+
+                <td style="padding:8px 0; text-align:right; color:#111827; font-size:13px; font-weight:600;">
+                  ${formatDate(nextDueDate)}
+                </td>
+              </tr>
+            `
+              : ""
+          }
+        </table>
+
+        <p style="margin:14px 0 0 0; font-size:12px; line-height:1.7; color:#92400e;">
+          Pembayaran cicilan kamu berhasil diterima, namun program belum sepenuhnya lunas.
+          Silakan lakukan pembayaran berikutnya sebelum tanggal jatuh tempo.
+        </p>
+      </div>
+    `
+      : "";
 
   const mailOptions = {
     from: `"TemuDataku" <${process.env.EMAIL_USER}>`,
@@ -157,10 +249,10 @@ export const sendBookingPaymentSuccessEmail = async ({
 
       <!-- STATUS BADGE -->
       <div style="text-align:center; margin-bottom:24px;">
-        <span style="display:inline-block; background-color:#dcfce7; color:#166534; font-size:13px; font-weight:600; padding:7px 20px; border-radius:999px; border:1px solid #bbf7d0;">
-          ✅ Status: LUNAS / CONFIRMED
-        </span>
+        ${paymentStatusBadge}
       </div>
+
+      ${installmentInfoSection}
 
       <!-- WHATSAPP SECTION -->
       ${whatsappSection}

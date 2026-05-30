@@ -217,7 +217,7 @@ export default function CheckoutForm({
       {/* No. Telepon */}
       <div className="grid gap-2 max-w-4xl">
         <label htmlFor="phone" className="text-sm font-medium">
-          No. Telepon
+          No. Whatsapp Aktif
         </label>
         <Input
           type="tel"

@@ -967,7 +967,7 @@ export function DataTable<TData extends Project, TValue>({
       aria-hidden={!showEditDialog}
     >
       {/* Overlay */}
-      <div className="absolute inset-0 bg-black/50" />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
 
       {/* Side-by-side wrapper */}
       <div className="relative z-10 flex items-start gap-3 max-w-[95vw]">

@@ -51,7 +51,7 @@ export function DataTable<TData extends Project, TValue>({
 }: DataTableProps<TData, TValue>) {
   const [globalFilter, setGlobalFilter] = React.useState("");
   const [selectedProject, setSelectedProject] = React.useState<Project | null>(
-    null
+    null,
   );
   const [showDetailDialog, setShowDetailDialog] = React.useState(false);
 
@@ -155,7 +155,7 @@ export function DataTable<TData extends Project, TValue>({
                       ? null
                       : flexRender(
                           header.column.columnDef.header,
-                          header.getContext()
+                          header.getContext(),
                         )}
                   </TableHead>
                 ))}
@@ -190,7 +190,7 @@ export function DataTable<TData extends Project, TValue>({
                       >
                         {flexRender(
                           cell.column.columnDef.cell,
-                          cell.getContext()
+                          cell.getContext(),
                         )}
                       </TableCell>
                     );
@@ -247,7 +247,7 @@ export function DataTable<TData extends Project, TValue>({
             {Array.from({ length: totalPages }, (_, i) => i + 1)
               .slice(
                 Math.max(0, pageIndex - 2),
-                Math.min(totalPages, pageIndex + 3)
+                Math.min(totalPages, pageIndex + 3),
               )
               .map((page) => (
                 <Button
@@ -280,7 +280,7 @@ export function DataTable<TData extends Project, TValue>({
       {/* Detail Project Dialog */}
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
         <DialogContent
-          className="max-w-2xl"
+          className="max-w-xl"
           onInteractOutside={(e) => e.preventDefault()}
         >
           <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b">
@@ -290,72 +290,72 @@ export function DataTable<TData extends Project, TValue>({
           </DialogHeader>
 
           {selectedProject && (
-            <div className="py-4">
+            <div className="py-3">
               {/* Scrollable Content */}
-              <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
+              <div className="space-y-4 max-h-[55vh] overflow-y-auto pr-2">
                 {/* First Row */}
-                <div className="grid grid-cols-2 gap-8">
+                <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">ID Transaksi</p>
-                    <p className="text-lg font-semibold text-gray-900 break-words whitespace-normal leading-relaxed">
+                    <p className="text-xs text-gray-600 mb-0.5">ID Transaksi</p>
+                    <p className="text-sm font-semibold text-gray-900 break-words whitespace-normal leading-relaxed">
                       {selectedProject.displayId}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">
+                    <p className="text-xs text-gray-600 mb-0.5">
                       Tanggal & Waktu Order
                     </p>
-                    <p className="text-lg font-semibold text-gray-900 break-words whitespace-normal leading-relaxed">
+                    <p className="text-sm font-semibold text-gray-900 break-words whitespace-normal leading-relaxed">
                       {selectedProject.date}
                     </p>
                   </div>
                 </div>
 
                 {/* Second Row */}
-                <div className="grid grid-cols-2 gap-8">
+                <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Mentee</p>
-                    <p className="text-lg font-semibold text-gray-900 break-words whitespace-normal leading-relaxed">
+                    <p className="text-xs text-gray-600 mb-0.5">Mentee</p>
+                    <p className="text-sm font-semibold text-gray-900 break-words whitespace-normal leading-relaxed">
                       {selectedProject.mentee}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Type</p>
-                    <p className="text-lg font-semibold text-gray-900 break-words whitespace-normal leading-relaxed">
+                    <p className="text-xs text-gray-600 mb-0.5">Type</p>
+                    <p className="text-sm font-semibold text-gray-900 break-words whitespace-normal leading-relaxed">
                       {selectedProject.type}
                     </p>
                   </div>
                 </div>
 
                 {/* Third Row */}
-                <div className="grid grid-cols-2 gap-8">
+                <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Program</p>
-                    <p className="text-lg font-semibold text-gray-900 break-words whitespace-normal leading-relaxed">
+                    <p className="text-xs text-gray-600 mb-0.5">Program</p>
+                    <p className="text-sm font-semibold text-gray-900 break-words whitespace-normal leading-relaxed">
                       {selectedProject.program}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Judul/Topik</p>
-                    <p className="text-lg font-semibold text-gray-900 break-words whitespace-normal leading-relaxed">
+                    <p className="text-xs text-gray-600 mb-0.5">Judul/Topik</p>
+                    <p className="text-sm font-semibold text-gray-900 break-words whitespace-normal leading-relaxed">
                       {selectedProject.topic}
                     </p>
                   </div>
                 </div>
 
                 {/* Fourth Row */}
-                <div className="grid grid-cols-2 gap-8">
+                <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Total Harga</p>
-                    <p className="text-lg font-semibold text-gray-900 break-words whitespace-normal leading-relaxed">
+                    <p className="text-xs text-gray-600 mb-0.5">Total Harga</p>
+                    <p className="text-sm font-semibold text-gray-900 break-words whitespace-normal leading-relaxed">
                       {selectedProject.totalHarga}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">
+                    <p className="text-xs text-gray-600 mb-0.5">
                       Status Transaksi
                     </p>
-                    <p className="text-lg font-semibold text-gray-900 break-words whitespace-normal leading-relaxed">
+                    <p className="text-sm font-semibold text-gray-900 break-words whitespace-normal leading-relaxed">
                       {selectedProject.statusTransaksi}
                     </p>
                   </div>
@@ -363,7 +363,7 @@ export function DataTable<TData extends Project, TValue>({
               </div>
 
               {/* Action Buttons */}
-              <div className="grid grid-cols-2 gap-4 mt-8 pt-6 border-t">
+              <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t">
                 {/* Edit */}
                 <Button
                   className="bg-[#0CA678] hover:bg-[#08916C] text-white"
@@ -383,12 +383,12 @@ export function DataTable<TData extends Project, TValue>({
                         selectedProject.statusTransaksi === "Belum Dibayar"
                           ? "pending"
                           : selectedProject.statusTransaksi === "Lunas"
-                          ? "confirmed"
-                          : selectedProject.statusTransaksi === "Gagal"
-                          ? "failed"
-                          : selectedProject.statusTransaksi === "Refunded"
-                          ? "refunded"
-                          : "pending",
+                            ? "confirmed"
+                            : selectedProject.statusTransaksi === "Gagal"
+                              ? "failed"
+                              : selectedProject.statusTransaksi === "Refunded"
+                                ? "refunded"
+                                : "pending",
                       alasan: selectedProject.alasan,
                     });
 
@@ -524,7 +524,7 @@ export function DataTable<TData extends Project, TValue>({
                     {
                       status: editFormData.statusTransaksi,
                     },
-                    { withCredentials: true }
+                    { withCredentials: true },
                   );
 
                   toast.success("Status transaksi berhasil diperbarui");
@@ -535,7 +535,7 @@ export function DataTable<TData extends Project, TValue>({
 
                   toast.error(
                     error?.response?.data?.message ??
-                      "Gagal memperbarui status transaksi"
+                      "Gagal memperbarui status transaksi",
                   );
                 } finally {
                   setSaving(false);
@@ -568,72 +568,72 @@ export function DataTable<TData extends Project, TValue>({
           </DialogHeader>
 
           {selectedProject && (
-            <div className="py-4 flex flex-col">
+            <div className="py-3 flex flex-col">
               {/* Scrollable Konten */}
-              <div className="space-y-6 max-h-[65vh] overflow-y-auto pr-2 pb-6">
+              <div className="space-y-4 max-h-[55vh] overflow-y-auto pr-2 pb-4">
                 {/* Row 1 */}
-                <div className="grid grid-cols-2 gap-8">
+                <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">ID Transaksi</p>
-                    <p className="text-lg font-semibold text-gray-900">
+                    <p className="text-xs text-gray-500 mb-0.5">ID Transaksi</p>
+                    <p className="text-sm font-semibold text-gray-900">
                       {selectedProject.displayId}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">
+                    <p className="text-xs text-gray-500 mb-0.5">
                       Tanggal & Waktu Order
                     </p>
-                    <p className="text-lg font-semibold text-gray-900">
+                    <p className="text-sm font-semibold text-gray-900">
                       {selectedProject.date}
                     </p>
                   </div>
                 </div>
 
                 {/* Row 2 */}
-                <div className="grid grid-cols-2 gap-8">
+                <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Mentee</p>
-                    <p className="text-lg font-semibold text-gray-900">
+                    <p className="text-xs text-gray-500 mb-0.5">Mentee</p>
+                    <p className="text-sm font-semibold text-gray-900">
                       {selectedProject.mentee}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Tipe</p>
-                    <p className="text-lg font-semibold text-gray-900">
+                    <p className="text-xs text-gray-500 mb-0.5">Tipe</p>
+                    <p className="text-sm font-semibold text-gray-900">
                       {selectedProject.type}
                     </p>
                   </div>
                 </div>
 
                 {/* Row 3 */}
-                <div className="grid grid-cols-2 gap-8">
+                <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Program</p>
-                    <p className="text-lg font-semibold text-gray-900">
+                    <p className="text-xs text-gray-500 mb-0.5">Program</p>
+                    <p className="text-sm font-semibold text-gray-900">
                       {selectedProject.program}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Topik</p>
-                    <p className="text-lg font-semibold text-gray-900">
+                    <p className="text-xs text-gray-500 mb-0.5">Topik</p>
+                    <p className="text-sm font-semibold text-gray-900">
                       {selectedProject.topic}
                     </p>
                   </div>
                 </div>
 
                 {/* Row 4 */}
-                <div className="grid grid-cols-2 gap-8">
+                <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Total Harga</p>
-                    <p className="text-lg font-semibold text-gray-900">
+                    <p className="text-xs text-gray-500 mb-0.5">Total Harga</p>
+                    <p className="text-sm font-semibold text-gray-900">
                       {selectedProject.totalHarga}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">
+                    <p className="text-xs text-gray-500 mb-0.5">
                       Status Transaksi
                     </p>
-                    <p className="text-lg font-semibold text-gray-900">
+                    <p className="text-sm font-semibold text-gray-900">
                       {selectedProject.statusTransaksi}
                     </p>
                   </div>
@@ -641,17 +641,17 @@ export function DataTable<TData extends Project, TValue>({
 
                 {/* Row 5 – Alasan */}
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">
+                  <p className="text-xs text-gray-500 mb-0.5">
                     Alasan Meminta Pengembalian Dana
                   </p>
-                  <p className="text-lg font-semibold text-gray-900 whitespace-pre-line">
+                  <p className="text-sm font-semibold text-gray-900 whitespace-pre-line">
                     {selectedProject.alasan || "-"}
                   </p>
                 </div>
               </div>
 
               {/* Garis pemisah + CTA */}
-              <div className="pt-6 border-t">
+              <div className="pt-4 border-t">
                 <Button
                   className="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-6 text-base font-semibold rounded-lg"
                   disabled={
@@ -668,7 +668,7 @@ export function DataTable<TData extends Project, TValue>({
                         {
                           status: "refunded",
                         },
-                        { withCredentials: true }
+                        { withCredentials: true },
                       );
 
                       toast.success("Pengembalian dana berhasil diproses");
@@ -679,7 +679,7 @@ export function DataTable<TData extends Project, TValue>({
 
                       toast.error(
                         error?.response?.data?.message ??
-                          "Gagal memproses pengembalian dana"
+                          "Gagal memproses pengembalian dana",
                       );
                     } finally {
                       setRefunding(false);

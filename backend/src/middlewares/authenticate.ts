@@ -131,35 +131,65 @@ export interface AuthenticatedRequestForMentoringSession extends Request {
     phoneNumber?: string;
     fullName?: string;
   };
+
   validatedQuery?: {
     serviceId?: string;
+
+    // NEW
+    mentorId?: string;
+
+    // NEW
+    date?: string;
+
     mentorProfileId?: string;
+
     status?: "scheduled" | "ongoing" | "completed" | "cancelled";
+
     dateFrom?: string;
     dateTo?: string;
+
     search?: string;
+
     sortBy?: "date" | "startTime" | "endTime" | "durationMinutes" | "createdAt";
+
     sortOrder?: "asc" | "desc";
+
     page: number;
     limit: number;
   };
+
   validatedParams?: {
     id: string;
     serviceId?: string;
   };
+
   validatedBody?: {
     serviceId: string;
     date: string;
-    startTime: { hour: number; minute: number };
-    endTime: { hour: number; minute: number };
+
+    startTime: {
+      hour: number;
+      minute: number;
+    };
+
+    endTime: {
+      hour: number;
+      minute: number;
+    };
+
     durationMinutes: number;
+
     meetingLink: string;
     meetingId: string;
     passcode: string;
+
     pptLink: string;
     recordingLink: string;
+
     status: string;
+
     notes?: string;
+
     mentorProfileIds: string[];
   };
 }
@@ -206,6 +236,8 @@ export interface AuthenticatedRequestBooking extends Request {
     mentorProfileId?: string;
     participantIds?: string[];
     referralUsageId?: string;
+    paymentType: "FULL" | "INSTALLMENT";
+    installmentCount?: number;
     specialRequests?: string;
     bookingDate?: string;
     material?: string; // <-- tambahkan

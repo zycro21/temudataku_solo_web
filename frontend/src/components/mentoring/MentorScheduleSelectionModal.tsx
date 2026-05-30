@@ -1,5 +1,6 @@
 "use client";
 
+import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -28,9 +29,51 @@ export default function MentorScheduleSelectionModal({
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [showSummary, setShowSummary] = useState(true);
 
+  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+
   useEffect(() => {
     if (selectedDate) setShowSummary(true);
   }, [selectedDate]);
+
+  useEffect(() => {
+    const fetchBookedSlots = async () => {
+      if (!selectedDate || !mentor?.id) {
+        setBookedSlots([]);
+        return;
+      }
+
+      try {
+        setLoadingSlots(true);
+
+        const formattedDate = selectedDate.toLocaleDateString("en-CA"); // YYYY-MM-DD
+
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentoringSession/public/availability`,
+          {
+            params: {
+              mentorId: mentor.id,
+              date: formattedDate,
+            },
+
+            withCredentials: true,
+          },
+        );
+
+        const slots =
+          response.data?.data?.bookedSlots?.map((slot: any) => slot.time) || [];
+
+        setBookedSlots(slots);
+      } catch (error) {
+        console.error("Failed to fetch booked slots:", error);
+        setBookedSlots([]);
+      } finally {
+        setLoadingSlots(false);
+      }
+    };
+
+    fetchBookedSlots();
+  }, [selectedDate, mentor]);
 
   if (!mentor) return null;
 
@@ -182,6 +225,12 @@ export default function MentorScheduleSelectionModal({
                     const dayKey = dayMap[selectedDate.getDay()];
                     const times: string[] = availability[dayKey] || [];
 
+                    if (loadingSlots) {
+                      return (
+                        <p className="text-xs text-gray-500">Memuat slot...</p>
+                      );
+                    }
+
                     if (times.length === 0) {
                       return (
                         <p className="text-xs text-gray-500">
@@ -195,23 +244,41 @@ export default function MentorScheduleSelectionModal({
                         {times.map((time, idx) => {
                           const isSelected = selectedTime === time;
 
+                          const isBooked = bookedSlots.includes(time);
+
                           return (
-                            <Button
+                            <div
                               key={idx}
-                              variant="outline"
-                              onClick={() =>
-                                setSelectedTime(isSelected ? null : time)
-                              }
-                              className={`w-full text-xs h-auto py-1.5 transition-colors ${
-                                isSelected
-                                  ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                                  : selectedTime
-                                    ? "bg-white text-gray-400 hover:bg-gray-200"
-                                    : "bg-white text-gray-700 hover:bg-gray-100"
-                              }`}
+                              title={isBooked ? "Slot sudah dibooking" : ""}
+                              className="w-full"
                             >
-                              {time}
-                            </Button>
+                              <Button
+                                variant="outline"
+                                disabled={isBooked}
+                                onClick={() =>
+                                  setSelectedTime(isSelected ? null : time)
+                                }
+                                className={`w-full text-xs h-auto py-1.5 transition-colors ${
+                                  isBooked
+                                    ? "bg-gray-200 text-gray-400 border-gray-200 cursor-not-allowed hover:bg-gray-200"
+                                    : isSelected
+                                      ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                                      : selectedTime
+                                        ? "bg-white text-gray-400 hover:bg-gray-200"
+                                        : "bg-white text-gray-700 hover:bg-gray-100"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between w-full">
+                                  <span>{time}</span>
+
+                                  {isBooked && (
+                                    <span className="text-[10px] font-medium">
+                                      Booked
+                                    </span>
+                                  )}
+                                </div>
+                              </Button>
+                            </div>
                           );
                         })}
                       </div>

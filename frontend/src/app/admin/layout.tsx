@@ -434,12 +434,12 @@ export default function AdminLayout({
         },
       ],
     },
-    // {
-    //   name: "E-Learning",
-    //   href: "/admin/elearning",
-    //   icon: "/assets/dashboard/user/practice.svg",
-    //   activeIcon: "/assets/dashboard/user/whitepractice.svg",
-    // },
+    {
+      name: "E-Learning",
+      href: "/admin/elearning",
+      icon: "/assets/dashboard/user/practice.svg",
+      activeIcon: "/assets/dashboard/user/whitepractice.svg",
+    },
     {
       name: "AYCL",
       icon: "/assets/admin/pro.svg",

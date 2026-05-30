@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma } from "@prisma/client";
+import { PrismaClient, Prisma, Payment } from "@prisma/client";
 import { Parser } from "json2csv";
 import ExcelJS from "exceljs";
 import { format, parseISO, subDays } from "date-fns";
@@ -134,12 +134,38 @@ const generateRandomString = (length: number) => {
   ).join("");
 };
 
+const addMonthsSafe = (date: Date, months: number): Date => {
+  const originalDay = date.getDate();
+
+  const newDate = new Date(date);
+
+  // pindah ke tanggal 1 dulu supaya aman
+  newDate.setDate(1);
+
+  // tambah bulan
+  newDate.setMonth(newDate.getMonth() + months);
+
+  // cari tanggal terakhir bulan target
+  const lastDayOfMonth = new Date(
+    newDate.getFullYear(),
+    newDate.getMonth() + 1,
+    0,
+  ).getDate();
+
+  // gunakan tanggal original atau max tanggal bulan target
+  newDate.setDate(Math.min(originalDay, lastDayOfMonth));
+
+  return newDate;
+};
+
 export const createBooking = async (
   menteeId: string,
   {
     mentoringServiceId,
     mentorProfileId,
     referralUsageId,
+    paymentType,
+    installmentCount,
     specialRequests,
     bookingDate,
     participantIds = [],
@@ -152,6 +178,8 @@ export const createBooking = async (
     mentoringServiceId: string;
     mentorProfileId?: string;
     referralUsageId?: string;
+    paymentType: "FULL" | "INSTALLMENT";
+    installmentCount?: number;
     specialRequests?: string;
     bookingDate?: string;
     participantIds?: string[];
@@ -173,6 +201,66 @@ export const createBooking = async (
     },
   });
 
+  // ======================================================
+  // VALIDASI SERVICE ADA
+  // ======================================================
+
+  if (!mentoringService || !mentoringService.isActive) {
+    throw {
+      status: 404,
+      message: "Mentoring service tidak ditemukan atau tidak aktif.",
+    };
+  }
+
+  // ======================================================
+  // VALIDASI CICILAN
+  // ======================================================
+
+  const isBootcamp = mentoringService.serviceType === "bootcamp";
+
+  if (paymentType === "INSTALLMENT" && !isBootcamp) {
+    throw {
+      status: 400,
+      message: "Cicilan hanya tersedia untuk layanan bootcamp.",
+    };
+  }
+
+  // ======================================================
+  // ONE-ON-ONE & GROUP WAJIB FULL PAYMENT
+  // ======================================================
+
+  if (
+    (mentoringService.serviceType === "one-on-one" ||
+      mentoringService.serviceType === "group") &&
+    paymentType !== "FULL"
+  ) {
+    throw {
+      status: 400,
+      message: "Layanan ini hanya mendukung pembayaran full.",
+    };
+  }
+
+  // ======================================================
+  // VALIDASI INSTALLMENT
+  // ======================================================
+
+  if (paymentType === "INSTALLMENT") {
+    if (!installmentCount) {
+      throw {
+        status: 400,
+        message: "installmentCount wajib diisi.",
+      };
+    }
+
+    // hanya support 2x dan 3x
+    if (![2, 3].includes(installmentCount)) {
+      throw {
+        status: 400,
+        message: "Cicilan hanya tersedia untuk 2x atau 3x pembayaran.",
+      };
+    }
+  }
+
   if (!mentoringService || !mentoringService.isActive) {
     throw {
       status: 404,
@@ -186,8 +274,12 @@ export const createBooking = async (
       where: {
         menteeId,
         mentoringServiceId,
-        payment: {
-          status: "confirmed",
+        invoice: {
+          payments: {
+            some: {
+              status: "confirmed",
+            },
+          },
         },
       },
     });
@@ -378,6 +470,45 @@ export const createBooking = async (
     sessionBookingDate = bookingDate;
   }
 
+  const generateInstallmentAmounts = (
+    totalAmount: number,
+    installmentCount: number,
+  ): number[] => {
+    // =========================
+    // 2x cicilan => 60 : 40
+    // =========================
+    if (installmentCount === 2) {
+      const first = Math.round(totalAmount * 0.6);
+      const second = totalAmount - first;
+
+      return [first, second];
+    }
+
+    // =========================
+    // 3x cicilan => 50 : 30 : 20
+    // =========================
+    if (installmentCount === 3) {
+      const first = Math.round(totalAmount * 0.5);
+      const second = Math.round(totalAmount * 0.3);
+      const third = totalAmount - first - second;
+
+      return [first, second, third];
+    }
+
+    // =========================
+    // selain itu fallback rata
+    // =========================
+    const baseAmount = Math.floor(totalAmount / installmentCount);
+
+    const amounts = Array(installmentCount).fill(baseAmount);
+
+    const remainder = totalAmount - baseAmount * installmentCount;
+
+    amounts[installmentCount - 1] += remainder;
+
+    return amounts;
+  };
+
   const booking = await prisma.$transaction(async (tx) => {
     let finalService = mentoringService;
 
@@ -453,37 +584,106 @@ export const createBooking = async (
       },
     });
 
-    const paymentId = await generatePaymentId("booking");
-    const payment = await tx.payment.create({
+    // ======================================================
+    // CREATE BOOKING INVOICE
+    // ======================================================
+
+    const invoice = await tx.bookingInvoice.create({
       data: {
-        id: paymentId,
         bookingId: newBooking.id,
-        amount: finalPrice,
-        status: "pending",
+        totalAmount: finalPrice,
+        paidAmount: 0,
+        remainingAmount: finalPrice,
+        paymentType,
+        installmentCount: paymentType === "INSTALLMENT" ? installmentCount : 1,
+        status: "HAVENT_PAID",
       },
     });
 
-    if (payment.practicePurchaseId) {
-      throw {
-        status: 400,
-        message:
-          "Payment tidak boleh terkait dengan Booking dan PracticePurchase bersamaan.",
-      };
+    // ======================================================
+    // GENERATE PAYMENTS
+    // ======================================================
+
+    const payments = [];
+
+    // FULL PAYMENT
+    if (paymentType === "FULL") {
+      const paymentId = await generatePaymentId("booking");
+
+      const payment = await tx.payment.create({
+        data: {
+          id: paymentId,
+          bookingInvoiceId: invoice.id,
+          amount: finalPrice,
+          installmentNumber: 1,
+          status: "pending",
+          // =========================================
+          // REMINDER SYSTEM
+          // =========================================
+          reminderCount: 0,
+          lastReminderSentAt: null,
+        },
+      });
+
+      payments.push(payment);
     }
+
+    // INSTALLMENT PAYMENT
+    if (paymentType === "INSTALLMENT") {
+      const totalInstallment = installmentCount!;
+
+      const installmentAmounts = generateInstallmentAmounts(
+        finalPrice,
+        totalInstallment,
+      );
+
+      for (let i = 0; i < installmentAmounts.length; i++) {
+        const paymentId = await generatePaymentId("booking");
+
+        // =========================================
+        // DUE DATE
+        // =========================================
+        // cicilan:
+        // 0 = hari ini
+        // 1 = +1 bulan
+        // 2 = +2 bulan
+        const dueDate = addMonthsSafe(bookingCreatedAt, i);
+
+        const payment = await tx.payment.create({
+          data: {
+            id: paymentId,
+            bookingInvoiceId: invoice.id,
+            installmentNumber: i + 1,
+            amount: installmentAmounts[i],
+            dueDate,
+            status: "pending",
+            // =========================================
+            // NEW REMINDER SYSTEM
+            // =========================================
+            reminderCount: 0,
+            lastReminderSentAt: null,
+          },
+        });
+
+        payments.push(payment);
+      }
+    }
+
+    const firstPayment = payments[0];
 
     // Catat komisi referral jika ada referralUsageId
     if (referralUsageId && referralCodeId) {
       const commissionAmount = finalPrice * (commissionPercentage / 100);
+
       await tx.referralCommisions.create({
         data: {
           referralCodeId,
-          transactionId: paymentId,
+          transactionId: firstPayment.id,
           amount: commissionAmount,
           created_at: new Date(),
         },
       });
     }
-
     // =======================================================
     // ✅ AUTO CREATE MENTORING SESSION
     // =======================================================
@@ -552,7 +752,8 @@ export const createBooking = async (
 
     return {
       ...newBooking,
-      payment,
+      invoice,
+      payments,
       originalPrice,
       finalPrice,
     };
@@ -652,6 +853,16 @@ export const getMenteeBookings = async (
   const bookings = await prisma.booking.findMany({
     where: whereClause,
     include: {
+      invoice: {
+        include: {
+          payments: {
+            orderBy: {
+              installmentNumber: "asc",
+            },
+          },
+        },
+      },
+
       mentoringService: {
         include: {
           projects: {
@@ -683,6 +894,7 @@ export const getMenteeBookings = async (
               },
             },
           },
+
           mentoringSessions: {
             include: {
               mentors: {
@@ -701,6 +913,7 @@ export const getMenteeBookings = async (
                   },
                 },
               },
+
               feedbacks: {
                 include: {
                   user: {
@@ -716,11 +929,14 @@ export const getMenteeBookings = async (
           },
         },
       },
+
       participants: true,
     },
+
     orderBy: {
       [sortBy ?? "createdAt"]: sortOrder ?? "desc",
     },
+
     skip,
     take: limit,
   });
@@ -782,8 +998,51 @@ export const getMenteeBookings = async (
       };
     });
 
+    // ======================================================
+    // PAYMENT SUMMARY
+    // ======================================================
+
+    const invoice = booking.invoice;
+
+    const paidInstallments =
+      invoice?.payments.filter((payment) =>
+        ["confirmed", "completed"].includes(
+          (payment.status || "").toLowerCase(),
+        ),
+      ) || [];
+
+    const totalPaid = paidInstallments.reduce(
+      (sum, payment) => sum + Number(payment.amount),
+      0,
+    );
+
+    const totalInstallments = invoice?.installmentCount || 1;
+
+    const paidInstallmentCount = paidInstallments.length;
+
     return {
       ...booking,
+
+      paymentSummary: invoice
+        ? {
+            paymentType: invoice.paymentType,
+            invoiceStatus: invoice.status,
+
+            totalAmount: Number(invoice.totalAmount),
+            paidAmount: Number(invoice.paidAmount),
+            remainingAmount: Number(invoice.remainingAmount),
+
+            installmentCount: totalInstallments,
+            paidInstallmentCount,
+
+            totalPaid,
+
+            isFullyPaid: invoice.status === "PAID_DONE",
+
+            payments: invoice.payments,
+          }
+        : null,
+
       mentoringService: {
         ...mentoringService,
         projects,
@@ -808,6 +1067,7 @@ export const getMenteeBookingDetail = async (
 ) => {
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
+
     include: {
       mentoringService: {
         include: {
@@ -822,6 +1082,7 @@ export const getMenteeBookingDetail = async (
           },
         },
       },
+
       participants: {
         include: {
           user: {
@@ -836,7 +1097,17 @@ export const getMenteeBookingDetail = async (
           },
         },
       },
-      payment: true,
+
+      // GANTI payment: true
+      invoice: {
+        include: {
+          payments: {
+            orderBy: {
+              installmentNumber: "asc",
+            },
+          },
+        },
+      },
     },
   });
 
@@ -875,9 +1146,41 @@ export const getMenteeBookingDetail = async (
     );
   }
 
+  // ============================================
+  // PAYMENT SUMMARY
+  // ============================================
+
+  const invoice = booking.invoice;
+
+  const paidPayments =
+    invoice?.payments.filter((payment) =>
+      ["confirmed", "completed"].includes((payment.status || "").toLowerCase()),
+    ) || [];
+
+  const paidInstallmentCount = paidPayments.length;
+
   return {
     ...booking,
+
     participants: filteredParticipants,
+
+    paymentSummary: invoice
+      ? {
+          paymentType: invoice.paymentType,
+          invoiceStatus: invoice.status,
+
+          totalAmount: Number(invoice.totalAmount),
+          paidAmount: Number(invoice.paidAmount),
+          remainingAmount: Number(invoice.remainingAmount),
+
+          installmentCount: invoice.installmentCount || 1,
+          paidInstallmentCount,
+
+          isFullyPaid: invoice.status === "PAID_DONE",
+
+          payments: invoice.payments,
+        }
+      : null,
   };
 };
 
@@ -898,7 +1201,7 @@ export const getCompletedPrograms = async (
   const skip = (page - 1) * limit;
   const now = new Date();
 
-  // ✅ Helper lokal (tidak keluar dari function ini)
+  // ✅ Helper lokal
   const parseDDMMYYYY = (dateString: string): Date => {
     const [day, month, year] = dateString.split("-");
     return new Date(Number(year), Number(month) - 1, Number(day));
@@ -907,51 +1210,117 @@ export const getCompletedPrograms = async (
   const bookings = await prisma.booking.findMany({
     where: {
       menteeId,
+
       status: {
         in: ["confirmed", "completed"],
       },
+
       mentoringService: {
         serviceType: {
           in: ["one-on-one", "group", "bootcamp"],
         },
       },
     },
+
     include: {
+      // ✅ TAMBAHAN
+      invoice: {
+        include: {
+          payments: {
+            orderBy: {
+              installmentNumber: "asc",
+            },
+          },
+        },
+      },
+
       mentoringService: {
         include: {
           mentoringSessions: true,
         },
       },
     },
+
     orderBy: {
       [sortBy ?? "bookingDate"]: sortOrder ?? "desc",
     },
   });
 
-  const completedPrograms = bookings.filter((booking) => {
-    const sessions = booking.mentoringService?.mentoringSessions;
+  const completedPrograms = bookings
+    .filter((booking) => {
+      const sessions = booking.mentoringService?.mentoringSessions;
 
-    if (!sessions || sessions.length === 0) return false;
+      if (!sessions || sessions.length === 0) return false;
 
-    // ambil session terakhir
-    const sortedSessions = [...sessions].sort((a, b) => {
-      const dateA = parseDDMMYYYY(a.date);
-      const dateB = parseDDMMYYYY(b.date);
-      return dateB.getTime() - dateA.getTime();
+      // ambil session terakhir
+      const sortedSessions = [...sessions].sort((a, b) => {
+        const dateA = parseDDMMYYYY(a.date);
+        const dateB = parseDDMMYYYY(b.date);
+
+        return dateB.getTime() - dateA.getTime();
+      });
+
+      const lastSession = sortedSessions[0];
+
+      if (!lastSession?.date) return false;
+
+      const lastSessionDate = parseDDMMYYYY(lastSession.date);
+
+      // =========================================
+      // OPTIONAL VALIDASI CICILAN BOOTCAMP
+      // =========================================
+
+      // Kalau mau bootcamp dianggap selesai
+      // hanya jika pembayaran lunas
+      if (
+        booking.mentoringService?.serviceType === "bootcamp" &&
+        booking.invoice &&
+        booking.invoice.status !== "PAID_DONE"
+      ) {
+        return false;
+      }
+
+      return lastSessionDate < now;
+    })
+    .map((booking) => {
+      const invoice = booking.invoice;
+
+      const paidPayments =
+        invoice?.payments.filter((payment) =>
+          ["confirmed", "completed"].includes(
+            (payment.status || "").toLowerCase(),
+          ),
+        ) || [];
+
+      return {
+        ...booking,
+
+        paymentSummary: invoice
+          ? {
+              paymentType: invoice.paymentType,
+              invoiceStatus: invoice.status,
+
+              totalAmount: Number(invoice.totalAmount),
+              paidAmount: Number(invoice.paidAmount),
+              remainingAmount: Number(invoice.remainingAmount),
+
+              installmentCount: invoice.installmentCount || 1,
+
+              paidInstallmentCount: paidPayments.length,
+
+              isFullyPaid: invoice.status === "PAID_DONE",
+
+              payments: invoice.payments,
+            }
+          : null,
+      };
     });
-
-    const lastSession = sortedSessions[0];
-    if (!lastSession?.date) return false;
-
-    const lastSessionDate = parseDDMMYYYY(lastSession.date);
-
-    return lastSessionDate < now;
-  });
 
   const paginated = completedPrograms.slice(skip, skip + limit);
 
   return {
     data: paginated,
+
     pagination: {
       page,
       limit,
@@ -981,7 +1350,12 @@ export const updateMenteeBooking = async (
     include: {
       mentoringService: true,
       participants: true,
-      payment: true,
+
+      invoice: {
+        include: {
+          payments: true,
+        },
+      },
     },
   });
 
@@ -1006,10 +1380,19 @@ export const updateMenteeBooking = async (
     throw { status: 404, message: "Booking tidak ditemukan." };
   }
 
-  const paymentStatus = booking.payment?.status;
-  const isPaymentCompleted = paymentStatus === "completed";
+  const hasConfirmedPayment = booking.invoice?.payments.some(
+    (payment) => payment.status === "confirmed",
+  );
 
-  if (booking.status !== "pending" || isPaymentCompleted) {
+  const hasCompletedPayment = booking.invoice?.payments.some(
+    (payment) => payment.status === "completed",
+  );
+
+  if (
+    booking.status !== "pending" ||
+    hasConfirmedPayment ||
+    hasCompletedPayment
+  ) {
     throw {
       status: 400,
       message:
@@ -1083,61 +1466,144 @@ export const cancelMenteeBooking = async (
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
     include: {
-      payment: true,
-      mentoringService: true, // tambahan
+      mentoringService: true,
+      invoice: {
+        include: {
+          payments: true,
+        },
+      },
     },
   });
 
   if (!booking) {
-    throw { status: 404, message: "Booking tidak ditemukan." };
+    throw {
+      status: 404,
+      message: "Booking tidak ditemukan.",
+    };
   }
+
+  // ======================================================
+  // VALIDASI OWNER
+  // ======================================================
 
   if (booking.menteeId !== userId) {
-    throw { status: 403, message: "Akses ditolak. Ini bukan booking milikmu." };
+    throw {
+      status: 403,
+      message: "Akses ditolak. Ini bukan booking milikmu.",
+    };
   }
 
-  // Batasi hanya 3 tipe layanan
+  // ======================================================
+  // VALIDASI SERVICE TYPE
+  // ======================================================
+
   const serviceType = booking.mentoringService?.serviceType;
 
   if (!serviceType) {
-    throw { status: 404, message: "Booking tidak ditemukan." };
+    throw {
+      status: 404,
+      message: "Booking tidak ditemukan.",
+    };
   }
 
   const allowedServiceTypes = ["one-on-one", "group", "bootcamp"];
 
   if (!allowedServiceTypes.includes(serviceType)) {
-    throw { status: 404, message: "Booking tidak ditemukan." };
-  }
-
-  const isAlreadyPaid = booking.payment?.status === "completed";
-  const isNotPending = booking.status !== "pending";
-
-  if (isAlreadyPaid || isNotPending) {
     throw {
-      status: 400,
-      message:
-        "Booking sudah dikonfirmasi atau dibayar, tidak bisa dibatalkan.",
+      status: 404,
+      message: "Booking tidak ditemukan.",
     };
   }
 
-  const cancelled = await prisma.booking.update({
-    where: { id: bookingId },
-    data: {
-      status: "cancelled",
-      updatedAt: new Date(),
-    },
+  // ======================================================
+  // VALIDASI STATUS BOOKING
+  // ======================================================
+
+  if (booking.status !== "pending") {
+    throw {
+      status: 400,
+      message:
+        "Booking sudah dikonfirmasi atau dibatalkan, tidak bisa dibatalkan.",
+    };
+  }
+
+  // ======================================================
+  // VALIDASI PAYMENT
+  // ======================================================
+
+  const invoice = booking.invoice;
+
+  if (!invoice) {
+    throw {
+      status: 400,
+      message: "Invoice booking tidak ditemukan.",
+    };
+  }
+
+  // jika ada payment confirmed/completed -> tidak bisa cancel
+  const hasPaidPayment = invoice.payments.some((payment) =>
+    ["confirmed", "completed"].includes((payment.status || "").toLowerCase()),
+  );
+
+  if (hasPaidPayment) {
+    throw {
+      status: 400,
+      message:
+        "Booking sudah memiliki pembayaran berhasil, tidak bisa dibatalkan.",
+    };
+  }
+
+  // ======================================================
+  // CANCEL BOOKING
+  // ======================================================
+
+  const cancelledBooking = await prisma.$transaction(async (tx) => {
+    // update booking
+    const updatedBooking = await tx.booking.update({
+      where: { id: bookingId },
+      data: {
+        status: "cancelled",
+        updatedAt: new Date(),
+      },
+    });
+
+    // update invoice
+    await tx.bookingInvoice.update({
+      where: {
+        id: invoice.id,
+      },
+      data: {
+        status: "CANCELLED",
+        updatedAt: new Date(),
+      },
+    });
+
+    // update semua payment pending jadi cancelled
+    await tx.payment.updateMany({
+      where: {
+        bookingInvoiceId: invoice.id,
+        status: "pending",
+      },
+      data: {
+        status: "cancelled",
+        updatedAt: new Date(),
+      },
+    });
+
+    // update participant payment status
+    await tx.bookingParticipant.updateMany({
+      where: {
+        bookingId,
+      },
+      data: {
+        paymentStatus: "failed",
+      },
+    });
+
+    return updatedBooking;
   });
 
-  await prisma.bookingParticipant.updateMany({
-    where: {
-      bookingId,
-    },
-    data: {
-      paymentStatus: "failed",
-    },
-  });
-
-  return cancelled;
+  return cancelledBooking;
 };
 
 export const getAdminBookings = async (params: {
@@ -1254,6 +1720,7 @@ export const getAdminBookings = async (params: {
     },
     include: {
       mentee: true,
+
       mentoringService: {
         include: {
           mentors: {
@@ -1265,11 +1732,26 @@ export const getAdminBookings = async (params: {
               },
             },
           },
-          mentoringSessions: true, // ⬅️ WAJIB
+
+          mentoringSessions: true,
         },
       },
-      referralUsage: { include: { referralCode: true } },
-      payment: true,
+
+      referralUsage: {
+        include: {
+          referralCode: true,
+        },
+      },
+
+      invoice: {
+        include: {
+          payments: {
+            orderBy: {
+              installmentNumber: "asc",
+            },
+          },
+        },
+      },
     },
     skip: (page - 1) * limit,
     take: limit,
@@ -1331,11 +1813,43 @@ export const getAdminBookings = async (params: {
       }
     }
 
+    const invoice = b.invoice;
+
+    const paidInstallments =
+      invoice?.payments.filter((payment) =>
+        ["confirmed", "completed"].includes(
+          (payment.status || "").toLowerCase(),
+        ),
+      ) || [];
+
+    const paidInstallmentCount = paidInstallments.length;
+
     return {
       ...b,
+
+      paymentSummary: invoice
+        ? {
+            paymentType: invoice.paymentType,
+            invoiceStatus: invoice.status,
+
+            totalAmount: Number(invoice.totalAmount),
+            paidAmount: Number(invoice.paidAmount),
+            remainingAmount: Number(invoice.remainingAmount),
+
+            installmentCount: invoice.installmentCount || 1,
+            paidInstallmentCount,
+
+            isFullyPaid: invoice.status === "PAID_DONE",
+
+            payments: invoice.payments,
+          }
+        : null,
+
       fileSizes,
     };
   });
+
+  const total = filteredBookings.length;
 
   /**
    * ===============================
@@ -1347,7 +1861,7 @@ export const getAdminBookings = async (params: {
     meta: {
       page,
       limit,
-      total: bookingsWithSize.length,
+      total,
       totalPages: Math.ceil(bookingsWithSize.length / limit),
     },
   };
@@ -1358,20 +1872,33 @@ export const getAdminBookingDetail = async (bookingId: string) => {
     where: { id: bookingId },
     include: {
       mentee: true,
+
       mentoringService: true,
+
       referralUsage: {
         include: {
           referralCode: true,
           user: true,
         },
       },
+
       participants: {
         include: {
           user: true,
           payment: true,
         },
       },
-      payment: true,
+
+      // ✅ GANTI payment -> invoice
+      invoice: {
+        include: {
+          payments: {
+            orderBy: {
+              installmentNumber: "asc",
+            },
+          },
+        },
+      },
     },
   });
 
@@ -1379,13 +1906,13 @@ export const getAdminBookingDetail = async (bookingId: string) => {
     return null;
   }
 
-  // Batasi hanya 3 serviceType
+  // Tetap batasi hanya booking type tertentu
   const serviceType = booking.mentoringService?.serviceType;
 
   const allowedServiceTypes = ["one-on-one", "group", "bootcamp"];
 
   if (!serviceType || !allowedServiceTypes.includes(serviceType)) {
-    return null; // dianggap tidak ditemukan
+    return null;
   }
 
   return booking;
@@ -1403,9 +1930,17 @@ export const updateAdminBookingStatus = async (
 
   const booking = await prisma.booking.findUnique({
     where: { id },
+
     include: {
       mentoringService: true,
+
       participants: true,
+
+      invoice: {
+        include: {
+          payments: true,
+        },
+      },
     },
   });
 
@@ -1413,39 +1948,110 @@ export const updateAdminBookingStatus = async (
 
   const serviceType = booking.mentoringService?.serviceType;
 
-  // Hanya boleh 3 tipe
   const allowedServiceTypes = ["one-on-one", "group", "bootcamp"];
 
   if (!serviceType || !allowedServiceTypes.includes(serviceType)) {
-    return null; // dianggap tidak ditemukan
+    return null;
   }
 
-  // Bootcamp tetap special
-  const isSpecialService = serviceType === "bootcamp";
+  const isBootcamp = serviceType === "bootcamp";
 
-  // ==========================
-  // UPDATE BOOKING
-  // ==========================
+  /**
+   * ==================================
+   * VALIDASI CICILAN BOOTCAMP
+   * ==================================
+   */
+  if (newStatus === "confirmed" && isBootcamp) {
+    const invoice = booking.invoice;
+
+    if (!invoice) {
+      throw new Error("Invoice booking tidak ditemukan.");
+    }
+
+    const hasPaidInstallment = invoice.payments.length > 0;
+
+    const canConfirm =
+      invoice.status === "PAID_DONE" ||
+      invoice.status === "PARTIALLY_PAID" ||
+      hasPaidInstallment;
+
+    if (!canConfirm) {
+      throw new Error("Booking bootcamp belum memiliki pembayaran yang valid.");
+    }
+  }
+
+  /**
+   * ==================================
+   * VALIDASI COMPLETED
+   * ==================================
+   */
+  if (newStatus === "completed") {
+    if (booking.status !== "confirmed") {
+      throw new Error("Booking hanya bisa diselesaikan dari status confirmed.");
+    }
+  }
+
+  /**
+   * ==================================
+   * UPDATE BOOKING
+   * ==================================
+   */
   const updatedBooking = await prisma.booking.update({
     where: { id },
+
     data: {
       status: newStatus,
       updatedAt: new Date(),
     },
   });
 
-  // ==========================
-  // UPDATE PARTICIPANTS
-  // ==========================
+  /**
+   * ==================================
+   * UPDATE PARTICIPANT STATUS
+   * ==================================
+   */
   if (newStatus === "cancelled") {
     await prisma.bookingParticipant.updateMany({
-      where: { bookingId: id },
-      data: { paymentStatus: "failed" },
+      where: {
+        bookingId: id,
+      },
+
+      data: {
+        paymentStatus: "failed",
+      },
     });
-  } else if (newStatus === "confirmed" && !isSpecialService) {
+
+    /**
+     * ==================================
+     * UPDATE INVOICE CANCELLED
+     * ==================================
+     */
+    if (booking.invoice) {
+      await prisma.bookingInvoice.update({
+        where: {
+          id: booking.invoice.id,
+        },
+
+        data: {
+          status: "CANCELLED",
+          updatedAt: new Date(),
+        },
+      });
+    }
+  } else if (newStatus === "confirmed" && !isBootcamp) {
+    /**
+     * ==================================
+     * NON BOOTCAMP AUTO CONFIRM
+     * ==================================
+     */
     await prisma.bookingParticipant.updateMany({
-      where: { bookingId: id },
-      data: { paymentStatus: "confirmed" },
+      where: {
+        bookingId: id,
+      },
+
+      data: {
+        paymentStatus: "confirmed",
+      },
     });
   }
 
@@ -1476,23 +2082,96 @@ export const exportAdminBookings = async (formatType: "csv" | "excel") => {
           user: true,
         },
       },
+
+      // BARU
+      invoice: {
+        include: {
+          payments: {
+            orderBy: {
+              installmentNumber: "asc",
+            },
+          },
+        },
+      },
     },
   });
 
-  const flatData = bookings.map((booking) => ({
-    BookingID: booking.id,
-    MenteeName: booking.mentee.fullName,
-    ServiceName: booking.mentoringService.serviceName,
-    ServiceType: booking.mentoringService.serviceType,
-    BookingDate: booking.bookingDate?.toISOString() ?? "-",
-    Status: booking.status ?? "-",
-    Participants: booking.participants.map((p) => p.user.fullName).join(", "),
-    ReferralCode: booking.referralUsage?.referralCode.code ?? "-",
-    Material: booking.material ?? "-",
-    ExpectedOutput: booking.expectedOutput ?? "-",
-    SupportDocument: booking.supportDocument ?? "-",
-    CreatedAt: booking.createdAt?.toISOString() ?? "-",
-  }));
+  const flatData = bookings.map((booking) => {
+    const invoice = booking.invoice;
+
+    const payments = invoice?.payments ?? [];
+
+    return {
+      BookingID: booking.id,
+
+      MenteeName: booking.mentee.fullName,
+
+      ServiceName: booking.mentoringService.serviceName,
+
+      ServiceType: booking.mentoringService.serviceType,
+
+      BookingDate: booking.bookingDate?.toISOString() ?? "-",
+
+      BookingStatus: booking.status ?? "-",
+
+      // =========================
+      // INVOICE
+      // =========================
+      PaymentType: invoice?.paymentType ?? "-",
+
+      InvoiceStatus: invoice?.status ?? "-",
+
+      TotalAmount: invoice?.totalAmount?.toString() ?? "0",
+
+      PaidAmount: invoice?.paidAmount?.toString() ?? "0",
+
+      RemainingAmount: invoice?.remainingAmount?.toString() ?? "0",
+
+      InstallmentCount: invoice?.installmentCount ?? 0,
+
+      // =========================
+      // PAYMENTS
+      // =========================
+      TotalPayments: payments.length,
+
+      PaidInstallments: payments.filter((p) => p.status === "confirmed").length,
+
+      PaymentStatuses:
+        payments.length > 0
+          ? payments
+              .map(
+                (p) => `#${p.installmentNumber ?? 1}:${p.status ?? "pending"}`,
+              )
+              .join(" | ")
+          : "-",
+
+      PaymentMethods:
+        payments.length > 0
+          ? payments.map((p) => p.paymentMethod ?? "-").join(" | ")
+          : "-",
+
+      // =========================
+      // PARTICIPANTS
+      // =========================
+      Participants: booking.participants.map((p) => p.user.fullName).join(", "),
+
+      // =========================
+      // REFERRAL
+      // =========================
+      ReferralCode: booking.referralUsage?.referralCode.code ?? "-",
+
+      // =========================
+      // BOOKING DETAIL
+      // =========================
+      Material: booking.material ?? "-",
+
+      ExpectedOutput: booking.expectedOutput ?? "-",
+
+      SupportDocument: booking.supportDocument ?? "-",
+
+      CreatedAt: booking.createdAt?.toISOString() ?? "-",
+    };
+  });
 
   const timestamp = format(new Date(), "yyyyMMdd-HHmmss");
 
@@ -1511,11 +2190,15 @@ export const exportAdminBookings = async (formatType: "csv" | "excel") => {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet("Bookings");
 
-  worksheet.columns = Object.keys(flatData[0] || {}).map((key) => ({
-    header: key,
-    key,
-    width: 25,
-  }));
+  if (flatData.length > 0) {
+    worksheet.columns = Object.keys(flatData[0]).map((key) => ({
+      header: key,
+      key,
+      width: 25,
+    }));
+
+    worksheet.addRows(flatData);
+  }
 
   worksheet.addRows(flatData);
 
@@ -1585,68 +2268,144 @@ export const getMentorEarnings = async (params: { mentorId: string }) => {
   const allowedServiceTypes = ["one-on-one", "group", "bootcamp"];
 
   const now = new Date();
+
   const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
   const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
   const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
 
-  // === TOTAL SEMUA WAKTU ===
+  // ======================================================
+  // FUNCTION HITUNG TOTAL PAYMENT BERHASIL
+  // ======================================================
+
+  const calculateTotalPayments = (
+    bookings: Array<{
+      invoice: {
+        payments: Payment[];
+      } | null;
+    }>,
+  ) => {
+    return bookings.reduce((sum, booking) => {
+      const paidPayments =
+        booking.invoice?.payments.filter((payment) =>
+          ["confirmed", "completed"].includes(
+            (payment.status || "").toLowerCase(),
+          ),
+        ) || [];
+
+      const bookingTotal = paidPayments.reduce(
+        (paymentSum, payment) => paymentSum + Number(payment.amount),
+        0,
+      );
+
+      return sum + bookingTotal;
+    }, 0);
+  };
+
+  // ======================================================
+  // TOTAL ALL TIME
+  // ======================================================
+
   const allEarningsRaw = await prisma.booking.findMany({
     where: {
-      status: { in: ["confirmed", "completed"] },
+      status: {
+        in: ["confirmed", "completed"],
+      },
       mentoringService: {
-        serviceType: { in: allowedServiceTypes },
+        serviceType: {
+          in: allowedServiceTypes,
+        },
         mentors: {
-          some: { mentorProfileId: mentorId },
+          some: {
+            mentorProfileId: mentorId,
+          },
         },
       },
     },
-    include: { payment: true },
+    include: {
+      invoice: {
+        include: {
+          payments: true,
+        },
+      },
+    },
   });
 
-  const totalAllTime = allEarningsRaw.reduce(
-    (sum, b) => sum + (b.payment?.amount ? Number(b.payment.amount) : 0),
-    0,
-  );
+  const totalAllTime = calculateTotalPayments(allEarningsRaw);
 
-  // === BULAN INI ===
+  // ======================================================
+  // BULAN INI
+  // ======================================================
+
   const earningsThisMonthRaw = await prisma.booking.findMany({
     where: {
-      status: { in: ["confirmed", "completed"] },
+      status: {
+        in: ["confirmed", "completed"],
+      },
       mentoringService: {
-        serviceType: { in: allowedServiceTypes },
+        serviceType: {
+          in: allowedServiceTypes,
+        },
         mentors: {
-          some: { mentorProfileId: mentorId },
+          some: {
+            mentorProfileId: mentorId,
+          },
         },
       },
-      bookingDate: { gte: startOfThisMonth },
+      bookingDate: {
+        gte: startOfThisMonth,
+      },
     },
-    include: { payment: true },
+    include: {
+      invoice: {
+        include: {
+          payments: true,
+        },
+      },
+    },
   });
 
-  const totalThisMonth = earningsThisMonthRaw.reduce(
-    (sum, b) => sum + (b.payment?.amount ? Number(b.payment.amount) : 0),
-    0,
-  );
+  const totalThisMonth = calculateTotalPayments(earningsThisMonthRaw);
 
-  // === BULAN LALU ===
+  // ======================================================
+  // BULAN LALU
+  // ======================================================
+
   const earningsLastMonthRaw = await prisma.booking.findMany({
     where: {
-      status: { in: ["confirmed", "completed"] },
+      status: {
+        in: ["confirmed", "completed"],
+      },
       mentoringService: {
-        serviceType: { in: allowedServiceTypes },
+        serviceType: {
+          in: allowedServiceTypes,
+        },
         mentors: {
-          some: { mentorProfileId: mentorId },
+          some: {
+            mentorProfileId: mentorId,
+          },
         },
       },
-      bookingDate: { gte: startOfLastMonth, lte: endOfLastMonth },
+      bookingDate: {
+        gte: startOfLastMonth,
+        lte: endOfLastMonth,
+      },
     },
-    include: { payment: true },
+    include: {
+      invoice: {
+        include: {
+          payments: true,
+        },
+      },
+    },
   });
 
-  const totalLastMonth = earningsLastMonthRaw.reduce(
-    (sum, b) => sum + (b.payment?.amount ? Number(b.payment.amount) : 0),
-    0,
-  );
+  const totalLastMonth = calculateTotalPayments(earningsLastMonthRaw);
+
+  // ======================================================
+  // GROWTH PERCENT
+  // ======================================================
 
   const growthPercent =
     totalLastMonth === 0

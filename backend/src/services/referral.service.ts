@@ -340,6 +340,7 @@ export const useReferralCodeService = async ({
       booking: true,
       practicePurchase: true,
       eLearningSubscription: true,
+      ayclBooking: true,
     },
   });
 
@@ -386,13 +387,22 @@ export const applyReferralToBookingService = async ({
 }) => {
   return await prisma.$transaction(async (tx) => {
     /* ===============================
-       1️⃣ Ambil booking + payment
+       1️⃣ Ambil booking + invoice + payments
     =============================== */
     const booking = await tx.booking.findUnique({
       where: { id: bookingId },
       include: {
         mentoringService: true,
-        payment: true,
+
+        invoice: {
+          include: {
+            payments: {
+              orderBy: {
+                installmentNumber: "asc",
+              },
+            },
+          },
+        },
       },
     });
 
@@ -405,15 +415,38 @@ export const applyReferralToBookingService = async ({
     }
 
     if (booking.status !== "pending") {
-      throw { status: 400, message: "Referral hanya bisa saat pending." };
+      throw {
+        status: 400,
+        message: "Referral hanya bisa saat pending.",
+      };
     }
 
-    if (!booking.payment) {
-      throw { status: 400, message: "Payment tidak ditemukan." };
+    if (!booking.invoice) {
+      throw {
+        status: 400,
+        message: "Invoice tidak ditemukan.",
+      };
     }
 
     if (booking.referralUsageId) {
-      throw { status: 400, message: "Referral sudah digunakan." };
+      throw {
+        status: 400,
+        message: "Referral sudah digunakan.",
+      };
+    }
+
+    /* ===============================
+   CEK APAKAH SUDAH ADA PAYMENT PAID
+=============================== */
+    const hasPaidPayment = booking.invoice.payments.some(
+      (payment) => payment.status === "confirmed",
+    );
+
+    if (hasPaidPayment) {
+      throw {
+        status: 400,
+        message: "Referral tidak bisa diterapkan setelah pembayaran dilakukan.",
+      };
     }
 
     /* ===============================
@@ -432,65 +465,154 @@ export const applyReferralToBookingService = async ({
     });
 
     if (!referral) {
-      throw { status: 404, message: "Referral tidak ditemukan." };
+      throw {
+        status: 404,
+        message: "Referral tidak ditemukan.",
+      };
     }
 
     const discountPercentage = referral.discountPercentage.toNumber();
-    const commissionPercentage = referral.commissionPercentage.toNumber();
 
+    // const commissionPercentage = referral.commissionPercentage.toNumber();
+
+    /* ===============================
+       3️⃣ HARGA AWAL
+    =============================== */
     const originalPrice = booking.mentoringService.price.toNumber();
 
     /* ===============================
-       3️⃣ Hitung Harga Setelah Diskon
+       4️⃣ HARGA SETELAH DISKON
     =============================== */
     const finalPrice = Math.round(
       originalPrice * (1 - discountPercentage / 100),
     );
 
     /* ===============================
-       4️⃣ Hitung Komisi (DARI HARGA AWAL)
+       5️⃣ KOMISI DARI HARGA AWAL
     =============================== */
-    const commissionAmount = Math.round(
-      originalPrice * (commissionPercentage / 100),
-    );
+    // const commissionAmount = Math.round(
+    //   originalPrice * (commissionPercentage / 100),
+    // );
 
     /* ===============================
-       5️⃣ Update booking
+       6️⃣ UPDATE BOOKING
     =============================== */
     await tx.booking.update({
-      where: { id: bookingId },
-      data: { referralUsageId },
+      where: {
+        id: bookingId,
+      },
+      data: {
+        referralUsageId,
+      },
     });
 
     /* ===============================
-       6️⃣ Update payment
+       7️⃣ UPDATE INVOICE
     =============================== */
-    await tx.payment.update({
-      where: { bookingId },
+    await tx.bookingInvoice.update({
+      where: {
+        id: booking.invoice.id,
+      },
       data: {
-        amount: finalPrice,
+        totalAmount: finalPrice,
+        remainingAmount: finalPrice,
         updatedAt: new Date(),
       },
     });
 
     /* ===============================
-       7️⃣ Create commission
+       8️⃣ RECALCULATE PAYMENTS
     =============================== */
-    await tx.referralCommisions.create({
-      data: {
-        referralCodeId: referral.id,
-        transactionId: booking.payment.id,
-        amount: commissionAmount, // 🔥 sekarang dari harga awal
-        created_at: new Date(),
-      },
-    });
 
+    const invoice = booking.invoice;
+
+    const installmentCount = invoice.installmentCount || 1;
+
+    let recalculatedAmounts: number[] = [];
+
+    // FULL PAYMENT
+    if (invoice.paymentType === "FULL" || installmentCount === 1) {
+      recalculatedAmounts = [finalPrice];
+    }
+
+    // INSTALLMENT 2x => 60:40
+    else if (installmentCount === 2) {
+      recalculatedAmounts = [
+        Math.round(finalPrice * 0.6),
+        finalPrice - Math.round(finalPrice * 0.6),
+      ];
+    }
+
+    // INSTALLMENT 3x => 50:30:20
+    else if (installmentCount === 3) {
+      const first = Math.round(finalPrice * 0.5);
+      const second = Math.round(finalPrice * 0.3);
+
+      const third = finalPrice - first - second;
+
+      recalculatedAmounts = [first, second, third];
+    }
+
+    // fallback rata
+    else {
+      const perInstallment = Math.floor(finalPrice / installmentCount);
+
+      recalculatedAmounts = Array(installmentCount).fill(perInstallment);
+
+      const totalAllocated = perInstallment * installmentCount;
+
+      recalculatedAmounts[recalculatedAmounts.length - 1] +=
+        finalPrice - totalAllocated;
+    }
+
+    /* ===============================
+       9️⃣ UPDATE PAYMENTS
+    =============================== */
+    for (let i = 0; i < invoice.payments.length; i++) {
+      const payment = invoice.payments[i];
+
+      await tx.payment.update({
+        where: {
+          id: payment.id,
+        },
+        data: {
+          amount: recalculatedAmounts[i] || 0,
+          updatedAt: new Date(),
+        },
+      });
+    }
+
+    /* ===============================
+       🔟 CREATE COMMISSION
+    =============================== */
+    // await tx.referralCommisions.create({
+    //   data: {
+    //     referralCodeId: referral.id,
+
+    //     // ambil payment pertama
+    //     transactionId: invoice.payments?.[0]?.id,
+
+    //     amount: commissionAmount,
+
+    //     created_at: new Date(),
+    //   },
+    // });
+
+    /* ===============================
+       RESPONSE
+    =============================== */
     return {
       originalPrice,
       discountPercentage,
       finalPrice,
-      commissionPercentage,
-      commissionAmount,
+
+      paymentType: invoice.paymentType,
+      installmentCount,
+
+      recalculatedPayments: recalculatedAmounts,
+
+      // commissionPercentage,
+      // commissionAmount,
     };
   });
 };
@@ -547,7 +669,7 @@ export const applyReferralToELearningService = async ({
     });
 
     const discountPercentage = referral!.discountPercentage.toNumber();
-    const commissionPercentage = referral!.commissionPercentage.toNumber();
+    // const commissionPercentage = referral!.commissionPercentage.toNumber();
 
     const originalPrice = subscription.plan.price.toNumber();
 
@@ -564,16 +686,16 @@ export const applyReferralToELearningService = async ({
     });
 
     // FIX DI SINI — commission dari harga awal
-    const commissionAmount = originalPrice * (commissionPercentage / 100);
+    // const commissionAmount = originalPrice * (commissionPercentage / 100);
 
-    await tx.referralCommisions.create({
-      data: {
-        referralCodeId: referral!.id,
-        transactionId: subscription.payment.id,
-        amount: commissionAmount,
-        created_at: new Date(),
-      },
-    });
+    // await tx.referralCommisions.create({
+    //   data: {
+    //     referralCodeId: referral!.id,
+    //     transactionId: subscription.payment.id,
+    //     amount: commissionAmount,
+    //     created_at: new Date(),
+    //   },
+    // });
 
     return {
       originalPrice,
@@ -644,7 +766,7 @@ export const applyReferralToAyclBookingService = async ({
     }
 
     const discountPercentage = referral.discountPercentage.toNumber();
-    const commissionPercentage = referral.commissionPercentage.toNumber();
+    // const commissionPercentage = referral.commissionPercentage.toNumber();
 
     const originalPrice = booking.batch.price.toNumber();
 
@@ -655,9 +777,9 @@ export const applyReferralToAyclBookingService = async ({
       originalPrice * (1 - discountPercentage / 100),
     );
 
-    const commissionAmount = Math.round(
-      originalPrice * (commissionPercentage / 100),
-    );
+    // const commissionAmount = Math.round(
+    //   originalPrice * (commissionPercentage / 100),
+    // );
 
     /* ===============================
        4️⃣ Update booking
@@ -681,21 +803,21 @@ export const applyReferralToAyclBookingService = async ({
     /* ===============================
        6️⃣ Create commission
     =============================== */
-    await tx.referralCommisions.create({
-      data: {
-        referralCodeId: referral.id,
-        transactionId: booking.payment.id,
-        amount: commissionAmount,
-        created_at: new Date(),
-      },
-    });
+    // await tx.referralCommisions.create({
+    //   data: {
+    //     referralCodeId: referral.id,
+    //     transactionId: booking.payment.id,
+    //     amount: commissionAmount,
+    //     created_at: new Date(),
+    //   },
+    // });
 
     return {
       originalPrice,
       discountPercentage,
       finalPrice,
-      commissionPercentage,
-      commissionAmount,
+      // commissionPercentage,
+      // commissionAmount,
     };
   });
 };

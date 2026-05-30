@@ -363,3 +363,13 @@ export const exportMentoringSessionsSchema = z.object({
       .describe("Format file export, csv atau xlsx"),
   }),
 });
+
+export const getMentoringAvailabilitySchema = z.object({
+  query: z.object({
+    mentorId: z.string().min(1, "mentorId is required"),
+
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, {
+      message: "Date must use format YYYY-MM-DD",
+    }),
+  }),
+});

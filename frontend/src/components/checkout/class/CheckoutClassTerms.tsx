@@ -9,16 +9,33 @@ export default function CheckoutClassTerms({
   onReferralApplied,
   priceSummary,
   onTermsChange,
+  isPaymentPlanConfirmed,
 }: any) {
   const [isChecked, setIsChecked] = useState(false);
   const [coupon, setCoupon] = useState("");
   const [loading, setLoading] = useState(false);
   const [isVoucherApplied, setIsVoucherApplied] = useState(false);
 
+  const handleReferralInteract = () => {
+    if (!isPaymentPlanConfirmed) {
+      toast.warning("Pilih dan konfirmasi tipe pembayaran terlebih dahulu.", {
+        description:
+          "Kode referral hanya bisa digunakan setelah tipe pembayaran dikonfirmasi.",
+      });
+    }
+  };
   /* ===============================
      APPLY REFERRAL
   =============================== */
   const handleApplyCoupon = async () => {
+    if (!isPaymentPlanConfirmed) {
+      toast.warning("Pilih dan konfirmasi tipe pembayaran terlebih dahulu.", {
+        description:
+          "Kode referral hanya bisa digunakan setelah tipe pembayaran dikonfirmasi.",
+      });
+      return;
+    }
+
     if (!bookingId) {
       toast.error("Booking tidak ditemukan.");
       return;
@@ -45,7 +62,6 @@ export default function CheckoutClassTerms({
       });
 
       setIsVoucherApplied(true);
-      setCoupon(res.data.data.code || coupon);
     } catch (err: any) {
       const message =
         err?.response?.data?.message || "Gagal menerapkan referral.";
@@ -88,30 +104,40 @@ export default function CheckoutClassTerms({
           Kode Kupon
         </span>
 
-        <div className="flex flex-col md:flex-row gap-2 md:gap-0 md:ml-2 flex-1 w-full relative group min-w-0">
-          <input
-            type="text"
-            value={coupon}
-            onChange={(e) => setCoupon(e.target.value)}
-            placeholder="XXXX-9267"
-            disabled={isVoucherApplied}
-            className={`w-full md:flex-1 rounded-full md:rounded-l-full border md:border-r-0 bg-transparent px-3 py-2 text-xs md:text-sm outline-none
-              ${isVoucherApplied ? "cursor-not-allowed bg-gray-100" : ""}`}
-          />
+        <div className="flex-1 w-full">
+          <div className="flex flex-col md:flex-row gap-2 md:gap-0 md:ml-2 relative group min-w-0">
+            <input
+              type="text"
+              value={coupon}
+              onChange={(e) => setCoupon(e.target.value)}
+              onFocus={handleReferralInteract}
+              placeholder="XXXX-9267"
+              disabled={isVoucherApplied}
+              className={`w-full md:flex-1 rounded-full md:rounded-l-full border md:border-r-0 bg-transparent px-3 py-2 text-xs md:text-sm outline-none
+          ${isVoucherApplied ? "cursor-not-allowed bg-gray-100" : ""}`}
+            />
 
-          <button
-            type="button"
-            onClick={handleApplyCoupon}
-            disabled={!coupon.trim() || loading || isVoucherApplied}
-            className="w-full md:w-auto rounded-full md:rounded-r-full bg-green-600 text-white text-xs md:text-sm font-medium px-4 md:px-5 py-2 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? "Memproses..." : "Gunakan Kupon"}
-          </button>
+            <button
+              type="button"
+              onClick={handleApplyCoupon}
+              disabled={!coupon.trim() || loading || isVoucherApplied}
+              className="w-full md:w-auto rounded-full md:rounded-r-full bg-green-600 text-white text-xs md:text-sm font-medium px-4 md:px-5 py-2 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? "Memproses..." : "Gunakan Kupon"}
+            </button>
 
-          {isVoucherApplied && (
-            <div className="absolute -top-9 left-0 bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition pointer-events-none">
-              Anda telah menggunakan voucher di pembelian ini
-            </div>
+            {isVoucherApplied && (
+              <div className="absolute -top-9 left-0 bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition pointer-events-none">
+                Anda telah menggunakan voucher di pembelian ini
+              </div>
+            )}
+          </div>
+
+          {!isPaymentPlanConfirmed && (
+            <p className="text-[11px] text-amber-600 mt-1 md:ml-2">
+              Pilih dan konfirmasi tipe pembayaran terlebih dahulu untuk
+              menggunakan referral.
+            </p>
           )}
         </div>
       </div>

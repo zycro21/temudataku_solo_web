@@ -1196,7 +1196,7 @@ export default function AdminMentorPage() {
       >
         {/* Overlay */}
         <div
-          className="absolute inset-0 bg-black/50"
+          className="absolute inset-0 bg-black/50 backdrop-blur-sm"
           onClick={() => {
             /* tidak close saat klik overlay, konsisten dgn onInteractOutside prevent */
           }}

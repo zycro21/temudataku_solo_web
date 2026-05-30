@@ -51,7 +51,7 @@ export const createMentoringSession = async (input: {
   // =============================
   const parseWIBDateTime = (
     date: string,
-    time: { hour: number; minute: number }
+    time: { hour: number; minute: number },
   ): Date => {
     const [day, month, year] = date.split("-");
     const hour = time.hour.toString().padStart(2, "0");
@@ -72,7 +72,7 @@ export const createMentoringSession = async (input: {
   }
 
   const durationMinutes = Math.floor(
-    (endDateTime.getTime() - startDateTime.getTime()) / (1000 * 60)
+    (endDateTime.getTime() - startDateTime.getTime()) / (1000 * 60),
   );
 
   const service = await prisma.mentoringService.findUnique({
@@ -85,12 +85,12 @@ export const createMentoringSession = async (input: {
 
   const registeredMentorIds = service.mentors.map((m) => m.mentorProfileId);
   const unregisteredMentors = mentorProfileIds.filter(
-    (id) => !registeredMentorIds.includes(id)
+    (id) => !registeredMentorIds.includes(id),
   );
 
   if (unregisteredMentors.length > 0) {
     throw new Error(
-      "Terdapat mentor yang tidak terdaftar di mentoring service"
+      "Terdapat mentor yang tidak terdaftar di mentoring service",
     );
   }
 
@@ -120,16 +120,16 @@ export const createMentoringSession = async (input: {
 
   const mentorProfileIdsInOverlappingSessions = overlappingSessions.flatMap(
     (session) =>
-      session.mentors.map((mentorSession) => mentorSession.mentorProfileId)
+      session.mentors.map((mentorSession) => mentorSession.mentorProfileId),
   );
 
   const duplicateMentors = mentorProfileIds.filter((id) =>
-    mentorProfileIdsInOverlappingSessions.includes(id)
+    mentorProfileIdsInOverlappingSessions.includes(id),
   );
 
   if (duplicateMentors.length > 0) {
     throw new Error(
-      "Terdapat mentor yang sudah terdaftar di sesi lain pada waktu tersebut"
+      "Terdapat mentor yang sudah terdaftar di sesi lain pada waktu tersebut",
     );
   }
 
@@ -156,7 +156,7 @@ export const createMentoringSession = async (input: {
     const chars =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     return Array.from({ length }, () =>
-      chars.charAt(Math.floor(Math.random() * chars.length))
+      chars.charAt(Math.floor(Math.random() * chars.length)),
     ).join("");
   };
 
@@ -343,7 +343,7 @@ export const getMentoringSessions = async ({
         try {
           const fixedPath = rawPath.replace(
             "supportDocuments",
-            "supportDocument"
+            "supportDocument",
           );
           const filePath = path.join(uploadsRoot, fixedPath);
           return fs.statSync(filePath).size;
@@ -483,7 +483,7 @@ export const updateMentoringSession = async (
     notes?: string;
     pptLink?: string;
     recordingLink?: string;
-  }
+  },
 ) => {
   const session = await prisma.mentoringSession.findUnique({ where: { id } });
   if (!session) {
@@ -498,7 +498,7 @@ export const updateMentoringSession = async (
 
   const parseWIBDateTime = (
     date: string,
-    time: { hour: number; minute: number }
+    time: { hour: number; minute: number },
   ): Date => {
     const [day, month, year] = date.split("-");
     const hour = String(time.hour).padStart(2, "0");
@@ -604,7 +604,7 @@ export const updateMentoringSession = async (
     }
 
     updatePayload.durationMinutes = Math.floor(
-      (endDateTime.getTime() - startDateTime.getTime()) / 60000
+      (endDateTime.getTime() - startDateTime.getTime()) / 60000,
     );
   }
 
@@ -621,7 +621,7 @@ export const updateMentoringSession = async (
 
 export const updateMentoringSessionStatus = async (
   id: string,
-  status: string
+  status: string,
 ) => {
   const allowedStatus = ["scheduled", "ongoing", "completed", "cancelled"];
   if (!allowedStatus.includes(status)) {
@@ -646,7 +646,7 @@ export const updateMentoringSessionStatus = async (
 
 export const updateMentoringSessionMentors = async (
   sessionId: string,
-  mentorIds: string[]
+  mentorIds: string[],
 ) => {
   const session = await prisma.mentoringSession.findUnique({
     where: { id: sessionId },
@@ -714,10 +714,10 @@ export const updateMentoringSessionMentors = async (
     removedMentorIds: toRemove,
     message: {
       added: toAdd.map(
-        (id) => `Mentor dengan ID ${id} telah ditambahkan ke sesi.`
+        (id) => `Mentor dengan ID ${id} telah ditambahkan ke sesi.`,
       ),
       removed: toRemove.map(
-        (id) => `Mentor dengan ID ${id} telah dikeluarkan dari sesi.`
+        (id) => `Mentor dengan ID ${id} telah dikeluarkan dari sesi.`,
       ),
     },
   };
@@ -762,7 +762,7 @@ export const deleteMentoringSession = async (sessionId: string) => {
   // Cek apakah sesi memiliki project submissions
   if (existingSession.projectSubmissions.length > 0) {
     throw new Error(
-      "Tidak bisa menghapus sesi yang memiliki pengumpulan proyek"
+      "Tidak bisa menghapus sesi yang memiliki pengumpulan proyek",
     );
   }
 
@@ -934,7 +934,7 @@ export const exportMentoringSessions = async (format: "xlsx" | "csv") => {
         submissionDate: submission.submissionDate ?? null,
         filePath: Array.isArray(submission.filePaths)
           ? submission.filePaths.join(", ")
-          : submission.filePaths ?? null,
+          : (submission.filePaths ?? null),
         plagiarismScore:
           submission.plagiarismScore?.toNumber?.() ??
           (typeof submission.plagiarismScore === "number"
@@ -956,7 +956,7 @@ export const exportMentoringSessions = async (format: "xlsx" | "csv") => {
         reviewerEmail: submission.gradedByUser?.email ?? null,
         createdAt: submission.createdAt ?? null,
         updatedAt: submission.updatedAt ?? null,
-      })
+      }),
     );
   });
 
@@ -1026,7 +1026,7 @@ export const getOwnMentorSessions = async (mentorProfileId: string) => {
     const averageProjectScore = session.projectSubmissions.length
       ? session.projectSubmissions.reduce(
           (sum, ps) => sum + (ps.score?.toNumber() || 0),
-          0
+          0,
         ) / session.projectSubmissions.length
       : null;
 
@@ -1055,7 +1055,7 @@ export const getOwnMentorSessions = async (mentorProfileId: string) => {
 
 export const getMentorSessionDetail = async (
   sessionId: string,
-  mentorProfileId: string
+  mentorProfileId: string,
 ) => {
   const session = await prisma.mentoringSession.findFirst({
     where: {
@@ -1114,7 +1114,7 @@ export const getMentorSessionDetail = async (
   const averageProjectScore = session.projectSubmissions.length
     ? session.projectSubmissions.reduce(
         (sum, ps) => sum + (ps.score?.toNumber() || 0),
-        0
+        0,
       ) / session.projectSubmissions.length
     : null;
 
@@ -1397,3 +1397,113 @@ export const getPublicMentoringSessionById = async (id: string) => {
 
   return session;
 };
+
+export async function getMentoringAvailability({
+  mentorId,
+  date,
+}: {
+  mentorId: string;
+  date: string;
+}) {
+  // =========================
+  // FORMAT DATE
+  // frontend: 2026-06-02
+  // db:        02-06-2026
+  // =========================
+
+  const [year, month, day] = date.split("-");
+
+  const formattedDate = `${day}-${month}-${year}`;
+
+  // cek mentor exists
+  const mentor = await prisma.mentorProfile.findUnique({
+    where: {
+      id: mentorId,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!mentor) {
+    throw new Error("Mentor tidak ditemukan");
+  }
+
+  const sessions = await prisma.mentoringSession.findMany({
+    where: {
+      date: formattedDate,
+
+      mentoringService: {
+        serviceType: {
+          in: ["one-on-one", "one_on_one", "group"],
+        },
+
+        bookings: {
+          some: {
+            status: {
+              in: [
+                "confirmed",
+                "CONFIRMED",
+                "PAID",
+                "PARTIALLY_PAID",
+                "ONGOING",
+              ],
+            },
+          },
+        },
+      },
+
+      mentors: {
+        some: {
+          mentorProfileId: mentorId,
+        },
+      },
+    },
+
+    select: {
+      id: true,
+      startTime: true,
+      endTime: true,
+      status: true,
+
+      mentoringService: {
+        select: {
+          serviceType: true,
+        },
+      },
+    },
+  });
+
+  // =========================
+  // FORMAT TIME
+  // ISO -> 09.00
+  // =========================
+
+  const formatToWIB = (isoString: string) => {
+    const date = new Date(isoString);
+
+    const hours = String(date.getUTCHours() + 7).padStart(2, "0");
+
+    const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+
+    return `${hours}.${minutes}`;
+  };
+
+  const bookedSlots = sessions.map((session) => ({
+    mentoringSessionId: session.id,
+
+    time: `${formatToWIB(session.startTime)} - ${formatToWIB(session.endTime)}`,
+
+    startTime: formatToWIB(session.startTime),
+
+    endTime: formatToWIB(session.endTime),
+
+    status: session.status,
+
+    serviceType: session.mentoringService.serviceType,
+  }));
+
+  return {
+    bookedSlots,
+  };
+}

@@ -81,6 +81,7 @@ export default function DetailMentoringModal({
         {
           mentoringServiceId: service.id,
           mentorProfileId: mentor.id,
+          paymentType: "FULL",
           bookingDate: `${date.getFullYear()}-${String(
             date.getMonth() + 1,
           ).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`,
@@ -97,7 +98,14 @@ export default function DetailMentoringModal({
       const bookingData = response.data.data;
 
       const bookingId = bookingData.id;
-      const paymentId = bookingData.payment.id;
+
+      // FIX: backend sekarang menyimpan payment di dalam invoice.payments,
+      // bukan langsung di bookingData.payments.
+      // Coba ambil dari invoice.payments dulu, fallback ke payments langsung.
+      const paymentId =
+        bookingData.invoice?.payments?.[0]?.id ??
+        bookingData.payments?.[0]?.id ??
+        null;
 
       toast.dismiss(loadingToast);
 
@@ -148,7 +156,7 @@ export default function DetailMentoringModal({
       {/* Modal utama */}
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent
-          className="sm:max-w-[60rem] min-h-[70vh] max-h-[90vh] p-0 overflow-hidden"
+          className="sm:max-w-[56rem] max-h-[90vh] p-0 overflow-hidden"
           onInteractOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
         >
@@ -156,21 +164,19 @@ export default function DetailMentoringModal({
             <DialogTitle>Detail Mentoring</DialogTitle>
           </VisuallyHidden>
 
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] h-full">
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] overflow-y-auto max-h-[90vh]">
             {/* Left Column → Mentor Info */}
-            <div className="p-6 flex flex-col justify-between border-r border-gray-200">
+            <div className="p-5 flex flex-col justify-between border-r border-gray-200">
               <div>
                 {/* Header */}
-                <h2 className="text-2xl font-semibold mb-2">
-                  Detail Mentoring
-                </h2>
-                <p className="text-sm text-gray-500 mb-5">
+                <h2 className="text-lg font-semibold mb-1">Detail Mentoring</h2>
+                <p className="text-xs text-gray-500 mb-4">
                   Lihat lebih detail mentor dan jadwal-mu
                 </p>
 
                 {/* Main Content */}
-                <div className="flex flex-col items-start gap-3 mb-6 text-left">
-                  <div className="w-28 h-28 rounded-full overflow-hidden">
+                <div className="flex flex-col items-start gap-2 mb-4 text-left">
+                  <div className="w-20 h-20 rounded-full overflow-hidden">
                     <Image
                       src={
                         mentor?.user?.profilePicture
@@ -179,12 +185,12 @@ export default function DetailMentoringModal({
                       }
                       alt={mentor?.user?.fullName || "Mentor"}
                       unoptimized
-                      width={120}
-                      height={120}
+                      width={80}
+                      height={80}
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <h3 className="text-xl font-bold">
+                  <h3 className="text-base font-bold">
                     {mentor?.user?.fullName}
                   </h3>
                   <p className="text-xs text-gray-500 leading-relaxed">
@@ -207,7 +213,7 @@ export default function DetailMentoringModal({
               </div>
 
               {/* Jadwal Info */}
-              <div className="text-sm text-gray-900 space-y-2 mt-8">
+              <div className="text-xs text-gray-900 space-y-1.5 mt-5">
                 <div className="flex items-center gap-2">
                   <Calendar size={14} className="text-gray-500" />
                   <span>
@@ -248,11 +254,11 @@ export default function DetailMentoringModal({
             </div>
 
             {/* Right Column → Form Input */}
-            <div className="p-6 flex flex-col">
-              <h2 className="text-2xl font-semibold mb-2">
+            <div className="p-5 flex flex-col">
+              <h2 className="text-lg font-semibold mb-1">
                 Lengkapi Detail Materi
               </h2>
-              <p className="text-sm text-gray-500 mb-4">
+              <p className="text-xs text-gray-500 mb-3">
                 Selangkah lagi menuju sesi mentoring yang menyenangkan
               </p>
 
@@ -304,10 +310,10 @@ export default function DetailMentoringModal({
               </div>
 
               {/* Action Buttons */}
-              <div className="flex justify-end gap-3 mt-6">
+              <div className="flex justify-end gap-3 mt-4">
                 <Button
                   variant="outline"
-                  onClick={() => setShowCancelConfirm(true)} // buka modal konfirmasi
+                  onClick={() => setShowCancelConfirm(true)}
                   className="rounded-md border border-gray-300"
                 >
                   Batal

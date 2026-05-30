@@ -129,7 +129,7 @@ export default function CheckoutClassForm({
 
       {/* Phone */}
       <div className="grid gap-1.5 max-w-3xl">
-        <label className="text-xs font-medium text-gray-600">No. Telepon</label>
+        <label className="text-xs font-medium text-gray-600">No. Whatsapp Aktif</label>
         <Input name="phone" value={formData.phone} onChange={handleChange} />
       </div>
     </form>
