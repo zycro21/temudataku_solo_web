@@ -1265,13 +1265,13 @@ export const createPracticePurchase = async (input: {
       },
     });
 
-    if (payment.bookingId) {
-      throw {
-        status: 400,
-        message:
-          "Payment tidak boleh terkait dengan Booking dan PracticePurchase bersamaan.",
-      };
-    }
+    // if (payment.bookingId) {
+    //   throw {
+    //     status: 400,
+    //     message:
+    //       "Payment tidak boleh terkait dengan Booking dan PracticePurchase bersamaan.",
+    //   };
+    // }
 
     if (referralUsageId && referralCodeId) {
       const commissionAmount = finalPrice * (commissionPercentage / 100);
