@@ -909,16 +909,31 @@ export const getReferralCommissions = async (input: {
   const commissionsWithPayment = await Promise.all(
     commissions.map(async (commission) => {
       const payment = await prisma.payment.findUnique({
-        where: { id: commission.transactionId },
+        where: {
+          id: commission.transactionId,
+        },
         select: {
-          bookingId: true,
           practicePurchaseId: true,
           status: true,
+
+          bookingInvoice: {
+            select: {
+              bookingId: true,
+            },
+          },
         },
       });
+
       return {
         ...commission,
-        payment: payment || null,
+
+        payment: payment
+          ? {
+              bookingId: payment.bookingInvoice?.bookingId ?? null,
+              practicePurchaseId: payment.practicePurchaseId,
+              status: payment.status,
+            }
+          : null,
       };
     }),
   );
@@ -1210,19 +1225,43 @@ export const getReferralCommissionsByCode = async (input: {
   const commissionsWithPayment = await Promise.all(
     commissions.map(async (commission) => {
       const payment = await prisma.payment.findUnique({
-        where: { id: commission.transactionId },
+        where: {
+          id: commission.transactionId,
+        },
         select: {
           id: true,
-          bookingId: true,
           practicePurchaseId: true,
           status: true,
           amount: true,
           createdAt: true,
+
+          bookingInvoice: {
+            select: {
+              booking: {
+                select: {
+                  id: true,
+                },
+              },
+            },
+          },
         },
       });
+
+      if (!payment) {
+        return {
+          ...commission,
+          payment: null,
+        };
+      }
+
+      const { bookingInvoice, ...paymentData } = payment;
+
       return {
         ...commission,
-        payment: payment || null,
+        payment: {
+          ...paymentData,
+          bookingId: bookingInvoice?.booking?.id ?? null,
+        },
       };
     }),
   );
