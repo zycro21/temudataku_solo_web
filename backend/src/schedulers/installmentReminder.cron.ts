@@ -6,12 +6,14 @@ import { sendInstallmentReminderEmail } from "../utils/installmentReminder.email
 
 const prisma = new PrismaClient();
 
+console.log("INSTALLMENT CRON REGISTERED");
+
 // ======================================================
 // CRON INSTALLMENT REMINDER
 // ======================================================
 
 // setiap jam
-cron.schedule("0 * * * *", async () => {
+cron.schedule("0 8 * * *", async () => {
   console.log("Running installment reminder job...");
 
   try {
