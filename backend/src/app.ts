@@ -43,6 +43,7 @@ import elearningSubscriptionPlan from "./routes/elearning_subscription_plan.rout
 import elearningSubscription from "./routes/elearning_subscription.route.js";
 import ayclRoutes from "./routes/aycl.route.js";
 import ayclBookingRoutes from "./routes/aycl_booking.route.js";
+import websiteScrapRoutes from "./routes/websitescraping.route.js";
 import { redirectShortCodeController } from "./controllers/short_link.controller.js";
 import "./schedulers/cron.js";
 import { fileURLToPath } from "url";
@@ -115,6 +116,7 @@ app.use("/api/elearningSubscriptionPlan", elearningSubscriptionPlan);
 app.use("/api/elearningSubscription", elearningSubscription);
 app.use("/api/aycl", ayclRoutes);
 app.use("/api/ayclbooking", ayclBookingRoutes);
+app.use("/api/scrap", websiteScrapRoutes);
 
 // Path Static untuk Images
 // Perbaikan di sini, mengganti __dirname dengan yang benar menggunakan import.meta.url

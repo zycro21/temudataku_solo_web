@@ -155,15 +155,15 @@ export default function StreamsHeader({
       {/* Title */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-gray-800">Streams</h1>
-          <p className="text-lg text-gray-500 mt-1">
+          <h1 className="text-2xl font-semibold text-gray-800">Streams</h1>
+          <p className="text-sm text-gray-500 mt-1">
             Organize your learning structure by grouping courses into streams.
           </p>
         </div>
 
         <Button
           onClick={openCreateModal}
-          className="bg-emerald-500 hover:bg-emerald-600 text-white flex items-center gap-3 px-6 py-5 text-base rounded-lg"
+          className="bg-emerald-500 hover:bg-emerald-600 text-white flex items-center gap-2 px-4 py-2.5 text-sm rounded-lg"
         >
           <span className="bg-white rounded-full p-1 flex items-center justify-center">
             <Plus size={16} className="text-emerald-600" strokeWidth={3} />
@@ -178,7 +178,7 @@ export default function StreamsHeader({
           placeholder="Search streams..."
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="pl-11 py-3 text-base bg-white h-auto"
+          className="pl-11 py-2 text-sm bg-white h-auto"
         />
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
       </div>
@@ -200,7 +200,7 @@ export default function StreamsHeader({
             {/* Header */}
             <div className="flex items-start justify-between mb-1">
               <div>
-                <h2 className="text-xl font-semibold text-gray-800">
+                <h2 className="text-lg font-semibold text-gray-800">
                   Create New Stream
                 </h2>
                 <p className="text-sm text-gray-400 mt-0.5">
@@ -351,13 +351,13 @@ export default function StreamsHeader({
             <div className="flex gap-3 mt-7">
               <button
                 onClick={handleClose}
-                className="flex-1 border border-emerald-500 text-emerald-600 py-2.5 rounded-lg text-sm font-semibold hover:bg-emerald-50 transition"
+                className="flex-1 border border-emerald-500 text-emerald-600 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-50 transition"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreate}
-                className="flex-1 bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-emerald-700 transition"
+                className="flex-1 bg-emerald-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-emerald-700 transition"
               >
                 Create
               </button>
@@ -400,7 +400,7 @@ export default function StreamsHeader({
               </div>
             </div>
 
-            <h2 className="text-xl font-semibold text-gray-800 mb-2">
+            <h2 className="text-lg font-semibold text-gray-800 mb-2">
               Stream Created Successfully!
             </h2>
             <p className="text-sm text-gray-400 mb-7 leading-relaxed">
@@ -411,7 +411,7 @@ export default function StreamsHeader({
 
             <button
               onClick={handleSuccessClose}
-              className="w-full bg-emerald-600 text-white py-3 rounded-lg font-semibold hover:bg-emerald-700 transition text-sm"
+              className="w-full bg-emerald-600 text-white py-2.5 rounded-lg font-semibold hover:bg-emerald-700 transition text-sm"
             >
               View Streams
             </button>

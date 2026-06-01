@@ -824,11 +824,11 @@ export default function StreamsTable({ search }: StreamsTableProps) {
 
             {actionModal.type === "unpublish" ? (
               <>
-                <h2 className="text-2xl font-semibold text-gray-800 mb-3">
+                <h2 className="text-xl font-semibold text-gray-800 mb-3">
                   Unpublish this Stream?
                 </h2>
 
-                <p className="text-base text-gray-500 mb-8 leading-relaxed">
+                <p className="text-sm text-gray-500 mb-7 leading-relaxed">
                   This stream will no longer be visible to learners.
                   <br />
                   You can publish it again anytime.
@@ -840,7 +840,7 @@ export default function StreamsTable({ search }: StreamsTableProps) {
                       setShowModal(false);
                       setTimeout(() => setActionModal(null), 250);
                     }}
-                    className="flex-1 border border-emerald-500 text-emerald-600 py-3 rounded-lg text-base font-semibold hover:bg-emerald-50 transition"
+                    className="flex-1 border border-emerald-500 text-emerald-600 py-2.5 rounded-lg text-sm font-semibold hover:bg-emerald-50 transition"
                   >
                     Cancel
                   </button>
@@ -862,7 +862,7 @@ export default function StreamsTable({ search }: StreamsTableProps) {
                         setActionModal(null);
                       }, 250);
                     }}
-                    className="flex-1 bg-emerald-600 text-white py-3 rounded-lg text-base font-semibold hover:bg-emerald-700 transition"
+                    className="flex-1 bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-emerald-700 transition"
                   >
                     Unpublish
                   </button>
@@ -870,11 +870,11 @@ export default function StreamsTable({ search }: StreamsTableProps) {
               </>
             ) : (
               <>
-                <h2 className="text-2xl font-semibold text-gray-800 mb-3">
+                <h2 className="text-xl font-semibold text-gray-800 mb-3">
                   Publish this Stream?
                 </h2>
 
-                <p className="text-base text-gray-500 mb-8 leading-relaxed">
+                <p className="text-sm text-gray-500 mb-7 leading-relaxed">
                   This will make the stream available to learners.
                   <br />
                   You can still edit it later if needed.
@@ -886,7 +886,7 @@ export default function StreamsTable({ search }: StreamsTableProps) {
                       setShowModal(false);
                       setTimeout(() => setActionModal(null), 250);
                     }}
-                    className="flex-1 border border-emerald-500 text-emerald-600 py-3 rounded-lg text-base font-semibold hover:bg-emerald-50 transition"
+                    className="flex-1 border border-emerald-500 text-emerald-600 py-2.5 rounded-lg text-sm font-semibold hover:bg-emerald-50 transition"
                   >
                     Cancel
                   </button>
@@ -908,7 +908,7 @@ export default function StreamsTable({ search }: StreamsTableProps) {
                         setActionModal(null);
                       }, 250);
                     }}
-                    className="flex-1 bg-emerald-600 text-white py-3 rounded-lg text-base font-semibold hover:bg-emerald-700 transition"
+                    className="flex-1 bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-emerald-700 transition"
                   >
                     Publish
                   </button>
@@ -966,7 +966,7 @@ export default function StreamsTable({ search }: StreamsTableProps) {
                   await fetchStreams();
                 }, 250);
               }}
-              className="w-full bg-emerald-600 text-white py-3 rounded-lg font-semibold hover:bg-emerald-700 transition"
+              className="w-full bg-emerald-600 text-white py-2.5 rounded-lg font-semibold hover:bg-emerald-700 transition text-sm"
             >
               View Streams
             </button>
@@ -997,11 +997,11 @@ export default function StreamsTable({ search }: StreamsTableProps) {
               />
             </div>
 
-            <h2 className="text-2xl font-semibold text-gray-800 mb-3">
+            <h2 className="text-xl font-semibold text-gray-800 mb-3">
               Delete this Stream?
             </h2>
 
-            <p className="text-base text-gray-500 mb-8 leading-relaxed">
+            <p className="text-sm text-gray-500 mb-7 leading-relaxed">
               This action cannot be undone. The stream and its
               <br />
               content will be permanently deleted.
@@ -1013,7 +1013,7 @@ export default function StreamsTable({ search }: StreamsTableProps) {
                   setShowModal(false);
                   setTimeout(() => setDeleteModal(null), 250);
                 }}
-                className="flex-1 border border-emerald-500 text-emerald-600 py-3 rounded-lg text-base font-semibold hover:bg-emerald-50 transition"
+                className="flex-1 border border-emerald-500 text-emerald-600 py-2.5 rounded-lg text-sm font-semibold hover:bg-emerald-50 transition"
               >
                 Cancel
               </button>
@@ -1021,7 +1021,7 @@ export default function StreamsTable({ search }: StreamsTableProps) {
               <button
                 onClick={handleDelete}
                 disabled={deleteLoading}
-                className="flex-1 bg-red-500 text-white py-3 rounded-lg text-base font-semibold hover:bg-red-600 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                className="flex-1 bg-red-500 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-red-600 transition disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {deleteLoading ? "Deleting..." : "Delete"}
               </button>
@@ -1047,7 +1047,7 @@ export default function StreamsTable({ search }: StreamsTableProps) {
             {/* Header */}
             <div className="flex items-start justify-between mb-1">
               <div>
-                <h2 className="text-xl font-semibold text-gray-800">
+                <h2 className="text-lg font-semibold text-gray-800">
                   Edit Stream
                 </h2>
                 <p className="text-sm text-gray-400 mt-0.5">
@@ -1198,13 +1198,13 @@ export default function StreamsTable({ search }: StreamsTableProps) {
             <div className="flex gap-3 mt-7">
               <button
                 onClick={closeEditModal}
-                className="flex-1 border border-emerald-500 text-emerald-600 py-2.5 rounded-lg text-sm font-semibold hover:bg-emerald-50 transition"
+                className="flex-1 border border-emerald-500 text-emerald-600 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-50 transition"
               >
                 Cancel
               </button>
               <button
                 onClick={handleEditSave}
-                className="flex-1 bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-emerald-700 transition"
+                className="flex-1 bg-emerald-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-emerald-700 transition"
               >
                 Save Changes
               </button>
@@ -1235,7 +1235,7 @@ export default function StreamsTable({ search }: StreamsTableProps) {
             </div>
 
             {/* TITLE */}
-            <h2 className="text-xl font-semibold text-gray-800 mb-2">
+            <h2 className="text-lg font-semibold text-gray-800 mb-2">
               Duplicate Stream?
             </h2>
 

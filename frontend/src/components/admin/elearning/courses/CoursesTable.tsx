@@ -733,7 +733,7 @@ export default function CoursesTable({
           >
             <div className="flex items-start justify-between mb-1">
               <div>
-                <h2 className="text-xl font-semibold text-gray-800">
+                <h2 className="text-lg font-semibold text-gray-800">
                   Edit Course
                 </h2>
                 <p className="text-sm text-gray-400 mt-0.5">
@@ -971,7 +971,7 @@ export default function CoursesTable({
                 </div>
               </div>
             </div>
-            <h2 className="text-xl font-semibold text-gray-800 mb-2">
+            <h2 className="text-lg font-semibold text-gray-800 mb-2">
               Course Updated Successfully!
             </h2>
             <p className="text-sm text-gray-400 mb-7 leading-relaxed">
@@ -982,7 +982,7 @@ export default function CoursesTable({
                 setEditSuccessVisible(false);
                 setTimeout(() => setShowEditSuccess(false), 250);
               }}
-              className="w-full bg-emerald-600 text-white py-3 rounded-lg font-semibold hover:bg-emerald-700 transition text-sm"
+              className="w-full bg-emerald-600 text-white py-2.5 rounded-lg font-semibold hover:bg-emerald-700 transition text-sm"
             >
               Done
             </button>
@@ -1011,7 +1011,7 @@ export default function CoursesTable({
                 </div>
               </div>
             </div>
-            <h2 className="text-xl font-semibold text-gray-800 mb-2">
+            <h2 className="text-lg font-semibold text-gray-800 mb-2">
               {actionModal.type === "unpublish"
                 ? "Archive this Course?"
                 : "Publish this Course?"}
@@ -1072,7 +1072,7 @@ export default function CoursesTable({
                 </div>
               </div>
             </div>
-            <h2 className="text-xl font-semibold text-gray-800 mb-2">
+            <h2 className="text-lg font-semibold text-gray-800 mb-2">
               {successModal.type === "unpublish"
                 ? "Course Archived!"
                 : "Course Published!"}
@@ -1084,7 +1084,7 @@ export default function CoursesTable({
             </p>
             <button
               onClick={closeSuccessModal}
-              className="w-full bg-emerald-600 text-white py-3 rounded-lg font-semibold hover:bg-emerald-700 transition text-sm"
+              className="w-full bg-emerald-600 text-white py-2.5 rounded-lg font-semibold hover:bg-emerald-700 transition text-sm"
             >
               Done
             </button>
@@ -1114,7 +1114,7 @@ export default function CoursesTable({
                 </div>
               </div>
             </div>
-            <h2 className="text-xl font-semibold text-gray-800 mb-2">
+            <h2 className="text-lg font-semibold text-gray-800 mb-2">
               Duplicate Course?
             </h2>
             <p className="text-sm text-gray-400 mb-7 leading-relaxed">
@@ -1176,7 +1176,7 @@ export default function CoursesTable({
                 </div>
               </div>
             </div>
-            <h2 className="text-xl font-semibold text-gray-800 mb-2">
+            <h2 className="text-lg font-semibold text-gray-800 mb-2">
               Hapus Sub-chapter?
             </h2>
             <p className="text-sm text-gray-400 mb-7 leading-relaxed">
