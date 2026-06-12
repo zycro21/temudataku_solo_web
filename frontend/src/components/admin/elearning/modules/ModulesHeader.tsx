@@ -79,13 +79,12 @@ export default function ModulesHeader({
       );
 
       setModalVisible(false);
+      onModuleCreated();
       setTimeout(() => {
         setShowCreateModal(false);
         setShowSuccessModal(true);
         setTimeout(() => setSuccessVisible(true), 10);
       }, 250);
-
-      onModuleCreated();
     } catch (err: any) {
       console.error(err);
       toast.error(err?.response?.data?.message || "Gagal membuat module");
@@ -156,19 +155,19 @@ export default function ModulesHeader({
       {/* Create Module Modal */}
       {showCreateModal && (
         <div
-          className={`fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-300 ${
+          className={`fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 ${
             modalVisible ? "bg-black/60 opacity-100" : "bg-black/0 opacity-0"
           }`}
         >
           <div
-            className={`bg-white w-[540px] max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl pt-6 px-7 pb-10 transform transition-all duration-300 ${
+            className={`bg-white w-[540px] max-h-[90vh] flex flex-col rounded-2xl shadow-2xl transform transition-all duration-300 ${
               modalVisible
                 ? "scale-100 opacity-100 translate-y-0"
                 : "scale-95 opacity-0 translate-y-4"
             }`}
           >
-            {/* Header */}
-            <div className="flex items-start justify-between mb-1">
+            {/* Sticky Header */}
+            <div className="flex items-start justify-between px-7 pt-6 pb-4 border-b border-gray-100 shrink-0">
               <div>
                 <h2 className="text-xl font-semibold text-gray-800">
                   Create New Module
@@ -186,81 +185,84 @@ export default function ModulesHeader({
               </button>
             </div>
 
-            <div className="space-y-5 mt-5">
-              {/* Module Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Module Name
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter module name"
-                  value={formTitle}
-                  onChange={(e) => setFormTitle(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
-                />
-              </div>
-
-              {/* Duration (in minutes) */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Duration (minutes)
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  placeholder="e.g. 60"
-                  value={formEstimatedTime}
-                  onChange={(e) => setFormEstimatedTime(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
-                />
-              </div>
-
-              {/* Status */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Status
-                </label>
-                <div className="relative">
-                  <select
-                    value={formStatus}
-                    onChange={(e) => setFormStatus(e.target.value)}
-                    className={`w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm appearance-none focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-white ${
-                      formStatus ? "text-gray-700" : "text-gray-400"
-                    }`}
-                  >
-                    <option value="" disabled>
-                      Select status
-                    </option>
-                    <option value="PUBLISHED" className="text-gray-700">
-                      Published
-                    </option>
-                    <option value="ARCHIVED" className="text-gray-700">
-                      Archived
-                    </option>
-                  </select>
-                  <ChevronDown
-                    size={16}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+            {/* Scrollable body */}
+            <div className="overflow-y-auto px-7 pb-10 flex-1">
+              <div className="space-y-5 mt-5">
+                {/* Module Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Module Name
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter module name"
+                    value={formTitle}
+                    onChange={(e) => setFormTitle(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
                   />
                 </div>
-              </div>
-            </div>
 
-            {/* Footer Buttons */}
-            <div className="flex gap-3 mt-7">
-              <button
-                onClick={handleClose}
-                className="flex-1 border border-emerald-500 text-emerald-600 py-2.5 rounded-lg text-sm font-semibold hover:bg-emerald-50 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleCreate}
-                className="flex-1 bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-emerald-700 transition"
-              >
-                Create
-              </button>
+                {/* Duration (in minutes) */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Duration (minutes)
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    placeholder="e.g. 60"
+                    value={formEstimatedTime}
+                    onChange={(e) => setFormEstimatedTime(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                  />
+                </div>
+
+                {/* Status */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Status
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={formStatus}
+                      onChange={(e) => setFormStatus(e.target.value)}
+                      className={`w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm appearance-none focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-white ${
+                        formStatus ? "text-gray-700" : "text-gray-400"
+                      }`}
+                    >
+                      <option value="" disabled>
+                        Select status
+                      </option>
+                      <option value="PUBLISHED" className="text-gray-700">
+                        Published
+                      </option>
+                      <option value="ARCHIVED" className="text-gray-700">
+                        Archived
+                      </option>
+                    </select>
+                    <ChevronDown
+                      size={16}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer Buttons */}
+              <div className="flex gap-3 mt-7">
+                <button
+                  onClick={handleClose}
+                  className="flex-1 border border-emerald-500 text-emerald-600 py-2.5 rounded-lg text-sm font-semibold hover:bg-emerald-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreate}
+                  className="flex-1 bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-emerald-700 transition"
+                >
+                  Create
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -269,7 +271,7 @@ export default function ModulesHeader({
       {/* Success Modal */}
       {showSuccessModal && (
         <div
-          className={`fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-300 ${
+          className={`fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 ${
             successVisible ? "bg-black/60 opacity-100" : "bg-black/0 opacity-0"
           }`}
         >

@@ -13,6 +13,8 @@ import {
   exportTextSchema,
 } from "../validations/elearning_text.validation.js";
 import { ELearningTextController } from "../controllers/elearning_text.controller.js";
+import { handleELearningTextFilesUpload } from "../middlewares/uploadImage.js";
+import { parseELearningModulePayload } from "../middlewares/parseELearningModulePayload.js";
 
 const router = express.Router();
 
@@ -89,7 +91,7 @@ router.get(
   authenticate,
   authorizeRoles("admin", "mentor", "mentee", "cm", "curdev"),
   validate(getTextsBySubBabSchema),
-  ELearningTextController.getTextsBySubBab
+  ELearningTextController.getTextsBySubBab,
 );
 
 /**
@@ -126,7 +128,7 @@ router.get(
   authenticate,
   authorizeRoles("admin", "mentor", "mentee", "cm", "curdev"),
   validate(getTextByIdSchema),
-  ELearningTextController.getTextById
+  ELearningTextController.getTextById,
 );
 
 /**
@@ -189,7 +191,7 @@ router.post(
   authenticate,
   authorizeRoles("admin", "mentor", "cm", "curdev"),
   validate(createTextSchema),
-  ELearningTextController.createText
+  ELearningTextController.createText,
 );
 
 /**
@@ -200,6 +202,8 @@ router.post(
  *     description:
  *       - Admin dapat mengedit teks dari sub-bab mana pun.
  *       - Mentor hanya dapat mengedit teks dari course yang dia ampu.
+ *       - Endpoint menggunakan multipart/form-data karena mendukung upload file assignment.
+ *       - Field blocks, quiz, dan assignment harus dikirim dalam bentuk JSON string.
  *     tags: [E-Learning Texts]
  *     security:
  *       - bearerAuth: []
@@ -213,23 +217,60 @@ router.post(
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             properties:
  *               title:
  *                 type: string
  *                 example: "Pengantar Machine Learning"
+ *
+ *               status:
+ *                 type: string
+ *                 enum:
+ *                   - DRAFT
+ *                   - PUBLISHED
+ *                   - ARCHIVED
+ *
  *               orderNumber:
  *                 type: integer
  *                 example: 2
+ *
+ *               blocks:
+ *                 type: string
+ *                 description: JSON.stringify(blocks)
+ *                 example: '[{"orderNumber":1,"contents":[],"additionalContents":[]}]'
+ *
+ *               quiz:
+ *                 type: string
+ *                 description: JSON.stringify(quiz)
+ *                 example: '{"title":"Quiz Bab 1","questions":[{"questionText":"Apa itu AI?","options":["A","B"],"correctAnswers":["A"]}]}'
+ *
+ *               assignment:
+ *                 type: string
+ *                 description: JSON.stringify(assignment)
+ *                 example: '{"title":"Project ETL","description":"Kerjakan project ETL","instructions":[{"instruction":"Download dataset","orderNumber":1}],"supportingFiles":[{"name":"Dataset Penjualan","type":"DATASET"}]}'
+ *
+ *               supportingFiles:
+ *                 type: array
+ *                 description: File pendukung assignment
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *
  *     responses:
  *       200:
  *         description: Teks berhasil diupdate
+ *
+ *       400:
+ *         description: Format JSON tidak valid atau data request tidak valid
+ *
  *       403:
  *         description: Akses ditolak
+ *
  *       404:
  *         description: Teks tidak ditemukan
+ *
  *       409:
  *         description: orderNumber duplikat
  */
@@ -237,8 +278,10 @@ router.put(
   "/texts/:id",
   authenticate,
   authorizeRoles("admin", "mentor", "cm", "curdev"),
+  handleELearningTextFilesUpload,
+  parseELearningModulePayload,
   validate(updateTextSchema),
-  ELearningTextController.updateText
+  ELearningTextController.updateText,
 );
 
 /**
@@ -272,7 +315,7 @@ router.delete(
   authenticate,
   authorizeRoles("admin", "cm", "curdev"),
   validate(deleteTextSchema),
-  ELearningTextController.deleteText
+  ELearningTextController.deleteText,
 );
 
 /**
@@ -331,7 +374,7 @@ router.put(
   authenticate,
   authorizeRoles("admin"),
   validate(reorderTextSchema),
-  ELearningTextController.reorderTexts
+  ELearningTextController.reorderTexts,
 );
 
 /**
@@ -391,7 +434,7 @@ router.get(
   authenticate,
   authorizeRoles("admin"),
   validate(searchTextSchema),
-  ELearningTextController.searchTexts
+  ELearningTextController.searchTexts,
 );
 
 /**
@@ -442,8 +485,7 @@ router.get(
   authenticate,
   authorizeRoles("admin"),
   validate(exportTextSchema),
-  ELearningTextController.exportTexts
+  ELearningTextController.exportTexts,
 );
-
 
 export default router;

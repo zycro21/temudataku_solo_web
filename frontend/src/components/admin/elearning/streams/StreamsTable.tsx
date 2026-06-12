@@ -48,9 +48,13 @@ type SortKey =
 
 interface StreamsTableProps {
   search: string;
+  refreshKey?: number;
 }
 
-export default function StreamsTable({ search }: StreamsTableProps) {
+export default function StreamsTable({
+  search,
+  refreshKey = 0,
+}: StreamsTableProps) {
   const [streams, setStreams] = useState<StreamFromAPI[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -122,7 +126,7 @@ export default function StreamsTable({ search }: StreamsTableProps) {
 
   useEffect(() => {
     fetchStreams();
-  }, []);
+  }, [refreshKey]);
 
   // ─── Duplicate ───────────────────────────────────────────────────────────────
   const handleDuplicate = async () => {
@@ -422,15 +426,7 @@ export default function StreamsTable({ search }: StreamsTableProps) {
 
       toast.success("Stream berhasil diperbarui");
       closeEditModal();
-
-      // window.location.reload();
-
-      // Refresh data tabel
-      const res = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/elearningCourse/courses`,
-        { withCredentials: true, params: { limit: 10000 } },
-      );
-      setStreams(res.data.data ?? []);
+      await fetchStreams();
     } catch (err: any) {
       console.error(err);
       toast.error(
@@ -544,7 +540,7 @@ export default function StreamsTable({ search }: StreamsTableProps) {
                   {/* Thumbnail */}
                   <td className="px-4 py-3">
                     <div className="flex flex-col items-center gap-1">
-                      <div className="w-10 h-10 relative">
+                      <div className="w-16 h-12 relative">
                         {thumbnail ? (
                           <Image
                             src={thumbnail}
@@ -554,12 +550,12 @@ export default function StreamsTable({ search }: StreamsTableProps) {
                             unoptimized
                           />
                         ) : (
-                          <div className="w-10 h-10 rounded-md bg-gray-100 flex items-center justify-center text-[9px] text-gray-400">
+                          <div className="w-16 h-12 rounded-md bg-gray-100 flex items-center justify-center text-[9px] text-gray-400">
                             No img
                           </div>
                         )}
                       </div>
-                      <span className="text-[9px] text-gray-400 max-w-[60px] truncate">
+                      <span className="text-[9px] text-gray-400 max-w-[72px] truncate">
                         {(() => {
                           const match = thumbnail.match(
                             /([^/]+\.(jpg|jpeg|png|gif|webp|svg))(\?|$)/i,
@@ -802,7 +798,7 @@ export default function StreamsTable({ search }: StreamsTableProps) {
       {/* ── ACTION MODAL (publish / unpublish) ──────────────────────────────── */}
       {actionModal && (
         <div
-          className={`fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-300 ${
+          className={`fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 ${
             showModal ? "bg-black/60 opacity-100" : "bg-black/0 opacity-0"
           }`}
         >
@@ -921,7 +917,7 @@ export default function StreamsTable({ search }: StreamsTableProps) {
 
       {successModal && (
         <div
-          className={`fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-300 ${
+          className={`fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 ${
             showModal ? "bg-black/60 opacity-100" : "bg-black/0 opacity-0"
           }`}
         >
@@ -977,7 +973,7 @@ export default function StreamsTable({ search }: StreamsTableProps) {
       {/* ── DELETE MODAL ────────────────────────────────────────────────────── */}
       {deleteModal && (
         <div
-          className={`fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-300 ${
+          className={`fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 ${
             showModal ? "bg-black/60 opacity-100" : "bg-black/0 opacity-0"
           }`}
         >
@@ -1033,7 +1029,7 @@ export default function StreamsTable({ search }: StreamsTableProps) {
       {/* ── EDIT MODAL ──────────────────────────────────────────────────────── */}
       {editModal && (
         <div
-          className={`fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-300 ${
+          className={`fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 ${
             editVisible ? "bg-black/60 opacity-100" : "bg-black/0 opacity-0"
           }`}
         >
@@ -1216,7 +1212,7 @@ export default function StreamsTable({ search }: StreamsTableProps) {
       {/* ── DUPLICATE MODAL ─────────────────────────────────────────────────── */}
       {showDuplicateModal && (
         <div
-          className={`fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-300 ${
+          className={`fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 ${
             showModal ? "bg-black/60 opacity-100" : "bg-black/0 opacity-0"
           }`}
         >

@@ -71,7 +71,11 @@ export default function ModulesPage() {
         courseId={courseId}
         onModuleCreated={() => setRefreshKey((prev) => prev + 1)}
       />
-      <ModulesTable search={search} refreshKey={refreshKey} />
+      <ModulesTable
+        search={search}
+        refreshKey={refreshKey}
+        onModuleUpdated={() => setRefreshKey((prev) => prev + 1)}
+      />
     </div>
   );
 }

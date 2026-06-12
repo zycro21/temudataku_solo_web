@@ -9,12 +9,12 @@ export interface ContentElement {
   iconSrc: string;
   label: string;
   description: string;
-  category: "basic" | "structuring" | "interactive";
+  category: "basic" | "structuring" | "interactive" | "assesment";
   favorite?: boolean;
 }
 
 interface Category {
-  key: "favorite" | "basic" | "structuring" | "interactive";
+  key: "favorite" | "basic" | "structuring" | "interactive" | "assesment";
   label: string;
   description: string;
 }
@@ -124,6 +124,22 @@ export const ALL_ELEMENTS: ContentElement[] = [
     category: "interactive",
     favorite: false,
   },
+  {
+    id: "quiz",
+    iconSrc: "/assets/admin/elearning/materials/quiz.svg",
+    label: "Quiz",
+    description: "Enables learners to practice coding directly.",
+    category: "assesment",
+    favorite: false,
+  },
+  {
+    id: "project",
+    iconSrc: "/assets/admin/elearning/materials/project.svg",
+    label: "Project",
+    description: "Enables learners to practice coding directly.",
+    category: "assesment",
+    favorite: false,
+  },
 ];
 
 const CATEGORIES: Category[] = [
@@ -144,8 +160,13 @@ const CATEGORIES: Category[] = [
   },
   {
     key: "interactive",
-    label: "Interactive Components",
+    label: "Interactive Compo..",
     description: "Interactive elements to engage learners",
+  },
+  {
+    key: "assesment",
+    label: "Assesment Compo..",
+    description: "Assesment Component, only 1 and/or 2 maximum",
   },
 ];
 
@@ -202,11 +223,11 @@ function TooltipHeader({
   description: string;
 }) {
   return (
-    <div className="bg-gray-100 rounded-lg px-3 py-2 mb-3">
-      <p className="text-[13px] font-bold text-gray-900 leading-tight">
+    <div className="bg-gray-100 rounded-lg px-3 py-1.5 mb-2.5">
+      <p className="text-[11px] font-bold text-gray-900 leading-tight">
         {label}
       </p>
-      <p className="text-[11px] text-gray-400 mt-0.5 leading-snug">
+      <p className="text-[10px] text-gray-400 mt-0.5 leading-snug">
         {description}
       </p>
     </div>
@@ -222,16 +243,16 @@ function TooltipContent({ id }: { id: string }) {
           description="Displays a title or heading to structure the material."
         />
         <div className="space-y-1">
-          <p className="text-[18px] font-bold    text-emerald-500 leading-tight">
+          <p className="text-[15px] font-bold    text-emerald-500 leading-tight">
             Heading 1
           </p>
-          <p className="text-[15px] font-bold    text-emerald-500 leading-tight">
+          <p className="text-[13px] font-bold    text-emerald-500 leading-tight">
             Heading 2
           </p>
-          <p className="text-[13px] font-semibold text-emerald-500 leading-tight">
+          <p className="text-[11px] font-semibold text-emerald-500 leading-tight">
             Heading 3
           </p>
-          <p className="text-[12px] font-semibold text-emerald-400 leading-tight">
+          <p className="text-[10px] font-semibold text-emerald-400 leading-tight">
             Heading 4
           </p>
         </div>
@@ -717,7 +738,7 @@ function ElementCard({
         onClick={handleClick}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        className="group relative flex flex-col items-center justify-center gap-3 p-4 rounded-xl border border-gray-200 bg-white hover:border-emerald-400 hover:shadow-sm hover:bg-emerald-50/30 active:scale-95 transition-all duration-150 text-center w-full aspect-square cursor-grab active:cursor-grabbing"
+        className="group relative flex flex-col items-center justify-center gap-2 p-3 rounded-xl border border-gray-200 bg-white hover:border-emerald-400 hover:shadow-sm hover:bg-emerald-50/30 active:scale-95 transition-all duration-150 text-center w-full aspect-square cursor-grab active:cursor-grabbing"
       >
         {/*
           ── FIX: <button> dalam <button> tidak valid di HTML.
@@ -743,7 +764,7 @@ function ElementCard({
           />
         </div>
 
-        <div className="relative w-9 h-9 shrink-0">
+        <div className="relative w-7 h-7 shrink-0">
           <Image
             src={el.iconSrc}
             alt={el.label}
@@ -754,7 +775,7 @@ function ElementCard({
             }}
           />
         </div>
-        <span className="text-[11px] font-semibold text-gray-700 group-hover:text-emerald-700 leading-tight">
+        <span className="text-[10px] font-semibold text-gray-700 group-hover:text-emerald-700 leading-tight">
           {el.label}
         </span>
       </button>
@@ -788,8 +809,8 @@ export default function ContentElementsSidebar({
 }: ContentElementsSidebarProps) {
   const [search, setSearch] = useState("");
   const [openCategories, setOpenCategories] = useState<Set<string>>(
-  new Set(), // default semua tertutup
-);
+    new Set(), // default semua tertutup
+  );
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const sidebarRef = useRef<HTMLElement>(null);
 
@@ -821,25 +842,25 @@ export default function ContentElementsSidebar({
   return (
     <aside
       ref={sidebarRef}
-      className="w-[280px] shrink-0 bg-white border-r border-gray-200 flex flex-col overflow-hidden h-full"
+      className="w-[256px] shrink-0 bg-white border-r border-gray-200 flex flex-col overflow-hidden h-full"
     >
-      <div className="px-5 pt-5 pb-3 shrink-0">
-        <h2 className="text-[15px] font-bold text-gray-900">
+      <div className="px-4 pt-4 pb-2.5 shrink-0">
+        <h2 className="text-[13px] font-bold text-gray-900">
           Content Elements
         </h2>
-        <p className="text-[11px] text-gray-400 mt-0.5 leading-tight">
+        <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">
           Drag and drop elements to build your material.
         </p>
-        <div className="relative mt-3">
+        <div className="relative mt-2.5">
           <input
             type="text"
             placeholder="Search elements ..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-8 pr-3 py-2 text-[12px] border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-gray-50 placeholder-gray-400"
+            className="w-full pl-7 pr-3 py-1.5 text-[11px] border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-gray-50 placeholder-gray-400"
           />
           <Search
-            size={13}
+            size={11}
             className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400"
           />
         </div>
@@ -851,41 +872,41 @@ export default function ContentElementsSidebar({
           const isOpen = openCategories.has(cat.key);
 
           return (
-            <div key={cat.key} className="mt-2">
+            <div key={cat.key} className="mt-1.5">
               <button
                 onClick={() => toggleCategory(cat.key)}
-                className="w-full flex items-start justify-between px-5 py-2 hover:bg-gray-50 transition"
+                className="w-full flex items-start justify-between px-4 py-1.5 hover:bg-gray-50 transition"
               >
                 <div className="text-left">
                   <div className="flex items-center gap-1">
-                    <span className="text-[12px] font-bold text-gray-800">
+                    <span className="text-[11px] font-bold text-gray-800">
                       {cat.label}
                     </span>
-                    <span className="text-[11px] font-semibold text-emerald-500">
+                    <span className="text-[10px] font-semibold text-emerald-500">
                       ({elements.length})
                     </span>
                   </div>
-                  <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">
+                  <p className="text-[9px] text-gray-400 mt-0.5 leading-tight">
                     {cat.description}
                   </p>
                 </div>
                 {isOpen ? (
                   <ChevronDown
-                    size={14}
-                    className="text-gray-400 shrink-0 mt-1"
+                    size={12}
+                    className="text-gray-400 shrink-0 mt-0.5"
                   />
                 ) : (
                   <ChevronRight
-                    size={14}
-                    className="text-gray-400 shrink-0 mt-1"
+                    size={12}
+                    className="text-gray-400 shrink-0 mt-0.5"
                   />
                 )}
               </button>
 
               {isOpen && (
-                <div className="px-4 pb-1">
+                <div className="px-3 pb-1">
                   {elements.length > 0 ? (
-                    <div className="grid grid-cols-2 gap-2 mt-1">
+                    <div className="grid grid-cols-2 gap-1.5 mt-1">
                       {elements.map((el) => (
                         <ElementCard
                           key={el.id}
@@ -898,7 +919,7 @@ export default function ContentElementsSidebar({
                       ))}
                     </div>
                   ) : (
-                    <p className="text-[11px] text-gray-400 italic px-1 py-2">
+                    <p className="text-[10px] text-gray-400 italic px-1 py-1.5">
                       {cat.key === "favorite"
                         ? "No favorites yet. Double click or tap ♡ on any element."
                         : "No results"}

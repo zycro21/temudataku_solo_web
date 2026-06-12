@@ -10,7 +10,7 @@ export class ELearningTextController {
   static async getTextsBySubBab(
     req: AuthenticatedRequestText,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, validatedQuery, user } = req;
@@ -28,7 +28,7 @@ export class ELearningTextController {
       const result = await ELearningTextService.getTextsBySubBab(
         subBabId,
         query,
-        user
+        user,
       );
 
       res.status(200).json({
@@ -50,7 +50,7 @@ export class ELearningTextController {
   static async getTextById(
     req: AuthenticatedRequestText,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, user } = req;
@@ -85,7 +85,7 @@ export class ELearningTextController {
   static async createText(
     req: AuthenticatedRequestText,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, validatedBody, user } = req;
@@ -100,7 +100,7 @@ export class ELearningTextController {
       const newText = await ELearningTextService.createText(
         validatedParams.subBabId,
         validatedBody,
-        user
+        user,
       );
 
       res.status(201).json({
@@ -124,22 +124,35 @@ export class ELearningTextController {
   static async updateText(
     req: AuthenticatedRequestText,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, validatedBody, user } = req;
 
       if (!validatedParams?.id || !validatedBody || !user) {
-        res
-          .status(400)
-          .json({ success: false, message: "Data request tidak valid" });
+        res.status(400).json({
+          success: false,
+          message: "Data request tidak valid",
+        });
         return;
       }
+
+      const files =
+        (req.files as {
+          supportingFiles?: Express.Multer.File[];
+          mediaFiles?: Express.Multer.File[];
+        }) ?? {};
+
+      const assignmentFiles = files.supportingFiles ?? [];
+
+      const mediaFiles = files.mediaFiles ?? [];
 
       const updated = await ELearningTextService.updateText(
         validatedParams.id,
         validatedBody,
-        user
+        assignmentFiles,
+        mediaFiles,
+        user,
       );
 
       res.status(200).json({
@@ -149,11 +162,20 @@ export class ELearningTextController {
       });
     } catch (err: any) {
       if (err.message.includes("tidak ditemukan")) {
-        res.status(404).json({ success: false, message: err.message });
+        res.status(404).json({
+          success: false,
+          message: err.message,
+        });
       } else if (err.message.includes("Akses ditolak")) {
-        res.status(403).json({ success: false, message: err.message });
+        res.status(403).json({
+          success: false,
+          message: err.message,
+        });
       } else if (err.message.includes("duplikat")) {
-        res.status(409).json({ success: false, message: err.message });
+        res.status(409).json({
+          success: false,
+          message: err.message,
+        });
       } else {
         next(err);
       }
@@ -163,7 +185,7 @@ export class ELearningTextController {
   static async deleteText(
     req: AuthenticatedRequestText,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const params = req.validatedParams;
@@ -193,7 +215,7 @@ export class ELearningTextController {
   static async reorderTexts(
     req: ReorderTextRequest,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { subBabId } = req.validatedParams!;
@@ -215,7 +237,7 @@ export class ELearningTextController {
       const result = await ELearningTextService.reorderTexts(
         subBabId,
         orders,
-        user
+        user,
       );
 
       res.status(200).json({
@@ -231,7 +253,7 @@ export class ELearningTextController {
   static async searchTexts(
     req: AuthenticatedRequestText,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       if (!req.user || !req.user.roles.includes("admin")) {
@@ -258,7 +280,7 @@ export class ELearningTextController {
   static async exportTexts(
     req: AuthenticatedRequestText,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedQuery, user } = req;
@@ -284,7 +306,7 @@ export class ELearningTextController {
 
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename=${file.filename}`
+        `attachment; filename=${file.filename}`,
       );
       res.setHeader("Content-Type", file.mimetype);
 

@@ -51,6 +51,7 @@ export default function CoursesPage() {
         search={search}
         streamId={streamId}
         refreshKey={refreshKey}
+        onCourseUpdated={() => setRefreshKey((prev) => prev + 1)}
       />
     </div>
   );

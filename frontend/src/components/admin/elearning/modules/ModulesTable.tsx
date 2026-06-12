@@ -21,6 +21,7 @@ import {
 interface ModulesTableProps {
   search: string;
   refreshKey?: number;
+  onModuleUpdated?: () => void;
 }
 
 type SortDirection = "desc" | "asc" | null;
@@ -83,6 +84,7 @@ const formatDateTime = (dateString: string) => {
 export default function ModulesTable({
   search,
   refreshKey,
+  onModuleUpdated,
 }: ModulesTableProps) {
   const params = useParams();
   const router = useRouter();
@@ -339,6 +341,7 @@ export default function ModulesTable({
     setTimeout(() => {
       setShowEditSuccess(false);
       setInternalRefreshKey((prev) => prev + 1);
+      onModuleUpdated?.();
     }, 250);
   };
 
@@ -385,6 +388,7 @@ export default function ModulesTable({
     setTimeout(() => {
       setSuccessModal(null);
       setInternalRefreshKey((prev) => prev + 1);
+      onModuleUpdated?.();
     }, 250);
   };
 
@@ -425,6 +429,7 @@ export default function ModulesTable({
     setTimeout(() => {
       setShowDeleteSuccess(false);
       setInternalRefreshKey((prev) => prev + 1);
+      onModuleUpdated?.();
     }, 250);
   };
 
@@ -442,6 +447,7 @@ export default function ModulesTable({
       setTimeout(() => {
         setDuplicateModal(null);
         setInternalRefreshKey((prev) => prev + 1);
+        onModuleUpdated?.();
         toast.success("Module berhasil diduplikasi");
       }, 250);
     } catch (err: any) {
@@ -715,7 +721,7 @@ export default function ModulesTable({
       {/* ── Edit Modal ─────────────────────────────────────────────────────────── */}
       {editModal && (
         <div
-          className={`fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-300 ${
+          className={`fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 ${
             editVisible ? "bg-black/60 opacity-100" : "bg-black/0 opacity-0"
           }`}
         >
@@ -848,7 +854,7 @@ export default function ModulesTable({
       {/* ── Edit Success Modal ─────────────────────────────────────────────────── */}
       {showEditSuccess && (
         <div
-          className={`fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-300 ${
+          className={`fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 ${
             editSuccessVisible
               ? "bg-black/60 opacity-100"
               : "bg-black/0 opacity-0"
@@ -899,7 +905,7 @@ export default function ModulesTable({
       {/* ── Archive/Publish Confirmation Modal ────────────────────────────────── */}
       {actionModal && (
         <div
-          className={`fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-300 ${
+          className={`fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 ${
             actionVisible ? "bg-black/60 opacity-100" : "bg-black/0 opacity-0"
           }`}
         >
@@ -956,7 +962,7 @@ export default function ModulesTable({
       {/* ── Archive/Publish Success Modal ─────────────────────────────────────── */}
       {successModal && (
         <div
-          className={`fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-300 ${
+          className={`fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 ${
             successVisible ? "bg-black/60 opacity-100" : "bg-black/0 opacity-0"
           }`}
         >
@@ -1009,7 +1015,7 @@ export default function ModulesTable({
       {/* ── Delete Confirmation Modal ──────────────────────────────────────────── */}
       {deleteModal && (
         <div
-          className={`fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-300 ${
+          className={`fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 ${
             deleteVisible ? "bg-black/60 opacity-100" : "bg-black/0 opacity-0"
           }`}
         >
@@ -1057,7 +1063,7 @@ export default function ModulesTable({
       {/* ── Delete Success Modal ───────────────────────────────────────────────── */}
       {showDeleteSuccess && (
         <div
-          className={`fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-300 ${
+          className={`fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 ${
             deleteSuccessVisible
               ? "bg-black/60 opacity-100"
               : "bg-black/0 opacity-0"
@@ -1096,7 +1102,7 @@ export default function ModulesTable({
       {/* ── Duplicate Confirmation Modal ───────────────────────────────────────── */}
       {duplicateModal && (
         <div
-          className={`fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-300 ${
+          className={`fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 ${
             duplicateVisible
               ? "bg-black/60 opacity-100"
               : "bg-black/0 opacity-0"

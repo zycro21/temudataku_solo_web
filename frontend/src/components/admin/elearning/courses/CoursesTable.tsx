@@ -372,6 +372,7 @@ export default function CoursesTable({
       }, 250);
 
       await fetchCoursesData();
+      onCourseUpdated?.();
     } catch (err: any) {
       console.error(err);
       toast.error(
@@ -720,7 +721,7 @@ export default function CoursesTable({
       {/* Edit Modal */}
       {editModal && (
         <div
-          className={`fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-300 ${
+          className={`fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 ${
             editVisible ? "bg-black/60 opacity-100" : "bg-black/0 opacity-0"
           }`}
         >
@@ -939,7 +940,7 @@ export default function CoursesTable({
       {/* Edit Success Modal */}
       {showEditSuccess && (
         <div
-          className={`fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-300 ${
+          className={`fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 ${
             editSuccessVisible
               ? "bg-black/60 opacity-100"
               : "bg-black/0 opacity-0"
@@ -993,7 +994,7 @@ export default function CoursesTable({
       {/* Archive/Publish Confirmation Modal */}
       {actionModal && (
         <div
-          className={`fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-300 ${
+          className={`fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 ${
             actionVisible ? "bg-black/60 opacity-100" : "bg-black/0 opacity-0"
           }`}
         >
@@ -1042,7 +1043,7 @@ export default function CoursesTable({
       {/* Archive/Publish Success Modal */}
       {successModal && (
         <div
-          className={`fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-300 ${
+          className={`fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 ${
             successVisible ? "bg-black/60 opacity-100" : "bg-black/0 opacity-0"
           }`}
         >
@@ -1094,7 +1095,7 @@ export default function CoursesTable({
       {/* Duplicate Confirmation Modal */}
       {duplicateModal && (
         <div
-          className={`fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-300 ${
+          className={`fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 ${
             duplicateVisible
               ? "bg-black/60 opacity-100"
               : "bg-black/0 opacity-0"
@@ -1158,7 +1159,7 @@ export default function CoursesTable({
       {/* Delete Confirmation Modal */}
       {deleteModal.open && (
         <div
-          className={`fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-300 ${
+          className={`fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 ${
             deleteVisible ? "bg-black/60 opacity-100" : "bg-black/0 opacity-0"
           }`}
         >

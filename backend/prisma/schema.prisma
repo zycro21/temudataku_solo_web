@@ -758,7 +758,7 @@ model ELearningQuestion {
   quizId          String            @map("quiz_id")
   questionText    String            @db.Text
   options         String[]          @db.VarChar
-  correctAnswer   String            @db.VarChar
+  correctAnswers  String[]          @db.VarChar
   explanation     String?
   orderNumber     Int?
   createdAt       DateTime?         @default(now())
@@ -800,9 +800,52 @@ model ELearningAssignment {
   updatedAt        DateTime?           @db.Timestamp(6) @map("updated_at")
 
   subBab           ELearningSubBab     @relation(fields: [subBabId], references: [id], onDelete: Cascade)
+  instructions     ELearningAssignmentInstruction[]
+  supportingFiles  ELearningAssignmentSupportingFile[]
   submissions      ELearningSubmission[]
 
   @@map("e_learning_assignments")
+}
+
+model ELearningAssignmentInstruction {
+  id            String @id @default(cuid())
+
+  assignmentId  String @map("assignment_id")
+
+  instruction   String @db.Text
+  orderNumber   Int
+
+  assignment    ELearningAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@unique([assignmentId, orderNumber])
+  @@map("e_learning_assignment_instructions")
+}
+
+model ELearningAssignmentSupportingFile {
+  id            String @id @default(cuid())
+
+  assignmentId  String @map("assignment_id")
+
+  name          String
+  type          SupportingFileType
+
+  url           String
+
+  pageCount     Int?
+  format        String?
+  sizeKB        Int?
+
+  createdAt     DateTime? @default(now())
+
+  assignment    ELearningAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@map("e_learning_assignment_supporting_files")
+}
+
+enum SupportingFileType {
+  DATASET
+  TEMPLATE
+  REFERENCE
 }
 
 model ELearningSubmission {

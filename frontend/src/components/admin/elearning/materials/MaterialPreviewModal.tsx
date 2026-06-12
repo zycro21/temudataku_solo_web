@@ -894,6 +894,708 @@ function CodingPreview({ data }: { data: any }) {
   );
 }
 
+// ─── Quiz preview — semua soal sekaligus, navigation pills, explanation ──────
+function QuizModalPreview({ data }: { data: any }) {
+  const questions: any[] = data?.questions ?? [];
+  const title: string = data?.title || "";
+  const description: string = data?.description || "";
+
+  const [answers, setAnswers] = useState<Record<string, string[]>>({});
+  const [submitted, setSubmitted] = useState(false);
+  const [score, setScore] = useState<number | null>(null);
+  const questionRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  const total = questions.length;
+
+  if (total === 0) {
+    return (
+      <div className="w-full text-center text-gray-400 text-sm py-6">
+        No quiz questions added
+      </div>
+    );
+  }
+
+  const selectAnswer = (qId: string, optId: string, type: string) => {
+    if (submitted) return;
+    setAnswers((prev) => {
+      if (type === "single") return { ...prev, [qId]: [optId] };
+      const cur = prev[qId] ?? [];
+      return {
+        ...prev,
+        [qId]: cur.includes(optId)
+          ? cur.filter((id: string) => id !== optId)
+          : [...cur, optId],
+      };
+    });
+  };
+
+  const handleSubmit = () => {
+    let correct = 0;
+    questions.forEach((q: any) => {
+      const correctOpts = (q.options ?? [])
+        .filter((o: any) => o.value === "true")
+        .map((o: any) => o.id);
+      const userAns = answers[q.id] ?? [];
+      const isOk =
+        correctOpts.length > 0 &&
+        correctOpts.length === userAns.length &&
+        correctOpts.every((id: string) => userAns.includes(id));
+      if (isOk) correct++;
+    });
+    setScore(Math.round((correct / total) * 100));
+    setSubmitted(true);
+  };
+
+  const getStatus = (q: any, optId: string) => {
+    if (!submitted) return "idle";
+    const isCorrect =
+      (q.options ?? []).find((o: any) => o.id === optId)?.value === "true";
+    const userSelected = (answers[q.id] ?? []).includes(optId);
+    if (isCorrect && userSelected) return "correct";
+    if (!isCorrect && userSelected) return "wrong";
+    if (isCorrect && !userSelected) return "missed";
+    return "idle";
+  };
+
+  const isQuestionCorrect = (q: any) => {
+    if (!submitted) return null;
+    const correctOpts = (q.options ?? [])
+      .filter((o: any) => o.value === "true")
+      .map((o: any) => o.id);
+    const userAns = answers[q.id] ?? [];
+    return (
+      correctOpts.length > 0 &&
+      correctOpts.length === userAns.length &&
+      correctOpts.every((id: string) => userAns.includes(id))
+    );
+  };
+
+  return (
+    <div className="w-full">
+      {title && (
+        <p className="text-lg font-semibold text-gray-700 mb-1">{title}</p>
+      )}
+      {description && (
+        <p className="text-sm text-gray-500 mb-4 leading-relaxed">
+          {description}
+        </p>
+      )}
+
+      <div className="bg-white border-2 border-emerald-600 rounded-xl overflow-hidden">
+        {/* ── Navigation pills ── */}
+        <div className="px-6 pt-5 pb-4 border-b border-gray-100">
+          <p className="text-sm text-gray-500 mb-3">
+            Semua pertanyaan dijawab dengan benar
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {questions.map((q: any, idx: number) => {
+              const correct = isQuestionCorrect(q);
+              const answered = (answers[q.id] ?? []).length > 0;
+              const pillClass =
+                correct === true
+                  ? "bg-emerald-500 text-white"
+                  : correct === false
+                    ? "bg-red-400 text-white"
+                    : answered
+                      ? "bg-emerald-200 text-emerald-800"
+                      : "bg-emerald-500 text-white";
+              return (
+                <button
+                  key={q.id ?? idx}
+                  type="button"
+                  onClick={() =>
+                    questionRefs.current[idx]?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    })
+                  }
+                  className={`w-10 h-10 rounded-lg text-sm font-bold transition hover:opacity-80 ${pillClass}`}
+                >
+                  {idx + 1}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── All questions ── */}
+        <div className="divide-y divide-gray-100">
+          {questions.map((q: any, qIdx: number) => {
+            const correct = isQuestionCorrect(q);
+            return (
+              <div
+                key={q.id ?? qIdx}
+                ref={(el) => {
+                  questionRefs.current[qIdx] = el;
+                }}
+                className="px-6 py-6"
+              >
+                <p className="text-base font-bold text-gray-800 mb-0.5">
+                  Pertanyaan {qIdx + 1}
+                </p>
+                <p className="text-base text-gray-700 mb-1 leading-snug">
+                  {q.questionText || `Question ${qIdx + 1}`}
+                </p>
+                {q.questionType === "multiple" && (
+                  <p className="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wide">
+                    Pilih pernyataan yang BENAR.
+                  </p>
+                )}
+
+                <div className="space-y-2.5 mt-3">
+                  {(q.options ?? []).map((opt: any, oi: number) => {
+                    const status = getStatus(q, opt.id);
+                    const isSelected = (answers[q.id] ?? []).includes(opt.id);
+
+                    const rowClass =
+                      status === "correct"
+                        ? "border-emerald-400 bg-emerald-50"
+                        : status === "wrong"
+                          ? "border-gray-200 bg-white"
+                          : status === "missed"
+                            ? "border-emerald-300 bg-emerald-50/30"
+                            : isSelected
+                              ? "border-emerald-400 bg-emerald-50"
+                              : "border-gray-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/20";
+
+                    const checkBg =
+                      status === "correct" || isSelected
+                        ? "bg-emerald-500 border-emerald-500"
+                        : "border-gray-300 bg-white";
+
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() =>
+                          selectAnswer(q.id, opt.id, q.questionType)
+                        }
+                        disabled={submitted}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg border transition text-left ${rowClass}`}
+                      >
+                        <div
+                          className={`shrink-0 w-5 h-5 border-2 flex items-center justify-center transition ${
+                            q.questionType === "multiple"
+                              ? "rounded"
+                              : "rounded-full"
+                          } ${checkBg}`}
+                        >
+                          {(isSelected || status === "correct") && (
+                            <svg
+                              width="11"
+                              height="9"
+                              viewBox="0 0 11 9"
+                              fill="none"
+                            >
+                              <path
+                                d="M1 4.5 L4 7.5 L10 1"
+                                stroke="white"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          )}
+                        </div>
+                        <span className="text-sm flex-1 text-gray-700 leading-snug">
+                          {opt.text || `Option ${oi + 1}`}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Explanation box */}
+                {submitted && (
+                  <div
+                    className={`mt-4 flex items-start gap-3 px-4 py-3 rounded-xl ${
+                      correct
+                        ? "bg-emerald-50 border border-emerald-200"
+                        : "bg-red-50 border border-red-200"
+                    }`}
+                  >
+                    <div
+                      className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center mt-0.5 ${
+                        correct ? "bg-emerald-500" : "bg-red-400"
+                      }`}
+                    >
+                      {correct ? (
+                        <svg
+                          width="12"
+                          height="10"
+                          viewBox="0 0 12 10"
+                          fill="none"
+                        >
+                          <path
+                            d="M1 5 L4.5 8.5 L11 1"
+                            stroke="white"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      ) : (
+                        <svg
+                          width="10"
+                          height="10"
+                          viewBox="0 0 10 10"
+                          fill="none"
+                        >
+                          <path
+                            d="M2 2 L8 8 M8 2 L2 8"
+                            stroke="white"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      )}
+                    </div>
+                    <div>
+                      <p
+                        className={`text-sm font-bold ${
+                          correct ? "text-emerald-700" : "text-red-600"
+                        }`}
+                      >
+                        {correct ? "Benar!" : "Belum tepat."}
+                      </p>
+                      <p className="text-sm text-gray-600 mt-0.5 leading-relaxed">
+                        {correct
+                          ? "Tujuan utama data science adalah mengolah data agar menghasilkan insight yang berguna."
+                          : `Jawaban yang benar: ${
+                              (q.options ?? [])
+                                .filter((o: any) => o.value === "true")
+                                .map((o: any) => o.text)
+                                .join(", ") || "—"
+                            }`}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ── Footer: score + submit ── */}
+        <div className="px-6 pb-6 pt-4 border-t border-gray-100">
+          {submitted && score !== null && (
+            <div
+              className={`mb-4 px-5 py-4 rounded-xl text-center ${
+                score >= 70
+                  ? "bg-emerald-50 border border-emerald-200"
+                  : "bg-red-50 border border-red-200"
+              }`}
+            >
+              <p
+                className={`text-3xl font-bold ${score >= 70 ? "text-emerald-600" : "text-red-500"}`}
+              >
+                {score}%
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                {score >= 70 ? "Bagus! Kamu lulus quiz ini." : "Coba lagi ya!"}
+              </p>
+            </div>
+          )}
+          {!submitted ? (
+            <button
+              type="button"
+              onClick={handleSubmit}
+              className="w-full py-3 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition"
+            >
+              Submit Jawaban
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setAnswers({});
+                setSubmitted(false);
+                setScore(null);
+              }}
+              className="w-full py-3 rounded-lg border border-emerald-500 text-emerald-600 text-sm font-semibold hover:bg-emerald-50 transition"
+            >
+              Coba Lagi
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Project preview — 2 kolom: kiri deskripsi+instruksi+dokumen, kanan upload ─
+function ProjectModalPreview({ data }: { data: any }) {
+  const question: string = data?.question || "";
+  const attachments: any[] = data?.attachments ?? [];
+
+  const [submitted, setSubmitted] = useState(false);
+  const [submittedFiles, setSubmittedFiles] = useState<File[]>([]);
+  const [note, setNote] = useState("");
+  const [isDragOver, setIsDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const addFiles = (files: FileList | null) => {
+    if (!files) return;
+    setSubmittedFiles((prev) => [...prev, ...Array.from(files)]);
+  };
+
+  // Pisahkan question menjadi paragraf deskripsi dan instruksi bernomor
+  const lines = question
+    .split("\n")
+    .map((l: string) => l.trim())
+    .filter(Boolean);
+  const isInstructionLine = (line: string) => /^(\d+\.|[-•*])/.test(line);
+  const descLines = lines.filter((l: string) => !isInstructionLine(l));
+  const instrLines = lines.filter((l: string) => isInstructionLine(l));
+  const cleanInstruction = (line: string) =>
+    line.replace(/^(\d+\.|[-•*])\s*/, "").trim();
+
+  const formatColorMap: Record<string, string> = {
+    PDF: "bg-red-100 text-red-600",
+    DOC: "bg-blue-100 text-blue-600",
+    XLS: "bg-green-100 text-green-700",
+    JPG: "bg-yellow-100 text-yellow-700",
+    PNG: "bg-purple-100 text-purple-600",
+    SVG: "bg-emerald-100 text-emerald-600",
+    FILE: "bg-gray-100 text-gray-500",
+  };
+
+  if (!question && attachments.length === 0) {
+    return (
+      <div className="w-full text-center text-gray-400 text-sm py-6">
+        No project instructions added
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full">
+      <div className="bg-white border-2 border-emerald-600 rounded-xl overflow-hidden">
+        <div className="flex divide-x divide-gray-100">
+          {/* ── LEFT col: deskripsi, instruksi, dokumen ── */}
+          <div className="flex-1 min-w-0 px-7 py-6">
+            {/* Description */}
+            {descLines.length > 0 && (
+              <div className="mb-5">
+                <p className="text-sm font-bold text-gray-700 mb-2">
+                  Deskripsi Proyek
+                </p>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  {descLines.join(" ")}
+                </p>
+              </div>
+            )}
+
+            {/* Instructions */}
+            {instrLines.length > 0 && (
+              <div className="mb-5">
+                <p className="text-sm font-bold text-gray-700 mb-2">
+                  Instruksi Pengerjaan:
+                </p>
+                <ol className="space-y-2">
+                  {instrLines.map((line: string, i: number) => (
+                    <li key={i} className="flex gap-2.5">
+                      <span className="text-sm font-semibold text-gray-500 shrink-0 tabular-nums">
+                        {i + 1}.
+                      </span>
+                      <span className="text-sm text-gray-600 leading-relaxed">
+                        {cleanInstruction(line)}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+
+            {/* If no structured content at all, show raw */}
+            {descLines.length === 0 && instrLines.length === 0 && question && (
+              <p className="text-sm text-gray-600 leading-relaxed mb-5">
+                {question}
+              </p>
+            )}
+
+            {/* Documents */}
+            {attachments.length > 0 && (
+              <div>
+                <p className="text-sm font-bold text-gray-700 mb-2">
+                  Dokumen yang Perlu Diunduh
+                </p>
+                <div className="space-y-2">
+                  {attachments.map((att: any) => (
+                    <a
+                      key={att.id}
+                      href={att.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 px-3 py-3 rounded-xl border border-gray-200 bg-gray-50 hover:border-emerald-300 hover:bg-emerald-50/20 transition group/dl"
+                    >
+                      <div
+                        className={`w-10 h-11 rounded-lg flex items-center justify-center shrink-0 ${
+                          att.format === "PDF"
+                            ? "bg-red-100"
+                            : att.format === "DOC"
+                              ? "bg-blue-100"
+                              : att.format === "XLS" || att.format === "CSV"
+                                ? "bg-green-100"
+                                : "bg-gray-100"
+                        }`}
+                      >
+                        <svg
+                          width="18"
+                          height="20"
+                          viewBox="0 0 18 20"
+                          fill="none"
+                          className={
+                            att.format === "PDF"
+                              ? "text-red-500"
+                              : att.format === "DOC"
+                                ? "text-blue-500"
+                                : att.format === "XLS" || att.format === "CSV"
+                                  ? "text-green-600"
+                                  : "text-gray-400"
+                          }
+                        >
+                          <path
+                            d="M3 2h9l4 4v12a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"
+                            stroke="currentColor"
+                            strokeWidth="1.4"
+                            fill="none"
+                          />
+                          <path
+                            d="M12 2v5h4"
+                            stroke="currentColor"
+                            strokeWidth="1.4"
+                            fill="none"
+                          />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-700 truncate">
+                          {att.name}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {att.format}
+                        </p>
+                      </div>
+                      {/* Download circle button */}
+                      <div className="shrink-0 w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center group-hover/dl:border-emerald-400 group-hover/dl:bg-emerald-50 transition">
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 14 14"
+                          fill="none"
+                          className="text-gray-400 group-hover/dl:text-emerald-500 transition"
+                        >
+                          <path
+                            d="M7 2v8M4 7l3 3 3-3M2 12h10"
+                            stroke="currentColor"
+                            strokeWidth="1.6"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ── RIGHT col: upload + catatan ── */}
+          <div className="w-[240px] shrink-0 px-5 py-6 flex flex-col gap-4">
+            {!submitted ? (
+              <>
+                {/* Upload */}
+                <div>
+                  <p className="text-sm font-bold text-gray-700 mb-2">
+                    Unggah File
+                  </p>
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsDragOver(true);
+                    }}
+                    onDragLeave={() => setIsDragOver(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsDragOver(false);
+                      addFiles(e.dataTransfer.files);
+                    }}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`w-full border-2 border-dashed rounded-xl py-6 flex flex-col items-center justify-center cursor-pointer transition ${
+                      isDragOver
+                        ? "border-emerald-400 bg-emerald-50/30"
+                        : "border-gray-200 bg-gray-50/20 hover:border-emerald-300 hover:bg-emerald-50/20"
+                    }`}
+                  >
+                    <svg
+                      width="32"
+                      height="32"
+                      viewBox="0 0 32 32"
+                      fill="none"
+                      className={`mb-1.5 ${isDragOver ? "text-emerald-500" : "text-gray-400"}`}
+                    >
+                      <path
+                        d="M16 22V10M10 16l6-6 6 6"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <rect
+                        x="4"
+                        y="4"
+                        width="24"
+                        height="24"
+                        rx="5"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        fill="none"
+                        strokeOpacity="0.3"
+                      />
+                    </svg>
+                    <p className="text-xs text-gray-500 text-center leading-snug px-2">
+                      Unggah file PDF, XLS, DOC
+                    </p>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="hidden"
+                      multiple
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.svg"
+                      onChange={(e) => addFiles(e.target.files)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+
+                  {submittedFiles.length > 0 && (
+                    <div className="mt-2 space-y-1.5">
+                      {submittedFiles.map((f, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center gap-2 px-2.5 py-2 bg-emerald-50 rounded-lg border border-emerald-200"
+                        >
+                          <svg
+                            width="12"
+                            height="14"
+                            viewBox="0 0 12 14"
+                            fill="none"
+                            className="text-emerald-500 shrink-0"
+                          >
+                            <path
+                              d="M2 1h6l3 3v8a1 1 0 01-1 1H2a1 1 0 01-1-1V2a1 1 0 011-1z"
+                              stroke="currentColor"
+                              strokeWidth="1.2"
+                              fill="none"
+                            />
+                          </svg>
+                          <span className="text-xs text-emerald-700 flex-1 truncate">
+                            {f.name}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setSubmittedFiles((prev) =>
+                                prev.filter((_, i) => i !== idx),
+                              )
+                            }
+                            className="text-emerald-400 hover:text-red-400 transition"
+                          >
+                            <svg
+                              width="10"
+                              height="10"
+                              viewBox="0 0 10 10"
+                              fill="none"
+                            >
+                              <path
+                                d="M2 2l6 6M8 2l-6 6"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Catatan */}
+                <div>
+                  <p className="text-sm font-bold text-gray-700 mb-2">
+                    Catatan Tambahan (opsional)
+                  </p>
+                  <textarea
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="Tambahkan catatan untuk instruktur..."
+                    rows={3}
+                    className="w-full text-sm text-gray-700 placeholder-gray-300 border border-gray-200 rounded-lg px-3 py-2.5 resize-none focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                  />
+                </div>
+
+                {/* Submit */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (submittedFiles.length === 0) return;
+                    setSubmitted(true);
+                  }}
+                  disabled={submittedFiles.length === 0}
+                  className="w-full py-2.5 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition disabled:opacity-40"
+                >
+                  Kumpulkan Proyek →
+                </button>
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center text-center py-8 gap-3">
+                <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center">
+                  <svg
+                    width="28"
+                    height="28"
+                    viewBox="0 0 28 28"
+                    fill="none"
+                    className="text-emerald-500"
+                  >
+                    <path
+                      d="M6 14.5 L11 20 L22 9"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-gray-800">Terkumpul!</p>
+                  <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+                    Mentor akan mereview karyamu.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSubmitted(false);
+                    setSubmittedFiles([]);
+                    setNote("");
+                  }}
+                  className="text-xs font-semibold text-emerald-600 hover:underline"
+                >
+                  Kumpulkan ulang
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Render single item as preview ────────────────────────────────────────────
 function PreviewItem({ item }: { item: CanvasItem }) {
   switch (item.id) {
@@ -923,6 +1625,10 @@ function PreviewItem({ item }: { item: CanvasItem }) {
       return <MatchingPreview data={item.data} />;
     case "coding":
       return <CodingPreview data={item.data} />;
+    case "quiz":
+      return <QuizModalPreview data={item.data} />;
+    case "project":
+      return <ProjectModalPreview data={item.data} />;
     default:
       return null;
   }

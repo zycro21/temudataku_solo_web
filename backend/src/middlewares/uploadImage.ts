@@ -570,12 +570,12 @@ const mentoringThumbnailPath = path.join(
 );
 
 // 🔥 lebih jelas
-const normalizedMentoringThumbnailPath = path.normalize(
-  mentoringThumbnailPath,
-);
+const normalizedMentoringThumbnailPath = path.normalize(mentoringThumbnailPath);
 
-const cleanMentoringThumbnailPath =
-  normalizedMentoringThumbnailPath.replace(/^\\/, "");
+const cleanMentoringThumbnailPath = normalizedMentoringThumbnailPath.replace(
+  /^\\/,
+  "",
+);
 
 // ensure folder exists
 if (!fs.existsSync(cleanMentoringThumbnailPath)) {
@@ -588,8 +588,7 @@ export const handleMentoringThumbnailUpload = (
   isMultiple: boolean = false,
 ) => {
   const storage = multer.diskStorage({
-    destination: (req, file, cb) =>
-      cb(null, cleanMentoringThumbnailPath),
+    destination: (req, file, cb) => cb(null, cleanMentoringThumbnailPath),
 
     filename: (req, file, cb) => {
       const ext = path.extname(file.originalname);
@@ -610,10 +609,7 @@ export const handleMentoringThumbnailUpload = (
       const now = new Date();
       const dateString = `${now.getFullYear()}${(now.getMonth() + 1)
         .toString()
-        .padStart(2, "0")}${now
-        .getDate()
-        .toString()
-        .padStart(2, "0")}`;
+        .padStart(2, "0")}${now.getDate().toString().padStart(2, "0")}`;
 
       const random = Math.random().toString(36).substring(2, 7);
 
@@ -630,3 +626,261 @@ export const handleMentoringThumbnailUpload = (
 
 // export path
 export { cleanMentoringThumbnailPath as mentoringThumbnailPath };
+
+// === Untuk File Assignment Dari Admin ===
+const assignmentFilesPath = path.join(
+  __dirname,
+  "../../uploads/elearningAssignments",
+);
+
+const normalizedAssignmentFilesPath = path.normalize(assignmentFilesPath);
+
+const cleanAssignmentFilesPath = normalizedAssignmentFilesPath.replace(
+  /^\\/,
+  "",
+);
+
+if (!fs.existsSync(cleanAssignmentFilesPath)) {
+  fs.mkdirSync(cleanAssignmentFilesPath, {
+    recursive: true,
+  });
+}
+
+export const handleAssignmentSupportingFilesUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, cleanAssignmentFilesPath);
+    },
+
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname);
+
+      const now = new Date();
+
+      const dateString = `${now.getFullYear()}${(now.getMonth() + 1)
+        .toString()
+        .padStart(2, "0")}${now.getDate().toString().padStart(2, "0")}`;
+
+      const random = Math.random().toString(36).substring(2, 8);
+
+      const safeName = file.originalname
+        .replace(ext, "")
+        .toLowerCase()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9-]/g, "");
+
+      cb(null, `assignment-${safeName}-${dateString}-${random}${ext}`);
+    },
+  }),
+
+  limits: {
+    files: 20,
+    fileSize: 20 * 1024 * 1024,
+  },
+
+  fileFilter: (req, file, cb) => {
+    const allowed = [
+      ".pdf",
+      ".doc",
+      ".docx",
+      ".xls",
+      ".xlsx",
+      ".csv",
+      ".zip",
+      ".rar",
+      ".txt",
+      ".ppt",
+      ".pptx",
+    ];
+
+    const ext = path.extname(file.originalname).toLowerCase();
+
+    if (!allowed.includes(ext)) {
+      return cb(new Error("Format file assignment tidak didukung"));
+    }
+
+    cb(null, true);
+  },
+}).array("supportingFiles", 20);
+
+export { cleanAssignmentFilesPath as assignmentFilesPath };
+
+// === Untuk Image/Video Assignment Additional Content Elearning Dari Admin ===
+const imageVideoPath = path.join(
+  __dirname,
+  "../../uploads/elearningMediaContents",
+);
+
+const normalizedImageVideoPath = path.normalize(imageVideoPath);
+
+const cleanImageVideoPath = normalizedImageVideoPath.replace(/^\\/, "");
+
+if (!fs.existsSync(cleanImageVideoPath)) {
+  fs.mkdirSync(cleanImageVideoPath, {
+    recursive: true,
+  });
+}
+
+export const handleELearningMediaUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, cleanImageVideoPath);
+    },
+
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname);
+
+      const now = new Date();
+
+      const dateString = `${now.getFullYear()}${(now.getMonth() + 1)
+        .toString()
+        .padStart(2, "0")}${now.getDate().toString().padStart(2, "0")}`;
+
+      const random = Math.random().toString(36).substring(2, 8);
+
+      const safeName = file.originalname
+        .replace(ext, "")
+        .toLowerCase()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9-]/g, "");
+
+      cb(null, `media-${safeName}-${dateString}-${random}${ext}`);
+    },
+  }),
+
+  limits: {
+    files: 50,
+    fileSize: 100 * 1024 * 1024,
+  },
+
+  fileFilter: (req, file, cb) => {
+    const allowed = [
+      ".jpg",
+      ".jpeg",
+      ".png",
+      ".gif",
+      ".webp",
+      ".mp4",
+      ".mov",
+      ".avi",
+      ".mkv",
+      ".webm",
+    ];
+
+    const ext = path.extname(file.originalname).toLowerCase();
+
+    if (!allowed.includes(ext)) {
+      return cb(new Error("Format image/video tidak didukung"));
+    }
+
+    cb(null, true);
+  },
+});
+
+const eLearningStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    if (file.fieldname === "supportingFiles") {
+      cb(null, cleanAssignmentFilesPath);
+      return;
+    }
+
+    if (file.fieldname === "mediaFiles") {
+      cb(null, cleanImageVideoPath);
+      return;
+    }
+
+    cb(new Error("Field file tidak dikenali"), "");
+  },
+
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+
+    const now = new Date();
+
+    const dateString = `${now.getFullYear()}${(now.getMonth() + 1)
+      .toString()
+      .padStart(2, "0")}${now.getDate().toString().padStart(2, "0")}`;
+
+    const random = Math.random().toString(36).substring(2, 8);
+
+    const safeName = file.originalname
+      .replace(ext, "")
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "");
+
+    const prefix =
+      file.fieldname === "supportingFiles" ? "assignment" : "media";
+
+    cb(null, `${prefix}-${safeName}-${dateString}-${random}${ext}`);
+  },
+});
+
+const assignmentExtensions = [
+  ".pdf",
+  ".doc",
+  ".docx",
+  ".xls",
+  ".xlsx",
+  ".csv",
+  ".zip",
+  ".rar",
+  ".txt",
+  ".ppt",
+  ".pptx",
+];
+
+const mediaExtensions = [
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".gif",
+  ".webp",
+  ".mp4",
+  ".mov",
+  ".avi",
+  ".mkv",
+  ".webm",
+];
+
+const eLearningFileFilter: multer.Options["fileFilter"] = (req, file, cb) => {
+  const ext = path.extname(file.originalname).toLowerCase();
+
+  if (file.fieldname === "supportingFiles") {
+    if (!assignmentExtensions.includes(ext)) {
+      return cb(new Error("Format file assignment tidak didukung"));
+    }
+
+    return cb(null, true);
+  }
+
+  if (file.fieldname === "mediaFiles") {
+    if (!mediaExtensions.includes(ext)) {
+      return cb(new Error("Format image/video tidak didukung"));
+    }
+
+    return cb(null, true);
+  }
+
+  return cb(new Error("Field file tidak dikenali"));
+};
+
+export const handleELearningTextFilesUpload = multer({
+  storage: eLearningStorage,
+
+  limits: {
+    files: 70,
+    fileSize: 100 * 1024 * 1024,
+  },
+
+  fileFilter: eLearningFileFilter,
+}).fields([
+  {
+    name: "supportingFiles",
+    maxCount: 20,
+  },
+  {
+    name: "mediaFiles",
+    maxCount: 50,
+  },
+]);

@@ -247,215 +247,405 @@ function mapMaterialToCanvasItems(material: any): CanvasItem[] {
     matching: "matching",
   };
 
-  return material.blocks.flatMap((block: any) =>
-    block.contents.map((content: any) => {
-      const canvasId = TYPE_MAP[content.type] ?? content.type;
+  const blockItems: CanvasItem[] = (material.blocks ?? []).flatMap(
+    (block: any) => {
+      // ── restore contents ──────────────────────────────────────────────────
+      const contentItems = (block.contents ?? []).map((content: any) => {
+        const canvasId = TYPE_MAP[content.type] ?? content.type;
+        let data: any = undefined;
 
-      // Normalize data sesuai format yang dipakai tiap Body component
-      let data: any = undefined;
+        switch (content.type) {
+          case "heading":
+          case "paragraph":
+          case "highlight":
+            data = { value: markdownToHTML(content.text ?? "") };
+            break;
 
-      switch (content.type) {
-        case "heading":
-        case "paragraph":
-        case "highlight":
-          // HeadingBody, ParagraphBody, HighlightBody pakai data.value
-          data = { value: markdownToHTML(content.text ?? "") };
-          break;
+          case "summary":
+            data = {
+              value: Array.isArray(content.comments)
+                ? content.comments
+                    .map((c: string) => `<p>${markdownToHTML(c)}</p>`)
+                    .join("")
+                : markdownToHTML(content.text ?? ""),
+            };
+            break;
 
-        case "summary":
-          // SummaryBody pakai data.value (string HTML atau plain text)
-          data = {
-            value: Array.isArray(content.comments)
-              ? content.comments
-                  .map((c: string) => `<p>${markdownToHTML(c)}</p>`)
-                  .join("")
-              : markdownToHTML(content.text ?? ""),
-          };
-          break;
+          case "accordion":
+            data = {
+              titleHTML: content.title ?? "",
+              descriptionHTML: markdownToHTML(content.description ?? ""),
+              panels: (content.items ?? []).map((item: any, i: number) => ({
+                id: item.id ?? `acc-item-${i}`,
+                titleHTML: markdownToHTML(item.title ?? ""),
+                contentHTML: markdownToHTML(item.content ?? ""),
+              })),
+            };
+            break;
 
-        case "accordion":
-          // AccordionBody restore cek initialData?.panels (format internal setelah Create)
-          // bukan initialData?.items — jadi kita harus output format "panels"
-          data = {
-            titleHTML: content.title ?? "",
-            descriptionHTML: markdownToHTML(content.description ?? ""),
-            panels: (content.items ?? []).map((item: any, i: number) => ({
-              id: item.id ?? `acc-item-${i}`,
-              titleHTML: markdownToHTML(item.title ?? ""),
-              contentHTML: markdownToHTML(item.content ?? ""),
-            })),
-          };
-          break;
+          case "carousel":
+            data = {
+              title: content.title ?? "",
+              description: markdownToHTML(content.description ?? ""),
+              cardsPerSlide: content.cardsPerSlide ?? 3,
+              items: (content.items ?? []).map((item: any, i: number) => ({
+                id: item.id ?? `crs-item-${i}`,
+                label: markdownToHTML(item.title ?? ""),
+                title: markdownToHTML(item.title ?? ""),
+                content: markdownToHTML(item.content ?? ""),
+              })),
+            };
+            break;
 
-        case "carousel":
-          // CarouselBody pakai initialData: { title, description, cardsPerSlide, items: [{id, label, content, title}] }
-          data = {
-            title: content.title ?? "",
-            description: markdownToHTML(content.description ?? ""),
-            cardsPerSlide: content.cardsPerSlide ?? 3,
-            items: (content.items ?? []).map((item: any, i: number) => ({
-              id: item.id ?? `crs-item-${i}`,
-              label: markdownToHTML(item.title ?? ""),
-              title: markdownToHTML(item.title ?? ""),
-              content: markdownToHTML(item.content ?? ""),
-            })),
-          };
-          break;
+          case "content_card":
+            data = {
+              title: content.title ?? "",
+              description: markdownToHTML(content.description ?? ""),
+              disableExpandable: content.disableExpandableContent ?? false,
+              cards: (content.items ?? []).map((item: any, i: number) => ({
+                id: item.id ?? `card-item-${i}`,
+                title: markdownToHTML(item.title ?? ""),
+                content: markdownToHTML(item.content ?? ""),
+                expandedContent: markdownToHTML(item.expandableContent ?? ""),
+              })),
+            };
+            break;
 
-        case "content_card":
-          // ContentCardBody restore cek initialData?.cards dengan field:
-          // { id, title, content, expandedContent } — bukan expandableContent
-          // dan cek disableExpandable bukan disableExpandableContent
-          data = {
-            title: content.title ?? "",
-            description: markdownToHTML(content.description ?? ""),
-            disableExpandable: content.disableExpandableContent ?? false,
-            cards: (content.items ?? []).map((item: any, i: number) => ({
-              id: item.id ?? `card-item-${i}`,
-              title: markdownToHTML(item.title ?? ""),
-              content: markdownToHTML(item.content ?? ""),
-              expandedContent: markdownToHTML(item.expandableContent ?? ""),
-            })),
-          };
-          break;
+          case "tab_navigation":
+            data = {
+              title: content.title ?? "",
+              description: markdownToHTML(content.description ?? ""),
+              tabs: (content.tabs ?? []).map((tab: any, i: number) => ({
+                id: tab.id ?? `tab-item-${i}`,
+                title: markdownToHTML(tab.title ?? ""),
+                content: markdownToHTML(tab.content ?? ""),
+              })),
+            };
+            break;
 
-        case "tab_navigation":
-          // TabNavigationBody pakai initialData: { title, description, tabs: [{id, title, content}] }
-          data = {
-            title: content.title ?? "",
-            description: markdownToHTML(content.description ?? ""),
-            tabs: (content.tabs ?? []).map((tab: any, i: number) => ({
-              id: tab.id ?? `tab-item-${i}`,
-              title: markdownToHTML(tab.title ?? ""),
-              content: markdownToHTML(tab.content ?? ""),
-            })),
-          };
-          break;
+          case "image":
+            data = { src: content.url ?? content.src ?? null };
+            break;
 
-        case "image":
-          data = { src: content.url ?? content.src ?? null };
-          break;
+          case "video":
+            data = { src: content.url ?? content.src ?? null };
+            break;
 
-        case "video":
-          data = { src: content.url ?? content.src ?? null };
-          break;
+          case "matching":
+            data = {
+              question: markdownToHTML(
+                content.question ?? content.content?.question ?? "",
+              ),
+              description: markdownToHTML(
+                content.description ?? content.content?.description ?? "",
+              ),
+              leftItems: (
+                content.leftItems ??
+                content.content?.leftItems ??
+                []
+              ).map((item: any, i: number) => ({
+                id: item.id ?? `left-${i}`,
+                text: markdownToHTML(item.text ?? ""),
+              })),
+              rightItems: (
+                content.rightItems ??
+                content.content?.rightItems ??
+                []
+              ).map((item: any, i: number) => ({
+                id: item.id ?? `right-${i}`,
+                text: markdownToHTML(item.text ?? ""),
+              })),
+              correctPairs: (
+                content.correctPairs ??
+                content.content?.correctPairs ??
+                []
+              ).map((pair: any) => ({
+                leftId: pair.leftId ?? "",
+                rightId: pair.rightId ?? "",
+              })),
+              explanation: markdownToHTML(
+                content.explanation ?? content.content?.explanation ?? "",
+              ),
+            };
+            break;
 
-        case "matching":
-          data = {
-            question: markdownToHTML(
-              content.question ?? content.content?.question ?? "",
-            ),
-            description: markdownToHTML(
-              content.description ?? content.content?.description ?? "",
-            ),
-            leftItems: (
-              content.leftItems ??
-              content.content?.leftItems ??
-              []
-            ).map((item: any, i: number) => ({
-              id: item.id ?? `left-${i}`,
-              text: markdownToHTML(item.text ?? ""),
-            })),
-            rightItems: (
-              content.rightItems ??
-              content.content?.rightItems ??
-              []
-            ).map((item: any, i: number) => ({
-              id: item.id ?? `right-${i}`,
-              text: markdownToHTML(item.text ?? ""),
-            })),
-            correctPairs: (
-              content.correctPairs ??
-              content.content?.correctPairs ??
-              []
-            ).map((pair: any) => ({
-              leftId: pair.leftId ?? "",
-              rightId: pair.rightId ?? "",
-            })),
-            explanation: markdownToHTML(
-              content.explanation ?? content.content?.explanation ?? "",
-            ),
-          };
-          break;
+          case "true-false":
+            data = {
+              question: markdownToHTML(
+                content.question ?? content.content?.question ?? "",
+              ),
+              description: markdownToHTML(
+                content.description ?? content.content?.description ?? "",
+              ),
+              questions: (() => {
+                if (content.questions ?? content.content?.questions) {
+                  return (content.questions ?? content.content?.questions).map(
+                    (q: any) => ({
+                      id: q.id ?? `tf-${Math.random()}`,
+                      statement: markdownToHTML(q.statement ?? ""),
+                      answer: q.answer ?? null,
+                    }),
+                  );
+                }
+                const options = content.options ??
+                  content.content?.options ?? [
+                    { id: "true", text: "True" },
+                    { id: "false", text: "False" },
+                  ];
+                const correctAnswers =
+                  content.correctAnswers ??
+                  content.content?.correctAnswers ??
+                  [];
+                return options.map((opt: any, i: number) => ({
+                  id: opt.id ?? `tf-${i}`,
+                  statement: markdownToHTML(opt.text ?? ""),
+                  answer: correctAnswers.includes(opt.id) ? "true" : "false",
+                }));
+              })(),
+              explanation: markdownToHTML(
+                content.explanation ?? content.content?.explanation ?? "",
+              ),
+            };
+            break;
 
-        case "true-false":
-          // TrueFalseBody pakai questions[].{id, statement, answer}
-          // Data dari MultipleChoiceContent: options = [{id, text}], correctAnswers = [id]
-          data = {
-            question: markdownToHTML(
-              content.question ?? content.content?.question ?? "",
-            ),
-            description: markdownToHTML(
-              content.description ?? content.content?.description ?? "",
-            ),
-            // Kalau sudah dalam format TrueFalseBody internal (questions[]), restore langsung
-            // Kalau dari MultipleChoiceContent (options[]), konversi ke format TrueFalseBody
-            questions: (() => {
-              // Format internal TrueFalseBody: questions[].{id, statement, answer}
-              if (content.questions ?? content.content?.questions) {
-                return (content.questions ?? content.content?.questions).map(
-                  (q: any) => ({
-                    id: q.id ?? `tf-${Math.random()}`,
-                    statement: markdownToHTML(q.statement ?? ""),
-                    answer: q.answer ?? null,
-                  }),
-                );
-              }
-              // Format dari MultipleChoiceContent: options[].{id, text}, correctAnswers[]
-              const options = content.options ??
-                content.content?.options ?? [
-                  { id: "true", text: "True" },
-                  { id: "false", text: "False" },
-                ];
-              const correctAnswers =
-                content.correctAnswers ?? content.content?.correctAnswers ?? [];
-              return options.map((opt: any, i: number) => ({
-                id: opt.id ?? `tf-${i}`,
-                statement: markdownToHTML(opt.text ?? ""),
-                // Jika option id ada di correctAnswers → answer "true", sisanya "false"
-                answer: correctAnswers.includes(opt.id) ? "true" : "false",
+          case "coding":
+            data = {
+              title: markdownToHTML(
+                content.title ?? content.content?.title ?? "",
+              ),
+              description: markdownToHTML(
+                content.description ?? content.content?.description ?? "",
+              ),
+              language:
+                content.language ?? content.content?.language ?? "python",
+              question:
+                content.initialCode ?? content.content?.initialCode ?? "",
+              expectedOutput:
+                content.expectedResult ?? content.content?.expectedResult ?? "",
+            };
+            break;
+
+          default:
+            data = content;
+            break;
+        }
+
+        return {
+          id: canvasId,
+          instanceId: crypto.randomUUID(),
+          label:
+            ALL_ELEMENTS.find((el) => el.id === canvasId)?.label ?? canvasId,
+          description:
+            ALL_ELEMENTS.find((el) => el.id === canvasId)?.description ?? "",
+          data,
+        };
+      });
+
+      // ── restore additionalContents dari DB ───────────────────────────────
+      const additionalItems: CanvasItem[] = (block.additionalContents ?? [])
+        .map((ac: any) => {
+          let item: CanvasItem | null = null;
+
+          if (ac.type === "image_video") {
+            const mediaType = ac.content?.mediaType ?? "IMAGE";
+            const canvasId = mediaType === "VIDEO" ? "video" : "image";
+            const rawUrl: string | null = ac.content?.url ?? null;
+            const resolvedUrl =
+              rawUrl && rawUrl.startsWith("/")
+                ? `${process.env.NEXT_PUBLIC_API_BASE_URL}${rawUrl}`
+                : rawUrl;
+            item = {
+              id: canvasId,
+              instanceId: crypto.randomUUID(),
+              label: mediaType === "VIDEO" ? "Video" : "Image",
+              description:
+                ALL_ELEMENTS.find((el) => el.id === canvasId)?.description ??
+                "",
+              data: { src: resolvedUrl },
+            } as CanvasItem;
+          } else if (ac.type === "matching") {
+            const c = ac.content ?? {};
+            // items dari DB: { content, side, orderNumber, matchWithId }
+            const leftItems = (c.items ?? [])
+              .filter((i: any) => i.side === "LEFT")
+              .map((i: any, idx: number) => ({
+                id: i.id ?? `left-${idx}`,
+                text: markdownToHTML(i.content ?? ""),
               }));
-            })(),
-            explanation: markdownToHTML(
-              content.explanation ?? content.content?.explanation ?? "",
-            ),
-          };
-          break;
+            const rightItems = (c.items ?? [])
+              .filter((i: any) => i.side === "RIGHT")
+              .map((i: any, idx: number) => ({
+                id: i.id ?? `right-${idx}`,
+                text: markdownToHTML(i.content ?? ""),
+              }));
+            // matchWithId di LEFT item = id RIGHT item (temp string dari DB)
+            const leftRaw = (c.items ?? []).filter(
+              (i: any) => i.side === "LEFT",
+            );
+            const rightRaw = (c.items ?? []).filter(
+              (i: any) => i.side === "RIGHT",
+            );
+            const correctPairs = leftRaw
+              .filter((l: any) => l.matchWithId)
+              .map((l: any, idx: number) => ({
+                leftId: leftItems[idx]?.id ?? `left-${idx}`,
+                rightId: l.matchWithId,
+              }));
+            item = {
+              id: "matching",
+              instanceId: crypto.randomUUID(),
+              label: "Matching",
+              description:
+                ALL_ELEMENTS.find((el) => el.id === "matching")?.description ??
+                "",
+              data: {
+                question: markdownToHTML(c.title ?? ""),
+                description: markdownToHTML(c.instruction ?? ""),
+                leftItems,
+                rightItems,
+                correctPairs,
+                explanation: markdownToHTML(c.explanation ?? ""),
+              },
+            } as CanvasItem;
+          } else if (ac.type === "interactive_code") {
+            const c = ac.content ?? {};
+            item = {
+              id: "coding",
+              instanceId: crypto.randomUUID(),
+              label: "Coding",
+              description:
+                ALL_ELEMENTS.find((el) => el.id === "coding")?.description ??
+                "",
+              data: {
+                title: markdownToHTML(c.title ?? ""),
+                description: markdownToHTML(c.description ?? ""),
+                language: (c.language ?? "PYTHON").toLowerCase(),
+                question: c.initialCode ?? "",
+                expectedOutput: c.expectedResult ?? "",
+              },
+            } as CanvasItem;
+          } else if (ac.type === "multiple_choice") {
+            const c = ac.content ?? {};
+            item = {
+              id: "true-false",
+              instanceId: crypto.randomUUID(),
+              label: "True / False",
+              description:
+                ALL_ELEMENTS.find((el) => el.id === "true-false")
+                  ?.description ?? "",
+              data: {
+                question: markdownToHTML(c.question ?? ""),
+                description: markdownToHTML(c.description ?? ""),
+                explanation: markdownToHTML(c.explanation ?? ""),
+                questions: (c.options ?? []).map((opt: any, i: number) => ({
+                  id: opt.id ?? `tf-${i}`,
+                  statement: markdownToHTML(opt.content ?? ""),
+                  answer: opt.isCorrect ? "true" : "false",
+                })),
+              },
+            } as CanvasItem;
+          }
 
-        case "coding":
-          data = {
-            // title & description dari data coding jika ada
-            title: markdownToHTML(
-              content.title ?? content.content?.title ?? "",
-            ),
-            description: markdownToHTML(
-              content.description ?? content.content?.description ?? "",
-            ),
-            // language, initialCode, expectedResult dari InteractiveCodeContent
-            language: content.language ?? content.content?.language ?? "python",
-            // initialCode → dipakai sebagai "question" (code syntax) di CodingBody
-            question: content.initialCode ?? content.content?.initialCode ?? "",
-            expectedOutput:
-              content.expectedResult ?? content.content?.expectedResult ?? "",
-          };
-          break;
+          if (!item) return null;
+          // Bawa orderNumber dari DB supaya bisa di-sort bersama contentItems
+          return { ...item, _orderNumber: ac.orderNumber ?? 9999 };
+        })
+        .filter(Boolean) as (CanvasItem & { _orderNumber: number })[];
 
-        default:
-          data = content;
-          break;
-      }
+      // ── Gabung contents + additionalContents, sort by orderNumber global ──
+      const contentItemsWithOrder = contentItems.map(
+        (ci: CanvasItem, idx: number) => ({
+          ...ci,
+          _orderNumber: (block.contents ?? [])[idx]?.orderNumber ?? idx + 1,
+        }),
+      );
 
-      return {
-        id: canvasId,
-        instanceId: crypto.randomUUID(),
-        // Label untuk ditampilkan di card header — ambil dari ALL_ELEMENTS
-        label: ALL_ELEMENTS.find((el) => el.id === canvasId)?.label ?? canvasId,
-        description:
-          ALL_ELEMENTS.find((el) => el.id === canvasId)?.description ?? "",
-        data,
-      };
-    }),
+      const merged = [...contentItemsWithOrder, ...additionalItems].sort(
+        (a, b) => (a as any)._orderNumber - (b as any)._orderNumber,
+      );
+
+      // Bersihkan field internal sebelum dikembalikan
+      return merged.map(({ _orderNumber, ...rest }: any) => rest);
+    },
   );
+
+  // ── Restore quiz dari subBab.quiz ─────────────────────────────────────────
+  const quizItems: CanvasItem[] = [];
+  const backendQuiz = material.subBab?.quiz;
+  if (backendQuiz) {
+    quizItems.push({
+      id: "quiz",
+      instanceId: crypto.randomUUID(),
+      label: "Quiz",
+      description: "Enables learners to practice coding directly.",
+      iconSrc: "/assets/admin/elearning/materials/quiz.svg", // ← tambah ini
+      category: "assesment", // ← tambah ini
+      data: {
+        title: backendQuiz.title ?? "",
+        description: backendQuiz.description ?? "",
+        questions: (backendQuiz.questions ?? []).map((q: any) => {
+          const options = (q.options ?? []).map(
+            (optText: string, i: number) => ({
+              id: `opt-${q.id}-${i}`,
+              text: optText,
+              value: (q.correctAnswers ?? []).includes(optText)
+                ? "true"
+                : "false",
+            }),
+          );
+          return {
+            id: q.id ?? `q-${Math.random()}`,
+            questionText: q.questionText ?? "",
+            questionType:
+              options.filter((o: any) => o.value === "true").length > 1
+                ? "multiple"
+                : "single",
+            options,
+          };
+        }),
+      },
+    });
+  }
+
+  // ── Restore assignment dari subBab.assignment ─────────────────────────────
+  const assignmentItems: CanvasItem[] = [];
+  const backendAssignment = material.subBab?.assignment;
+  if (backendAssignment) {
+    const descPart = backendAssignment.description ?? "";
+    const instrPart = (backendAssignment.instructions ?? [])
+      .map((instr: any, idx: number) => `${idx + 1}. ${instr.instruction}`)
+      .join("\n");
+    const question = [descPart, instrPart].filter(Boolean).join("\n");
+
+    assignmentItems.push({
+      id: "project",
+      instanceId: crypto.randomUUID(),
+      label: "Project",
+      description: "Enables learners to practice coding directly.",
+      iconSrc: "/assets/admin/elearning/materials/project.svg", // ← tambah ini
+      category: "assesment", // ← tambah ini
+      data: {
+        question,
+        attachments: (backendAssignment.supportingFiles ?? []).map((f: any) => {
+          const rawUrl: string = f.url ?? "";
+          const resolvedUrl =
+            rawUrl && rawUrl.startsWith("/")
+              ? `${process.env.NEXT_PUBLIC_API_BASE_URL}${rawUrl}`
+              : rawUrl;
+          return {
+            id: f.id ?? `att-${Math.random()}`,
+            name: f.name ?? "file",
+            url: resolvedUrl,
+            format: (f.format ?? "FILE").replace(".", "").toUpperCase(),
+          };
+        }),
+        deadlineDate: "",
+        deadlineTime: "",
+      },
+    });
+  }
+
+  return [...blockItems, ...quizItems, ...assignmentItems];
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -533,6 +723,14 @@ export default function CreateMaterialPage() {
           setTextId(data.id);
           setTitle(data.title || "Untitled material");
           setStatus(data.status);
+
+          // Restore canvas items dari data backend (blocks + quiz + assignment)
+          const mappedItems = mapMaterialToCanvasItems(data);
+          if (mappedItems.length > 0) {
+            setItems(mappedItems);
+            setHistory([mappedItems]);
+            setHistoryIdx(0);
+          }
         } catch (err: any) {
           toast.error(
             err?.response?.data?.message ||
@@ -803,6 +1001,346 @@ export default function CreateMaterialPage() {
   const canUndo = historyIdx > 0;
   const canRedo = historyIdx < history.length - 1;
 
+  // ── Mapper: CanvasItem[] → BlockInput[] (format yang diterima backend) ────
+  const buildBlocksPayload = (canvasItems: CanvasItem[]) => {
+    const contents: any[] = [];
+    const additionalContents: any[] = [];
+    const mediaFilesToUpload: File[] = [];
+    // Satu counter global untuk contents DAN additionalContents
+    // supaya urutan canvas (heading→paragraph→image→accordion) tersimpan dengan benar
+    let globalOrder = 1;
+
+    for (const item of canvasItems) {
+      const d = item.data ?? {};
+
+      switch (item.id) {
+        case "heading":
+          contents.push({
+            type: "heading",
+            level: 1,
+            text: htmlToMarkdown(d.value ?? ""),
+            orderNumber: globalOrder++,
+          });
+          break;
+
+        case "paragraph":
+          contents.push({
+            type: "paragraph",
+            text: htmlToMarkdown(d.value ?? ""),
+            orderNumber: globalOrder++,
+          });
+          break;
+
+        case "highlight":
+          contents.push({
+            type: "highlight",
+            text: htmlToMarkdown(d.value ?? "").slice(0, 120),
+            orderNumber: globalOrder++,
+          });
+          break;
+
+        case "summary":
+          contents.push({
+            type: "summary",
+            orderNumber: globalOrder++,
+            comments: htmlToMarkdown(d.value ?? "")
+              .split("\n")
+              .map((s: string) => s.trim())
+              .filter(Boolean),
+          });
+          break;
+
+        case "accordion":
+          contents.push({
+            type: "accordion",
+            title: d.titleHTML ?? "",
+            description: htmlToMarkdown(d.descriptionHTML ?? ""),
+            orderNumber: globalOrder++,
+            items: (d.panels ?? []).map((p: any, i: number) => ({
+              title: htmlToMarkdown(p.titleHTML ?? ""),
+              content: htmlToMarkdown(p.contentHTML ?? ""),
+              orderNumber: i + 1,
+            })),
+          });
+          break;
+
+        case "carousel":
+          contents.push({
+            type: "carousel",
+            title: d.title ?? "",
+            description: htmlToMarkdown(d.description ?? ""),
+            cardsPerSlide: d.cardsPerSlide ?? 3,
+            orderNumber: globalOrder++,
+            items: (d.items ?? []).map((it: any, i: number) => ({
+              title: htmlToMarkdown(it.title ?? it.label ?? ""),
+              image: it.image ?? undefined,
+              content: htmlToMarkdown(it.content ?? ""),
+              orderNumber: i + 1,
+            })),
+          });
+          break;
+
+        case "content-card":
+          contents.push({
+            type: "content_card",
+            title: d.title ?? "",
+            description: htmlToMarkdown(d.description ?? ""),
+            disableExpandableContent: d.disableExpandable ?? false,
+            orderNumber: globalOrder++,
+            items: (d.cards ?? []).map((c: any, i: number) => ({
+              title: htmlToMarkdown(c.title ?? ""),
+              content: htmlToMarkdown(c.content ?? ""),
+              expandableContent: c.expandedContent
+                ? htmlToMarkdown(c.expandedContent)
+                : undefined,
+              orderNumber: i + 1,
+            })),
+          });
+          break;
+
+        case "tab-navigation":
+          contents.push({
+            type: "tab_navigation",
+            title: d.title ?? "",
+            description: htmlToMarkdown(d.description ?? ""),
+            orderNumber: globalOrder++,
+            tabs: (d.tabs ?? []).map((t: any, i: number) => ({
+              title: htmlToMarkdown(t.title ?? ""),
+              content: htmlToMarkdown(t.content ?? ""),
+              orderNumber: i + 1,
+            })),
+          });
+          break;
+
+        case "image": {
+          const src = d.src ?? "";
+          const isBlob = src.startsWith("blob:");
+          const file: File | null = d._file ?? null;
+          if (isBlob && file) {
+            mediaFilesToUpload.push(file);
+            additionalContents.push({
+              type: "image_video",
+              position: "AFTER",
+              orderNumber: globalOrder++,
+              isNewUpload: true,
+              content: { mediaType: "IMAGE" },
+            });
+          } else if (src && !isBlob) {
+            additionalContents.push({
+              type: "image_video",
+              position: "AFTER",
+              orderNumber: globalOrder++,
+              isNewUpload: false,
+              content: { url: src, mediaType: "IMAGE" },
+            });
+          }
+          break;
+        }
+
+        case "video": {
+          const src = d.src ?? "";
+          const isBlob = src.startsWith("blob:");
+          const file: File | null = d._file ?? null;
+          if (isBlob && file) {
+            mediaFilesToUpload.push(file);
+            additionalContents.push({
+              type: "image_video",
+              position: "AFTER",
+              orderNumber: globalOrder++,
+              isNewUpload: true,
+              content: { mediaType: "VIDEO" },
+            });
+          } else if (src && !isBlob) {
+            additionalContents.push({
+              type: "image_video",
+              position: "AFTER",
+              orderNumber: globalOrder++,
+              isNewUpload: false,
+              content: { url: src, mediaType: "VIDEO" },
+            });
+          }
+          break;
+        }
+
+        case "coding":
+          additionalContents.push({
+            type: "interactive_code",
+            position: "AFTER",
+            orderNumber: globalOrder++,
+            content: {
+              title: htmlToMarkdown(d.title ?? ""),
+              description: htmlToMarkdown(d.description ?? ""),
+              language: (d.language ?? "python").toUpperCase() as
+                | "PYTHON"
+                | "JAVASCRIPT"
+                | "CPP"
+                | "SQL"
+                | "R",
+              initialCode: d.question ?? "",
+              isEditable: true,
+              expectedResult: d.expectedOutput ?? "",
+            },
+          });
+          break;
+
+        case "matching":
+          additionalContents.push({
+            type: "matching",
+            position: "AFTER",
+            orderNumber: globalOrder++,
+            content: {
+              title: htmlToMarkdown(d.question ?? ""),
+              instruction: htmlToMarkdown(d.description ?? ""),
+              explanation: htmlToMarkdown(d.explanation ?? ""),
+              items: [
+                ...(d.leftItems ?? []).map((it: any, i: number) => ({
+                  content: htmlToMarkdown(it.text ?? ""),
+                  side: "LEFT" as const,
+                  orderNumber: i + 1,
+                  matchWithId:
+                    (d.correctPairs ?? []).find((p: any) => p.leftId === it.id)
+                      ?.rightId ?? undefined,
+                })),
+                ...(d.rightItems ?? []).map((it: any, i: number) => ({
+                  content: htmlToMarkdown(it.text ?? ""),
+                  side: "RIGHT" as const,
+                  orderNumber: i + 1,
+                  matchWithId: it.id,
+                })),
+              ],
+            },
+          });
+          break;
+
+        case "true-false":
+          additionalContents.push({
+            type: "multiple_choice",
+            position: "AFTER",
+            orderNumber: globalOrder++,
+            content: {
+              question: htmlToMarkdown(d.question ?? ""),
+              description: htmlToMarkdown(d.description ?? ""),
+              allowMultiple: false,
+              explanation: htmlToMarkdown(d.explanation ?? ""),
+              options: (d.questions ?? []).map((q: any, i: number) => ({
+                content: htmlToMarkdown(q.statement ?? ""),
+                isCorrect: q.answer === "true",
+                orderNumber: i + 1,
+              })),
+            },
+          });
+          break;
+
+        default:
+          break;
+      }
+    }
+
+    // Semua canvas items dimasukkan ke 1 block dengan orderNumber 1
+    return {
+      blocks: [
+        {
+          orderNumber: 1,
+          contents,
+          additionalContents,
+        },
+      ],
+      mediaFilesToUpload,
+    };
+  };
+
+  // ── Mapper: quiz CanvasItem → QuizInput ──────────────────────────────────
+  const buildQuizPayload = (quizItem: CanvasItem) => {
+    const d = quizItem.data ?? {};
+    const questions: any[] = d.questions ?? [];
+
+    return {
+      title: d.title || "Quiz",
+      description: d.description || undefined,
+      timeLimitMinutes: undefined,
+      questions: questions.map((q: any, idx: number) => {
+        const options: string[] = (q.options ?? []).map(
+          (o: any) => o.text ?? "",
+        );
+        const correctAnswers: string[] = (q.options ?? [])
+          .filter((o: any) => o.value === "true")
+          .map((o: any) => o.text ?? "");
+        return {
+          questionText: q.questionText ?? "",
+          options,
+          correctAnswers,
+          explanation: undefined,
+          orderNumber: idx + 1,
+        };
+      }),
+    };
+  };
+
+  // ── Mapper: project CanvasItem → AssignmentInput + File[] ────────────────
+  // Returns { assignment: AssignmentInput, supportingFilesToUpload: File[] }
+  const buildAssignmentPayload = (projectItem: CanvasItem) => {
+    const d = projectItem.data ?? {};
+    const attachments: any[] = d.attachments ?? [];
+
+    // Parse instruksi dari field question (baris bernomor jadi instructions)
+    const rawLines: string[] = (d.question ?? "")
+      .split("\n")
+      .map((l: string) => l.trim())
+      .filter(Boolean);
+
+    const isInstructionLine = (line: string) => /^(\d+\.|[-•*])/.test(line);
+    const descLines = rawLines.filter((l) => !isInstructionLine(l));
+    const instrLines = rawLines.filter((l) => isInstructionLine(l));
+    const cleanInstruction = (line: string) =>
+      line.replace(/^(\d+\.|[-•*])\s*/, "").trim();
+
+    // Description = semua non-instruction lines
+    const description = descLines.join(" ") || undefined;
+
+    // Instructions = numbered lines
+    const instructions = instrLines.map((line, idx) => ({
+      instruction: cleanInstruction(line),
+      orderNumber: idx + 1,
+    }));
+
+    // Supporting files — deteksi blob URL → isNewUpload: true, kirim File binary
+    const supportingFilesToUpload: File[] = [];
+    const supportingFiles = attachments.map((att: any) => {
+      const isBlob = att.url?.startsWith("blob:");
+      if (isBlob && att._file) {
+        supportingFilesToUpload.push(att._file);
+        return {
+          name: att.name ?? "file",
+          type: "DATASET" as const,
+          isNewUpload: true,
+          format: att.format ?? undefined,
+          sizeKB: undefined,
+          pageCount: undefined,
+        };
+      } else {
+        return {
+          name: att.name ?? "file",
+          type: "DATASET" as const,
+          isNewUpload: false,
+          url: att.url ?? "",
+          format: att.format ?? undefined,
+          sizeKB: undefined,
+          pageCount: undefined,
+        };
+      }
+    });
+
+    const assignment = {
+      title: d.title || "Project",
+      description,
+      dueDays: undefined as number | undefined,
+      instructions,
+      supportingFiles,
+    };
+
+    return { assignment, supportingFilesToUpload };
+  };
+
   const handleSave = async () => {
     if (isSaving) return;
 
@@ -836,8 +1374,56 @@ export default function CreateMaterialPage() {
           `/admin/elearning/streams/${params.streamId}/courses/${params.courseId}/modules/${params.moduleId}/materials/create?mode=edit&materialId=${data.data.id}`,
         );
       } else {
-        // 🔥 nanti update
-        console.log("Update mode (belum dibuat)");
+        // 🔥 UPDATE — kirim blocks + quiz/assignment ke backend
+        const nonAssesmentItems = items.filter(
+          (item) => item.id !== "quiz" && item.id !== "project",
+        );
+        const { blocks, mediaFilesToUpload } =
+          buildBlocksPayload(nonAssesmentItems);
+
+        // Cari quiz dan project item (max 1 masing-masing)
+        const quizItem = items.find((item) => item.id === "quiz");
+        const projectItem = items.find((item) => item.id === "project");
+
+        // Gunakan FormData agar bisa kirim file
+        const formData = new FormData();
+        formData.append("title", title);
+        formData.append("status", status);
+        formData.append("blocks", JSON.stringify(blocks));
+
+        // Append media files (image/video upload baru)
+        for (const file of mediaFilesToUpload) {
+          formData.append("mediaFiles", file);
+        }
+
+        if (quizItem) {
+          const quiz = buildQuizPayload(quizItem);
+          formData.append("quiz", JSON.stringify(quiz));
+        }
+
+        if (projectItem) {
+          const { assignment, supportingFilesToUpload } =
+            buildAssignmentPayload(projectItem);
+          formData.append("assignment", JSON.stringify(assignment));
+          for (const file of supportingFilesToUpload) {
+            formData.append("supportingFiles", file);
+          }
+        }
+
+        const res = await axios.put(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/elearningText/texts/${textId}`,
+          formData,
+          {
+            withCredentials: true,
+            headers: { "Content-Type": "multipart/form-data" },
+          },
+        );
+
+        const data = res.data;
+        setStatus(data.data.status ?? status);
+
+        toast.success("Material berhasil disimpan");
+        console.log("✅ Update success:", data);
       }
     } catch (err: any) {
       console.error("❌ Save error:", err);

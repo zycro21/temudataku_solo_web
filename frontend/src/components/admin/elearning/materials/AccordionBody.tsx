@@ -15,31 +15,29 @@ import RichTextEditor, { type RichTextEditorRef } from "./RichTextEditor";
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface AccordionItem {
   id: string;
+  titleHTML: string;
+  contentHTML: string;
 }
 
 export interface AccordionBodyProps {
-  /** Initial saved data (from item.data) */
   initialData?: any;
-  /** Called whenever accordion data changes so page.tsx can persist it */
   onChangeData?: (data: any) => void;
-  /** Called whenever the user focuses a field inside this accordion */
   onEditorFocus?: (ref: RichTextEditorRef) => void;
-  /** Called when selection/format state changes inside the active field */
   onSelectionChange?: Parameters<typeof RichTextEditor>[0]["onSelectionChange"];
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// ─── Accordion Preview (inside dashed border) ────────────────────────────────
+// ─── Accordion Preview ────────────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════════
 function AccordionPreview({
   titleHTML,
   descriptionHTML,
-  itemsData: items,
+  items,
   onEdit,
 }: {
   titleHTML: string;
   descriptionHTML: string;
-  itemsData: { id: string; titleHTML: string; contentHTML: string }[];
+  items: AccordionItem[];
   onEdit: () => void;
 }) {
   const [openIds, setOpenIds] = useState<Set<string>>(
@@ -60,7 +58,6 @@ function AccordionPreview({
 
   return (
     <div className="relative border-2 border-dashed border-gray-300 rounded-xl p-4 bg-white group/preview">
-      {/* Edit button */}
       <button
         onClick={(e) => {
           e.stopPropagation();
@@ -73,7 +70,6 @@ function AccordionPreview({
         Edit
       </button>
 
-      {/* Header */}
       <div className="flex items-center gap-2 mb-1">
         <span className="text-emerald-500">
           <AlignLeft size={15} />
@@ -90,7 +86,6 @@ function AccordionPreview({
         )}
       </div>
 
-      {/* Description */}
       {!isEmpty(descriptionHTML) && (
         <div
           className="text-sm text-gray-500 mb-3 leading-relaxed"
@@ -98,7 +93,6 @@ function AccordionPreview({
         />
       )}
 
-      {/* Accordion items */}
       <div className="space-y-2">
         {items.map((item) => {
           const isOpen = openIds.has(item.id);
@@ -151,42 +145,45 @@ function AccordionPreview({
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// ─── AccordionCanvasWithRefs ──────────────────────────────────────────────────
+// ─── Accordion Canvas ─────────────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════════
-function AccordionCanvasWithRefs({
+function AccordionCanvas({
+  titleHTML,
+  descriptionHTML,
   items,
+  onTitleChange,
+  onDescriptionChange,
+  onItemChange,
   onAddItem,
   onRemoveItem,
   onCreate,
   wrapperRef,
   onEditorFocus,
   onSelectionChange,
-  editorRefsMap,
 }: {
+  titleHTML: string;
+  descriptionHTML: string;
   items: AccordionItem[];
+  onTitleChange: (v: string) => void;
+  onDescriptionChange: (v: string) => void;
+  onItemChange: (
+    id: string,
+    field: "titleHTML" | "contentHTML",
+    value: string,
+  ) => void;
   onAddItem: () => void;
   onRemoveItem: (id: string) => void;
   onCreate: () => void;
   wrapperRef: React.RefObject<HTMLDivElement>;
   onEditorFocus?: (ref: RichTextEditorRef) => void;
   onSelectionChange?: Parameters<typeof RichTextEditor>[0]["onSelectionChange"];
-  editorRefsMap: Map<string, RichTextEditorRef>;
 }) {
-  const setRef = useCallback(
-    (key: string) => (ref: RichTextEditorRef | null) => {
-      if (ref) editorRefsMap.set(key, ref);
-      else editorRefsMap.delete(key);
-    },
-    [editorRefsMap],
-  );
+  const [activeEditorId, setActiveEditorId] = useState<string | null>(null);
 
-  const handleFocus = useCallback(
-    (key: string) => () => {
-      const ref = editorRefsMap.get(key);
-      if (ref) onEditorFocus?.(ref);
-    },
-    [editorRefsMap, onEditorFocus],
-  );
+  const titleRef = useRef<RichTextEditorRef>(null);
+  const descRef = useRef<RichTextEditorRef>(null);
+  const itemTitleRefs = useRef<Map<string, RichTextEditorRef>>(new Map());
+  const itemContentRefs = useRef<Map<string, RichTextEditorRef>>(new Map());
 
   return (
     <div
@@ -208,22 +205,38 @@ function AccordionCanvasWithRefs({
       {/* Title */}
       <div className="mb-1">
         <RichTextEditor
-          ref={setRef("title")}
+          ref={titleRef}
+          value={titleHTML}
+          onChange={onTitleChange}
           placeholder="Enter accordion title ..."
           className="text-lg font-semibold text-gray-700 w-full"
-          onFocus={handleFocus("title")}
-          onSelectionChange={onSelectionChange}
+          onFocus={() => {
+            setActiveEditorId("title");
+            if (titleRef.current) onEditorFocus?.(titleRef.current);
+          }}
+          onBlur={() => setActiveEditorId(null)}
+          onSelectionChange={
+            activeEditorId === "title" ? onSelectionChange : undefined
+          }
         />
       </div>
 
       {/* Description */}
       <div className="mb-4">
         <RichTextEditor
-          ref={setRef("description")}
+          ref={descRef}
+          value={descriptionHTML}
+          onChange={onDescriptionChange}
           placeholder="Add a description ..."
           className="text-sm text-gray-400 w-full"
-          onFocus={handleFocus("description")}
-          onSelectionChange={onSelectionChange}
+          onFocus={() => {
+            setActiveEditorId("desc");
+            if (descRef.current) onEditorFocus?.(descRef.current);
+          }}
+          onBlur={() => setActiveEditorId(null)}
+          onSelectionChange={
+            activeEditorId === "desc" ? onSelectionChange : undefined
+          }
         />
       </div>
 
@@ -241,11 +254,26 @@ function AccordionCanvasWithRefs({
                   Item Title
                 </p>
                 <RichTextEditor
-                  ref={setRef(`${item.id}-title`)}
+                  ref={(ref) => {
+                    if (ref) itemTitleRefs.current.set(item.id, ref);
+                    else itemTitleRefs.current.delete(item.id);
+                  }}
+                  value={item.titleHTML}
+                  onChange={(val) => onItemChange(item.id, "titleHTML", val)}
                   placeholder="Accordion item title"
                   className="text-sm text-gray-700 w-full"
-                  onFocus={handleFocus(`${item.id}-title`)}
-                  onSelectionChange={onSelectionChange}
+                  onFocus={() => {
+                    const editorId = `${item.id}-title`;
+                    setActiveEditorId(editorId);
+                    const ref = itemTitleRefs.current.get(item.id);
+                    if (ref) onEditorFocus?.(ref);
+                  }}
+                  onBlur={() => setActiveEditorId(null)}
+                  onSelectionChange={
+                    activeEditorId === `${item.id}-title`
+                      ? onSelectionChange
+                      : undefined
+                  }
                 />
               </div>
 
@@ -263,11 +291,26 @@ function AccordionCanvasWithRefs({
                   </button>
                 </div>
                 <RichTextEditor
-                  ref={setRef(`${item.id}-content`)}
+                  ref={(ref) => {
+                    if (ref) itemContentRefs.current.set(item.id, ref);
+                    else itemContentRefs.current.delete(item.id);
+                  }}
+                  value={item.contentHTML}
+                  onChange={(val) => onItemChange(item.id, "contentHTML", val)}
                   placeholder="Add content for this section"
                   className="text-sm text-gray-700 w-full min-h-[5em]"
-                  onFocus={handleFocus(`${item.id}-content`)}
-                  onSelectionChange={onSelectionChange}
+                  onFocus={() => {
+                    const editorId = `${item.id}-content`;
+                    setActiveEditorId(editorId);
+                    const ref = itemContentRefs.current.get(item.id);
+                    if (ref) onEditorFocus?.(ref);
+                  }}
+                  onBlur={() => setActiveEditorId(null)}
+                  onSelectionChange={
+                    activeEditorId === `${item.id}-content`
+                      ? onSelectionChange
+                      : undefined
+                  }
                 />
               </div>
             </div>
@@ -305,102 +348,81 @@ export function AccordionBody({
   onSelectionChange,
 }: AccordionBodyProps) {
   const [mode, setMode] = useState<"canvas" | "preview">("canvas");
+
+  // ── Semua konten disimpan di state (bukan di DOM refs) ────────────────────
+  const [titleHTML, setTitleHTML] = useState("");
+  const [descriptionHTML, setDescriptionHTML] = useState("");
   const [items, setItems] = useState<AccordionItem[]>([
-    { id: "acc-1" },
-    { id: "acc-2" },
+    { id: "acc-1", titleHTML: "", contentHTML: "" },
+    { id: "acc-2", titleHTML: "", contentHTML: "" },
   ]);
 
-  const [snapshot, setSnapshot] = useState<{
-    titleHTML: string;
-    descriptionHTML: string;
-    itemsData: { id: string; titleHTML: string; contentHTML: string }[];
-  } | null>(null);
-
-  const canvasEditorRefs = useRef<Map<string, RichTextEditorRef>>(new Map());
   const wrapperRef = useRef<HTMLDivElement>(null!);
 
   // ── Restore from initialData on first mount ───────────────────────────────
-  // If page already has saved data (e.g. after duplicate), restore snapshot
   useEffect(() => {
     if (initialData?.panels && initialData.panels.length > 0) {
-      const panels = initialData.panels as {
-        id: string;
-        titleHTML: string;
-        contentHTML: string;
-      }[];
-      setItems(panels.map((p) => ({ id: p.id })));
-      setSnapshot({
-        titleHTML: initialData.titleHTML ?? "",
-        descriptionHTML: initialData.descriptionHTML ?? "",
-        itemsData: panels,
-      });
+      const panels = initialData.panels as AccordionItem[];
+      setTitleHTML(initialData.titleHTML ?? "");
+      setDescriptionHTML(initialData.descriptionHTML ?? "");
+      setItems(panels);
       setMode("preview");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Capture snapshot & persist to page ───────────────────────────────────
-  const handleCreate = () => {
-    const titleHTML = canvasEditorRefs.current.get("title")?.getHTML() ?? "";
-    const descriptionHTML =
-      canvasEditorRefs.current.get("description")?.getHTML() ?? "";
-    const itemsData = items.map((item) => ({
-      id: item.id,
-      titleHTML:
-        canvasEditorRefs.current.get(`${item.id}-title`)?.getHTML() ?? "",
-      contentHTML:
-        canvasEditorRefs.current.get(`${item.id}-content`)?.getHTML() ?? "",
-    }));
-
-    const newSnapshot = { titleHTML, descriptionHTML, itemsData };
-    setSnapshot(newSnapshot);
-    setMode("preview");
-
-    // ── KEY FIX: persist data upward so MaterialPreviewModal can read it ──
-    // Structure matches what AccordionPreview in MaterialPreviewModal expects:
-    // data.panels = [{ id, titleHTML, contentHTML }]
-    onChangeData?.({
-      titleHTML,
-      descriptionHTML,
-      panels: itemsData,
-    });
-  };
-
-  const handleEditorFocus = useCallback(
-    (ref: RichTextEditorRef) => {
-      onEditorFocus?.(ref);
-    },
-    [onEditorFocus],
-  );
+  const handleItemChange = (
+    id: string,
+    field: "titleHTML" | "contentHTML",
+    value: string,
+  ) =>
+    setItems((prev) =>
+      prev.map((i) => (i.id === id ? { ...i, [field]: value } : i)),
+    );
 
   const handleAddItem = () =>
-    setItems((prev) => [...prev, { id: `acc-${Date.now()}` }]);
+    setItems((prev) => [
+      ...prev,
+      { id: `acc-${Date.now()}`, titleHTML: "", contentHTML: "" },
+    ]);
 
   const handleRemoveItem = (id: string) =>
     setItems((prev) => prev.filter((i) => i.id !== id));
 
+  // ── Switch ke preview dan persist data ke atas ────────────────────────────
+  const handleCreate = () => {
+    onChangeData?.({
+      titleHTML,
+      descriptionHTML,
+      panels: items,
+    });
+    setMode("preview");
+  };
+
   if (mode === "canvas") {
     return (
-      <AccordionCanvasWithRefs
+      <AccordionCanvas
+        titleHTML={titleHTML}
+        descriptionHTML={descriptionHTML}
         items={items}
+        onTitleChange={setTitleHTML}
+        onDescriptionChange={setDescriptionHTML}
+        onItemChange={handleItemChange}
         onAddItem={handleAddItem}
         onRemoveItem={handleRemoveItem}
         onCreate={handleCreate}
         wrapperRef={wrapperRef}
-        onEditorFocus={handleEditorFocus}
+        onEditorFocus={onEditorFocus}
         onSelectionChange={onSelectionChange}
-        editorRefsMap={canvasEditorRefs.current}
       />
     );
   }
 
-  if (!snapshot) return null;
-
   return (
     <AccordionPreview
-      titleHTML={snapshot.titleHTML}
-      descriptionHTML={snapshot.descriptionHTML}
-      itemsData={snapshot.itemsData}
+      titleHTML={titleHTML}
+      descriptionHTML={descriptionHTML}
+      items={items}
       onEdit={() => setMode("canvas")}
     />
   );

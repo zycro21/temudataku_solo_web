@@ -138,6 +138,7 @@ export default function CoursesHeader({
 
       // ─── SUCCESS FLOW ──────────────────────────────────────────────────────
       setModalVisible(false);
+      onCourseCreated?.();
       setTimeout(() => {
         setShowCreateModal(false);
         setThumbnailFile(null);
@@ -181,8 +182,6 @@ export default function CoursesHeader({
     setSuccessVisible(false);
     setTimeout(() => {
       setShowSuccessModal(false);
-      // refresh tabel courses di parent page
-      onCourseCreated?.();
     }, 250);
   };
 
@@ -239,19 +238,19 @@ export default function CoursesHeader({
       {/* Create Course Modal */}
       {showCreateModal && (
         <div
-          className={`fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-300 ${
+          className={`fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 ${
             modalVisible ? "bg-black/60 opacity-100" : "bg-black/0 opacity-0"
           }`}
         >
           <div
-            className={`bg-white w-[540px] max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl pt-6 px-7 pb-10 transform transition-all duration-300 ${
+            className={`bg-white w-[540px] max-h-[90vh] flex flex-col rounded-2xl shadow-2xl transform transition-all duration-300 ${
               modalVisible
                 ? "scale-100 opacity-100 translate-y-0"
                 : "scale-95 opacity-0 translate-y-4"
             }`}
           >
-            {/* Header */}
-            <div className="flex items-start justify-between mb-1">
+            {/* Sticky Header */}
+            <div className="flex items-start justify-between px-7 pt-6 pb-4 border-b border-gray-100 shrink-0">
               <div>
                 <h2 className="text-lg font-semibold text-gray-800">
                   Create New Course
@@ -268,130 +267,133 @@ export default function CoursesHeader({
               </button>
             </div>
 
-            <div className="space-y-5 mt-5">
-              {/* Course Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Course Name
-                </label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Enter course name"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
-                />
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Description
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Briefly describe what learners will achieve"
-                  rows={4}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 resize-none"
-                />
-              </div>
-
-              {/* Thumbnail */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Thumbnail
-                </label>
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="border border-emerald-500 text-emerald-600 text-sm font-medium px-4 py-2 rounded-lg hover:bg-emerald-50 transition"
-                  >
-                    Choose Files
-                  </button>
-                  <span className="text-sm text-gray-400">
-                    {thumbnailFile ? thumbnailFile.name : "No file chosen"}
-                  </span>
+            {/* Scrollable body */}
+            <div className="overflow-y-auto px-7 pb-10 flex-1">
+              <div className="space-y-5 mt-5">
+                {/* Course Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Course Name
+                  </label>
                   <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleFileChange}
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Enter course name"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
                   />
                 </div>
 
-                {thumbnailPreview && (
-                  <div className="mt-4 border border-gray-200 rounded-lg p-3 w-fit">
-                    <img
-                      src={thumbnailPreview}
-                      alt="Thumbnail preview"
-                      className="w-24 h-24 object-cover rounded-md"
+                {/* Description */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Description
+                  </label>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Briefly describe what learners will achieve"
+                    rows={4}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 resize-none"
+                  />
+                </div>
+
+                {/* Thumbnail */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Thumbnail
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="border border-emerald-500 text-emerald-600 text-sm font-medium px-4 py-2 rounded-lg hover:bg-emerald-50 transition"
+                    >
+                      Choose Files
+                    </button>
+                    <span className="text-sm text-gray-400">
+                      {thumbnailFile ? thumbnailFile.name : "No file chosen"}
+                    </span>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleFileChange}
                     />
                   </div>
-                )}
-              </div>
 
-              {/* Estimated Time */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Estimated Time (minutes)
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  value={estimatedTime}
-                  onChange={(e) => setEstimatedTime(e.target.value)}
-                  placeholder="Contoh: 30"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
-                />
-              </div>
+                  {thumbnailPreview && (
+                    <div className="mt-4 border border-gray-200 rounded-lg p-3 w-fit">
+                      <img
+                        src={thumbnailPreview}
+                        alt="Thumbnail preview"
+                        className="w-24 h-24 object-cover rounded-md"
+                      />
+                    </div>
+                  )}
+                </div>
 
-              {/* Status */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Status
-                </label>
-                <div className="relative">
-                  <select
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-400 appearance-none focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-white"
-                  >
-                    <option value="" disabled>
-                      Select status
-                    </option>
-                    <option value="published" className="text-gray-700">
-                      Published
-                    </option>
-                    <option value="archived" className="text-gray-700">
-                      Archived
-                    </option>
-                  </select>
-                  <ChevronDown
-                    size={16}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                {/* Estimated Time */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Estimated Time (minutes)
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={estimatedTime}
+                    onChange={(e) => setEstimatedTime(e.target.value)}
+                    placeholder="Contoh: 30"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
                   />
                 </div>
-              </div>
-            </div>
 
-            {/* Footer Buttons */}
-            <div className="flex gap-3 mt-7">
-              <button
-                onClick={handleClose}
-                className="flex-1 border border-emerald-500 text-emerald-600 py-2.5 rounded-lg text-sm font-semibold hover:bg-emerald-50 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleCreate}
-                disabled={createLoading}
-                className="flex-1 bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-emerald-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {createLoading ? "Creating..." : "Create"}
-              </button>
+                {/* Status */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Status
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={status}
+                      onChange={(e) => setStatus(e.target.value)}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-400 appearance-none focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-white"
+                    >
+                      <option value="" disabled>
+                        Select status
+                      </option>
+                      <option value="published" className="text-gray-700">
+                        Published
+                      </option>
+                      <option value="archived" className="text-gray-700">
+                        Archived
+                      </option>
+                    </select>
+                    <ChevronDown
+                      size={16}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer Buttons */}
+              <div className="flex gap-3 mt-7">
+                <button
+                  onClick={handleClose}
+                  className="flex-1 border border-emerald-500 text-emerald-600 py-2.5 rounded-lg text-sm font-semibold hover:bg-emerald-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreate}
+                  disabled={createLoading}
+                  className="flex-1 bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-emerald-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {createLoading ? "Creating..." : "Create"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -400,7 +402,7 @@ export default function CoursesHeader({
       {/* Success Modal */}
       {showSuccessModal && (
         <div
-          className={`fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-300 ${
+          className={`fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 ${
             successVisible ? "bg-black/60 opacity-100" : "bg-black/0 opacity-0"
           }`}
         >

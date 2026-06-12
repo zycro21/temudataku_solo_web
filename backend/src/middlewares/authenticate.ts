@@ -679,11 +679,163 @@ export interface AuthenticatedRequestText extends Request {
   validatedBody?: {
     title?: string;
     orderNumber?: number;
-    blocks: { content: string; order: number }[];
     status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+    blocks?: {
+      orderNumber: number;
+      contents?: (
+        | {
+            type: "heading";
+            level: 1 | 2 | 3 | 4 | 5 | 6;
+            text: string;
+            orderNumber?: number;
+          }
+        | { type: "paragraph"; text: string; orderNumber?: number }
+        | { type: "highlight"; text: string; orderNumber?: number }
+        | {
+            type: "accordion";
+            title: string;
+            description?: string;
+            orderNumber?: number;
+            items: { title: string; content: string; orderNumber: number }[];
+          }
+        | {
+            type: "carousel";
+            title: string;
+            description?: string;
+            cardsPerSlide?: number;
+            orderNumber?: number;
+            items: {
+              title: string;
+              image?: string;
+              content?: string;
+              orderNumber: number;
+            }[];
+          }
+        | {
+            type: "content_card";
+            title: string;
+            description?: string;
+            disableExpandableContent: boolean;
+            orderNumber?: number;
+            items: {
+              title: string;
+              content: string;
+              expandableContent?: string;
+              orderNumber: number;
+            }[];
+          }
+        | {
+            type: "tab_navigation";
+            title: string;
+            description?: string;
+            orderNumber?: number;
+            tabs: { title: string; content: string; orderNumber: number }[];
+          }
+        | { type: "summary"; orderNumber?: number; comments: string[] }
+      )[];
+      additionalContents?: (
+        | {
+            type: "image_video";
+            position: "BEFORE" | "AFTER" | "INLINE";
+            orderNumber?: number;
+            isNewUpload: boolean; // ← tambah ini
+            content: {
+              url?: string; // ← jadi opsional
+              title?: string;
+              caption?: string;
+              description?: string;
+              mediaType: "IMAGE" | "VIDEO";
+              thumbnailUrl?: string;
+              durationSeconds?: number;
+            };
+          }
+        | {
+            type: "multiple_choice";
+            position: "BEFORE" | "AFTER" | "INLINE";
+            orderNumber?: number;
+            content: {
+              question: string;
+              description?: string;
+              allowMultiple?: boolean;
+              explanation?: string;
+              options: {
+                content: string;
+                isCorrect: boolean;
+                orderNumber: number;
+              }[];
+            };
+          }
+        | {
+            type: "matching";
+            position: "BEFORE" | "AFTER" | "INLINE";
+            orderNumber?: number;
+            content: {
+              title?: string;
+              instruction?: string;
+              maxScore?: number;
+              explanation?: string;
+              items: {
+                content: string;
+                side: "LEFT" | "RIGHT";
+                orderNumber: number;
+                matchWithId?: string;
+              }[];
+            };
+          }
+        | {
+            type: "interactive_code";
+            position: "BEFORE" | "AFTER" | "INLINE";
+            orderNumber?: number;
+            content: {
+              title?: string;
+              description?: string;
+              language: "PYTHON" | "JAVASCRIPT" | "CPP" | "SQL" | "R";
+              initialCode: string;
+              isEditable?: boolean;
+              expectedResult?: string;
+            };
+          }
+      )[];
+    }[];
+    quiz?: {
+      title: string;
+      description?: string;
+      timeLimitMinutes?: number;
+
+      questions: {
+        questionText: string;
+        options: string[];
+        correctAnswers: string[];
+        explanation?: string;
+        orderNumber?: number;
+      }[];
+    };
+
+    assignment?: {
+      title: string;
+      description?: string;
+
+      dueDays?: number;
+
+      instructions: {
+        instruction: string;
+        orderNumber: number;
+      }[];
+
+      supportingFiles: {
+        name: string;
+        type: "DATASET" | "TEMPLATE" | "REFERENCE";
+        isNewUpload: boolean; // ← tambah ini
+        url?: string; // ← jadi opsional
+        pageCount?: number;
+        format?: string;
+        sizeKB?: number;
+      }[];
+    };
   };
   validatedParams?: { textId?: string; subBabId?: string; id?: string };
   validatedQuery?: any;
+  // files?: Express.Multer.File[];
 }
 
 export interface ReorderTextRequest extends Request {

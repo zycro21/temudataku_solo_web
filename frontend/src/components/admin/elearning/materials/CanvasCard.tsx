@@ -33,6 +33,8 @@ import { CarouselBody } from "./CarouselBody";
 import { TrueFalseBody } from "./TrueFalseBody";
 import { MatchingBody } from "./MatchingBody";
 import { CodingBody } from "./CodingBody";
+import { QuizBody } from "./QuizBody";
+import { ProjectBody } from "./ProjectBody";
 import RichTextEditor, { type RichTextEditorRef } from "./RichTextEditor";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -50,6 +52,8 @@ const NO_SIDE_PADDING_IDS = new Set([
   "true-false",
   "matching",
   "coding",
+  "quiz",
+  "project",
 ]);
 
 const SELF_MANAGED_RICH_IDS = new Set([
@@ -60,6 +64,8 @@ const SELF_MANAGED_RICH_IDS = new Set([
   "true-false",
   "matching",
   "coding",
+  "quiz",
+  "project",
 ]);
 
 const CARD_LEVEL_RICH_IDS = new Set([
@@ -84,6 +90,8 @@ const CANVAS_ICONS: Record<string, React.ReactNode> = {
   "true-false": <HelpCircle size={13} />,
   matching: <CheckSquare size={13} />,
   coding: <Code2 size={13} />,
+  quiz: <HelpCircle size={13} />,
+  project: <Upload size={13} />,
 };
 
 // ─── HeadingBody ──────────────────────────────────────────────────────────────
@@ -294,7 +302,9 @@ function ImageBody({
       alert("Only image files are allowed!");
       return;
     }
-    setAndSave(URL.createObjectURL(file));
+    const blobUrl = URL.createObjectURL(file);
+    setImageUrl(blobUrl);
+    onChangeData?.({ src: blobUrl, _file: file });
   };
   const handleAddUrl = () => {
     if (!inputUrl) return;
@@ -395,7 +405,9 @@ function VideoBody({
       alert("Only video files are allowed!");
       return;
     }
-    setAndSave(URL.createObjectURL(file));
+    const blobUrl = URL.createObjectURL(file);
+    setVideoUrl(blobUrl);
+    onChangeData?.({ src: blobUrl, _file: file });
   };
   const handleAddUrl = () => {
     if (!inputUrl) return;
@@ -467,7 +479,7 @@ function VideoBody({
             Upload a video, add a URL, or drag and drop here
           </p>
           <p className="text-sm text-gray-400 mt-1">
-            Supports MP4 or video links (YouTube, Google Drive)
+            Supports MP4 or video links (YouTube)
           </p>
           <div
             className="flex items-center gap-3 mt-5 w-full max-w-[420px]"
@@ -789,6 +801,10 @@ function CardBody({
           onSelectionChange={onSelectionChange}
         />
       );
+    case "quiz":
+      return <QuizBody initialData={el.data} onChangeData={onChangeData} />;
+    case "project":
+      return <ProjectBody initialData={el.data} onChangeData={onChangeData} />;
     default:
       return <FallbackBody description={el.description} />;
   }

@@ -20,6 +20,7 @@ import {
 interface MaterialsTableProps {
   search: string;
   refreshKey?: number;
+  onMaterialUpdated?: () => void;
 }
 
 type SortDirection = "desc" | "asc" | null;
@@ -100,6 +101,7 @@ SortIcon.displayName = "SortIcon";
 export default function MaterialsTable({
   search,
   refreshKey,
+  onMaterialUpdated,
 }: MaterialsTableProps) {
   const params = useParams();
   const router = useRouter();
@@ -292,10 +294,12 @@ export default function MaterialsTable({
     setActionModal({ type, materialId });
     setTimeout(() => setActionVisible(true), 10);
   };
+
   const closeActionModal = () => {
     setActionVisible(false);
     setTimeout(() => setActionModal(null), 250);
   };
+
   const confirmAction = async () => {
     if (!actionModal) return;
     setActionLoading(true);
@@ -327,6 +331,7 @@ export default function MaterialsTable({
     setTimeout(() => {
       setSuccessModal(null);
       setInternalRefreshKey((prev) => prev + 1);
+      onMaterialUpdated?.();
     }, 250);
   };
 
@@ -364,6 +369,7 @@ export default function MaterialsTable({
     setTimeout(() => {
       setShowDeleteSuccess(false);
       setInternalRefreshKey((prev) => prev + 1);
+      onMaterialUpdated?.();
     }, 250);
   };
 
@@ -618,7 +624,7 @@ export default function MaterialsTable({
       {/* ── Edit Modal ───────────────────────────────────────────────────────── */}
       {editModal && (
         <div
-          className={`fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-300 ${editVisible ? "bg-black/60 opacity-100" : "bg-black/0 opacity-0"}`}
+          className={`fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 ${editVisible ? "bg-black/60 opacity-100" : "bg-black/0 opacity-0"}`}
         >
           <div
             className={`bg-white w-[540px] rounded-2xl shadow-2xl pt-6 px-7 pb-10 transform transition-all duration-300 ${editVisible ? "scale-100 opacity-100 translate-y-0" : "scale-95 opacity-0 translate-y-4"}`}
@@ -690,7 +696,7 @@ export default function MaterialsTable({
       {/* ── Edit Success Modal ───────────────────────────────────────────────── */}
       {showEditSuccess && (
         <div
-          className={`fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-300 ${editSuccessVisible ? "bg-black/60 opacity-100" : "bg-black/0 opacity-0"}`}
+          className={`fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 ${editSuccessVisible ? "bg-black/60 opacity-100" : "bg-black/0 opacity-0"}`}
         >
           <div
             className={`bg-white w-[420px] rounded-2xl shadow-2xl p-8 text-center transform transition-all duration-300 ${editSuccessVisible ? "scale-100 opacity-100 translate-y-0" : "scale-95 opacity-0 translate-y-4"}`}
@@ -733,7 +739,7 @@ export default function MaterialsTable({
       {/* ── Publish / Unpublish Confirmation Modal ───────────────────────────── */}
       {actionModal && (
         <div
-          className={`fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-300 ${actionVisible ? "bg-black/60 opacity-100" : "bg-black/0 opacity-0"}`}
+          className={`fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 ${actionVisible ? "bg-black/60 opacity-100" : "bg-black/0 opacity-0"}`}
         >
           <div
             className={`bg-white w-[420px] rounded-2xl shadow-2xl p-8 text-center transform transition-all duration-300 ${actionVisible ? "scale-100 opacity-100 translate-y-0" : "scale-95 opacity-0 translate-y-4"}`}
@@ -788,7 +794,7 @@ export default function MaterialsTable({
       {/* ── Publish / Unpublish Success Modal ───────────────────────────────── */}
       {successModal && (
         <div
-          className={`fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-300 ${successVisible ? "bg-black/60 opacity-100" : "bg-black/0 opacity-0"}`}
+          className={`fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 ${successVisible ? "bg-black/60 opacity-100" : "bg-black/0 opacity-0"}`}
         >
           <div
             className={`bg-white w-[420px] rounded-2xl shadow-2xl p-8 text-center transform transition-all duration-300 ${successVisible ? "scale-100 opacity-100 translate-y-0" : "scale-95 opacity-0 translate-y-4"}`}
@@ -835,7 +841,7 @@ export default function MaterialsTable({
       {/* ── Delete Confirmation Modal ────────────────────────────────────────── */}
       {deleteModal && (
         <div
-          className={`fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-300 ${deleteVisible ? "bg-black/60 opacity-100" : "bg-black/0 opacity-0"}`}
+          className={`fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 ${deleteVisible ? "bg-black/60 opacity-100" : "bg-black/0 opacity-0"}`}
         >
           <div
             className={`bg-white w-[420px] rounded-2xl shadow-2xl p-8 text-center transform transition-all duration-300 ${deleteVisible ? "scale-100 opacity-100 translate-y-0" : "scale-95 opacity-0 translate-y-4"}`}
@@ -877,7 +883,7 @@ export default function MaterialsTable({
       {/* ── Delete Success Modal ─────────────────────────────────────────────── */}
       {showDeleteSuccess && (
         <div
-          className={`fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-300 ${deleteSuccessVisible ? "bg-black/60 opacity-100" : "bg-black/0 opacity-0"}`}
+          className={`fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 ${deleteSuccessVisible ? "bg-black/60 opacity-100" : "bg-black/0 opacity-0"}`}
         >
           <div
             className={`bg-white w-[420px] rounded-2xl shadow-2xl p-8 text-center transform transition-all duration-300 ${deleteSuccessVisible ? "scale-100 opacity-100 translate-y-0" : "scale-95 opacity-0 translate-y-4"}`}
