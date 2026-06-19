@@ -634,8 +634,19 @@ export default function StylePanel({
                       onMouseDown={(e) => {
                         e.preventDefault();
                         onStyleChange("hiliteColor", "transparent");
-                        setLocalStyle((p) => ({ ...p, highlight: false }));
                         setShowHighlightPicker(false);
+                        // Paksa swatch & status tombol balik ke default.
+                        // Dipanggil dua kali (langsung + setelah satu tick)
+                        // supaya tidak ke-overwrite oleh sinkronisasi
+                        // styleState yang membaca document.queryCommandValue,
+                        // yang kadang melaporkan nilai tidak akurat persis
+                        // setelah hiliteColor di-reset ke transparent.
+                        setHighlightColor("#fef08a");
+                        setLocalStyle((p) => ({ ...p, highlight: false }));
+                        setTimeout(() => {
+                          setHighlightColor("#fef08a");
+                          setLocalStyle((p) => ({ ...p, highlight: false }));
+                        }, 0);
                       }}
                       className="w-full text-[10px] text-gray-500 hover:text-red-500 border border-gray-200 hover:border-red-300 rounded px-2 py-1 transition"
                     >
@@ -795,10 +806,16 @@ export default function StylePanel({
                     <button
                       onMouseDown={(e) => {
                         e.preventDefault();
-                        setPenColor("#000000");
                         onStyleChange("foreColor", "#000000");
-                        setLocalStyle((p) => ({ ...p, penColor: "#000000" }));
                         setShowPenColorPicker(false);
+                        // Paksa swatch & status tombol balik ke default
+                        // (lihat catatan di tombol "Remove highlight" di atas).
+                        setPenColor("#000000");
+                        setLocalStyle((p) => ({ ...p, penColor: "#000000" }));
+                        setTimeout(() => {
+                          setPenColor("#000000");
+                          setLocalStyle((p) => ({ ...p, penColor: "#000000" }));
+                        }, 0);
                       }}
                       className="mt-1.5 w-full text-[10px] text-gray-500 hover:text-gray-700 border border-gray-200 rounded px-2 py-1 transition"
                     >

@@ -26,10 +26,10 @@ const router = express.Router();
 
 /**
  * @swagger
- * /api/elearningQuiz/quiz/{subBabId}:
+ * /api/elearningQuiz/quiz/{textId}:
  *   post:
  *     summary: Buat quiz untuk sub-bab
- *     description: Admin dapat membuat quiz untuk sub-bab mana pun. Mentor hanya bisa membuat quiz untuk course yang dia ampu.
+ *     description: Admin dapat membuat quiz untuk text mana pun. Mentor hanya bisa membuat quiz untuk course yang dia ampu.
  *     tags: [E-Learning Quizzes]
  *     security:
  *       - bearerAuth: []
@@ -39,7 +39,7 @@ const router = express.Router();
  *         required: true
  *         schema:
  *           type: string
- *         description: ID sub-bab tempat quiz akan dibuat
+ *         description: ID text tempat quiz akan dibuat
  *     requestBody:
  *       required: true
  *       content:
@@ -70,9 +70,9 @@ const router = express.Router();
  *         description: Kesalahan server
  */
 router.post(
-  "/quiz/:subBabId",
+  "/quiz/:textId",
   authenticate,
-  authorizeRoles("admin", "mentor"),
+  authorizeRoles("admin", "mentor", "cm", "curdev"),
   validate(createQuizSchema),
   ELearningQuizController.createQuiz
 );
@@ -138,7 +138,7 @@ router.post(
 router.get(
   "/subbabs/:subBabId/quiz",
   authenticate,
-  authorizeRoles("admin", "mentor", "mentee"),
+  authorizeRoles("admin", "mentor", "mentee", "cm", "curdev"),
   validate(getQuizBySubBabSchema),
   ELearningQuizController.getQuizBySubBab
 );

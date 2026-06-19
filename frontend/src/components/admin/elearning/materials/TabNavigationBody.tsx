@@ -5,6 +5,7 @@ import { Trash2, Plus, Pencil, Table, Eye } from "lucide-react";
 import RichTextEditor, {
   type RichTextEditorRef,
 } from "@/components/admin/elearning/materials/RichTextEditor";
+import { getFontStyle, DEFAULT_FONT_TYPE, FONT_PRESETS } from "./fontStyles";
 
 interface TabItem {
   id: string;
@@ -12,7 +13,7 @@ interface TabItem {
   content: string;
 }
 
-// ─── Canvas edit mode (unchanged from original) ───────────────────────────────
+// ─── Canvas edit mode ───────────────────────────────────────────────────────
 function TabNavigationCanvas({
   title,
   description,
@@ -175,20 +176,27 @@ function TabNavigationCanvas({
   );
 }
 
-// ─── Canvas preview mode — proportional equal-width tabs ─────────────────────
+// ─── Preview mode — proportional equal-width tabs ──────────────────────────
 function TabNavigationPreview({
   title,
   description,
   tabs,
+  fontType,
+  fontSize,
   onEdit,
 }: {
   title: string;
   description: string;
   tabs: TabItem[];
+  fontType?: string;
+  fontSize?: number;
   onEdit: () => void;
 }) {
   const [activeId, setActiveId] = useState<string>(tabs[0]?.id ?? "");
   const activeTab = tabs.find((t) => t.id === activeId);
+
+  // Apply font styling to content area only (tabs buttons unaffected)
+  const contentStyle = getFontStyle(fontType, fontSize);
 
   return (
     <div className="relative border-2 border-dashed border-gray-300 rounded-xl p-4 bg-white group/preview">
@@ -219,6 +227,13 @@ function TabNavigationPreview({
         />
       )}
 
+      {/* ⚠️ Hover info: font styling tidak diterapkan pada tab label */}
+      <div className="absolute bottom-2 left-2 opacity-0 group-hover/preview:opacity-100 transition-opacity">
+        <span className="text-[9px] text-gray-300 bg-white px-1.5 py-0.5 rounded shadow-sm">
+          ℹ️ Font styling hanya untuk konten tab (tab label tidak terpengaruh)
+        </span>
+      </div>
+
       {/* Proportional tabs — each tab gets equal share of full width */}
       <div className="flex w-full">
         {tabs.map((tab) => {
@@ -246,6 +261,7 @@ function TabNavigationPreview({
       <div className="border border-t-0 border-gray-200 rounded-b-lg px-4 py-4">
         <div
           className="text-sm text-gray-600 leading-relaxed"
+          style={contentStyle}
           dangerouslySetInnerHTML={{ __html: activeTab?.content || "—" }}
         />
       </div>
@@ -256,11 +272,15 @@ function TabNavigationPreview({
 // ─── Controller ───────────────────────────────────────────────────────────────
 export function TabNavigationBody({
   initialData,
+  fontType: propFontType,
+  fontSize: propFontSize,
   onChangeData,
   onEditorFocus,
   onSelectionChange,
 }: {
   initialData?: any;
+  fontType?: string;
+  fontSize?: number;
   onChangeData?: (data: any) => void;
   onEditorFocus?: (ref: RichTextEditorRef) => void;
   onSelectionChange?: Parameters<typeof RichTextEditor>[0]["onSelectionChange"];
@@ -272,6 +292,10 @@ export function TabNavigationBody({
     { id: "tab-1", label: "", content: "" },
     { id: "tab-2", label: "", content: "" },
   ]);
+  const [fontType, setFontType] = useState<string>(DEFAULT_FONT_TYPE);
+  const [fontSize, setFontSize] = useState<number>(
+    FONT_PRESETS[DEFAULT_FONT_TYPE].fontSize,
+  );
 
   const wrapperRef = useRef<HTMLDivElement>(null!);
 
@@ -280,7 +304,6 @@ export function TabNavigationBody({
     if (initialData?.tabs && initialData.tabs.length > 0) {
       setTitle(initialData.title ?? "");
       setDescription(initialData.description ?? "");
-      // tabs saved with { id, label, content } — restore as-is
       setTabs(
         initialData.tabs.map((t: any) => ({
           id: t.id,
@@ -288,10 +311,17 @@ export function TabNavigationBody({
           content: t.content ?? "",
         })),
       );
+      // Priority: props > initialData.fontType > default
+      setFontType(propFontType ?? initialData.fontType ?? DEFAULT_FONT_TYPE);
+      setFontSize(
+        propFontSize ??
+          initialData.fontSize ??
+          FONT_PRESETS[DEFAULT_FONT_TYPE].fontSize,
+      );
       setMode("preview");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [initialData, propFontType, propFontSize]);
 
   const handleAddTab = () =>
     setTabs((prev) => [
@@ -314,17 +344,15 @@ export function TabNavigationBody({
 
   // ── Persist to page and switch to preview ─────────────────────────────────
   const handleCreate = () => {
-    // MaterialPreviewModal.TabNavigationPreview reads:
-    //   data.title, data.description
-    //   data.tabs[].title (for tab header label)
-    //   data.tabs[].content
     onChangeData?.({
       title,
       description,
       tabs: tabs.map((t) => ({
         ...t,
-        title: t.label, // alias: modal reads tab.title for the header text
+        title: t.label,
       })),
+      fontType,
+      fontSize,
     });
     setMode("preview");
   };
@@ -354,6 +382,8 @@ export function TabNavigationBody({
       title={title}
       description={description}
       tabs={tabs}
+      fontType={fontType}
+      fontSize={fontSize}
       onEdit={() => setMode("canvas")}
     />
   );

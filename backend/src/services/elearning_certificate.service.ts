@@ -152,7 +152,7 @@ function buildAssessmentRows(data: {
     ((data.quizScore ?? 0) +
       (data.assignmentScore ?? 0) +
       (data.progressScore ?? 0)) /
-      3
+      3,
   );
 
   return [
@@ -185,7 +185,7 @@ function renderAssessmentPage(doc: PDFKit.PDFDocument, rows: string[][]) {
     .text(
       "This page provides a detailed breakdown of participant assessment results.",
       80,
-      doc.page.height - 80
+      doc.page.height - 80,
     );
 }
 
@@ -211,7 +211,18 @@ async function generateCertificatePDF({
   const quizAttempt = await prisma.eLearningQuizAttempt.findFirst({
     where: {
       userId,
-      quiz: { subBab: { subChapter: { courseId } } },
+      quiz: {
+        text: {
+          subBab: {
+            subChapter: {
+              courseId,
+            },
+          },
+        },
+      },
+    },
+    orderBy: {
+      score: "desc",
     },
   });
 
@@ -219,10 +230,17 @@ async function generateCertificatePDF({
     where: {
       userId,
       assignment: {
-        subBab: {
-          subChapter: { courseId },
+        text: {
+          subBab: {
+            subChapter: {
+              courseId,
+            },
+          },
         },
       },
+    },
+    orderBy: {
+      score: "desc",
     },
   });
 
@@ -239,7 +257,8 @@ async function generateCertificatePDF({
     progress.length === 0
       ? 0
       : Math.round(
-          (progress.filter((p) => p.isCompleted).length / progress.length) * 100
+          (progress.filter((p) => p.isCompleted).length / progress.length) *
+            100,
         );
 
   const quizScore =
@@ -361,7 +380,7 @@ export const generateCertificate = async ({
   const uploadedFile = await uploadToGoogleDrive(
     pdfPath,
     fileName,
-    "16dqTiqyEhFhrfzfoX5upUkgkNoUGNnI9" // ⬅️ ganti sesuai folder certificate e-learning
+    "16dqTiqyEhFhrfzfoX5upUkgkNoUGNnI9", // ⬅️ ganti sesuai folder certificate e-learning
   );
 
   console.log("Uploaded to Google Drive:", uploadedFile.webViewLink);
@@ -539,7 +558,7 @@ export const deleteCertificate = async (id: string) => {
     const absolutePath = path.join(
       __dirname,
       "../../",
-      certificate.certificatePath
+      certificate.certificatePath,
     );
 
     if (fs.existsSync(absolutePath)) {
@@ -615,7 +634,7 @@ export const updateCertificate = async (
     status?: "generated" | "sent" | "viewed";
     note?: string;
     verifiedBy?: string;
-  }
+  },
 ) => {
   const certificate = await prisma.eLearningCertificate.findUnique({
     where: { id: certificateId },
@@ -654,7 +673,7 @@ export const updateCertificate = async (
 
 export const markCertificateAsViewed = async (
   certificateId: string,
-  userId: string
+  userId: string,
 ) => {
   const certificate = await prisma.eLearningCertificate.findUnique({
     where: { id: certificateId },
@@ -701,7 +720,7 @@ export const markCertificateAsViewed = async (
 
 export const regenerateCertificate = async (
   certificateId: string,
-  adminId: string
+  adminId: string,
 ) => {
   /* === 1. AMBIL CERTIFICATE LAMA === */
   const certificate = await prisma.eLearningCertificate.findUnique({
@@ -752,7 +771,7 @@ export const regenerateCertificate = async (
   const uploadedFile = await uploadToGoogleDrive(
     pdfPath,
     fileName,
-    "16dqTiqyEhFhrfzfoX5upUkgkNoUGNnI9" // folder certificate
+    "16dqTiqyEhFhrfzfoX5upUkgkNoUGNnI9", // folder certificate
   );
 
   if (!uploadedFile?.webViewLink) {

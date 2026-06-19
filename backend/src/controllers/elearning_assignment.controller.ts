@@ -6,7 +6,7 @@ export class ELearningAssignmentController {
   static async createAssignment(
     req: AuthenticatedRequestAssignment,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, validatedBody, user } = req;
@@ -27,13 +27,13 @@ export class ELearningAssignmentController {
       const { title, description, dueDays } = validatedBody;
 
       const assignment = await ELearningAssignmentService.createAssignment(
-        validatedParams.id,
-        { title, description, dueDays } as {
-          title: string;
-          description?: string;
-          dueDays: number;
+        validatedParams.id, // sekarang textId
+        {
+          title,
+          description,
+          dueDays,
         },
-        user
+        user,
       );
 
       res.status(201).json({
@@ -62,7 +62,7 @@ export class ELearningAssignmentController {
   static async getAssignment(
     req: AuthenticatedRequestAssignment,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { user, validatedParams, validatedQuery } = req;
@@ -74,12 +74,12 @@ export class ELearningAssignmentController {
         return;
       }
 
-      const subBabId = validatedParams.id;
+      const textId = validatedParams.id;
 
       const result = await ELearningAssignmentService.getAssignment(
-        subBabId,
+        textId,
         user,
-        validatedQuery ?? {}
+        validatedQuery ?? {},
       );
 
       if (!result) {
@@ -113,7 +113,7 @@ export class ELearningAssignmentController {
   static async updateAssignment(
     req: AuthenticatedRequestAssignment,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, validatedBody, user } = req;
@@ -129,7 +129,7 @@ export class ELearningAssignmentController {
       const assignment = await ELearningAssignmentService.updateAssignment(
         validatedParams.id,
         validatedBody ?? {},
-        user
+        user,
       );
 
       res.status(200).json({
@@ -158,7 +158,7 @@ export class ELearningAssignmentController {
   static async deleteAssignment(
     req: AuthenticatedRequestAssignment,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, user } = req;
@@ -183,7 +183,11 @@ export class ELearningAssignmentController {
 
       // Lanjutkan ke service
       const deleted = await ELearningAssignmentService.deleteAssignment(
-        validatedParams.id
+        validatedParams.id,
+        {
+          userId: user.userId,
+          roles: user.roles,
+        },
       );
 
       res.status(200).json({
@@ -204,7 +208,7 @@ export class ELearningAssignmentController {
   static async getAllAssignments(
     req: AuthenticatedRequestAssignment,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedQuery, user } = req;
@@ -219,7 +223,7 @@ export class ELearningAssignmentController {
 
       const assignments = await ELearningAssignmentService.getAllAssignments(
         user,
-        validatedQuery ?? {}
+        validatedQuery ?? {},
       );
 
       res.status(200).json({
@@ -237,7 +241,7 @@ export class ELearningAssignmentController {
   static async getAssignmentDetail(
     req: AuthenticatedRequestAssignment,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, user } = req;
@@ -252,7 +256,7 @@ export class ELearningAssignmentController {
 
       const assignment = await ELearningAssignmentService.getAssignmentDetail(
         validatedParams.id,
-        user
+        user,
       );
 
       res.status(200).json({
@@ -277,7 +281,7 @@ export class ELearningAssignmentController {
   static async getAssignmentsByCourse(
     req: AuthenticatedRequestAssignment,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, validatedQuery, user } = req;
@@ -302,7 +306,7 @@ export class ELearningAssignmentController {
       const result = await ELearningAssignmentService.getAssignmentsByCourse(
         courseId,
         user,
-        { page, limit, sortBy: sortField, order, search }
+        { page, limit, sortBy: sortField, order, search },
       );
 
       res.status(200).json({
@@ -327,7 +331,7 @@ export class ELearningAssignmentController {
   static async exportAssignments(
     req: AuthenticatedRequestAssignment,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedQuery } = req;
@@ -341,13 +345,12 @@ export class ELearningAssignmentController {
         return;
       }
 
-      const file = await ELearningAssignmentService.exportAssignmentsToFile(
-        format
-      );
+      const file =
+        await ELearningAssignmentService.exportAssignmentsToFile(format);
 
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename=${file.filename}`
+        `attachment; filename=${file.filename}`,
       );
       res.setHeader("Content-Type", file.mimetype);
 

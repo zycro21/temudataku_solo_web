@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const createAssignmentSchema = z.object({
   params: z.object({
-    id: z.string().min(1, "SubBab ID wajib diisi"),
+    id: z.string().min(1, "Text ID wajib diisi"),
   }),
   body: z.object({
     title: z.string().min(3, "Judul minimal 3 karakter"),
@@ -19,7 +19,7 @@ export const createAssignmentSchema = z.object({
 
 export const getAssignmentSchema = z.object({
   params: z.object({
-    id: z.string().min(1, "SubBab ID wajib diisi"),
+    id: z.string().min(1, "Text ID wajib diisi"),
   }),
   query: z
     .object({
@@ -32,11 +32,11 @@ export const getAssignmentSchema = z.object({
         .optional(),
       page: z.preprocess(
         (v) => (v ? Number(v) : undefined),
-        z.number().int().positive().optional()
+        z.number().int().positive().optional(),
       ),
       limit: z.preprocess(
         (v) => (v ? Number(v) : undefined),
-        z.number().int().positive().optional()
+        z.number().int().positive().optional(),
       ),
       sortBy: z
         .enum(["createdAt", "updatedAt", "score", "submittedAt"])
@@ -45,11 +45,11 @@ export const getAssignmentSchema = z.object({
       search: z.string().optional(),
       minScore: z.preprocess(
         (v) => (v ? Number(v) : undefined),
-        z.number().optional()
+        z.number().optional(),
       ),
       maxScore: z.preprocess(
         (v) => (v ? Number(v) : undefined),
-        z.number().optional()
+        z.number().optional(),
       ),
     })
     .optional(),

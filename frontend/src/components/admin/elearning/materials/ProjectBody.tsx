@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Eye,
   Pencil,
@@ -10,6 +10,11 @@ import {
   Calendar,
   Clock,
 } from "lucide-react";
+import RichTextEditor, { type RichTextEditorRef } from "./RichTextEditor";
+import {
+  normalizeEditorHTML,
+  richTextDisplayClass,
+} from "@/lib/editorHTMLUtils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface AttachedFile {
@@ -70,14 +75,19 @@ function ProjectCanvas({
   data,
   onChange,
   onCreate,
+  onEditorFocus,
+  onSelectionChange,
 }: {
   data: ProjectData;
   onChange: (d: ProjectData) => void;
   onCreate: () => void;
+  onEditorFocus?: (ref: RichTextEditorRef) => void;
+  onSelectionChange?: Parameters<typeof RichTextEditor>[0]["onSelectionChange"];
 }) {
   const [urlInput, setUrlInput] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [questionFocused, setQuestionFocused] = useState(false);
 
   const addFileFromUrl = () => {
     const trimmed = urlInput.trim();
@@ -131,17 +141,25 @@ function ProjectCanvas({
       {/* ── Question ────────────────────────────────────────────────────────── */}
       <div className="mb-4">
         <p className="text-[12px] font-bold text-gray-700 mb-1.5">Question</p>
-        <textarea
-          value={data.question}
-          onChange={(e) => onChange({ ...data, question: e.target.value })}
-          placeholder="Enter a project question or instruction"
-          rows={4}
-          maxLength={1000}
-          className="w-full text-[12px] text-gray-700 placeholder-gray-300 border border-gray-200 rounded-lg px-3 py-2.5 resize-none focus:outline-none focus:ring-1 focus:ring-emerald-400"
-        />
-        <p className="text-[10px] text-gray-400 mt-0.5">
-          {data.question.length}/1000
-        </p>
+        <div
+          className={`rounded-lg border px-3 py-2.5 transition ${
+            questionFocused
+              ? "border-emerald-400 ring-1 ring-emerald-400"
+              : "border-gray-200"
+          }`}
+        >
+          <RichTextEditor
+            value={data.question}
+            onChange={(val) => onChange({ ...data, question: val })}
+            placeholder="Enter a project question or instruction"
+            className="text-[12px] text-gray-700 min-h-[4em]"
+            onMount={(ref) => onEditorFocus?.(ref)}
+            onUnmount={() => {}}
+            onFocus={() => setQuestionFocused(true)}
+            onBlur={() => setQuestionFocused(false)}
+            onSelectionChange={onSelectionChange}
+          />
+        </div>
       </div>
 
       {/* ── Attachment ──────────────────────────────────────────────────────── */}
@@ -315,22 +333,6 @@ function ProjectPreview({
   const removeFile = (idx: number) =>
     setSubmittedFiles((prev) => prev.filter((_, i) => i !== idx));
 
-  // Pisahkan question jadi paragraf dan bullet-list instruction
-  // Convention: baris yang diawali angka/huruf+titik dianggap instruksi
-  const lines = data.question
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean);
-
-  const isInstructionLine = (line: string) => /^(\d+\.|[-•*])/.test(line);
-
-  const descLines = lines.filter((l) => !isInstructionLine(l));
-  const instrLines = lines.filter((l) => isInstructionLine(l));
-
-  // Strip leading marker dari instruksi
-  const cleanInstruction = (line: string) =>
-    line.replace(/^(\d+\.|[-•*])\s*/, "").trim();
-
   return (
     <div className="relative border-2 border-dashed border-gray-300 rounded-xl bg-white group/preview overflow-hidden">
       {/* Edit button */}
@@ -349,47 +351,23 @@ function ProjectPreview({
       <div className="flex gap-0 divide-x divide-gray-100">
         {/* ── LEFT: Deskripsi & Instruksi ── */}
         <div className="flex-1 min-w-0 px-5 py-5">
-          {/* Description paragraphs */}
-          {descLines.length > 0 ? (
-            <div className="mb-4">
-              <p className="text-[12px] font-bold text-gray-700 mb-1.5">
-                Deskripsi Proyek
-              </p>
-              <p className="text-[12px] text-gray-600 leading-relaxed">
-                {descLines.join(" ")}
-              </p>
-            </div>
-          ) : (
-            <div className="mb-4">
-              <p className="text-[12px] font-bold text-gray-700 mb-1.5">
-                Deskripsi Proyek
-              </p>
+          <div className="mb-4">
+            <p className="text-[12px] font-bold text-gray-700 mb-1.5">
+              Deskripsi Proyek
+            </p>
+            {data.question ? (
+              <div
+                className={`text-[12px] text-gray-600 leading-relaxed [&_ul]:pl-5 [&_ul]:list-disc [&_ol]:pl-5 [&_ol]:list-decimal [&_li]:my-0.5 ${richTextDisplayClass}`}
+                dangerouslySetInnerHTML={{
+                  __html: normalizeEditorHTML(data.question),
+                }}
+              />
+            ) : (
               <p className="text-[12px] text-gray-400 italic">
                 Belum ada deskripsi.
               </p>
-            </div>
-          )}
-
-          {/* Instruction list */}
-          {instrLines.length > 0 && (
-            <div className="mb-4">
-              <p className="text-[12px] font-bold text-gray-700 mb-1.5">
-                Instruksi Pengerjaan:
-              </p>
-              <ol className="space-y-1.5">
-                {instrLines.map((line, i) => (
-                  <li key={i} className="flex gap-2">
-                    <span className="text-[12px] font-semibold text-gray-500 shrink-0 tabular-nums">
-                      {i + 1}.
-                    </span>
-                    <span className="text-[12px] text-gray-600 leading-relaxed">
-                      {cleanInstruction(line)}
-                    </span>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Dokumen perlu diunduh */}
           {data.attachments.length > 0 && (
@@ -615,9 +593,13 @@ function ProjectPreview({
 export function ProjectBody({
   initialData,
   onChangeData,
+  onEditorFocus,
+  onSelectionChange,
 }: {
   initialData?: any;
   onChangeData?: (data: any) => void;
+  onEditorFocus?: (ref: RichTextEditorRef) => void;
+  onSelectionChange?: Parameters<typeof RichTextEditor>[0]["onSelectionChange"];
 }) {
   const [mode, setMode] = useState<"canvas" | "preview">("canvas");
   const [data, setData] = useState<ProjectData>({
@@ -641,8 +623,8 @@ export function ProjectBody({
   }, []);
 
   const handleChange = (d: ProjectData) => {
+    // Hanya update internal state — jangan emit ke parent sampai user eksplisit klik Create
     setData(d);
-    onChangeData?.(d);
   };
 
   const handleCreate = () => {
@@ -656,6 +638,8 @@ export function ProjectBody({
         data={data}
         onChange={handleChange}
         onCreate={handleCreate}
+        onEditorFocus={onEditorFocus}
+        onSelectionChange={onSelectionChange}
       />
     );
   }

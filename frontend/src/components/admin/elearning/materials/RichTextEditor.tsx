@@ -7,6 +7,7 @@ import {
   forwardRef,
   useCallback,
 } from "react";
+import type { CSSProperties } from "react";
 
 export interface RichTextEditorRef {
   execCommand: (cmd: string, value?: string) => void;
@@ -20,6 +21,7 @@ interface RichTextEditorProps {
   onChange?: (val: string) => void;
   placeholder?: string;
   className?: string;
+  style?: CSSProperties;
   onFocus?: () => void;
   onBlur?: () => void;
   onMount?: (ref: RichTextEditorRef) => void;
@@ -43,6 +45,7 @@ const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>(
       onChange,
       placeholder,
       className,
+      style,
       onFocus,
       onBlur,
       onMount,
@@ -72,29 +75,11 @@ const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>(
       onUnmountRef.current = onUnmount;
     }, [onUnmount]);
 
-    // ── Deteksi italic: cek apakah cursor/selection ada di dalam span skewX
+    // ── Deteksi italic: pakai browser native queryCommandState
+    // Ini bekerja dengan benar karena font (Plus Jakarta Sans) sudah punya
+    // italic variant yang sesungguhnya — tidak perlu skewX workaround lagi.
     const detectItalic = useCallback((): boolean => {
-      const sel = window.getSelection();
-      if (!sel || sel.rangeCount === 0) return false;
-
-      const range = sel.getRangeAt(0);
-
-      let node: Node | null =
-        range.commonAncestorContainer.nodeType === Node.TEXT_NODE
-          ? range.commonAncestorContainer.parentNode
-          : range.commonAncestorContainer;
-
-      while (node) {
-        if (
-          node instanceof HTMLElement &&
-          node.style?.transform?.includes("skewX")
-        ) {
-          return true;
-        }
-        node = node.parentNode;
-      }
-
-      return false;
+      return document.queryCommandState("italic");
     }, []);
 
     // ── Helper: konversi rgb(...) → #rrggbb ───────────────────────────────
@@ -153,6 +138,30 @@ const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>(
       });
     }, [detectItalic, rgbToHex]);
 
+    // ── Toggle italic — dipakai oleh toolbar (execCommand("italic")) MAUPUN
+    // shortcut Ctrl/Cmd+I langsung, supaya logikanya satu sumber kebenaran.
+    const toggleItalic = useCallback(() => {
+      const el = editorRef.current;
+      if (!el) return;
+      el.focus();
+      document.execCommand("italic", false, undefined);
+      document.dispatchEvent(new Event("selectionchange"));
+      fireSelectionChange();
+      onChangeRef.current?.(el.innerHTML || "");
+    }, [fireSelectionChange]);
+
+    // ── Toggle strikethrough — dipakai oleh toolbar (execCommand("strikeThrough"))
+    // MAUPUN shortcut Ctrl/Cmd+Shift+X langsung.
+    const toggleStrikethrough = useCallback(() => {
+      const el = editorRef.current;
+      if (!el) return;
+      el.focus();
+      document.execCommand("strikeThrough", false, undefined);
+      document.dispatchEvent(new Event("selectionchange"));
+      fireSelectionChange();
+      onChangeRef.current?.(el.innerHTML || "");
+    }, [fireSelectionChange]);
+
     // ── Build the imperative API object ──────────────────────────────────
     const buildAPI = useCallback(
       (): RichTextEditorRef => ({
@@ -197,113 +206,12 @@ const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>(
           }
 
           if (cmd === "italic") {
-            el.focus();
+            toggleItalic();
+            return;
+          }
 
-            const sel = window.getSelection();
-            if (!sel || sel.rangeCount === 0) return;
-
-            const range = sel.getRangeAt(0);
-            const isItalic = detectItalic();
-
-            if (range.collapsed) {
-              if (isItalic) {
-                let node: Node | null = sel.anchorNode;
-                while (node && node !== el) {
-                  if (
-                    node instanceof HTMLElement &&
-                    node.style?.transform?.includes("skewX")
-                  ) {
-                    const newRange = document.createRange();
-                    newRange.setStartAfter(node);
-                    newRange.collapse(true);
-                    sel.removeAllRanges();
-                    sel.addRange(newRange);
-                    el.normalize();
-                    break;
-                  }
-                  node = node.parentNode;
-                }
-              } else {
-                const span = document.createElement("span");
-                span.style.display = "inline-block";
-                span.style.transform = "skewX(-8deg)";
-                span.style.fontStyle = "normal";
-
-                const zwsp = document.createTextNode("\u200B");
-                span.appendChild(zwsp);
-
-                range.insertNode(span);
-
-                const newRange = document.createRange();
-                newRange.setStart(zwsp, 1);
-                newRange.collapse(true);
-
-                sel.removeAllRanges();
-                sel.addRange(newRange);
-              }
-
-              document.dispatchEvent(new Event("selectionchange"));
-              fireSelectionChange();
-              onChangeRef.current?.(el.innerHTML || "");
-              return;
-            }
-
-            const commonAncestor = range.commonAncestorContainer;
-            const startNode =
-              commonAncestor.nodeType === Node.TEXT_NODE
-                ? commonAncestor.parentNode
-                : commonAncestor;
-
-            let skewParent: HTMLElement | null = null;
-            let check: Node | null = startNode;
-
-            while (check && check !== el) {
-              if (
-                check instanceof HTMLElement &&
-                check.style?.transform?.includes("skewX")
-              ) {
-                skewParent = check;
-                break;
-              }
-              check = check.parentNode;
-            }
-
-            if (skewParent) {
-              const parent = skewParent.parentNode;
-              if (!parent) return;
-
-              const children: Node[] = [];
-              while (skewParent.firstChild) {
-                children.push(skewParent.firstChild);
-                parent.insertBefore(skewParent.firstChild, skewParent);
-              }
-              parent.removeChild(skewParent);
-
-              if (children.length > 0) {
-                const newRange = document.createRange();
-                newRange.setStartBefore(children[0]);
-                newRange.setEndAfter(children[children.length - 1]);
-                sel.removeAllRanges();
-                sel.addRange(newRange);
-              }
-            } else {
-              const span = document.createElement("span");
-              span.style.display = "inline-block";
-              span.style.transform = "skewX(-8deg)";
-              span.style.fontStyle = "normal";
-
-              try {
-                range.surroundContents(span);
-              } catch {
-                const content = range.extractContents();
-                span.appendChild(content);
-                range.insertNode(span);
-              }
-            }
-
-            document.dispatchEvent(new Event("selectionchange"));
-            fireSelectionChange();
-            onChangeRef.current?.(el.innerHTML || "");
+          if (cmd === "strikeThrough") {
+            toggleStrikethrough();
             return;
           }
 
@@ -349,7 +257,7 @@ const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>(
           return editorRef.current?.innerHTML ?? "";
         },
       }),
-      [detectItalic, fireSelectionChange],
+      [fireSelectionChange, toggleItalic, toggleStrikethrough],
     );
 
     // ── Init: inject value on mount, reset on unmount ─────────────────────
@@ -398,7 +306,16 @@ const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>(
         onKeyDown={(e) => {
           if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "i") {
             e.preventDefault();
-            (ref as any)?.current?.execCommand("italic");
+            toggleItalic();
+            return;
+          }
+          if (
+            (e.ctrlKey || e.metaKey) &&
+            e.shiftKey &&
+            e.key.toLowerCase() === "x"
+          ) {
+            e.preventDefault();
+            toggleStrikethrough();
             return;
           }
           const isInUnordered = document.queryCommandState(
@@ -446,7 +363,7 @@ const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>(
   [&_ol]:pl-6 [&_ol]:my-1
   [&_li]:my-0.5
   [&_blockquote]:pl-4 [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300`}
-        style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
+        style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", ...style }}
       />
     );
   },

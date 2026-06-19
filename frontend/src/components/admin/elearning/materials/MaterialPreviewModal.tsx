@@ -9,6 +9,10 @@ import {
   Monitor,
 } from "lucide-react";
 import type { CanvasItem } from "./CanvasCard";
+import {
+  normalizeEditorHTML,
+  richTextDisplayClass,
+} from "@/lib/editorHTMLUtils";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 interface MaterialPreviewModalProps {
@@ -21,12 +25,14 @@ interface MaterialPreviewModalProps {
 // ─── Highlight preview ────────────────────────────────────────────────────────
 function HighlightPreview({ html }: { html: string }) {
   return (
-    <div className="w-full">
-      <div className="w-[85%] mx-auto rounded-md overflow-hidden flex bg-[#F8FAFC]">
-        <div className="w-4 bg-[#D1D5DC] shrink-0" />
+    <div className={`w-full ${richTextDisplayClass}`}>
+      <div
+        className={`w-[85%] mx-auto rounded-md overflow-hidden flex bg-[#F8FAFC] ${richTextDisplayClass}`}
+      >
+        <div className={`w-4 bg-[#D1D5DC] shrink-0 ${richTextDisplayClass}`} />
         <div
-          className="px-6 py-5 text-base text-gray-700 leading-relaxed flex-1"
-          dangerouslySetInnerHTML={{ __html: html }}
+          className={`px-6 py-5 text-base text-gray-700 leading-relaxed flex-1 min-w-0 break-words ${richTextDisplayClass}`}
+          dangerouslySetInnerHTML={{ __html: normalizeEditorHTML(html) }}
         />
       </div>
     </div>
@@ -38,12 +44,14 @@ function SummaryPreview({ html }: { html: string }) {
   return (
     <div className="w-full">
       <div className="w-[85%] mx-auto bg-[#F8FAFC] rounded-2xl p-10 shadow-sm">
-        <h4 className="text-4xl font-bold mb-6">
-          <span className="text-emerald-600">Ringkasan</span>
+        <h4 className={`text-4xl font-bold mb-6 ${richTextDisplayClass}`}>
+          <span className={`text-emerald-600 ${richTextDisplayClass}`}>
+            Ringkasan
+          </span>
         </h4>
         <div
-          className="text-base text-gray-800 leading-relaxed [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:my-1"
-          dangerouslySetInnerHTML={{ __html: html }}
+          className={`text-base text-gray-800 leading-relaxed break-words [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:my-1 ${richTextDisplayClass}`}
+          dangerouslySetInnerHTML={{ __html: normalizeEditorHTML(html) }}
         />
       </div>
     </div>
@@ -54,8 +62,8 @@ function SummaryPreview({ html }: { html: string }) {
 function HeadingPreview({ html }: { html: string }) {
   return (
     <div
-      className="text-3xl font-bold text-black leading-snug [&_*]:font-bold"
-      dangerouslySetInnerHTML={{ __html: html }}
+      className={`text-3xl font-bold text-black leading-snug break-words [&_*]:font-bold ${richTextDisplayClass}`}
+      dangerouslySetInnerHTML={{ __html: normalizeEditorHTML(html) }}
     />
   );
 }
@@ -64,20 +72,21 @@ function HeadingPreview({ html }: { html: string }) {
 function ParagraphPreview({ html }: { html: string }) {
   return (
     <div
-      className="text-base text-gray-800 leading-relaxed
+      className="text-base text-gray-800 leading-relaxed break-words
         [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-2
         [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-2
         [&_li]:my-1
         [&_strong]:font-bold
         [&_u]:underline
-        [&_blockquote]:pl-4 [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:italic"
-      dangerouslySetInnerHTML={{ __html: html }}
+        [&_blockquote]:pl-4 [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:italic
+        [&>div]:mb-3 [&>p]:mb-3"
+      dangerouslySetInnerHTML={{ __html: normalizeEditorHTML(html) }}
     />
   );
 }
 
 // ─── Image preview ────────────────────────────────────────────────────────────
-function ImagePreview({ src }: { src?: string }) {
+function ImagePreview({ src, width }: { src?: string; width?: number }) {
   if (!src) {
     return (
       <div className="w-full h-40 flex items-center justify-center bg-gray-100 rounded-xl text-gray-400 text-sm">
@@ -90,7 +99,8 @@ function ImagePreview({ src }: { src?: string }) {
       <img
         src={src}
         alt="material"
-        className="w-full max-w-xl max-h-[400px] object-contain rounded-xl shadow-md"
+        style={{ width: width ? `${width}%` : "100%" }}
+        className="object-contain rounded-xl shadow-md block"
       />
     </div>
   );
@@ -151,18 +161,22 @@ function AccordionPreview({ data }: { data: any }) {
   }
 
   return (
-    <div className="space-y-3 w-full mx-auto">
+    <div className={`space-y-3 w-full mx-auto ${richTextDisplayClass}`}>
       {/* Title & description if present */}
       {data?.titleHTML && (
         <div
-          className="text-lg font-semibold text-gray-700 mb-1"
-          dangerouslySetInnerHTML={{ __html: data.titleHTML }}
+          className={`text-lg font-semibold text-gray-700 mb-1 break-words ${richTextDisplayClass}`}
+          dangerouslySetInnerHTML={{
+            __html: normalizeEditorHTML(data.titleHTML),
+          }}
         />
       )}
       {data?.descriptionHTML && (
         <div
-          className="text-sm text-gray-500 mb-3 leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: data.descriptionHTML }}
+          className={`text-sm text-gray-500 mb-3 leading-relaxed break-words ${richTextDisplayClass}`}
+          dangerouslySetInnerHTML={{
+            __html: normalizeEditorHTML(data.descriptionHTML),
+          }}
         />
       )}
       {panels.map((panel: any, index: number) => {
@@ -177,19 +191,21 @@ function AccordionPreview({ data }: { data: any }) {
                   isOpen ? prev.filter((i) => i !== index) : [...prev, index],
                 )
               }
-              className="w-full flex justify-between items-center px-5 py-4 text-left bg-gray-100 hover:bg-gray-200 transition-colors duration-200 cursor-pointer"
+              className={`w-full flex justify-between items-center px-5 py-4 text-left bg-gray-100 hover:bg-gray-200 transition-colors duration-200 cursor-pointer ${richTextDisplayClass}`}
             >
               {titleContent ? (
                 <div
-                  className="font-bold text-lg text-black"
-                  dangerouslySetInnerHTML={{ __html: titleContent }}
+                  className={`font-bold text-lg text-black min-w-0 break-words ${richTextDisplayClass}`}
+                  dangerouslySetInnerHTML={{
+                    __html: normalizeEditorHTML(titleContent),
+                  }}
                 />
               ) : (
                 <span className="font-bold text-lg text-gray-400 italic">
                   Untitled Panel
                 </span>
               )}
-              <div className="p-2 rounded-full border border-emerald-500">
+              <div className="p-2 rounded-full border border-emerald-500 shrink-0">
                 <ChevronDown
                   size={18}
                   className={`text-emerald-500 transition-transform duration-300 ${isOpen ? "rotate-180" : "rotate-0"}`}
@@ -198,9 +214,11 @@ function AccordionPreview({ data }: { data: any }) {
             </button>
             {isOpen && (
               <div
-                className="px-5 py-5 text-base text-black leading-relaxed bg-gray-50
+                className="px-5 py-5 text-base text-black leading-relaxed bg-gray-50 break-words
                   [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1"
-                dangerouslySetInnerHTML={{ __html: bodyContent }}
+                dangerouslySetInnerHTML={{
+                  __html: normalizeEditorHTML(bodyContent),
+                }}
               />
             )}
           </div>
@@ -224,18 +242,20 @@ function TabNavigationPreview({ data }: { data: any }) {
   }
 
   return (
-    <div className="w-full">
+    <div className={`w-full ${richTextDisplayClass}`}>
       {/* Title & description */}
       {data?.title && (
         <div
-          className="text-lg font-semibold text-gray-700 mb-1"
-          dangerouslySetInnerHTML={{ __html: data.title }}
+          className={`text-lg font-semibold text-gray-700 mb-1 break-words ${richTextDisplayClass}`}
+          dangerouslySetInnerHTML={{ __html: normalizeEditorHTML(data.title) }}
         />
       )}
       {data?.description && (
         <div
-          className="text-sm text-gray-500 mb-4 leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: data.description }}
+          className={`text-sm text-gray-500 mb-4 leading-relaxed break-words ${richTextDisplayClass}`}
+          dangerouslySetInnerHTML={{
+            __html: normalizeEditorHTML(data.description),
+          }}
         />
       )}
 
@@ -261,9 +281,11 @@ function TabNavigationPreview({ data }: { data: any }) {
         ))}
       </div>
       <div
-        className="bg-white rounded-b-2xl p-8 text-base text-black leading-relaxed shadow-sm
+        className="bg-white rounded-b-2xl p-8 text-base text-black leading-relaxed shadow-sm break-words
           [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1"
-        dangerouslySetInnerHTML={{ __html: tabs[activeTab]?.content || "" }}
+        dangerouslySetInnerHTML={{
+          __html: normalizeEditorHTML(tabs[activeTab]?.content) || "",
+        }}
       />
     </div>
   );
@@ -295,18 +317,20 @@ function ContentCardPreview({ data }: { data: any }) {
   const cols = Math.min(cards.length, 3);
 
   return (
-    <div className="w-full">
+    <div className={`w-full ${richTextDisplayClass}`}>
       {/* Title & description */}
       {data?.title && (
         <div
-          className="text-lg font-semibold text-gray-700 mb-1"
-          dangerouslySetInnerHTML={{ __html: data.title }}
+          className={`text-lg font-semibold text-gray-700 mb-1 break-words ${richTextDisplayClass}`}
+          dangerouslySetInnerHTML={{ __html: normalizeEditorHTML(data.title) }}
         />
       )}
       {data?.description && (
         <div
-          className="text-sm text-gray-500 mb-4 leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: data.description }}
+          className={`text-sm text-gray-500 mb-4 leading-relaxed break-words ${richTextDisplayClass}`}
+          dangerouslySetInnerHTML={{
+            __html: normalizeEditorHTML(data.description),
+          }}
         />
       )}
 
@@ -324,16 +348,22 @@ function ContentCardPreview({ data }: { data: any }) {
             return (
               <div
                 key={card.id}
-                className="flex flex-col items-center text-center p-6 rounded-2xl bg-[#F8FAFC] shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1"
+                className={`flex flex-col items-center text-center p-6 rounded-2xl bg-[#F8FAFC] shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 ${richTextDisplayClass}`}
               >
-                <h6 className="text-base font-semibold text-black mb-2">
+                <h6
+                  className={`text-base font-semibold text-black mb-2 break-words ${richTextDisplayClass}`}
+                >
                   <span
-                    dangerouslySetInnerHTML={{ __html: card.title || `Card` }}
+                    dangerouslySetInnerHTML={{
+                      __html: normalizeEditorHTML(card.title) || `Card`,
+                    }}
                   />
                 </h6>
                 <div
-                  className="text-sm text-gray-700 leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: card.content || "" }}
+                  className={`text-sm text-gray-700 leading-relaxed break-words ${richTextDisplayClass}`}
+                  dangerouslySetInnerHTML={{
+                    __html: normalizeEditorHTML(card.content) || "",
+                  }}
                 />
               </div>
             );
@@ -343,17 +373,25 @@ function ContentCardPreview({ data }: { data: any }) {
           return (
             <div
               key={card.id}
-              className="flex flex-col rounded-2xl overflow-hidden border border-gray-200 shadow-sm"
+              className={`flex flex-col rounded-2xl overflow-hidden border border-gray-200 shadow-sm ${richTextDisplayClass}`}
             >
-              <div className="flex flex-col items-center text-center p-6 bg-white flex-1">
-                <h6 className="text-base font-semibold text-black mb-2">
+              <div
+                className={`flex flex-col items-center text-center p-6 bg-white flex-1 ${richTextDisplayClass}`}
+              >
+                <h6
+                  className={`text-base font-semibold text-black mb-2 break-words ${richTextDisplayClass}`}
+                >
                   <span
-                    dangerouslySetInnerHTML={{ __html: card.title || `Card` }}
+                    dangerouslySetInnerHTML={{
+                      __html: normalizeEditorHTML(card.title) || `Card`,
+                    }}
                   />
                 </h6>
                 <div
-                  className="text-sm text-gray-700 leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: card.content || "" }}
+                  className={`text-sm text-gray-700 leading-relaxed break-words ${richTextDisplayClass}`}
+                  dangerouslySetInnerHTML={{
+                    __html: normalizeEditorHTML(card.content) || "",
+                  }}
                 />
               </div>
 
@@ -367,8 +405,10 @@ function ContentCardPreview({ data }: { data: any }) {
                     }`}
                   >
                     <div
-                      className="text-sm text-gray-600 leading-relaxed text-center"
-                      dangerouslySetInnerHTML={{ __html: card.expandedContent }}
+                      className={`text-sm text-gray-600 leading-relaxed text-center break-words ${richTextDisplayClass}`}
+                      dangerouslySetInnerHTML={{
+                        __html: normalizeEditorHTML(card.expandedContent),
+                      }}
                     />
                   </div>
                   <button
@@ -413,18 +453,20 @@ function CarouselPreview({ data }: { data: any }) {
   const translatePct = (100 / cardsPerSlide) * currentIndex;
 
   return (
-    <div className="w-full">
+    <div className={`w-full ${richTextDisplayClass}`}>
       {/* Title & description */}
       {data?.title && (
         <div
-          className="text-lg font-semibold text-gray-700 mb-1"
-          dangerouslySetInnerHTML={{ __html: data.title }}
+          className={`text-lg font-semibold text-gray-700 mb-1 break-words ${richTextDisplayClass}`}
+          dangerouslySetInnerHTML={{ __html: normalizeEditorHTML(data.title) }}
         />
       )}
       {data?.description && (
         <div
-          className="text-sm text-gray-500 mb-4 leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: data.description }}
+          className={`text-sm text-gray-500 mb-4 leading-relaxed break-words ${richTextDisplayClass}`}
+          dangerouslySetInnerHTML={{
+            __html: normalizeEditorHTML(data.description),
+          }}
         />
       )}
 
@@ -454,18 +496,24 @@ function CarouselPreview({ data }: { data: any }) {
                 className="px-2 flex-shrink-0 flex"
                 style={{ width: `${100 / cardsPerSlide}%` }}
               >
-                <div className="group flex flex-col h-full w-full rounded-xl overflow-hidden border border-gray-200 shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-2 hover:border-emerald-300">
-                  <div className="py-4 px-4 text-center bg-[#F8FAFC]">
+                <div
+                  className={`group flex flex-col h-full w-full rounded-xl overflow-hidden border border-gray-200 shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-2 hover:border-emerald-300 ${richTextDisplayClass}`}
+                >
+                  <div
+                    className={`py-4 px-4 text-center bg-[#F8FAFC] ${richTextDisplayClass}`}
+                  >
                     <h6
-                      className="text-base font-bold text-emerald-600"
+                      className={`text-base font-bold text-emerald-600 break-words ${richTextDisplayClass}`}
                       dangerouslySetInnerHTML={{
                         __html: item.title || `Item ${index + 1}`,
                       }}
                     />
                   </div>
                   <div
-                    className="p-4 text-center border-t border-gray-200 bg-white text-sm text-gray-700 leading-relaxed flex-1"
-                    dangerouslySetInnerHTML={{ __html: item.content || "" }}
+                    className={`p-4 text-center border-t border-gray-200 bg-white text-sm text-gray-700 leading-relaxed flex-1 break-words ${richTextDisplayClass}`}
+                    dangerouslySetInnerHTML={{
+                      __html: normalizeEditorHTML(item.content) || "",
+                    }}
                   />
                 </div>
               </div>
@@ -496,17 +544,17 @@ function TrueFalsePreview({ data }: { data: any }) {
   }
 
   return (
-    <div className="w-full">
+    <div className={`w-full ${richTextDisplayClass}`}>
       {title && (
         <div
-          className="text-lg font-semibold text-gray-700 mb-1"
-          dangerouslySetInnerHTML={{ __html: title }}
+          className={`text-lg font-semibold text-gray-700 mb-1 break-words ${richTextDisplayClass}`}
+          dangerouslySetInnerHTML={{ __html: normalizeEditorHTML(title) }}
         />
       )}
       {description && (
         <div
-          className="text-sm text-gray-500 mb-4 leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: description }}
+          className={`text-sm text-gray-500 mb-4 leading-relaxed break-words ${richTextDisplayClass}`}
+          dangerouslySetInnerHTML={{ __html: normalizeEditorHTML(description) }}
         />
       )}
       <div className="bg-white border-2 border-emerald-600 rounded-xl overflow-hidden">
@@ -544,7 +592,7 @@ function TrueFalsePreview({ data }: { data: any }) {
                     {index + 1}
                   </td>
                   <td
-                    className={`py-4 px-4 text-sm align-middle leading-snug ${isWrong ? "text-red-600 font-medium" : "text-gray-700"}`}
+                    className={`py-4 px-4 text-sm align-middle leading-snug break-words ${isWrong ? "text-red-600 font-medium" : "text-gray-700"} ${richTextDisplayClass}`}
                   >
                     <div
                       dangerouslySetInnerHTML={{
@@ -671,17 +719,17 @@ function MatchingPreview({ data }: { data: any }) {
   };
 
   return (
-    <div className="w-full">
+    <div className={`w-full ${richTextDisplayClass}`}>
       {title && (
         <div
-          className="text-lg font-semibold text-gray-700 mb-1"
-          dangerouslySetInnerHTML={{ __html: title }}
+          className={`text-lg font-semibold text-gray-700 mb-1 break-words ${richTextDisplayClass}`}
+          dangerouslySetInnerHTML={{ __html: normalizeEditorHTML(title) }}
         />
       )}
       {description && (
         <div
-          className="text-sm text-gray-500 mb-4 leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: description }}
+          className={`text-sm text-gray-500 mb-4 leading-relaxed break-words ${richTextDisplayClass}`}
+          dangerouslySetInnerHTML={{ __html: normalizeEditorHTML(description) }}
         />
       )}
 
@@ -709,8 +757,10 @@ function MatchingPreview({ data }: { data: any }) {
                     setDragging(chip);
                     setDraggingFrom("pool");
                   }}
-                  className="px-4 py-2 rounded-lg border border-emerald-500 bg-white text-sm text-gray-700 cursor-grab hover:bg-emerald-50 transition shadow-sm"
-                  dangerouslySetInnerHTML={{ __html: chip.value }}
+                  className={`px-4 py-2 rounded-lg border border-emerald-500 bg-white text-sm text-gray-700 cursor-grab hover:bg-emerald-50 transition shadow-sm break-words ${richTextDisplayClass}`}
+                  dangerouslySetInnerHTML={{
+                    __html: normalizeEditorHTML(chip.value),
+                  }}
                 />
               ))}
             </div>
@@ -728,16 +778,21 @@ function MatchingPreview({ data }: { data: any }) {
             const isWrong =
               submitted && slotValue !== null && slotValue !== pair.answer;
             return (
-              <div key={pair.id} className="flex items-center gap-4">
+              <div
+                key={pair.id}
+                className={`flex items-center gap-4 ${richTextDisplayClass}`}
+              >
                 <div
-                  className="flex-1 px-4 py-3 rounded-lg bg-gray-100 text-sm text-gray-700"
-                  dangerouslySetInnerHTML={{ __html: pair.question || "—" }}
+                  className={`flex-1 min-w-0 px-4 py-3 rounded-lg bg-gray-100 text-sm text-gray-700 break-words ${richTextDisplayClass}`}
+                  dangerouslySetInnerHTML={{
+                    __html: normalizeEditorHTML(pair.question) || "—",
+                  }}
                 />
                 <span className="text-emerald-600 font-bold text-xl shrink-0">
                   →
                 </span>
                 <div
-                  className={`flex-1 min-h-[44px] rounded-lg border-2 border-dashed flex items-center justify-center px-3 transition ${
+                  className={`flex-1 min-w-0 min-h-[44px] rounded-lg border-2 border-dashed flex items-center justify-center px-3 transition ${
                     slotValue
                       ? isCorrect
                         ? "border-emerald-400 bg-emerald-50"
@@ -764,8 +819,10 @@ function MatchingPreview({ data }: { data: any }) {
                         });
                         setDraggingFrom(pair.id);
                       }}
-                      className="px-3 py-1.5 rounded-md text-sm border bg-white border-gray-300 cursor-grab"
-                      dangerouslySetInnerHTML={{ __html: slotValue }}
+                      className={`px-3 py-1.5 rounded-md text-sm border bg-white border-gray-300 cursor-grab break-words ${richTextDisplayClass}`}
+                      dangerouslySetInnerHTML={{
+                        __html: normalizeEditorHTML(slotValue),
+                      }}
                     />
                   ) : (
                     <span className="text-xs text-gray-400">Drop di sini</span>
@@ -834,12 +891,14 @@ function CodingPreview({ data }: { data: any }) {
     <div className="w-full">
       {/* Title & description — start aligned */}
       {title && (
-        <div className="text-lg font-semibold text-gray-700 mb-1">{title}</div>
+        <div className="text-lg font-semibold text-gray-700 mb-1 break-words">
+          {title}
+        </div>
       )}
       {description && (
         <div
-          className="text-sm text-gray-500 mb-4 leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: description }}
+          className={`text-sm text-gray-500 mb-4 leading-relaxed break-words ${richTextDisplayClass}`}
+          dangerouslySetInnerHTML={{ __html: normalizeEditorHTML(description) }}
         />
       )}
 
@@ -973,10 +1032,12 @@ function QuizModalPreview({ data }: { data: any }) {
   return (
     <div className="w-full">
       {title && (
-        <p className="text-lg font-semibold text-gray-700 mb-1">{title}</p>
+        <p className="text-lg font-semibold text-gray-700 mb-1 break-words">
+          {title}
+        </p>
       )}
       {description && (
-        <p className="text-sm text-gray-500 mb-4 leading-relaxed">
+        <p className="text-sm text-gray-500 mb-4 leading-relaxed break-words">
           {description}
         </p>
       )}
@@ -1030,12 +1091,17 @@ function QuizModalPreview({ data }: { data: any }) {
                 }}
                 className="px-6 py-6"
               >
-                <p className="text-base font-bold text-gray-800 mb-0.5">
+                <p
+                  className={`text-base font-bold text-gray-800 mb-0.5 ${richTextDisplayClass}`}
+                >
                   Pertanyaan {qIdx + 1}
                 </p>
-                <p className="text-base text-gray-700 mb-1 leading-snug">
-                  {q.questionText || `Question ${qIdx + 1}`}
-                </p>
+                <div
+                  className={`text-base text-gray-700 mb-1 leading-snug break-words [&_ul]:pl-5 [&_ul]:list-disc [&_ol]:pl-5 [&_ol]:list-decimal [&_li]:my-0.5 ${richTextDisplayClass}`}
+                  dangerouslySetInnerHTML={{
+                    __html: q.questionText || `Question ${qIdx + 1}`,
+                  }}
+                />
                 {q.questionType === "multiple" && (
                   <p className="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wide">
                     Pilih pernyataan yang BENAR.
@@ -1097,7 +1163,7 @@ function QuizModalPreview({ data }: { data: any }) {
                             </svg>
                           )}
                         </div>
-                        <span className="text-sm flex-1 text-gray-700 leading-snug">
+                        <span className="text-sm flex-1 min-w-0 text-gray-700 leading-snug break-words text-left">
                           {opt.text || `Option ${oi + 1}`}
                         </span>
                       </button>
@@ -1150,7 +1216,7 @@ function QuizModalPreview({ data }: { data: any }) {
                         </svg>
                       )}
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <p
                         className={`text-sm font-bold ${
                           correct ? "text-emerald-700" : "text-red-600"
@@ -1158,7 +1224,7 @@ function QuizModalPreview({ data }: { data: any }) {
                       >
                         {correct ? "Benar!" : "Belum tepat."}
                       </p>
-                      <p className="text-sm text-gray-600 mt-0.5 leading-relaxed">
+                      <p className="text-sm text-gray-600 mt-0.5 leading-relaxed break-words">
                         {correct
                           ? "Tujuan utama data science adalah mengolah data agar menghasilkan insight yang berguna."
                           : `Jawaban yang benar: ${
@@ -1239,17 +1305,7 @@ function ProjectModalPreview({ data }: { data: any }) {
     setSubmittedFiles((prev) => [...prev, ...Array.from(files)]);
   };
 
-  // Pisahkan question menjadi paragraf deskripsi dan instruksi bernomor
-  const lines = question
-    .split("\n")
-    .map((l: string) => l.trim())
-    .filter(Boolean);
-  const isInstructionLine = (line: string) => /^(\d+\.|[-•*])/.test(line);
-  const descLines = lines.filter((l: string) => !isInstructionLine(l));
-  const instrLines = lines.filter((l: string) => isInstructionLine(l));
-  const cleanInstruction = (line: string) =>
-    line.replace(/^(\d+\.|[-•*])\s*/, "").trim();
-
+  // question sekarang berisi HTML dari RichTextEditor
   const formatColorMap: Record<string, string> = {
     PDF: "bg-red-100 text-red-600",
     DOC: "bg-blue-100 text-blue-600",
@@ -1274,44 +1330,21 @@ function ProjectModalPreview({ data }: { data: any }) {
         <div className="flex divide-x divide-gray-100">
           {/* ── LEFT col: deskripsi, instruksi, dokumen ── */}
           <div className="flex-1 min-w-0 px-7 py-6">
-            {/* Description */}
-            {descLines.length > 0 && (
+            {/* Description — render HTML dari RichTextEditor */}
+            {question && (
               <div className="mb-5">
-                <p className="text-sm font-bold text-gray-700 mb-2">
+                <p
+                  className={`text-sm font-bold text-gray-700 mb-2 ${richTextDisplayClass}`}
+                >
                   Deskripsi Proyek
                 </p>
-                <p className="text-sm text-gray-600 leading-relaxed">
-                  {descLines.join(" ")}
-                </p>
+                <div
+                  className={`text-sm text-gray-600 leading-relaxed break-words [&_ul]:pl-5 [&_ul]:list-disc [&_ol]:pl-5 [&_ol]:list-decimal [&_li]:my-0.5 [&_div]:block [&_p]:block [&_div:empty]:min-h-[1em] ${richTextDisplayClass}`}
+                  dangerouslySetInnerHTML={{
+                    __html: normalizeEditorHTML(question),
+                  }}
+                />
               </div>
-            )}
-
-            {/* Instructions */}
-            {instrLines.length > 0 && (
-              <div className="mb-5">
-                <p className="text-sm font-bold text-gray-700 mb-2">
-                  Instruksi Pengerjaan:
-                </p>
-                <ol className="space-y-2">
-                  {instrLines.map((line: string, i: number) => (
-                    <li key={i} className="flex gap-2.5">
-                      <span className="text-sm font-semibold text-gray-500 shrink-0 tabular-nums">
-                        {i + 1}.
-                      </span>
-                      <span className="text-sm text-gray-600 leading-relaxed">
-                        {cleanInstruction(line)}
-                      </span>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            )}
-
-            {/* If no structured content at all, show raw */}
-            {descLines.length === 0 && instrLines.length === 0 && question && (
-              <p className="text-sm text-gray-600 leading-relaxed mb-5">
-                {question}
-              </p>
             )}
 
             {/* Documents */}
@@ -1608,7 +1641,7 @@ function PreviewItem({ item }: { item: CanvasItem }) {
     case "summary":
       return <SummaryPreview html={item.data?.value || ""} />;
     case "image":
-      return <ImagePreview src={item.data?.src} />;
+      return <ImagePreview src={item.data?.src} width={item.data?.width} />;
     case "video":
       return <VideoPreview src={item.data?.src} />;
     case "accordion":

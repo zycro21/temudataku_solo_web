@@ -2,6 +2,10 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import {
+  normalizeEditorHTML,
+  richTextDisplayClass,
+} from "@/lib/editorHTMLUtils";
+import {
   GripVertical,
   ChevronUp,
   ChevronDown,
@@ -75,6 +79,16 @@ const CARD_LEVEL_RICH_IDS = new Set([
   "summary",
 ]);
 
+// ─── Font-type presets (shared with self-managed body components) ───────────
+export {
+  FONT_PRESETS,
+  FONT_TYPE_KEYS,
+  FONT_TYPE_KEYS_REVERSE,
+  DEFAULT_FONT_TYPE,
+  getFontStyle,
+} from "./fontStyles";
+import { getFontStyle } from "./fontStyles";
+
 // ─── Icon map ─────────────────────────────────────────────────────────────────
 const CANVAS_ICONS: Record<string, React.ReactNode> = {
   heading: <Heading size={13} />,
@@ -97,12 +111,16 @@ const CANVAS_ICONS: Record<string, React.ReactNode> = {
 // ─── HeadingBody ──────────────────────────────────────────────────────────────
 function HeadingBody({
   value,
+  fontType,
+  fontSize,
   onChange,
   onEditorReady,
   onFocus,
   onSelectionChange,
 }: {
   value?: string;
+  fontType?: string;
+  fontSize?: number;
   onChange?: (val: string) => void;
   onEditorReady?: (ref: RichTextEditorRef | null) => void;
   onFocus?: () => void;
@@ -110,6 +128,7 @@ function HeadingBody({
 }) {
   const [focused, setFocused] = useState(false);
   const [mode, setMode] = useState<"canvas" | "preview">("canvas");
+  const textStyle = getFontStyle(fontType, fontSize);
 
   if (mode === "preview") {
     return (
@@ -124,8 +143,11 @@ function HeadingBody({
           <Pencil size={11} /> Edit
         </button>
         <div
-          className="text-2xl font-bold text-gray-800"
-          dangerouslySetInnerHTML={{ __html: value || "<em>—</em>" }}
+          className={`text-gray-800 ${richTextDisplayClass}`}
+          style={textStyle}
+          dangerouslySetInnerHTML={{
+            __html: normalizeEditorHTML(value) || "<em>—</em>",
+          }}
         />
       </div>
     );
@@ -151,7 +173,8 @@ function HeadingBody({
         value={value || ""}
         onChange={onChange}
         placeholder="Type your heading here ..."
-        className="text-2xl font-bold text-gray-800"
+        className="text-gray-800"
+        style={textStyle}
         onMount={(ref) => {
           onEditorReady?.(ref);
           // Auto-focus & notify parent when editor mounts (including re-mount after preview)
@@ -177,6 +200,8 @@ function HeadingBody({
 // ─── ParagraphBody ────────────────────────────────────────────────────────────
 function ParagraphBody({
   value,
+  fontType,
+  fontSize,
   onChange,
   onEditorReady,
   onFocus,
@@ -184,6 +209,8 @@ function ParagraphBody({
   isEditMode,
 }: {
   value?: string;
+  fontType?: string;
+  fontSize?: number;
   onChange?: (val: string) => void;
   onEditorReady?: (ref: RichTextEditorRef | null) => void;
   onFocus?: () => void;
@@ -192,6 +219,7 @@ function ParagraphBody({
 }) {
   const [focused, setFocused] = useState(false);
   const [mode, setMode] = useState<"canvas" | "preview">("canvas");
+  const textStyle = getFontStyle(fontType, fontSize);
 
   if (mode === "preview") {
     return (
@@ -206,8 +234,11 @@ function ParagraphBody({
           <Pencil size={11} /> Edit
         </button>
         <div
-          className="text-sm text-gray-700 leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: value || "<em>—</em>" }}
+          className={`text-gray-700 leading-relaxed ${richTextDisplayClass}`}
+          style={textStyle}
+          dangerouslySetInnerHTML={{
+            __html: normalizeEditorHTML(value) || "<em>—</em>",
+          }}
         />
       </div>
     );
@@ -233,7 +264,8 @@ function ParagraphBody({
         value={value || ""}
         onChange={onChange}
         placeholder="Enter paragraph text ..."
-        className="text-sm text-gray-700 min-h-[3em]"
+        className="text-gray-700 min-h-[3em]"
+        style={textStyle}
         onMount={(ref) => {
           onEditorReady?.(ref);
           setTimeout(() => {
@@ -277,24 +309,31 @@ function normalizeMediaUrl(url: string) {
 // ─── ImageBody ───────────────────────────────────────────────────────────────
 function ImageBody({
   value,
+  width: initialWidth,
   onChangeData,
 }: {
   value?: string | null;
+  width?: number;
   onChangeData?: (data: any) => void;
 }) {
   const [focused, setFocused] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(value ?? null);
-  const [inputUrl, setInputUrl] = useState("");
+  const [width, setWidth] = useState<number>(initialWidth ?? 100); // percent
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const isDragging = useRef(false);
+  const dragStartX = useRef(0);
+  const dragStartWidth = useRef(100);
 
-  const setAndSave = (url: string | null) => {
+  const setAndSave = (url: string | null, w?: number) => {
     setImageUrl(url);
-    onChangeData?.({ src: url ?? undefined });
+    onChangeData?.({
+      src: url ?? undefined,
+      width: w ?? width,
+      _file: undefined,
+    });
   };
 
-  const handleClickArea = () => {
-    if (!imageUrl) fileInputRef.current?.click();
-  };
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -304,20 +343,59 @@ function ImageBody({
     }
     const blobUrl = URL.createObjectURL(file);
     setImageUrl(blobUrl);
-    onChangeData?.({ src: blobUrl, _file: file });
+    onChangeData?.({ src: blobUrl, _file: file, width });
   };
-  const handleAddUrl = () => {
-    if (!inputUrl) return;
-    setAndSave(normalizeMediaUrl(inputUrl).image);
+
+  // ── Resize drag logic ────────────────────────────────────────────────────
+  const onResizeMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    isDragging.current = true;
+    dragStartX.current = e.clientX;
+    dragStartWidth.current = width;
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!isDragging.current || !containerRef.current) return;
+      const containerW = containerRef.current.getBoundingClientRect().width;
+      const delta = ev.clientX - dragStartX.current;
+      const newWidthPx = (dragStartWidth.current / 100) * containerW + delta;
+      const newWidthPct = Math.min(
+        100,
+        Math.max(10, Math.round((newWidthPx / containerW) * 100)),
+      );
+      setWidth(newWidthPct);
+    };
+
+    const onMouseUp = (ev: MouseEvent) => {
+      if (!isDragging.current || !containerRef.current) return;
+      isDragging.current = false;
+      const containerW = containerRef.current.getBoundingClientRect().width;
+      const delta = ev.clientX - dragStartX.current;
+      const newWidthPx = (dragStartWidth.current / 100) * containerW + delta;
+      const newWidthPct = Math.min(
+        100,
+        Math.max(10, Math.round((newWidthPx / containerW) * 100)),
+      );
+      setWidth(newWidthPct);
+      onChangeData?.({ src: imageUrl ?? undefined, width: newWidthPct });
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
   };
 
   return (
     <div
+      ref={containerRef}
       className={`rounded-lg transition-all ${imageUrl ? "border-2 border-emerald-400 p-2" : `border-2 border-dashed px-6 py-8 cursor-pointer ${focused ? "border-emerald-400" : "border-gray-200"}`}`}
       tabIndex={0}
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
-      onClick={handleClickArea}
+      onClick={() => {
+        if (!imageUrl) fileInputRef.current?.click();
+      }}
     >
       <input
         type="file"
@@ -328,22 +406,67 @@ function ImageBody({
         onClick={(e) => e.stopPropagation()}
       />
       {imageUrl ? (
-        <div className="relative">
-          <img
-            src={imageUrl}
-            alt="preview"
-            className="w-full max-h-[300px] object-contain rounded-md"
-          />
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setAndSave(null);
-              setInputUrl("");
-            }}
-            className="absolute top-2 right-2 p-2 rounded-md bg-white shadow hover:bg-red-50 transition"
-          >
-            <Trash2 size={16} className="text-red-500" />
-          </button>
+        <div className="relative flex flex-col items-center">
+          {/* Image + resize handle wrapper */}
+          <div className="relative" style={{ width: `${width}%` }}>
+            <img
+              src={imageUrl}
+              alt="preview"
+              className="w-full object-contain rounded-md block"
+              draggable={false}
+            />
+            {/* Delete button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setImageUrl(null);
+                setWidth(100);
+                onChangeData?.({ src: undefined, width: 100 });
+              }}
+              className="absolute top-2 right-2 p-1.5 rounded-md bg-white shadow hover:bg-red-50 transition"
+            >
+              <Trash2 size={14} className="text-red-500" />
+            </button>
+          </div>
+
+          {/* Width label + resize handle row */}
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-[11px] text-gray-400 select-none">
+              {width}%
+            </span>
+            {/* Drag handle */}
+            <div
+              onMouseDown={onResizeMouseDown}
+              className="flex items-center gap-0.5 cursor-ew-resize px-2 py-1 rounded border border-gray-200 bg-gray-50 hover:border-emerald-400 hover:bg-emerald-50 transition select-none"
+              title="Drag to resize"
+            >
+              <div className="w-0.5 h-3 bg-gray-400 rounded-full" />
+              <div className="w-0.5 h-3 bg-gray-400 rounded-full" />
+              <div className="w-0.5 h-3 bg-gray-400 rounded-full" />
+              <span className="text-[10px] text-gray-400 ml-1.5 select-none">
+                resize
+              </span>
+            </div>
+            {/* Quick size buttons */}
+            {[25, 50, 75, 100].map((pct) => (
+              <button
+                key={pct}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setWidth(pct);
+                  onChangeData?.({ src: imageUrl ?? undefined, width: pct });
+                }}
+                className={`text-[10px] px-2 py-0.5 rounded border transition ${
+                  width === pct
+                    ? "border-emerald-400 bg-emerald-50 text-emerald-600 font-semibold"
+                    : "border-gray-200 text-gray-400 hover:border-emerald-300"
+                }`}
+              >
+                {pct}%
+              </button>
+            ))}
+          </div>
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center text-center">
@@ -351,29 +474,21 @@ function ImageBody({
             <Upload size={48} />
           </div>
           <p className="text-lg text-gray-700 font-medium">
-            Upload an image, add a URL, or drag and drop here
+            Upload an image or drag and drop here
           </p>
           <p className="text-sm text-gray-400 mt-1">
-            Supported formats: JPG, PNG, SVG
+            Supported formats: JPG, PNG, SVG, GIF, WEBP
           </p>
-          <div
-            className="flex items-center gap-3 mt-6 w-full max-w-[460px]"
-            onClick={(e) => e.stopPropagation()}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              fileInputRef.current?.click();
+            }}
+            className="mt-5 px-5 py-2.5 rounded-lg bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition"
           >
-            <input
-              type="text"
-              value={inputUrl}
-              onChange={(e) => setInputUrl(e.target.value)}
-              placeholder="Add image URL"
-              className="flex-1 text-base px-4 py-3 rounded-md border border-gray-200 outline-none focus:border-emerald-400 transition"
-            />
-            <button
-              onClick={handleAddUrl}
-              className="px-5 py-3 text-sm font-semibold rounded-md bg-emerald-500 text-white hover:bg-emerald-600 transition"
-            >
-              Add Image
-            </button>
-          </div>
+            Choose File
+          </button>
         </div>
       )}
     </div>
@@ -508,12 +623,16 @@ function VideoBody({
 // ─── HighlightBody ────────────────────────────────────────────────────────────
 function HighlightBody({
   value,
+  fontType,
+  fontSize,
   onChange,
   onEditorReady,
   onFocus,
   onSelectionChange,
 }: {
   value?: string;
+  fontType?: string;
+  fontSize?: number;
   onChange?: (val: string) => void;
   onEditorReady?: (ref: RichTextEditorRef | null) => void;
   onFocus?: () => void;
@@ -521,6 +640,7 @@ function HighlightBody({
 }) {
   const [mode, setMode] = useState<"canvas" | "preview">("canvas");
   const [focused, setFocused] = useState(false);
+  const textStyle = getFontStyle(fontType, fontSize);
 
   if (mode === "preview") {
     return (
@@ -536,8 +656,11 @@ function HighlightBody({
           <Pencil size={11} /> Edit
         </button>
         <div
-          className="text-sm text-gray-600 leading-relaxed italic min-h-[1em]"
-          dangerouslySetInnerHTML={{ __html: value || "<em>—</em>" }}
+          className={`text-gray-600 leading-relaxed min-h-[1em] ${richTextDisplayClass}`}
+          style={textStyle}
+          dangerouslySetInnerHTML={{
+            __html: normalizeEditorHTML(value) || "<em>—</em>",
+          }}
         />
       </div>
     );
@@ -564,7 +687,8 @@ function HighlightBody({
         value={value || ""}
         onChange={onChange}
         placeholder="Add important note here ..."
-        className="text-sm text-gray-700 min-h-[3em]"
+        className="text-gray-700 min-h-[3em]"
+        style={textStyle}
         onMount={(ref) => {
           onEditorReady?.(ref);
           setTimeout(() => {
@@ -594,12 +718,16 @@ function FallbackBody({ description }: { description: string }) {
 // ─── SummaryBody ──────────────────────────────────────────────────────────────
 function SummaryBody({
   value,
+  fontType,
+  fontSize,
   onChange,
   onEditorReady,
   onFocus,
   onSelectionChange,
 }: {
   value?: string;
+  fontType?: string;
+  fontSize?: number;
   onChange?: (val: string) => void;
   onEditorReady?: (ref: RichTextEditorRef | null) => void;
   onFocus?: () => void;
@@ -607,6 +735,7 @@ function SummaryBody({
 }) {
   const [mode, setMode] = useState<"canvas" | "preview">("canvas");
   const [focused, setFocused] = useState(false);
+  const textStyle = getFontStyle(fontType, fontSize);
 
   if (mode === "preview") {
     return (
@@ -623,8 +752,11 @@ function SummaryBody({
         </button>
         <p className="text-xl font-bold text-emerald-500 mb-2">Ringkasan</p>
         <div
-          className="text-sm text-gray-700 leading-relaxed min-h-[1em]"
-          dangerouslySetInnerHTML={{ __html: value || "<em>—</em>" }}
+          className={`text-gray-700 leading-relaxed min-h-[1em] ${richTextDisplayClass}`}
+          style={textStyle}
+          dangerouslySetInnerHTML={{
+            __html: normalizeEditorHTML(value) || "<em>—</em>",
+          }}
         />
       </div>
     );
@@ -655,7 +787,8 @@ function SummaryBody({
         value={value || ""}
         onChange={onChange}
         placeholder="Tulis ringkasan di sini ..."
-        className="text-sm text-gray-700 min-h-[4em]"
+        className="text-gray-700 min-h-[4em]"
+        style={textStyle}
         onMount={(ref) => {
           onEditorReady?.(ref);
           setTimeout(() => {
@@ -698,6 +831,8 @@ function CardBody({
       return (
         <HeadingBody
           value={el.data?.value}
+          fontType={el.data?.fontType}
+          fontSize={el.data?.fontSize}
           onChange={(val) => onChangeData?.({ ...el.data, value: val })}
           onEditorReady={onEditorReady}
           onFocus={onEditorFocus}
@@ -708,6 +843,8 @@ function CardBody({
       return (
         <ParagraphBody
           value={el.data?.value}
+          fontType={el.data?.fontType}
+          fontSize={el.data?.fontSize}
           onChange={(val) => onChangeData?.({ ...el.data, value: val })}
           onEditorReady={onEditorReady}
           onFocus={onEditorFocus}
@@ -715,13 +852,21 @@ function CardBody({
         />
       );
     case "image":
-      return <ImageBody value={el.data?.src} onChangeData={onChangeData} />;
+      return (
+        <ImageBody
+          value={el.data?.src}
+          width={el.data?.width}
+          onChangeData={onChangeData}
+        />
+      );
     case "video":
       return <VideoBody value={el.data?.src} onChangeData={onChangeData} />;
     case "accordion":
       return (
         <AccordionBody
           initialData={el.data}
+          fontType={el.data?.fontType}
+          fontSize={el.data?.fontSize}
           onChangeData={onChangeData}
           onEditorFocus={onSelfManagedEditorFocus}
           onSelectionChange={onSelectionChange}
@@ -731,6 +876,8 @@ function CardBody({
       return (
         <TabNavigationBody
           initialData={el.data}
+          fontType={el.data?.fontType}
+          fontSize={el.data?.fontSize}
           onChangeData={onChangeData}
           onEditorFocus={onSelfManagedEditorFocus}
           onSelectionChange={onSelectionChange}
@@ -740,6 +887,8 @@ function CardBody({
       return (
         <ContentCardBody
           initialData={el.data}
+          fontType={el.data?.fontType}
+          fontSize={el.data?.fontSize}
           onChangeData={onChangeData}
           onEditorFocus={onSelfManagedEditorFocus}
           onSelectionChange={onSelectionChange}
@@ -749,6 +898,8 @@ function CardBody({
       return (
         <CarouselBody
           initialData={el.data}
+          fontType={el.data?.fontType}
+          fontSize={el.data?.fontSize}
           onChangeData={onChangeData}
           onEditorFocus={onSelfManagedEditorFocus}
           onSelectionChange={onSelectionChange}
@@ -758,6 +909,8 @@ function CardBody({
       return (
         <HighlightBody
           value={el.data?.value}
+          fontType={el.data?.fontType}
+          fontSize={el.data?.fontSize}
           onChange={(val) => onChangeData?.({ ...el.data, value: val })}
           onEditorReady={onEditorReady}
           onFocus={onEditorFocus}
@@ -768,6 +921,8 @@ function CardBody({
       return (
         <SummaryBody
           value={el.data?.value}
+          fontType={el.data?.fontType}
+          fontSize={el.data?.fontSize}
           onChange={(val) => onChangeData?.({ ...el.data, value: val })}
           onEditorReady={onEditorReady}
           onFocus={onEditorFocus}
@@ -802,9 +957,23 @@ function CardBody({
         />
       );
     case "quiz":
-      return <QuizBody initialData={el.data} onChangeData={onChangeData} />;
+      return (
+        <QuizBody
+          initialData={el.data}
+          onChangeData={onChangeData}
+          onEditorFocus={onSelfManagedEditorFocus}
+          onSelectionChange={onSelectionChange}
+        />
+      );
     case "project":
-      return <ProjectBody initialData={el.data} onChangeData={onChangeData} />;
+      return (
+        <ProjectBody
+          initialData={el.data}
+          onChangeData={onChangeData}
+          onEditorFocus={onSelfManagedEditorFocus}
+          onSelectionChange={onSelectionChange}
+        />
+      );
     default:
       return <FallbackBody description={el.description} />;
   }

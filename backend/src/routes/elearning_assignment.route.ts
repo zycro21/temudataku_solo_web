@@ -25,14 +25,14 @@ const router = express.Router();
 
 /**
  * @swagger
- * /api/elearningAssignment/subbabs/{id}/assignment:
+ * /api/elearningAssignment/texts/{id}/assignment:
  *   post:
- *     summary: Buat tugas baru untuk SubBab
+ *     summary: Buat tugas baru untuk text
  *     description: |
- *       Membuat tugas take-home baru untuk subBab tertentu.
+ *       Membuat tugas take-home baru untuk text tertentu.
  *       - Role: **Admin** dan **Mentor**
  *       - Mentor hanya bisa membuat assignment di course yang dia ampu.
- *       - Satu SubBab hanya boleh memiliki satu assignment.
+ *       - Satu text hanya boleh memiliki satu assignment.
  *     tags: [E-Learning Assignments]
  *     security:
  *       - bearerAuth: []
@@ -71,18 +71,18 @@ const router = express.Router();
  *         description: SubBab tidak ditemukan
  */
 router.post(
-  "/subbabs/:id/assignment",
+  "/texts/:id/assignment",
   authenticate,
-  authorizeRoles("admin", "mentor"),
+  authorizeRoles("admin", "mentor", "cm", "curdev"),
   validate(createAssignmentSchema),
   ELearningAssignmentController.createAssignment
 );
 
 /**
  * @swagger
- * /api/elearningAssignment/subbabs/{id}/assignment:
+ * /api/elearningAssignment/texts/{id}/assignment:
  *   get:
- *     summary: Lihat assignment pada SubBab (plus optional submissions)
+ *     summary: Lihat assignment pada Text ID (plus optional submissions)
  *     description: |
  *       Mendapatkan informasi assignment untuk SubBab tertentu.
  *       - Role: **Admin**, **Mentor**, **Mentee**
@@ -161,9 +161,9 @@ router.post(
  *         description: "Assignment atau SubBab tidak ditemukan"
  */
 router.get(
-  "/subbabs/:id/assignment",
+  "/texts/:id/assignment",
   authenticate,
-  authorizeRoles("admin", "mentor", "mentee"),
+  authorizeRoles("admin", "mentor", "mentee", "cm", "curdev"),
   validate(getAssignmentSchema),
   ELearningAssignmentController.getAssignment
 );

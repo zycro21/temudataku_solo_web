@@ -6,7 +6,7 @@ export class ELearningQuestionController {
   static async createQuestion(
     req: AuthenticatedRequestQuestion,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, validatedBody, user } = req;
@@ -33,7 +33,7 @@ export class ELearningQuestionController {
       }
 
       // validasi correctAnswer ada di options
-      if (!options.includes(correctAnswer)) {
+      if (!Array.isArray(options) || !options.includes(correctAnswer)) {
         res.status(400).json({
           success: false,
           message: "Jawaban benar harus salah satu dari opsi yang tersedia",
@@ -44,7 +44,7 @@ export class ELearningQuestionController {
       const question = await ELearningQuestionService.createQuestion(
         id,
         { questionText, options, correctAnswer, explanation },
-        user
+        user,
       );
 
       res.status(201).json({
@@ -67,7 +67,7 @@ export class ELearningQuestionController {
   static async getQuestionsByQuiz(
     req: AuthenticatedRequestQuestion,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, validatedQuery, user } = req;
@@ -85,7 +85,7 @@ export class ELearningQuestionController {
       const result = await ELearningQuestionService.getQuestionsByQuiz(
         id,
         user,
-        { page, limit, search, sortBy, order }
+        { page, limit, search, sortBy, order },
       );
 
       res.status(200).json({
@@ -107,7 +107,7 @@ export class ELearningQuestionController {
   static async getQuestionById(
     req: AuthenticatedRequestQuestion,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, user } = req;
@@ -122,7 +122,7 @@ export class ELearningQuestionController {
 
       const question = await ELearningQuestionService.getQuestionById(
         validatedParams.id,
-        user
+        user,
       );
 
       res.status(200).json({
@@ -144,7 +144,7 @@ export class ELearningQuestionController {
   static async updateQuestion(
     req: AuthenticatedRequestQuestion,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, validatedBody, user } = req;
@@ -176,7 +176,7 @@ export class ELearningQuestionController {
       const updated = await ELearningQuestionService.updateQuestion(
         questionId,
         payload,
-        user
+        user,
       );
 
       res.status(200).json({
@@ -203,7 +203,7 @@ export class ELearningQuestionController {
   static async deleteQuestion(
     req: AuthenticatedRequestQuestion,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, user } = req;
@@ -236,7 +236,7 @@ export class ELearningQuestionController {
   static async duplicateQuestion(
     req: AuthenticatedRequestQuestion,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, validatedBody, user } = req;
@@ -253,7 +253,7 @@ export class ELearningQuestionController {
       const duplicated = await ELearningQuestionService.duplicateQuestion(
         questionId,
         targetQuizId,
-        user
+        user,
       );
 
       res.status(201).json({
@@ -278,7 +278,7 @@ export class ELearningQuestionController {
   static async globalViewQuestions(
     req: AuthenticatedRequestQuestion,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedQuery, user } = req;
@@ -291,9 +291,8 @@ export class ELearningQuestionController {
         return;
       }
 
-      const questions = await ELearningQuestionService.globalViewQuestions(
-        validatedQuery
-      );
+      const questions =
+        await ELearningQuestionService.globalViewQuestions(validatedQuery);
 
       res.status(200).json({
         success: true,
@@ -308,7 +307,7 @@ export class ELearningQuestionController {
   static async exportQuestions(
     req: AuthenticatedRequestQuestion,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedQuery, user } = req;
@@ -335,7 +334,7 @@ export class ELearningQuestionController {
 
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename=${file.filename}`
+        `attachment; filename=${file.filename}`,
       );
       res.setHeader("Content-Type", file.mimetype);
 

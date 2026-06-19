@@ -196,11 +196,28 @@ export const ELearningCourseService = {
           include: {
             subBabs: {
               include: {
-                texts: true,
-                quiz: true,
-                assignment: true,
+                texts: {
+                  include: {
+                    quiz: {
+                      include: {
+                        questions: true,
+                      },
+                    },
+                    assignment: {
+                      include: {
+                        instructions: true,
+                        supportingFiles: true,
+                      },
+                    },
+                  },
+                  orderBy: {
+                    orderNumber: "asc",
+                  },
+                },
               },
-              orderBy: { orderNumber: "asc" },
+              orderBy: {
+                orderNumber: "asc",
+              },
             },
           },
           orderBy: { orderNumber: "asc" },
@@ -477,9 +494,12 @@ export const ELearningCourseService = {
           include: {
             subBabs: {
               include: {
-                texts: true,
-                quiz: true,
-                assignment: true,
+                texts: {
+                  include: {
+                    quiz: true,
+                    assignment: true,
+                  },
+                },
               },
             },
           },

@@ -187,6 +187,7 @@ const imageVideoSchema = z.object({
     mediaType: z.enum(["IMAGE", "VIDEO"]),
     thumbnailUrl: z.string().url().optional(),
     durationSeconds: z.number().int().min(0).optional(),
+    widthPercent: z.number().int().min(10).max(100).optional(),
   }),
 });
 

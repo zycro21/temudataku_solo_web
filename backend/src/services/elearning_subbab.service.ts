@@ -110,11 +110,19 @@ export const ELearningSubBabService = {
     const subBabs = await prisma.eLearningSubBab.findMany({
       where,
       include: {
-        texts: true,
-        quiz: true,
-        assignment: true,
+        texts: {
+          include: {
+            quiz: true,
+            assignment: true,
+          },
+          orderBy: {
+            orderNumber: "asc",
+          },
+        },
       },
-      orderBy: { orderNumber: sort },
+      orderBy: {
+        orderNumber: sort,
+      },
       skip: (page - 1) * limit,
       take: limit,
     });
@@ -144,9 +152,27 @@ export const ELearningSubBabService = {
             course: true,
           },
         },
-        texts: true,
-        quiz: { include: { questions: true } },
-        assignment: true,
+
+        texts: {
+          include: {
+            quiz: {
+              include: {
+                questions: true,
+              },
+            },
+
+            assignment: {
+              include: {
+                instructions: true,
+                supportingFiles: true,
+              },
+            },
+          },
+
+          orderBy: {
+            orderNumber: "asc",
+          },
+        },
       },
     });
 
@@ -199,6 +225,11 @@ export const ELearningSubBabService = {
     // ======================
     // RESPONSE
     // ======================
+    const quiz = subBab.texts.find((t) => t.quiz)?.quiz ?? null;
+
+    const assignment =
+      subBab.texts.find((t) => t.assignment)?.assignment ?? null;
+
     return {
       id: subBab.id,
       title: subBab.title,
@@ -210,9 +241,8 @@ export const ELearningSubBabService = {
         courseId: subBab.subChapter.courseId,
         courseTitle: course.title,
       },
+
       texts: subBab.texts,
-      quiz: subBab.quiz,
-      assignment: subBab.assignment,
       createdAt: subBab.createdAt,
       updatedAt: subBab.updatedAt,
     };
@@ -640,9 +670,21 @@ export const ELearningSubBabService = {
             },
           },
         },
-        texts: true,
-        quiz: true,
-        assignment: true,
+
+        texts: {
+          include: {
+            quiz: {
+              select: {
+                id: true,
+              },
+            },
+            assignment: {
+              select: {
+                id: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -656,8 +698,8 @@ export const ELearningSubBabService = {
       OrderNumber: s.orderNumber || "-",
       EstimatedTime: s.estimatedTime || "-",
       TotalTexts: s.texts.length,
-      HasQuiz: s.quiz ? "Yes" : "No",
-      HasAssignment: s.assignment ? "Yes" : "No",
+      HasQuiz: s.texts.some((t) => t.quiz) ? "Yes" : "No",
+      HasAssignment: s.texts.some((t) => t.assignment) ? "Yes" : "No",
       CreatedAt: format(s.createdAt ?? new Date(), "yyyy-MM-dd HH:mm:ss"),
       UpdatedAt: format(s.updatedAt ?? new Date(), "yyyy-MM-dd HH:mm:ss"),
     }));

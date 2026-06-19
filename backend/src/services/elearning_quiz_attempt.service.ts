@@ -13,17 +13,23 @@ export class ELearningQuizAttemptService {
   static async startQuizAttempt(
     quizId: string,
     user: { userId: string; roles: string[] },
-    answers: Record<string, string>
+    answers: Record<string, string>,
   ) {
     return await prisma.$transaction(async (tx) => {
       const quiz = await tx.eLearningQuiz.findUnique({
         where: { id: quizId },
         include: {
           questions: true,
-          subBab: {
+          text: {
             include: {
-              subChapter: {
-                include: { course: true },
+              subBab: {
+                include: {
+                  subChapter: {
+                    include: {
+                      course: true,
+                    },
+                  },
+                },
               },
             },
           },
@@ -48,7 +54,7 @@ export class ELearningQuizAttemptService {
 
         if (!activeSubscription) {
           throw new Error(
-            "Akses ditolak: kamu tidak memiliki subscription aktif"
+            "Akses ditolak: kamu tidak memiliki subscription aktif",
           );
         }
       }
@@ -65,14 +71,16 @@ export class ELearningQuizAttemptService {
       const totalQuestions = quiz.questions.length;
       if (Object.keys(answers).length !== totalQuestions) {
         throw new Error(
-          `Harus menjawab semua pertanyaan (${totalQuestions} soal)`
+          `Harus menjawab semua pertanyaan (${totalQuestions} soal)`,
         );
       }
 
       // ===== Hitung skor =====
       let correctCount = 0;
       for (const q of quiz.questions) {
-        if (answers[q.id] === q.correctAnswer) correctCount++;
+        if (q.correctAnswers.includes(answers[q.id])) {
+          correctCount++;
+        }
       }
       const score = Math.round((correctCount / totalQuestions) * 100);
 
@@ -103,13 +111,22 @@ export class ELearningQuizAttemptService {
             select: {
               id: true,
               title: true,
-              subBab: {
+              text: {
                 select: {
-                  title: true,
-                  subChapter: {
+                  subBab: {
                     select: {
                       title: true,
-                      course: { select: { id: true, title: true } },
+                      subChapter: {
+                        select: {
+                          title: true,
+                          course: {
+                            select: {
+                              id: true,
+                              title: true,
+                            },
+                          },
+                        },
+                      },
                     },
                   },
                 },
@@ -126,7 +143,7 @@ export class ELearningQuizAttemptService {
         correctAnswers: correctCount,
         totalQuestions,
         gradedAt: attempt.gradedAt,
-        course: attempt.quiz.subBab.subChapter.course,
+        course: attempt.quiz.text?.subBab?.subChapter?.course,
       };
     });
   }
@@ -154,10 +171,16 @@ export class ELearningQuizAttemptService {
     const quiz = await prisma.eLearningQuiz.findUnique({
       where: { id: quizId },
       include: {
-        subBab: {
+        text: {
           include: {
-            subChapter: {
-              include: { course: true },
+            subBab: {
+              include: {
+                subChapter: {
+                  include: {
+                    course: true,
+                  },
+                },
+              },
             },
           },
         },
@@ -208,9 +231,13 @@ export class ELearningQuizAttemptService {
           where: {
             quizId,
             quiz: {
-              subBab: {
-                subChapter: {
-                  courseId: { in: courseIds },
+              text: {
+                subBab: {
+                  subChapter: {
+                    courseId: {
+                      in: courseIds,
+                    },
+                  },
                 },
               },
             },
@@ -230,9 +257,13 @@ export class ELearningQuizAttemptService {
           where: {
             quizId,
             quiz: {
-              subBab: {
-                subChapter: {
-                  courseId: { in: courseIds },
+              text: {
+                subBab: {
+                  subChapter: {
+                    courseId: {
+                      in: courseIds,
+                    },
+                  },
                 },
               },
             },
@@ -268,7 +299,7 @@ export class ELearningQuizAttemptService {
 
       if (!activeSubscription) {
         throw new Error(
-          "Akses ditolak: kamu tidak memiliki subscription aktif"
+          "Akses ditolak: kamu tidak memiliki subscription aktif",
         );
       }
 
@@ -302,7 +333,7 @@ export class ELearningQuizAttemptService {
   static async gradeAttempt(
     attemptId: string,
     grader: { userId: string; roles?: string[] },
-    data: { score: number; remarks?: string; isAutoGraded?: boolean }
+    data: { score: number; remarks?: string; isAutoGraded?: boolean },
   ) {
     // Pastikan attempt ada
     const attempt = await prisma.eLearningQuizAttempt.findUnique({
@@ -310,11 +341,15 @@ export class ELearningQuizAttemptService {
       include: {
         quiz: {
           include: {
-            subBab: {
+            text: {
               include: {
-                subChapter: {
+                subBab: {
                   include: {
-                    course: true,
+                    subChapter: {
+                      include: {
+                        course: true,
+                      },
+                    },
                   },
                 },
               },
@@ -331,7 +366,8 @@ export class ELearningQuizAttemptService {
     const isMentor = grader.roles?.includes("mentor");
 
     if (isMentor && !isAdmin) {
-      const mentorCourseId = attempt.quiz.subBab.subChapter.course.mentorId;
+      const mentorCourseId =
+        attempt.quiz.text.subBab.subChapter.course.mentorId;
       if (mentorCourseId !== grader.userId) {
         throw new Error("Anda tidak memiliki izin untuk menilai attempt ini");
       }
@@ -357,8 +393,12 @@ export class ELearningQuizAttemptService {
   }
 
   static async getAllAttempts(
-    user: { userId: string; roles: string[]; mentorProfileId?: string },
-    query: any
+    user: {
+      userId: string;
+      roles: string[];
+      mentorProfileId?: string;
+    },
+    query: any,
   ) {
     const isAdmin = user.roles.includes("admin");
     const isMentor = user.roles.includes("mentor");
@@ -383,25 +423,45 @@ export class ELearningQuizAttemptService {
 
     if (quizId) filters.quizId = quizId;
     if (userId) filters.userId = userId;
-    if (typeof isAutoGraded === "boolean") filters.isAutoGraded = isAutoGraded;
-    if (minScore !== undefined || maxScore !== undefined) {
-      filters.score = {};
-      if (minScore !== undefined) filters.score.gte = minScore;
-      if (maxScore !== undefined) filters.score.lte = maxScore;
-    }
-    if (startDate || endDate) {
-      filters.createdAt = {};
-      if (startDate) filters.createdAt.gte = new Date(startDate);
-      if (endDate) filters.createdAt.lte = new Date(endDate);
+
+    if (typeof isAutoGraded === "boolean") {
+      filters.isAutoGraded = isAutoGraded;
     }
 
-    // Jika mentor, filter hanya attempt quiz dari course yang dia ampu
+    if (minScore !== undefined || maxScore !== undefined) {
+      filters.score = {};
+
+      if (minScore !== undefined) {
+        filters.score.gte = Number(minScore);
+      }
+
+      if (maxScore !== undefined) {
+        filters.score.lte = Number(maxScore);
+      }
+    }
+
+    // gunakan startedAt karena createdAt tidak ada di Attempt
+    if (startDate || endDate) {
+      filters.startedAt = {};
+
+      if (startDate) {
+        filters.startedAt.gte = new Date(startDate);
+      }
+
+      if (endDate) {
+        filters.startedAt.lte = new Date(endDate);
+      }
+    }
+
+    // Mentor hanya bisa melihat quiz pada course yang dia ampu
     if (isMentor && !isAdmin) {
       filters.quiz = {
-        subBab: {
-          subChapter: {
-            course: {
-              mentorId: user.userId,
+        text: {
+          subBab: {
+            subChapter: {
+              course: {
+                mentorId: user.mentorProfileId,
+              },
             },
           },
         },
@@ -409,7 +469,10 @@ export class ELearningQuizAttemptService {
     }
 
     const [total, attempts] = await Promise.all([
-      prisma.eLearningQuizAttempt.count({ where: filters }),
+      prisma.eLearningQuizAttempt.count({
+        where: filters,
+      }),
+
       prisma.eLearningQuizAttempt.findMany({
         where: filters,
         include: {
@@ -417,12 +480,27 @@ export class ELearningQuizAttemptService {
             select: {
               id: true,
               title: true,
-              subBab: {
+
+              text: {
                 select: {
-                  subChapter: {
+                  subBab: {
                     select: {
-                      course: {
-                        select: { id: true, title: true, mentorId: true },
+                      id: true,
+                      title: true,
+
+                      subChapter: {
+                        select: {
+                          id: true,
+                          title: true,
+
+                          course: {
+                            select: {
+                              id: true,
+                              title: true,
+                              mentorId: true,
+                            },
+                          },
+                        },
                       },
                     },
                   },
@@ -430,11 +508,20 @@ export class ELearningQuizAttemptService {
               },
             },
           },
+
           user: {
-            select: { id: true, fullName: true, email: true },
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+            },
           },
         },
-        orderBy: { completedAt: "desc" },
+
+        orderBy: {
+          completedAt: "desc",
+        },
+
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -451,18 +538,22 @@ export class ELearningQuizAttemptService {
 
   static async getAttemptById(
     attemptId: string,
-    user: { userId: string; roles: string[]; mentorProfileId?: string }
+    user: { userId: string; roles: string[]; mentorProfileId?: string },
   ) {
     const attempt = await prisma.eLearningQuizAttempt.findUnique({
       where: { id: attemptId },
       include: {
         quiz: {
           include: {
-            subBab: {
+            text: {
               include: {
-                subChapter: {
+                subBab: {
                   include: {
-                    course: true,
+                    subChapter: {
+                      include: {
+                        course: true,
+                      },
+                    },
                   },
                 },
               },
@@ -470,47 +561,59 @@ export class ELearningQuizAttemptService {
           },
         },
         user: {
-          select: { id: true, fullName: true, email: true },
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+          },
         },
       },
     });
 
-    if (!attempt) throw new Error("Attempt tidak ditemukan");
+    if (!attempt) {
+      throw new Error("Attempt tidak ditemukan");
+    }
 
     const isAdmin = user.roles.includes("admin");
     const isMentor = user.roles.includes("mentor");
     const isMentee = user.roles.includes("mentee");
 
-    // ===== IZIN AKSES =====
-    if (isAdmin) return attempt;
+    const course = attempt.quiz.text.subBab.subChapter.course;
 
-    const course = attempt.quiz.subBab.subChapter.course;
+    // Admin bebas akses
+    if (isAdmin) {
+      return attempt;
+    }
 
-    // Mentor hanya bisa lihat attempt dari course yang dia ampu
+    // Mentor hanya course miliknya
     if (isMentor && course.mentorId === user.userId) {
       return attempt;
     }
 
-    // Mentee hanya bisa lihat attempt miliknya sendiri
+    // Mentee hanya attempt miliknya
     if (isMentee && attempt.userId === user.userId) {
       const now = new Date();
 
-      // pastikan mentee memiliki subscription aktif
       const activeSubscription = await prisma.eLearningSubscription.findFirst({
         where: {
           userId: user.userId,
           status: {
             in: ["active", "confirmed", "completed"],
-          }, // sesuaikan jika enum / value berbeda
-          startAt: { lte: now },
-          endAt: { gte: now },
+          },
+          startAt: {
+            lte: now,
+          },
+          endAt: {
+            gte: now,
+          },
         },
       });
 
-      if (!activeSubscription)
+      if (!activeSubscription) {
         throw new Error(
-          "Anda tidak memiliki izin untuk melihat attempt ini (tidak ada subscription aktif)"
+          "Anda tidak memiliki izin untuk melihat attempt ini (tidak ada subscription aktif)",
         );
+      }
 
       return attempt;
     }
@@ -520,53 +623,61 @@ export class ELearningQuizAttemptService {
 
   static async deleteAttempt(
     attemptId: string,
-    user: { userId: string; roles?: string[] }
+    user: { userId: string; roles?: string[] },
   ) {
-    // Pastikan hanya admin yang bisa menghapus
     const isAdmin = user.roles?.includes("admin");
-    if (!isAdmin)
+
+    if (!isAdmin) {
       throw new Error("Anda tidak memiliki izin untuk menghapus attempt ini");
+    }
 
-    // Cek apakah attempt ada
-    const attempt = await prisma.eLearningQuizAttempt.findUnique({
-      where: { id: attemptId },
-      include: {
-        quiz: {
-          select: { id: true, title: true },
+    try {
+      const deleted = await prisma.eLearningQuizAttempt.delete({
+        where: { id: attemptId },
+        select: {
+          id: true,
+          quizId: true,
+          userId: true,
+          score: true,
         },
-        user: {
-          select: { id: true, fullName: true },
-        },
-      },
-    });
+      });
 
-    if (!attempt) throw new Error("Attempt tidak ditemukan");
+      return deleted;
+    } catch (error: any) {
+      if (error.code === "P2025") {
+        throw new Error("Attempt tidak ditemukan");
+      }
 
-    // Hapus attempt
-    await prisma.eLearningQuizAttempt.delete({
-      where: { id: attemptId },
-    });
-
-    return {
-      id: attempt.id,
-      quizId: attempt.quizId,
-      userId: attempt.userId,
-      score: attempt.score,
-    };
+      throw error;
+    }
   }
 
   static async getQuizAttemptSummary(
     quizId: string,
-    requester: { userId: string; roles?: string[] }
+    requester: {
+      userId: string;
+      roles?: string[];
+      mentorProfileId?: string;
+    },
   ) {
     const quiz = await prisma.eLearningQuiz.findUnique({
       where: { id: quizId },
       include: {
-        subBab: {
+        text: {
           include: {
-            subChapter: {
+            subBab: {
               include: {
-                course: true,
+                subChapter: {
+                  include: {
+                    course: {
+                      select: {
+                        id: true,
+                        mentorId: true,
+                        title: true,
+                      },
+                    },
+                  },
+                },
               },
             },
           },
@@ -574,25 +685,30 @@ export class ELearningQuizAttemptService {
       },
     });
 
-    if (!quiz) throw new Error("Quiz tidak ditemukan");
+    if (!quiz) {
+      throw new Error("Quiz tidak ditemukan");
+    }
 
     const isAdmin = requester.roles?.includes("admin");
     const isMentor = requester.roles?.includes("mentor");
 
-    // Jika mentor bukan admin, pastikan quiz-nya milik kursus dia
+    // Mentor hanya boleh melihat quiz miliknya
     if (isMentor && !isAdmin) {
-      const mentorCourseId = quiz.subBab.subChapter.course.mentorId;
-      if (mentorCourseId !== requester.userId) {
+      const course = quiz.text.subBab.subChapter.course;
+
+      if (course.mentorId !== requester.mentorProfileId) {
         throw new Error(
-          "Anda tidak memiliki izin untuk melihat statistik quiz ini"
+          "Anda tidak memiliki izin untuk melihat statistik quiz ini",
         );
       }
     }
 
-    // Ambil semua attempt dari quiz ini
     const attempts = await prisma.eLearningQuizAttempt.findMany({
       where: { quizId },
-      select: { score: true, isAutoGraded: true },
+      select: {
+        score: true,
+        isAutoGraded: true,
+      },
     });
 
     if (attempts.length === 0) {
@@ -608,19 +724,24 @@ export class ELearningQuizAttemptService {
     }
 
     const scores = attempts.map((a) => a.score ?? 0);
+
     const totalAttempt = attempts.length;
-    const averageScore = scores.reduce((sum, s) => sum + s, 0) / totalAttempt;
+    const averageScore =
+      scores.reduce((sum, score) => sum + score, 0) / totalAttempt;
+
     const highestScore = Math.max(...scores);
     const lowestScore = Math.min(...scores);
+
     const autoGradedCount = attempts.filter(
-      (a) => a.isAutoGraded === true
+      (a) => a.isAutoGraded === true,
     ).length;
+
     const manualGradedCount = totalAttempt - autoGradedCount;
 
     return {
       quizId,
       totalAttempt,
-      averageScore: Math.round(averageScore * 100) / 100,
+      averageScore: Number(averageScore.toFixed(2)),
       highestScore,
       lowestScore,
       autoGradedCount,
@@ -636,34 +757,44 @@ export class ELearningQuizAttemptService {
       maxScore?: number;
       startDate?: string;
       endDate?: string;
-    }
+    },
   ) {
     const whereClause: any = {
       userId,
     };
 
     // filter skor
-    if (filters.minScore || filters.maxScore) {
+    if (filters.minScore !== undefined || filters.maxScore !== undefined) {
       whereClause.score = {};
-      if (filters.minScore) whereClause.score.gte = filters.minScore;
-      if (filters.maxScore) whereClause.score.lte = filters.maxScore;
+
+      if (filters.minScore !== undefined)
+        whereClause.score.gte = filters.minScore;
+
+      if (filters.maxScore !== undefined)
+        whereClause.score.lte = filters.maxScore;
     }
 
     // filter tanggal
     if (filters.startDate || filters.endDate) {
       whereClause.completedAt = {};
-      if (filters.startDate)
+
+      if (filters.startDate) {
         whereClause.completedAt.gte = new Date(filters.startDate);
-      if (filters.endDate)
+      }
+
+      if (filters.endDate) {
         whereClause.completedAt.lte = new Date(filters.endDate);
+      }
     }
 
     // filter course
     if (filters.courseId) {
       whereClause.quiz = {
-        subBab: {
-          subChapter: {
-            courseId: filters.courseId,
+        text: {
+          subBab: {
+            subChapter: {
+              courseId: filters.courseId,
+            },
           },
         },
       };
@@ -671,20 +802,26 @@ export class ELearningQuizAttemptService {
 
     const attempts = await prisma.eLearningQuizAttempt.findMany({
       where: whereClause,
-      orderBy: { completedAt: "desc" },
+      orderBy: {
+        completedAt: "desc",
+      },
       include: {
         quiz: {
           select: {
             id: true,
             title: true,
-            subBab: {
+            text: {
               select: {
-                subChapter: {
+                subBab: {
                   select: {
-                    course: {
+                    subChapter: {
                       select: {
-                        id: true,
-                        title: true,
+                        course: {
+                          select: {
+                            id: true,
+                            title: true,
+                          },
+                        },
                       },
                     },
                   },
@@ -698,9 +835,10 @@ export class ELearningQuizAttemptService {
 
     return attempts.map((a) => ({
       attemptId: a.id,
+      quizId: a.quiz.id,
       quizTitle: a.quiz.title,
-      courseTitle: a.quiz.subBab.subChapter.course.title,
-      courseId: a.quiz.subBab.subChapter.course.id,
+      courseId: a.quiz.text.subBab.subChapter.course.id,
+      courseTitle: a.quiz.text.subBab.subChapter.course.title,
       score: a.score,
       completedAt: a.completedAt,
       isAutoGraded: a.isAutoGraded,
@@ -708,7 +846,7 @@ export class ELearningQuizAttemptService {
   }
 
   static async exportQuizAttemptsToFile(
-    exportFormat: "csv" | "excel"
+    exportFormat: "csv" | "excel",
   ): Promise<{ buffer: Buffer; filename: string; mimetype: string }> {
     const attempts = await prisma.eLearningQuizAttempt.findMany({
       include: {
@@ -716,18 +854,24 @@ export class ELearningQuizAttemptService {
           select: {
             id: true,
             title: true,
-            subBab: {
+            text: {
               select: {
                 id: true,
                 title: true,
-                subChapter: {
+                subBab: {
                   select: {
                     id: true,
                     title: true,
-                    course: {
+                    subChapter: {
                       select: {
                         id: true,
                         title: true,
+                        course: {
+                          select: {
+                            id: true,
+                            title: true,
+                          },
+                        },
                       },
                     },
                   },
@@ -750,21 +894,39 @@ export class ELearningQuizAttemptService {
       AttemptID: a.id,
       QuizID: a.quizId,
       QuizTitle: a.quiz?.title || "-",
-      CourseID: a.quiz?.subBab?.subChapter?.course?.id || "-",
-      CourseTitle: a.quiz?.subBab?.subChapter?.course?.title || "-",
-      SubChapterID: a.quiz?.subBab?.subChapter?.id || "-",
-      SubChapterTitle: a.quiz?.subBab?.subChapter?.title || "-",
-      SubBabID: a.quiz?.subBab?.id || "-",
-      SubBabTitle: a.quiz?.subBab?.title || "-",
+
+      CourseID: a.quiz?.text?.subBab?.subChapter?.course?.id || "-",
+
+      CourseTitle: a.quiz?.text?.subBab?.subChapter?.course?.title || "-",
+
+      SubChapterID: a.quiz?.text?.subBab?.subChapter?.id || "-",
+
+      SubChapterTitle: a.quiz?.text?.subBab?.subChapter?.title || "-",
+
+      SubBabID: a.quiz?.text?.subBab?.id || "-",
+
+      SubBabTitle: a.quiz?.text?.subBab?.title || "-",
+
+      TextID: a.quiz?.text?.id || "-",
+
+      TextTitle: a.quiz?.text?.title || "-",
+
       UserID: a.userId,
       UserName: a.user?.fullName || "-",
       UserEmail: a.user?.email || "-",
+
       Score: a.score ?? "-",
+
       IsAutoGraded: a.isAutoGraded ? "Yes" : "No",
+
       GradedBy: a.gradedBy || "-",
+
       GradedAt: a.gradedAt ? format(a.gradedAt, "yyyy-MM-dd HH:mm:ss") : "-",
+
       Remarks: a.remarks || "-",
+
       StartedAt: a.startedAt ? format(a.startedAt, "yyyy-MM-dd HH:mm:ss") : "-",
+
       CompletedAt: a.completedAt
         ? format(a.completedAt, "yyyy-MM-dd HH:mm:ss")
         : "-",
@@ -774,7 +936,7 @@ export class ELearningQuizAttemptService {
       const chars =
         "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
       return Array.from({ length }, () =>
-        chars.charAt(Math.floor(Math.random() * chars.length))
+        chars.charAt(Math.floor(Math.random() * chars.length)),
       ).join("");
     }
 
@@ -783,7 +945,7 @@ export class ELearningQuizAttemptService {
       return {
         buffer: Buffer.from(csv, "utf-8"),
         filename: `elearning_quiz_attempts_${Date.now()}_${randomString(
-          6
+          6,
         )}.csv`,
         mimetype: "text/csv",
       };

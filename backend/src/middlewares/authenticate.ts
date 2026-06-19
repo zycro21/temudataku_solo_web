@@ -747,6 +747,7 @@ export interface AuthenticatedRequestText extends Request {
               mediaType: "IMAGE" | "VIDEO";
               thumbnailUrl?: string;
               durationSeconds?: number;
+              widthPercent?: number; 
             };
           }
         | {
@@ -893,6 +894,7 @@ export interface AuthenticatedRequestQuiz extends Request {
   };
   validatedParams?: {
     subBabId?: string;
+    textId?: string;
     id?: string;
     courseId?: string;
   };
@@ -958,8 +960,8 @@ export interface AuthenticatedRequestAssignment extends Request {
     dueDays?: number;
   };
   validatedParams?: {
-    id?: string; // untuk subBabId atau assignmentId
-    courseId?: string; // untuk endpoint ini
+    id?: string; // textId atau assignmentId
+    courseId?: string;
   };
   validatedQuery?: {
     includeSubmissions?: boolean;

@@ -691,6 +691,12 @@ export const handleAssignmentSupportingFilesUpload = multer({
       ".txt",
       ".ppt",
       ".pptx",
+      ".jpg",
+      ".jpeg",
+      ".png",
+      ".gif",
+      ".webp",
+      ".svg",
     ];
 
     const ext = path.extname(file.originalname).toLowerCase();
@@ -828,6 +834,13 @@ const assignmentExtensions = [
   ".txt",
   ".ppt",
   ".pptx",
+  // ← tambah format gambar agar supporting file bisa berupa gambar
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".gif",
+  ".webp",
+  ".svg",
 ];
 
 const mediaExtensions = [

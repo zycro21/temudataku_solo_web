@@ -3,6 +3,18 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams, useParams } from "next/navigation";
 import Image from "next/image";
+import { Plus_Jakarta_Sans } from "next/font/google";
+
+// ─── Font ──────────────────────────────────────────────────────────────────────
+// Plus Jakarta Sans dipilih karena memiliki semua varian (bold, italic, semibold,
+// dsb.) yang dibutuhkan editor. Font ini hanya di-scope ke halaman create/edit
+// material, tidak mempengaruhi halaman lain di project.
+const jakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
+  display: "swap",
+});
 import {
   ArrowLeft,
   Pencil,
@@ -19,6 +31,10 @@ import ContentElementsSidebar, {
 } from "@/components/admin/elearning/materials/ContentElementSidebar";
 import CanvasCard, {
   type CanvasItem,
+  FONT_PRESETS,
+  FONT_TYPE_KEYS,
+  FONT_TYPE_KEYS_REVERSE,
+  DEFAULT_FONT_TYPE,
 } from "@/components/admin/elearning/materials/CanvasCard";
 import StylePanel, {
   type StyleState,
@@ -84,10 +100,7 @@ export function markdownToHTML(md: string): string {
   html = html.replace(/\*([^*]+)\*/g, "<strong>$1</strong>");
 
   // Italic: ~text~
-  html = html.replace(
-    /~([^~]+)~/g,
-    '<span style="display:inline-block;transform:skewX(-8deg)">$1</span>',
-  );
+  html = html.replace(/~([^~]+)~/g, "<em>$1</em>");
 
   // Underline: _text_
   html = html.replace(/_([^_]+)_/g, "<u>$1</u>");
@@ -167,7 +180,15 @@ export function htmlToMarkdown(html: string): string {
     (_, color, text) => `{hl:${color}}${htmlToMarkdown(text)}{/hl}`,
   );
 
-  // Italic (skewX span)
+  // Italic — deteksi <em> dan <i> (format baru) serta span skewX lama (backward compat)
+  md = md.replace(
+    /<em>([\s\S]*?)<\/em>/gi,
+    (_, text) => `~${htmlToMarkdown(text)}~`,
+  );
+  md = md.replace(
+    /<i>([\s\S]*?)<\/i>/gi,
+    (_, text) => `~${htmlToMarkdown(text)}~`,
+  );
   md = md.replace(
     /<span[^>]*style="[^"]*skewX[^"]*"[^>]*>([\s\S]*?)<\/span>/gi,
     (_, text) => `~${text}~`,
@@ -229,6 +250,44 @@ export function htmlToMarkdown(html: string): string {
   return md;
 }
 
+// ─── Font style (fontType + fontSize) serialization ───────────────────────────
+// Karena tabel/skema backend belum punya kolom khusus untuk fontType & fontSize,
+// kita "titipkan" info ini sebagai token kecil di awal string `text` yang
+// dikirim ke backend, contoh: `{fstyle:heading1:24}Isi teks ...`
+// Saat data dimuat ulang, token ini di-parse lalu dibuang sebelum dikonversi
+// ke HTML, sehingga fontType & fontSize selalu sinkron dengan apa yang
+// terakhir disimpan — sama seperti alignment.
+const FSTYLE_TOKEN_REGEX = /^\{fstyle:([a-z0-9]+):(\d+)\}/;
+
+export function encodeFontStyleToken(data: any): string {
+  const fontType: string = data?.fontType ?? DEFAULT_FONT_TYPE;
+  const preset = FONT_PRESETS[fontType] ?? FONT_PRESETS[DEFAULT_FONT_TYPE];
+  const fontSize: number = data?.fontSize ?? preset.fontSize;
+  const key = FONT_TYPE_KEYS[fontType] ?? FONT_TYPE_KEYS[DEFAULT_FONT_TYPE];
+  return `{fstyle:${key}:${fontSize}}`;
+}
+
+export function decodeFontStyleToken(text: string): {
+  fontType: string;
+  fontSize: number;
+  rest: string;
+} {
+  const source = text ?? "";
+  const match = source.match(FSTYLE_TOKEN_REGEX);
+  if (!match) {
+    return {
+      fontType: DEFAULT_FONT_TYPE,
+      fontSize: FONT_PRESETS[DEFAULT_FONT_TYPE].fontSize,
+      rest: source,
+    };
+  }
+  const [, key, sizeStr] = match;
+  const fontType = FONT_TYPE_KEYS_REVERSE[key] ?? DEFAULT_FONT_TYPE;
+  const preset = FONT_PRESETS[fontType] ?? FONT_PRESETS[DEFAULT_FONT_TYPE];
+  const fontSize = Number(sizeStr) || preset.fontSize;
+  return { fontType, fontSize, rest: source.slice(match[0].length) };
+}
+
 function mapMaterialToCanvasItems(material: any): CanvasItem[] {
   // Normalize type dari data (underscore) ke canvas id (kebab + nama element)
   const TYPE_MAP: Record<string, string> = {
@@ -257,36 +316,67 @@ function mapMaterialToCanvasItems(material: any): CanvasItem[] {
         switch (content.type) {
           case "heading":
           case "paragraph":
-          case "highlight":
-            data = { value: markdownToHTML(content.text ?? "") };
-            break;
-
-          case "summary":
+          case "highlight": {
+            const { fontType, fontSize, rest } = decodeFontStyleToken(
+              content.text ?? "",
+            );
             data = {
-              value: Array.isArray(content.comments)
-                ? content.comments
+              value: markdownToHTML(rest),
+              fontType,
+              fontSize,
+            };
+            break;
+          }
+
+          case "summary": {
+            let fontType = DEFAULT_FONT_TYPE;
+            let fontSize = FONT_PRESETS[DEFAULT_FONT_TYPE].fontSize;
+            let comments: string[] = Array.isArray(content.comments)
+              ? [...content.comments]
+              : [];
+            if (comments.length > 0 && FSTYLE_TOKEN_REGEX.test(comments[0])) {
+              const decoded = decodeFontStyleToken(comments[0]);
+              fontType = decoded.fontType;
+              fontSize = decoded.fontSize;
+              comments = comments.slice(1);
+            }
+            data = {
+              value: comments.length
+                ? comments
                     .map((c: string) => `<p>${markdownToHTML(c)}</p>`)
                     .join("")
                 : markdownToHTML(content.text ?? ""),
+              fontType,
+              fontSize,
             };
             break;
+          }
 
-          case "accordion":
+          case "accordion": {
+            const { fontType, fontSize, rest } = decodeFontStyleToken(
+              content.description ?? "",
+            );
             data = {
               titleHTML: content.title ?? "",
-              descriptionHTML: markdownToHTML(content.description ?? ""),
+              descriptionHTML: markdownToHTML(rest),
               panels: (content.items ?? []).map((item: any, i: number) => ({
                 id: item.id ?? `acc-item-${i}`,
                 titleHTML: markdownToHTML(item.title ?? ""),
                 contentHTML: markdownToHTML(item.content ?? ""),
               })),
+              fontType,
+              fontSize,
             };
             break;
+          }
 
-          case "carousel":
+          case "carousel": {
+            const { fontType, fontSize, rest } = decodeFontStyleToken(
+              content.description ?? "",
+            );
             data = {
               title: content.title ?? "",
-              description: markdownToHTML(content.description ?? ""),
+              description: markdownToHTML(rest),
               cardsPerSlide: content.cardsPerSlide ?? 3,
               items: (content.items ?? []).map((item: any, i: number) => ({
                 id: item.id ?? `crs-item-${i}`,
@@ -294,8 +384,11 @@ function mapMaterialToCanvasItems(material: any): CanvasItem[] {
                 title: markdownToHTML(item.title ?? ""),
                 content: markdownToHTML(item.content ?? ""),
               })),
+              fontType,
+              fontSize,
             };
             break;
+          }
 
           case "content_card":
             data = {
@@ -308,6 +401,9 @@ function mapMaterialToCanvasItems(material: any): CanvasItem[] {
                 content: markdownToHTML(item.content ?? ""),
                 expandedContent: markdownToHTML(item.expandableContent ?? ""),
               })),
+              fontType: content.fontType ?? DEFAULT_FONT_TYPE,
+              fontSize:
+                content.fontSize ?? FONT_PRESETS[DEFAULT_FONT_TYPE].fontSize,
             };
             break;
 
@@ -320,6 +416,9 @@ function mapMaterialToCanvasItems(material: any): CanvasItem[] {
                 title: markdownToHTML(tab.title ?? ""),
                 content: markdownToHTML(tab.content ?? ""),
               })),
+              fontType: content.fontType ?? DEFAULT_FONT_TYPE,
+              fontSize:
+                content.fontSize ?? FONT_PRESETS[DEFAULT_FONT_TYPE].fontSize,
             };
             break;
 
@@ -331,82 +430,108 @@ function mapMaterialToCanvasItems(material: any): CanvasItem[] {
             data = { src: content.url ?? content.src ?? null };
             break;
 
-          case "matching":
-            data = {
-              question: markdownToHTML(
-                content.question ?? content.content?.question ?? "",
-              ),
-              description: markdownToHTML(
-                content.description ?? content.content?.description ?? "",
-              ),
-              leftItems: (
-                content.leftItems ??
-                content.content?.leftItems ??
-                []
-              ).map((item: any, i: number) => ({
-                id: item.id ?? `left-${i}`,
-                text: markdownToHTML(item.text ?? ""),
-              })),
-              rightItems: (
-                content.rightItems ??
-                content.content?.rightItems ??
-                []
-              ).map((item: any, i: number) => ({
-                id: item.id ?? `right-${i}`,
-                text: markdownToHTML(item.text ?? ""),
-              })),
-              correctPairs: (
-                content.correctPairs ??
-                content.content?.correctPairs ??
-                []
-              ).map((pair: any) => ({
-                leftId: pair.leftId ?? "",
-                rightId: pair.rightId ?? "",
-              })),
-              explanation: markdownToHTML(
-                content.explanation ?? content.content?.explanation ?? "",
-              ),
-            };
-            break;
+          case "matching": {
+            // Normalize to MatchingBody format: { title, description, pairs }
+            // Support both old format (leftItems/rightItems) and DB format (items with side)
+            const matchContent = content.content ?? content;
+            const rawItems = matchContent.items ?? [];
+            let matchPairs: any[] = [];
 
-          case "true-false":
+            if (rawItems.length > 0) {
+              // DB format: items with side LEFT/RIGHT
+              const leftRaw = rawItems
+                .filter((i: any) => i.side === "LEFT")
+                .sort(
+                  (a: any, b: any) =>
+                    (a.orderNumber ?? 0) - (b.orderNumber ?? 0),
+                );
+              const rightRaw = rawItems.filter((i: any) => i.side === "RIGHT");
+              const rightByMatchId: Record<string, any> = {};
+              rightRaw.forEach((r: any) => {
+                if (r.matchWithId) rightByMatchId[r.matchWithId] = r;
+              });
+              matchPairs = leftRaw.map((l: any, idx: number) => ({
+                id: l.id ?? `mp-${idx}`,
+                question: markdownToHTML(l.content ?? ""),
+                answer: markdownToHTML(
+                  (rightByMatchId[l.matchWithId ?? ""] ?? rightRaw[idx])
+                    ?.content ?? "",
+                ),
+              }));
+            } else if (matchContent.leftItems?.length > 0) {
+              // Legacy format: leftItems + rightItems + correctPairs
+              const correctPairs = matchContent.correctPairs ?? [];
+              matchPairs = (matchContent.leftItems ?? []).map(
+                (l: any, i: number) => {
+                  const pair = correctPairs.find((p: any) => p.leftId === l.id);
+                  const right =
+                    (matchContent.rightItems ?? []).find(
+                      (r: any) => r.id === pair?.rightId,
+                    ) ?? matchContent.rightItems?.[i];
+                  return {
+                    id: l.id ?? `mp-${i}`,
+                    question: markdownToHTML(l.text ?? ""),
+                    answer: markdownToHTML(right?.text ?? ""),
+                  };
+                },
+              );
+            } else if (matchContent.pairs?.length > 0) {
+              matchPairs = matchContent.pairs.map((p: any) => ({
+                id: p.id,
+                question: markdownToHTML(p.question ?? ""),
+                answer: markdownToHTML(p.answer ?? ""),
+              }));
+            }
+
             data = {
-              question: markdownToHTML(
-                content.question ?? content.content?.question ?? "",
+              title: markdownToHTML(
+                matchContent.title ?? matchContent.question ?? "",
               ),
               description: markdownToHTML(
-                content.description ?? content.content?.description ?? "",
+                matchContent.description ?? matchContent.instruction ?? "",
               ),
-              questions: (() => {
-                if (content.questions ?? content.content?.questions) {
-                  return (content.questions ?? content.content?.questions).map(
-                    (q: any) => ({
-                      id: q.id ?? `tf-${Math.random()}`,
-                      statement: markdownToHTML(q.statement ?? ""),
-                      answer: q.answer ?? null,
-                    }),
-                  );
-                }
-                const options = content.options ??
-                  content.content?.options ?? [
-                    { id: "true", text: "True" },
-                    { id: "false", text: "False" },
-                  ];
-                const correctAnswers =
-                  content.correctAnswers ??
-                  content.content?.correctAnswers ??
-                  [];
-                return options.map((opt: any, i: number) => ({
-                  id: opt.id ?? `tf-${i}`,
-                  statement: markdownToHTML(opt.text ?? ""),
-                  answer: correctAnswers.includes(opt.id) ? "true" : "false",
-                }));
-              })(),
-              explanation: markdownToHTML(
-                content.explanation ?? content.content?.explanation ?? "",
-              ),
+              explanation: markdownToHTML(matchContent.explanation ?? ""),
+              pairs: matchPairs,
             };
             break;
+          }
+
+          case "true-false": {
+            // Normalize to TrueFalseBody format: { title, description, explanation, questions }
+            const tfContent = content.content ?? content;
+            let tfQuestions: any[] = [];
+
+            if (tfContent.questions?.length > 0) {
+              // Already in TrueFalseBody format
+              tfQuestions = tfContent.questions.map((q: any) => ({
+                id: q.id ?? `tf-${Math.random()}`,
+                statement: markdownToHTML(q.statement ?? ""),
+                answer: q.answer ?? null,
+              }));
+            } else if (tfContent.options?.length > 0) {
+              // From DB (multiple_choice options)
+              const correctAnswers = tfContent.correctAnswers ?? [];
+              tfQuestions = tfContent.options.map((opt: any, i: number) => ({
+                id: opt.id ?? `tf-${i}`,
+                statement: markdownToHTML(opt.content ?? opt.text ?? ""),
+                answer:
+                  opt.isCorrect || correctAnswers.includes(opt.id)
+                    ? "true"
+                    : "false",
+              }));
+            }
+
+            data = {
+              // TrueFalseBody reads `title`, not `question`
+              title: markdownToHTML(
+                tfContent.title ?? tfContent.question ?? "",
+              ),
+              description: markdownToHTML(tfContent.description ?? ""),
+              explanation: markdownToHTML(tfContent.explanation ?? ""),
+              questions: tfQuestions,
+            };
+            break;
+          }
 
           case "coding":
             data = {
@@ -461,36 +586,42 @@ function mapMaterialToCanvasItems(material: any): CanvasItem[] {
               description:
                 ALL_ELEMENTS.find((el) => el.id === canvasId)?.description ??
                 "",
-              data: { src: resolvedUrl },
+              data: {
+                src: resolvedUrl,
+                width: ac.content?.widthPercent ?? 100,
+              },
             } as CanvasItem;
           } else if (ac.type === "matching") {
             const c = ac.content ?? {};
-            // items dari DB: { content, side, orderNumber, matchWithId }
+            // DB items: [{content, side:"LEFT"|"RIGHT", orderNumber, matchWithId}]
+            // MatchingBody reads: { title, description, pairs: [{id, question, answer}] }
+            // Reconstruct pairs: LEFT item = question, paired RIGHT item = answer
             const leftItems = (c.items ?? [])
               .filter((i: any) => i.side === "LEFT")
-              .map((i: any, idx: number) => ({
-                id: i.id ?? `left-${idx}`,
-                text: markdownToHTML(i.content ?? ""),
-              }));
-            const rightItems = (c.items ?? [])
-              .filter((i: any) => i.side === "RIGHT")
-              .map((i: any, idx: number) => ({
-                id: i.id ?? `right-${idx}`,
-                text: markdownToHTML(i.content ?? ""),
-              }));
-            // matchWithId di LEFT item = id RIGHT item (temp string dari DB)
-            const leftRaw = (c.items ?? []).filter(
-              (i: any) => i.side === "LEFT",
-            );
-            const rightRaw = (c.items ?? []).filter(
+              .sort(
+                (a: any, b: any) => (a.orderNumber ?? 0) - (b.orderNumber ?? 0),
+              );
+            const rightItems = (c.items ?? []).filter(
               (i: any) => i.side === "RIGHT",
             );
-            const correctPairs = leftRaw
-              .filter((l: any) => l.matchWithId)
-              .map((l: any, idx: number) => ({
-                leftId: leftItems[idx]?.id ?? `left-${idx}`,
-                rightId: l.matchWithId,
-              }));
+
+            // Map RIGHT items by their matchWithId (which was set to `right-${pairId}` on save)
+            const rightById: Record<string, any> = {};
+            rightItems.forEach((r: any) => {
+              if (r.matchWithId) rightById[r.matchWithId] = r;
+            });
+
+            const pairs = leftItems.map((l: any, idx: number) => {
+              // Try to find matching RIGHT item by LEFT's matchWithId
+              const rightItem =
+                rightById[l.matchWithId ?? ""] ?? rightItems[idx];
+              return {
+                id: l.id ?? `mp-${idx}`,
+                question: markdownToHTML(l.content ?? ""),
+                answer: markdownToHTML(rightItem?.content ?? ""),
+              };
+            });
+
             item = {
               id: "matching",
               instanceId: crypto.randomUUID(),
@@ -499,12 +630,11 @@ function mapMaterialToCanvasItems(material: any): CanvasItem[] {
                 ALL_ELEMENTS.find((el) => el.id === "matching")?.description ??
                 "",
               data: {
-                question: markdownToHTML(c.title ?? ""),
+                // MatchingBody reads `title`, not `question`
+                title: markdownToHTML(c.title ?? ""),
                 description: markdownToHTML(c.instruction ?? ""),
-                leftItems,
-                rightItems,
-                correctPairs,
                 explanation: markdownToHTML(c.explanation ?? ""),
+                pairs,
               },
             } as CanvasItem;
           } else if (ac.type === "interactive_code") {
@@ -534,13 +664,17 @@ function mapMaterialToCanvasItems(material: any): CanvasItem[] {
                 ALL_ELEMENTS.find((el) => el.id === "true-false")
                   ?.description ?? "",
               data: {
-                question: markdownToHTML(c.question ?? ""),
+                // TrueFalseBody reads `title`, not `question`
+                title: markdownToHTML(c.question ?? ""),
                 description: markdownToHTML(c.description ?? ""),
                 explanation: markdownToHTML(c.explanation ?? ""),
+                // TrueFalseBody reads questions[].statement (HTML) and .answer ("true"|"false")
                 questions: (c.options ?? []).map((opt: any, i: number) => ({
                   id: opt.id ?? `tf-${i}`,
                   statement: markdownToHTML(opt.content ?? ""),
-                  answer: opt.isCorrect ? "true" : "false",
+                  answer: (opt.isCorrect ? "true" : "false") as
+                    | "true"
+                    | "false",
                 })),
               },
             } as CanvasItem;
@@ -569,9 +703,9 @@ function mapMaterialToCanvasItems(material: any): CanvasItem[] {
     },
   );
 
-  // ── Restore quiz dari subBab.quiz ─────────────────────────────────────────
+  // ── Restore quiz dari text.quiz (bukan subBab.quiz) ──────────────────────
   const quizItems: CanvasItem[] = [];
-  const backendQuiz = material.subBab?.quiz;
+  const backendQuiz = material.quiz;
   if (backendQuiz) {
     quizItems.push({
       id: "quiz",
@@ -607,15 +741,20 @@ function mapMaterialToCanvasItems(material: any): CanvasItem[] {
     });
   }
 
-  // ── Restore assignment dari subBab.assignment ─────────────────────────────
+  // ── Restore assignment dari text.assignment (bukan subBab.assignment) ───────
   const assignmentItems: CanvasItem[] = [];
-  const backendAssignment = material.subBab?.assignment;
+  const backendAssignment = material.assignment;
   if (backendAssignment) {
-    const descPart = backendAssignment.description ?? "";
-    const instrPart = (backendAssignment.instructions ?? [])
-      .map((instr: any, idx: number) => `${idx + 1}. ${instr.instruction}`)
-      .join("\n");
-    const question = [descPart, instrPart].filter(Boolean).join("\n");
+    // question disimpan langsung sebagai HTML di field description
+    // instructions dijadikan ordered list HTML agar kompatibel dengan RichTextEditor
+    const descHtml = backendAssignment.description ?? "";
+    const instrHtml =
+      (backendAssignment.instructions ?? []).length > 0
+        ? `<ol>${(backendAssignment.instructions ?? [])
+            .map((instr: any) => `<li>${instr.instruction}</li>`)
+            .join("")}</ol>`
+        : "";
+    const question = [descHtml, instrHtml].filter(Boolean).join("");
 
     assignmentItems.push({
       id: "project",
@@ -756,6 +895,10 @@ export default function CreateMaterialPage() {
 
   const [textId, setTextId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [showSavedBadge, setShowSavedBadge] = useState(false);
+  const savedBadgeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const [status, setStatus] = useState<"DRAFT" | "PUBLISHED" | "ARCHIVED">(
     "DRAFT",
   );
@@ -805,27 +948,75 @@ export default function CreateMaterialPage() {
     editor.execCommand(cmd, value);
   }, []);
 
-  const handleFontTypeChange = useCallback((fontType: string) => {
-    const editor = activeEditorRef.current;
-    if (!editor) return;
-    const formatMap: Record<string, string> = {
-      "Heading 1": "h1",
-      "Heading 2": "h2",
-      "Heading 3": "h3",
-      Paragraph: "p",
-      Caption: "p",
-      Code: "pre",
-    };
-    editor.execCommand("formatBlock", formatMap[fontType] ?? "p");
-    setStyleState((prev) => ({ ...prev, fontType }));
-  }, []);
+  const handleFontTypeChange = useCallback(
+    (fontType: string) => {
+      const instanceId = selectedInstanceId ?? activeInstanceIdRef.current;
+      if (!instanceId) return;
+      const preset = FONT_PRESETS[fontType] ?? FONT_PRESETS[DEFAULT_FONT_TYPE];
 
-  const handleFontSizeChange = useCallback((fontSize: number) => {
-    const editor = activeEditorRef.current;
-    if (!editor) return;
-    editor.setFontSize(fontSize);
-    setStyleState((prev) => ({ ...prev, fontSize }));
-  }, []);
+      setItems((prev) => {
+        const idx = prev.findIndex((it) => it.instanceId === instanceId);
+        if (idx === -1) return prev;
+        const next = [...prev];
+        next[idx] = {
+          ...next[idx],
+          data: {
+            ...next[idx].data,
+            fontType,
+            fontSize: preset.fontSize,
+          },
+        };
+        pushHistory(next);
+        return next;
+      });
+
+      setStyleState((prev) => ({
+        ...prev,
+        fontType,
+        fontSize: preset.fontSize,
+      }));
+    },
+    [selectedInstanceId, pushHistory],
+  );
+
+  const handleFontSizeChange = useCallback(
+    (fontSize: number) => {
+      const instanceId = selectedInstanceId ?? activeInstanceIdRef.current;
+      if (!instanceId) return;
+      const clamped = Math.min(72, Math.max(8, fontSize));
+
+      setItems((prev) => {
+        const idx = prev.findIndex((it) => it.instanceId === instanceId);
+        if (idx === -1) return prev;
+        const next = [...prev];
+        next[idx] = {
+          ...next[idx],
+          data: {
+            ...next[idx].data,
+            fontSize: clamped,
+          },
+        };
+        pushHistory(next);
+        return next;
+      });
+
+      setStyleState((prev) => ({ ...prev, fontSize: clamped }));
+    },
+    [selectedInstanceId, pushHistory],
+  );
+
+  // ── Sync Font-Type & Font-Size controls dengan item yang dipilih ──────────
+  useEffect(() => {
+    const item = items.find((it) => it.instanceId === selectedInstanceId);
+    const fontType = item?.data?.fontType ?? DEFAULT_FONT_TYPE;
+    const preset = FONT_PRESETS[fontType] ?? FONT_PRESETS[DEFAULT_FONT_TYPE];
+    const fontSize = item?.data?.fontSize ?? preset.fontSize;
+
+    setStyleState((prev) => {
+      if (prev.fontType === fontType && prev.fontSize === fontSize) return prev;
+      return { ...prev, fontType, fontSize };
+    });
+  }, [selectedInstanceId, items]);
 
   // ── Register / unregister editor refs ────────────────────────────────────
   const registerEditor = useCallback(
@@ -1018,7 +1209,7 @@ export default function CreateMaterialPage() {
           contents.push({
             type: "heading",
             level: 1,
-            text: htmlToMarkdown(d.value ?? ""),
+            text: encodeFontStyleToken(d) + htmlToMarkdown(d.value ?? ""),
             orderNumber: globalOrder++,
           });
           break;
@@ -1026,35 +1217,44 @@ export default function CreateMaterialPage() {
         case "paragraph":
           contents.push({
             type: "paragraph",
-            text: htmlToMarkdown(d.value ?? ""),
+            text: encodeFontStyleToken(d) + htmlToMarkdown(d.value ?? ""),
             orderNumber: globalOrder++,
           });
           break;
 
-        case "highlight":
+        case "highlight": {
+          const fstyleToken = encodeFontStyleToken(d);
+          // total text (token + isi) tetap harus <= 120 karakter (limit backend)
+          const maxContentLength = Math.max(0, 120 - fstyleToken.length);
           contents.push({
             type: "highlight",
-            text: htmlToMarkdown(d.value ?? "").slice(0, 120),
+            text:
+              fstyleToken +
+              htmlToMarkdown(d.value ?? "").slice(0, maxContentLength),
             orderNumber: globalOrder++,
           });
           break;
+        }
 
-        case "summary":
+        case "summary": {
+          const summaryComments = htmlToMarkdown(d.value ?? "")
+            .split("\n")
+            .map((s: string) => s.trim())
+            .filter(Boolean);
           contents.push({
             type: "summary",
             orderNumber: globalOrder++,
-            comments: htmlToMarkdown(d.value ?? "")
-              .split("\n")
-              .map((s: string) => s.trim())
-              .filter(Boolean),
+            comments: [encodeFontStyleToken(d), ...summaryComments],
           });
           break;
+        }
 
         case "accordion":
           contents.push({
             type: "accordion",
             title: d.titleHTML ?? "",
-            description: htmlToMarkdown(d.descriptionHTML ?? ""),
+            description:
+              encodeFontStyleToken(d) + htmlToMarkdown(d.descriptionHTML ?? ""),
             orderNumber: globalOrder++,
             items: (d.panels ?? []).map((p: any, i: number) => ({
               title: htmlToMarkdown(p.titleHTML ?? ""),
@@ -1068,7 +1268,8 @@ export default function CreateMaterialPage() {
           contents.push({
             type: "carousel",
             title: d.title ?? "",
-            description: htmlToMarkdown(d.description ?? ""),
+            description:
+              encodeFontStyleToken(d) + htmlToMarkdown(d.description ?? ""),
             cardsPerSlide: d.cardsPerSlide ?? 3,
             orderNumber: globalOrder++,
             items: (d.items ?? []).map((it: any, i: number) => ({
@@ -1095,6 +1296,8 @@ export default function CreateMaterialPage() {
                 : undefined,
               orderNumber: i + 1,
             })),
+            fontType: d.fontType ?? DEFAULT_FONT_TYPE,
+            fontSize: d.fontSize ?? FONT_PRESETS[DEFAULT_FONT_TYPE].fontSize,
           });
           break;
 
@@ -1109,6 +1312,8 @@ export default function CreateMaterialPage() {
               content: htmlToMarkdown(t.content ?? ""),
               orderNumber: i + 1,
             })),
+            fontType: d.fontType ?? DEFAULT_FONT_TYPE,
+            fontSize: d.fontSize ?? FONT_PRESETS[DEFAULT_FONT_TYPE].fontSize,
           });
           break;
 
@@ -1123,7 +1328,7 @@ export default function CreateMaterialPage() {
               position: "AFTER",
               orderNumber: globalOrder++,
               isNewUpload: true,
-              content: { mediaType: "IMAGE" },
+              content: { mediaType: "IMAGE", widthPercent: d.width ?? 100 },
             });
           } else if (src && !isBlob) {
             additionalContents.push({
@@ -1131,7 +1336,11 @@ export default function CreateMaterialPage() {
               position: "AFTER",
               orderNumber: globalOrder++,
               isNewUpload: false,
-              content: { url: src, mediaType: "IMAGE" },
+              content: {
+                url: src,
+                mediaType: "IMAGE",
+                widthPercent: d.width ?? 100,
+              },
             });
           }
           break;
@@ -1148,7 +1357,7 @@ export default function CreateMaterialPage() {
               position: "AFTER",
               orderNumber: globalOrder++,
               isNewUpload: true,
-              content: { mediaType: "VIDEO" },
+              content: { mediaType: "VIDEO", widthPercent: 100 },
             });
           } else if (src && !isBlob) {
             additionalContents.push({
@@ -1156,7 +1365,7 @@ export default function CreateMaterialPage() {
               position: "AFTER",
               orderNumber: globalOrder++,
               isNewUpload: false,
-              content: { url: src, mediaType: "VIDEO" },
+              content: { url: src, mediaType: "VIDEO", widthPercent: 100 },
             });
           }
           break;
@@ -1183,53 +1392,91 @@ export default function CreateMaterialPage() {
           });
           break;
 
-        case "matching":
-          additionalContents.push({
-            type: "matching",
-            position: "AFTER",
-            orderNumber: globalOrder++,
-            content: {
-              title: htmlToMarkdown(d.question ?? ""),
-              instruction: htmlToMarkdown(d.description ?? ""),
-              explanation: htmlToMarkdown(d.explanation ?? ""),
-              items: [
-                ...(d.leftItems ?? []).map((it: any, i: number) => ({
-                  content: htmlToMarkdown(it.text ?? ""),
-                  side: "LEFT" as const,
-                  orderNumber: i + 1,
-                  matchWithId:
-                    (d.correctPairs ?? []).find((p: any) => p.leftId === it.id)
-                      ?.rightId ?? undefined,
-                })),
-                ...(d.rightItems ?? []).map((it: any, i: number) => ({
-                  content: htmlToMarkdown(it.text ?? ""),
-                  side: "RIGHT" as const,
-                  orderNumber: i + 1,
-                  matchWithId: it.id,
-                })),
-              ],
-            },
-          });
-          break;
+        case "matching": {
+          // MatchingBody stores: { title, description, pairs: [{id, question, answer}] }
+          // Convert pairs → LEFT items (question) + RIGHT items (answer)
+          // matchWithId on LEFT = the RIGHT item's id so backend can link them
+          const matchPairs = d.pairs ?? [];
+          const matchItems = matchPairs
+            .flatMap((p: any, i: number) => [
+              {
+                content: htmlToMarkdown(p.question ?? ""),
+                side: "LEFT" as const,
+                orderNumber: i + 1,
+                matchWithId: `right-${p.id}`, // points to the RIGHT item id below
+              },
+              {
+                content: htmlToMarkdown(p.answer ?? ""),
+                side: "RIGHT" as const,
+                orderNumber: i + 1,
+                matchWithId: `right-${p.id}`, // own stable id stored here
+              },
+            ])
+            .filter((item: any) => {
+              const plain = item.content.replace(/<[^>]+>/g, "").trim();
+              return plain.length > 0;
+            });
 
-        case "true-false":
-          additionalContents.push({
-            type: "multiple_choice",
-            position: "AFTER",
-            orderNumber: globalOrder++,
-            content: {
-              question: htmlToMarkdown(d.question ?? ""),
-              description: htmlToMarkdown(d.description ?? ""),
-              allowMultiple: false,
-              explanation: htmlToMarkdown(d.explanation ?? ""),
-              options: (d.questions ?? []).map((q: any, i: number) => ({
-                content: htmlToMarkdown(q.statement ?? ""),
+          // Need at least 2 items (1 LEFT + 1 RIGHT minimum) — skip if not enough valid pairs
+          const validPairCount = matchItems.filter(
+            (it: any) => it.side === "LEFT",
+          ).length;
+          if (validPairCount >= 1 && matchItems.length >= 2) {
+            additionalContents.push({
+              type: "matching",
+              position: "AFTER",
+              orderNumber: globalOrder++,
+              content: {
+                title: htmlToMarkdown(d.title ?? d.question ?? ""),
+                instruction: d.description
+                  ? htmlToMarkdown(d.description)
+                  : undefined,
+                explanation: d.explanation
+                  ? htmlToMarkdown(d.explanation)
+                  : undefined,
+                items: matchItems,
+              },
+            });
+          }
+          break;
+        }
+
+        case "true-false": {
+          // TrueFalseBody stores: { title, description, questions: [{id, statement, answer}] }
+          // statement is HTML — htmlToMarkdown may return empty string → Zod min(1) fails
+          const tfOptions = (d.questions ?? [])
+            .map((q: any, i: number) => {
+              const raw = htmlToMarkdown(q.statement ?? "");
+              const plain = raw.replace(/<[^>]+>/g, "").trim();
+              if (!plain) return null;
+              return {
+                content: raw || plain,
                 isCorrect: q.answer === "true",
                 orderNumber: i + 1,
-              })),
-            },
-          });
+              };
+            })
+            .filter(Boolean);
+
+          if (tfOptions.length >= 2) {
+            additionalContents.push({
+              type: "multiple_choice",
+              position: "AFTER",
+              orderNumber: globalOrder++,
+              content: {
+                question: htmlToMarkdown(d.title ?? d.question ?? ""),
+                description: d.description
+                  ? htmlToMarkdown(d.description)
+                  : undefined,
+                allowMultiple: false,
+                explanation: d.explanation
+                  ? htmlToMarkdown(d.explanation)
+                  : undefined,
+                options: tfOptions,
+              },
+            });
+          }
           break;
+        }
 
         default:
           break;
@@ -1282,26 +1529,12 @@ export default function CreateMaterialPage() {
     const d = projectItem.data ?? {};
     const attachments: any[] = d.attachments ?? [];
 
-    // Parse instruksi dari field question (baris bernomor jadi instructions)
-    const rawLines: string[] = (d.question ?? "")
-      .split("\n")
-      .map((l: string) => l.trim())
-      .filter(Boolean);
+    // question sekarang berisi HTML dari RichTextEditor — kirim langsung sebagai description
+    // tidak perlu parsing plain text lagi
+    const description = (d.question ?? "") || undefined;
 
-    const isInstructionLine = (line: string) => /^(\d+\.|[-•*])/.test(line);
-    const descLines = rawLines.filter((l) => !isInstructionLine(l));
-    const instrLines = rawLines.filter((l) => isInstructionLine(l));
-    const cleanInstruction = (line: string) =>
-      line.replace(/^(\d+\.|[-•*])\s*/, "").trim();
-
-    // Description = semua non-instruction lines
-    const description = descLines.join(" ") || undefined;
-
-    // Instructions = numbered lines
-    const instructions = instrLines.map((line, idx) => ({
-      instruction: cleanInstruction(line),
-      orderNumber: idx + 1,
-    }));
+    // instructions dikosongkan — konten sudah masuk ke description sebagai HTML
+    const instructions: { instruction: string; orderNumber: number }[] = [];
 
     // Supporting files — deteksi blob URL → isNewUpload: true, kirim File binary
     const supportingFilesToUpload: File[] = [];
@@ -1341,6 +1574,29 @@ export default function CreateMaterialPage() {
     return { assignment, supportingFilesToUpload };
   };
 
+  // ── Tampilkan badge "Saved" selama 10 detik setiap kali create/update
+  // berhasil, lalu sembunyikan otomatis ──────────────────────────────────────
+  const triggerSavedBadge = useCallback(() => {
+    if (savedBadgeTimeoutRef.current) {
+      clearTimeout(savedBadgeTimeoutRef.current);
+    }
+    setShowSavedBadge(true);
+    savedBadgeTimeoutRef.current = setTimeout(() => {
+      setShowSavedBadge(false);
+      savedBadgeTimeoutRef.current = null;
+    }, 10000);
+  }, []);
+
+  // Bersihkan timer saat komponen unmount supaya tidak ada state update
+  // yang tertinggal setelah halaman ditinggalkan.
+  useEffect(() => {
+    return () => {
+      if (savedBadgeTimeoutRef.current) {
+        clearTimeout(savedBadgeTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleSave = async () => {
     if (isSaving) return;
 
@@ -1367,6 +1623,7 @@ export default function CreateMaterialPage() {
         setStatus(data.data.status);
 
         toast.success("Material berhasil disimpan");
+        triggerSavedBadge();
         console.log("✅ First save success:", data);
 
         // 🔥 redirect ke mode edit
@@ -1423,6 +1680,7 @@ export default function CreateMaterialPage() {
         setStatus(data.data.status ?? status);
 
         toast.success("Material berhasil disimpan");
+        triggerSavedBadge();
         console.log("✅ Update success:", data);
       }
     } catch (err: any) {
@@ -1475,7 +1733,9 @@ export default function CreateMaterialPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-white overflow-hidden">
+    <div
+      className={`${jakartaSans.className} flex flex-col h-screen bg-white overflow-hidden`}
+    >
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header className="flex items-center justify-between px-6 py-3 bg-white border-b border-gray-200 shrink-0 z-10">
         <div className="flex items-center gap-3">
@@ -1527,9 +1787,11 @@ export default function CreateMaterialPage() {
           >
             <RotateCw size={16} />
           </button>
-          <span className="text-xs text-gray-400 font-medium mr-1 hidden sm:inline">
-            Saved
-          </span>
+          {showSavedBadge && (
+            <span className="text-xs text-gray-400 font-medium mr-1 hidden sm:inline">
+              Saved
+            </span>
+          )}
 
           {/* ── Preview button — wired to MaterialPreviewModal ──────────────── */}
           <button

@@ -16,15 +16,23 @@ export class ELearningSubmissionService {
   static async createSubmission(
     userId: string,
     assignmentId: string,
-    data: any
+    data: any,
   ) {
     // cek apakah assignment valid
     const assignment = await prisma.eLearningAssignment.findUnique({
       where: { id: assignmentId },
       include: {
-        subBab: {
+        text: {
           include: {
-            subChapter: { include: { course: true } },
+            subBab: {
+              include: {
+                subChapter: {
+                  include: {
+                    course: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -88,11 +96,15 @@ export class ELearningSubmissionService {
     const assignment = await prisma.eLearningAssignment.findUnique({
       where: { id: assignmentId },
       include: {
-        subBab: {
+        text: {
           include: {
-            subChapter: {
+            subBab: {
               include: {
-                course: true,
+                subChapter: {
+                  include: {
+                    course: true,
+                  },
+                },
               },
             },
           },
@@ -102,7 +114,7 @@ export class ELearningSubmissionService {
 
     if (!assignment) throw new Error("Assignment tidak ditemukan");
 
-    const courseId = assignment.subBab.subChapter.course.id;
+    const courseId = assignment.text.subBab.subChapter.course.id;
 
     // 🔥 DIGANTI: cek apakah user memiliki subscription aktif
     const now = new Date();
@@ -154,11 +166,15 @@ export class ELearningSubmissionService {
     const assignment = await prisma.eLearningAssignment.findUnique({
       where: { id: assignmentId },
       include: {
-        subBab: {
+        text: {
           include: {
-            subChapter: {
+            subBab: {
               include: {
-                course: true,
+                subChapter: {
+                  include: {
+                    course: true,
+                  },
+                },
               },
             },
           },
@@ -170,7 +186,7 @@ export class ELearningSubmissionService {
       throw new Error("Assignment tidak ditemukan");
     }
 
-    const courseId = assignment.subBab.subChapter.course.id;
+    const courseId = assignment.text.subBab.subChapter.course.id;
 
     // 2. Jika mentor → cek apakah dia pemilik course
     const isAdmin = user.roles.includes("admin");
@@ -256,7 +272,7 @@ export class ELearningSubmissionService {
   static async reviewSubmission(
     submissionId: string,
     user: { userId: string; roles: string[]; mentorProfileId?: string },
-    data: any
+    data: any,
   ) {
     const { userId, roles, mentorProfileId } = user;
 
@@ -266,11 +282,15 @@ export class ELearningSubmissionService {
       include: {
         assignment: {
           include: {
-            subBab: {
+            text: {
               include: {
-                subChapter: {
+                subBab: {
                   include: {
-                    course: true,
+                    subChapter: {
+                      include: {
+                        course: true,
+                      },
+                    },
                   },
                 },
               },
@@ -282,7 +302,7 @@ export class ELearningSubmissionService {
 
     if (!submission) throw new Error("Submission tidak ditemukan");
 
-    const course = submission.assignment.subBab.subChapter.course;
+    const course = submission.assignment.text.subBab.subChapter.course;
 
     // ====== 2. ADMIN BOLEH AKSES SEMUA ======
     const isAdmin = roles.includes("admin");
@@ -300,7 +320,7 @@ export class ELearningSubmissionService {
 
       if (course.mentorId !== mentorProfileId) {
         throw new Error(
-          "Anda tidak memiliki akses untuk mereview submission pada course ini"
+          "Anda tidak memiliki akses untuk mereview submission pada course ini",
         );
       }
     }
@@ -347,7 +367,7 @@ export class ELearningSubmissionService {
   static async submitRevision(
     userId: string,
     submissionId: string,
-    data: { notes?: string; files?: string[] }
+    data: { notes?: string; files?: string[] },
   ) {
     const submission = await prisma.eLearningSubmission.findUnique({
       where: { id: submissionId },
@@ -368,7 +388,7 @@ export class ELearningSubmissionService {
         const filePath = path.join(
           __dirname,
           "../../uploads/elearning/submissions",
-          oldFile.replace("/uploads/elearning/submissions/", "")
+          oldFile.replace("/uploads/elearning/submissions/", ""),
         );
 
         if (fs.existsSync(filePath)) {
@@ -399,42 +419,63 @@ export class ELearningSubmissionService {
       include: {
         assignment: {
           include: {
-            subBab: {
+            text: {
               include: {
-                subChapter: {
+                subBab: {
                   include: {
-                    course: true,
+                    subChapter: {
+                      include: {
+                        course: true,
+                      },
+                    },
                   },
                 },
               },
             },
           },
         },
-        user: true, // pemilik submission
-        reviewer: true, // mentor yang review
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+          },
+        },
+        reviewer: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+          },
+        },
       },
     });
 
-    if (!submission) throw new Error("Submission tidak ditemukan");
+    if (!submission) {
+      throw new Error("Submission tidak ditemukan");
+    }
 
-    // Admin -> boleh lihat semua
+    // ===== ADMIN =====
     if (user.roles.includes("admin")) {
       return submission;
     }
 
-    //  Mentor -> boleh lihat submission pada course yang dia ampu
-    if (user.roles.includes("mentor")) {
-      const courseMentorId =
-        submission.assignment.subBab.subChapter.course.mentorId;
+    const course = submission.assignment.text.subBab.subChapter.course;
 
-      if (courseMentorId !== user.mentorProfileId) {
+    // ===== MENTOR =====
+    if (user.roles.includes("mentor")) {
+      if (!user.mentorProfileId) {
+        throw new Error("Mentor profile tidak ditemukan");
+      }
+
+      if (course.mentorId !== user.mentorProfileId) {
         throw new Error("Mentor tidak memiliki akses ke submission ini");
       }
 
       return submission;
     }
 
-    // Mentee -> hanya boleh lihat submission miliknya sendiri
+    // ===== MENTEE =====
     if (user.roles.includes("mentee")) {
       if (submission.userId !== user.userId) {
         throw new Error("Mentee tidak dapat mengakses submission orang lain");
@@ -443,7 +484,6 @@ export class ELearningSubmissionService {
       return submission;
     }
 
-    // jika role tidak dikenal
     throw new Error("Role tidak memiliki akses");
   }
 
@@ -453,41 +493,52 @@ export class ELearningSubmissionService {
       include: {
         assignment: {
           include: {
-            subBab: {
+            text: {
               include: {
-                subChapter: {
+                subBab: {
                   include: {
-                    course: true,
+                    subChapter: {
+                      include: {
+                        course: true,
+                      },
+                    },
                   },
                 },
               },
             },
           },
         },
-        user: true, // pemilik submission
-        reviewer: true, // mentor reviewer
+        user: true,
+        reviewer: true,
       },
     });
 
-    if (!submission) throw new Error("Submission tidak ditemukan");
-
-    const courseId = submission.assignment.subBab.subChapter.course.id;
-    const courseMentorId =
-      submission.assignment.subBab.subChapter.course.mentorId;
-
-    // Admin → akses semua submission
-    if (user.roles.includes("admin")) {
-      // continue
+    if (!submission) {
+      throw new Error("Submission tidak ditemukan");
     }
 
-    // Mentor → hanya course yang dia ampu
+    const course = submission.assignment.text.subBab.subChapter.course;
+
+    const courseId = course.id;
+    const courseMentorId = course.mentorId;
+
+    // ===== ADMIN =====
+    if (user.roles.includes("admin")) {
+      // akses penuh
+    }
+
+    // ===== MENTOR =====
     else if (user.roles.includes("mentor")) {
+      if (!user.mentorProfileId) {
+        throw new Error("Mentor profile tidak ditemukan");
+      }
+
       if (user.mentorProfileId !== courseMentorId) {
         throw new Error("Mentor tidak memiliki akses ke submission ini");
       }
     }
 
-    // 🔥 DIGANTI: Mentee → submission miliknya ATAU subscription aktif
+    // ===== MENTEE =====
     else if (user.roles.includes("mentee")) {
       const now = new Date();
 
@@ -509,12 +560,16 @@ export class ELearningSubmissionService {
       if (submission.userId !== user.userId && !activeSubscription) {
         throw new Error("Mentee tidak memiliki akses ke submission ini");
       }
-    } else {
+    }
+
+    // ===== ROLE TIDAK VALID =====
+    else {
       throw new Error("Role tidak memiliki akses");
     }
-    const history = [];
 
-    // Pertama kali submit
+    const history: any[] = [];
+
+    // Submit pertama
     if (submission.submittedAt) {
       history.push({
         event: "SUBMITTED",
@@ -525,7 +580,7 @@ export class ELearningSubmissionService {
       });
     }
 
-    // Diminta revisi
+    // Revisi diminta
     if (submission.isRevisionRequired && submission.reviewedAt) {
       history.push({
         event: "REVISION_REQUESTED",
@@ -537,7 +592,7 @@ export class ELearningSubmissionService {
       });
     }
 
-    // Dikirim revisi
+    // Revisi dikirim
     if (
       !submission.isRevisionRequired &&
       submission.status === "PENDING" &&
@@ -546,13 +601,13 @@ export class ELearningSubmissionService {
       history.push({
         event: "REVISION_SUBMITTED",
         status: "PENDING",
-        timestamp: submission.submittedAt, // revisi selalu reset submittedAt
+        timestamp: submission.submittedAt,
         notes: submission.notes ?? null,
         files: submission.files,
       });
     }
 
-    // Direview oleh mentor
+    // Direview
     if (submission.reviewedAt) {
       history.push({
         event: "REVIEWED",
@@ -565,7 +620,7 @@ export class ELearningSubmissionService {
       });
     }
 
-    // Disetujui atau ditolak (optional)
+    // Approved / Rejected
     if (["APPROVED", "REJECTED"].includes(submission.status)) {
       history.push({
         event: submission.status,
@@ -575,15 +630,18 @@ export class ELearningSubmissionService {
       });
     }
 
-    // Sort berdasarkan waktu
     history.sort((a, b) => {
       const ta = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+
       const tb = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+
       return ta - tb;
     });
 
     return {
       submissionId: submission.id,
+      assignmentId: submission.assignmentId,
+      courseId,
       userId: submission.userId,
       currentStatus: submission.status,
       history,
@@ -591,28 +649,41 @@ export class ELearningSubmissionService {
   }
 
   static async exportSubmissionsToFile(
-    exportFormat: "csv" | "excel"
+    exportFormat: "csv" | "excel",
   ): Promise<{ buffer: Buffer; filename: string; mimetype: string }> {
     const submissions = await prisma.eLearningSubmission.findMany({
       include: {
         user: {
-          select: { id: true, fullName: true, email: true },
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+          },
         },
+
         assignment: {
           include: {
-            subBab: {
+            text: {
               include: {
-                subChapter: {
+                subBab: {
                   include: {
-                    course: true,
+                    subChapter: {
+                      include: {
+                        course: true,
+                      },
+                    },
                   },
                 },
               },
             },
           },
         },
+
         reviewer: {
-          select: { id: true, fullName: true },
+          select: {
+            id: true,
+            fullName: true,
+          },
         },
       },
     });
@@ -620,21 +691,30 @@ export class ELearningSubmissionService {
     // 🔹 Format rows untuk export
     const rows = submissions.map((sub) => ({
       SubmissionID: sub.id,
+
       MenteeName: sub.user?.fullName || "-",
       MenteeEmail: sub.user?.email || "-",
-      Course: sub.assignment.subBab.subChapter.course.title,
-      SubChapter: sub.assignment.subBab.subChapter.title,
-      SubBab: sub.assignment.subBab.title,
+
+      Course: sub.assignment.text.subBab.subChapter.course.title,
+
+      SubChapter: sub.assignment.text.subBab.subChapter.title,
+
+      SubBab: sub.assignment.text.subBab.title,
+
       AssignmentTitle: sub.assignment.title,
+
       Status: sub.status,
       Score: sub.score ?? "-",
       Feedback: sub.feedback ?? "-",
+
       SubmittedAt: sub.submittedAt
         ? format(sub.submittedAt, "yyyy-MM-dd HH:mm:ss")
         : "-",
+
       ReviewedAt: sub.reviewedAt
         ? format(sub.reviewedAt, "yyyy-MM-dd HH:mm:ss")
         : "-",
+
       ReviewerName: sub.reviewer?.fullName ?? "-",
     }));
 
@@ -643,7 +723,7 @@ export class ELearningSubmissionService {
       const chars =
         "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
       return Array.from({ length }, () =>
-        chars.charAt(Math.floor(Math.random() * chars.length))
+        chars.charAt(Math.floor(Math.random() * chars.length)),
       ).join("");
     }
 
@@ -697,7 +777,7 @@ export class ELearningSubmissionService {
         const filePath = path.join(
           __dirname,
           "../../uploads/elearning/submissions",
-          filename
+          filename,
         );
 
         if (fs.existsSync(filePath)) {

@@ -10,236 +10,22 @@ const prisma = new PrismaClient();
 
 export class ELearningAssignmentService {
   static async createAssignment(
-    subBabId: string,
-    body: { title: string; description?: string; dueDays: number },
-    user: { userId: string; roles: string[]; mentorProfileId?: string }
+    textId: string,
+    body: {
+      title: string;
+      description?: string;
+      dueDays: number;
+    },
+    user: {
+      userId: string;
+      roles: string[];
+      mentorProfileId?: string;
+    },
   ) {
     return await prisma.$transaction(async (tx) => {
-      // ====== Cek apakah SubBab ada ======
-      const subBab = await tx.eLearningSubBab.findUnique({
-        where: { id: subBabId },
-        include: {
-          subChapter: {
-            include: { course: true },
-          },
-        },
-      });
-
-      if (!subBab) throw new Error("SubBab tidak ditemukan");
-
-      // ====== Cek apakah sudah ada assignment ======
-      const existing = await tx.eLearningAssignment.findUnique({
-        where: { subBabId },
-      });
-      if (existing) throw new Error("SubBab ini sudah memiliki assignment");
-
-      // ====== Validasi Mentor hanya bisa di course miliknya ======
-      if (user.roles.includes("mentor")) {
-        const mentorCourseId = subBab.subChapter.course.mentorId;
-        if (!mentorCourseId || mentorCourseId !== user.userId) {
-          throw new Error(
-            "Mentor tidak memiliki izin membuat assignment di course ini"
-          );
-        }
-      }
-
-      // ====== Generate ID custom ======
-      const today = new Date();
-      const formattedDate = today.toISOString().split("T")[0].replace(/-/g, "");
-      const randomHex = crypto.randomBytes(6).toString("hex");
-      const assignmentId = `assignment-${formattedDate}-${randomHex}`;
-
-      // ====== Simpan ke database ======
-      const assignment = await tx.eLearningAssignment.create({
-        data: {
-          id: assignmentId,
-          subBabId,
-          title: body.title,
-          description: body.description ?? null,
-          dueDays: body.dueDays,
-        },
-        include: {
-          subBab: {
-            select: {
-              id: true,
-              title: true,
-              subChapter: {
-                select: {
-                  title: true,
-                  course: { select: { id: true, title: true } },
-                },
-              },
-            },
-          },
-        },
-      });
-
-      return assignment;
-    });
-  }
-
-  static async getAssignment(
-    subBabId: string,
-    user: { userId: string; roles: string[] },
-    opts: {
-      includeSubmissions?: boolean;
-      page?: number;
-      limit?: number;
-      sortBy?: "createdAt" | "updatedAt" | "score" | "submittedAt";
-      order?: "asc" | "desc";
-      search?: string;
-      minScore?: number;
-      maxScore?: number;
-    }
-  ) {
-    // Ambil assignment + relasi course untuk cek izin
-    const assignment = await prisma.eLearningAssignment.findUnique({
-      where: { subBabId },
-      include: {
-        subBab: {
-          select: {
-            id: true,
-            title: true,
-            subChapter: {
-              select: {
-                id: true,
-                title: true,
-                course: { select: { id: true, title: true, mentorId: true } },
-              },
-            },
-          },
-        },
-      },
-    });
-
-    if (!assignment) throw new Error("Assignment tidak ditemukan");
-
-    const isAdmin = user.roles.includes("admin");
-    const isMentor = user.roles.includes("mentor");
-    const isMentee = user.roles.includes("mentee");
-
-    const course = assignment.subBab.subChapter.course;
-    const courseId = course?.id;
-
-    // Akses kontrol
-    if (isAdmin) {
-      // ok
-    } else if (isMentor) {
-      if (!course || course.mentorId !== user.userId) {
-        throw new Error("Mentor tidak memiliki izin mengakses assignment ini");
-      }
-    } else if (isMentee) {
-      const now = new Date();
-
-      // cek apakah mentee punya subscription aktif
-      const activeSubscription = await prisma.eLearningSubscription.findFirst({
-        where: {
-          userId: user.userId,
-          status: {
-            in: ["active", "confirmed", "completed"],
-          }, // sesuaikan jika enum / value berbeda
-          startAt: { lte: now },
-          endAt: { gte: now },
-        },
-      });
-
-      if (!activeSubscription) {
-        throw new Error("Mentee tidak memiliki subscription aktif");
-      }
-    } else {
-      throw new Error("Akses ditolak");
-    }
-
-    // Jika tidak minta submissions, cukup kembalikan assignment
-    const includeSubs = opts.includeSubmissions ?? false;
-    if (!includeSubs) {
-      return {
-        id: assignment.id,
-        subBabId: assignment.subBabId,
-        title: assignment.title,
-        description: assignment.description,
-        dueDays: assignment.dueDays,
-        createdAt: assignment.createdAt,
-        updatedAt: assignment.updatedAt,
-        subBab: assignment.subBab,
-      };
-    }
-
-    // Jika includeSubmissions = true -> ambil submissions dengan pagination/sort/filter/search
-    const page = opts.page && opts.page > 0 ? opts.page : 1;
-    const limit = opts.limit && opts.limit > 0 ? opts.limit : 10;
-    const skip = (page - 1) * limit;
-
-    // Build where clause for submissions
-    const subWhere: any = { assignmentId: assignment.id }; // assuming submission has assignmentId
-    // Score filter
-    if (
-      typeof opts.minScore === "number" ||
-      typeof opts.maxScore === "number"
-    ) {
-      subWhere.score = {};
-      if (typeof opts.minScore === "number") subWhere.score.gte = opts.minScore;
-      if (typeof opts.maxScore === "number") subWhere.score.lte = opts.maxScore;
-    }
-    // Search (try search on user fullName or fileName or answer text)
-    if (opts.search) {
-      subWhere.OR = [
-        { fileName: { contains: opts.search, mode: "insensitive" } },
-        { notes: { contains: opts.search, mode: "insensitive" } },
-        { user: { fullName: { contains: opts.search, mode: "insensitive" } } },
-      ];
-    }
-
-    // Sort mapping
-    const sortField = opts.sortBy ?? "submittedAt";
-    const order: "asc" | "desc" = opts.order ?? "desc";
-
-    // Count
-    const total = await prisma.eLearningSubmission.count({ where: subWhere });
-
-    const submissions = await prisma.eLearningSubmission.findMany({
-      where: subWhere,
-      orderBy: { [sortField]: order },
-      skip,
-      take: limit,
-      include: {
-        user: { select: { id: true, fullName: true, email: true } },
-        // include other fields as needed
-      },
-    });
-
-    const totalPages = Math.ceil(total / limit);
-
-    return {
-      id: assignment.id,
-      subBabId: assignment.subBabId,
-      title: assignment.title,
-      description: assignment.description,
-      dueDays: assignment.dueDays,
-      createdAt: assignment.createdAt,
-      updatedAt: assignment.updatedAt,
-      subBab: assignment.subBab,
-      submissions: {
-        data: submissions,
-        meta: {
-          total,
-          page,
-          limit,
-          totalPages,
-        },
-      },
-    };
-  }
-
-  static async updateAssignment(
-    assignmentId: string,
-    data: { title?: string; description?: string; dueDays?: number },
-    user: { userId: string; roles: string[]; mentorProfileId?: string }
-  ) {
-    return await prisma.$transaction(async (tx) => {
-      // Cek apakah assignment ada
-      const assignment = await tx.eLearningAssignment.findUnique({
-        where: { id: assignmentId },
+      // ====== Cek Text ======
+      const text = await tx.eLearningText.findUnique({
+        where: { id: textId },
         include: {
           subBab: {
             include: {
@@ -253,34 +39,386 @@ export class ELearningAssignmentService {
         },
       });
 
-      if (!assignment) throw new Error("Assignment tidak ditemukan");
+      if (!text) {
+        throw new Error("Text tidak ditemukan");
+      }
 
-      // Jika user adalah mentor, pastikan assignment dari course yang dia ampu
+      // ====== Cek assignment existing ======
+      const existing = await tx.eLearningAssignment.findUnique({
+        where: {
+          textId,
+        },
+      });
+
+      if (existing) {
+        throw new Error("Text ini sudah memiliki assignment");
+      }
+
+      // ====== Validasi mentor ======
       if (user.roles.includes("mentor")) {
-        const courseMentorId = assignment.subBab.subChapter.course.mentorId;
-        if (courseMentorId !== user.userId) {
+        const mentorId = text.subBab.subChapter.course.mentorId;
+
+        if (mentorId !== user.mentorProfileId) {
           throw new Error(
-            "Mentor tidak memiliki izin memperbarui assignment ini"
+            "Mentor tidak memiliki izin membuat assignment di course ini",
           );
         }
       }
 
-      // Update assignment (partial update)
+      // ====== Generate custom ID ======
+      const today = new Date();
+      const formattedDate = today.toISOString().split("T")[0].replace(/-/g, "");
+
+      const randomHex = crypto.randomBytes(6).toString("hex");
+
+      const assignmentId = `assignment-${formattedDate}-${randomHex}`;
+
+      // ====== Create assignment ======
+      const assignment = await tx.eLearningAssignment.create({
+        data: {
+          id: assignmentId,
+          textId,
+          title: body.title,
+          description: body.description ?? null,
+          dueDays: body.dueDays,
+        },
+        include: {
+          text: {
+            select: {
+              id: true,
+              title: true,
+              subBab: {
+                select: {
+                  id: true,
+                  title: true,
+                  subChapter: {
+                    select: {
+                      id: true,
+                      title: true,
+                      course: {
+                        select: {
+                          id: true,
+                          title: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      return assignment;
+    });
+  }
+
+  static async getAssignment(
+    textId: string,
+    user: {
+      userId: string;
+      roles: string[];
+    },
+    opts: {
+      includeSubmissions?: boolean;
+      page?: number;
+      limit?: number;
+      sortBy?: "createdAt" | "updatedAt" | "score" | "submittedAt";
+      order?: "asc" | "desc";
+      search?: string;
+      minScore?: number;
+      maxScore?: number;
+    },
+  ) {
+    const assignment = await prisma.eLearningAssignment.findUnique({
+      where: {
+        textId,
+      },
+      include: {
+        text: {
+          select: {
+            id: true,
+            title: true,
+            subBab: {
+              select: {
+                id: true,
+                title: true,
+                subChapter: {
+                  select: {
+                    id: true,
+                    title: true,
+                    course: {
+                      select: {
+                        id: true,
+                        title: true,
+                        mentorId: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!assignment) {
+      throw new Error("Assignment tidak ditemukan");
+    }
+
+    const isAdmin = user.roles.includes("admin");
+    const isMentor = user.roles.includes("mentor");
+    const isMentee = user.roles.includes("mentee");
+
+    const course = assignment.text.subBab.subChapter.course;
+
+    // ======================
+    // ACCESS CONTROL
+    // ======================
+
+    if (isAdmin) {
+      // allow
+    } else if (isMentor) {
+      if (course.mentorId !== user.userId) {
+        throw new Error("Mentor tidak memiliki izin mengakses assignment ini");
+      }
+    } else if (isMentee) {
+      const now = new Date();
+
+      const activeSubscription = await prisma.eLearningSubscription.findFirst({
+        where: {
+          userId: user.userId,
+          status: {
+            in: ["active", "confirmed", "completed"],
+          },
+          startAt: {
+            lte: now,
+          },
+          endAt: {
+            gte: now,
+          },
+        },
+      });
+
+      if (!activeSubscription) {
+        throw new Error("Mentee tidak memiliki subscription aktif");
+      }
+    } else {
+      throw new Error("Akses ditolak");
+    }
+
+    const includeSubs = opts.includeSubmissions ?? false;
+
+    if (!includeSubs) {
+      return {
+        id: assignment.id,
+        textId: assignment.textId,
+        title: assignment.title,
+        description: assignment.description,
+        dueDays: assignment.dueDays,
+        createdAt: assignment.createdAt,
+        updatedAt: assignment.updatedAt,
+
+        text: assignment.text,
+      };
+    }
+
+    // ======================
+    // SUBMISSIONS
+    // ======================
+
+    const page = opts.page && opts.page > 0 ? opts.page : 1;
+    const limit = opts.limit && opts.limit > 0 ? opts.limit : 10;
+    const skip = (page - 1) * limit;
+
+    const subWhere: any = {
+      assignmentId: assignment.id,
+    };
+
+    if (
+      typeof opts.minScore === "number" ||
+      typeof opts.maxScore === "number"
+    ) {
+      subWhere.score = {};
+
+      if (typeof opts.minScore === "number") {
+        subWhere.score.gte = opts.minScore;
+      }
+
+      if (typeof opts.maxScore === "number") {
+        subWhere.score.lte = opts.maxScore;
+      }
+    }
+
+    if (opts.search) {
+      subWhere.OR = [
+        {
+          fileName: {
+            contains: opts.search,
+            mode: "insensitive",
+          },
+        },
+        {
+          notes: {
+            contains: opts.search,
+            mode: "insensitive",
+          },
+        },
+        {
+          user: {
+            fullName: {
+              contains: opts.search,
+              mode: "insensitive",
+            },
+          },
+        },
+      ];
+    }
+
+    const sortField = opts.sortBy ?? "submittedAt";
+    const order = opts.order ?? "desc";
+
+    const total = await prisma.eLearningSubmission.count({
+      where: subWhere,
+    });
+
+    const submissions = await prisma.eLearningSubmission.findMany({
+      where: subWhere,
+      orderBy: {
+        [sortField]: order,
+      },
+      skip,
+      take: limit,
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    return {
+      id: assignment.id,
+      textId: assignment.textId,
+      title: assignment.title,
+      description: assignment.description,
+      dueDays: assignment.dueDays,
+      createdAt: assignment.createdAt,
+      updatedAt: assignment.updatedAt,
+
+      text: assignment.text,
+
+      submissions: {
+        data: submissions,
+        meta: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        },
+      },
+    };
+  }
+
+  static async updateAssignment(
+    assignmentId: string,
+    data: {
+      title?: string;
+      description?: string;
+      dueDays?: number;
+    },
+    user: {
+      userId: string;
+      roles: string[];
+      mentorProfileId?: string;
+    },
+  ) {
+    return await prisma.$transaction(async (tx) => {
+      // ======================
+      // Cek assignment
+      // ======================
+
+      const assignment = await tx.eLearningAssignment.findUnique({
+        where: {
+          id: assignmentId,
+        },
+        include: {
+          text: {
+            include: {
+              subBab: {
+                include: {
+                  subChapter: {
+                    include: {
+                      course: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!assignment) {
+        throw new Error("Assignment tidak ditemukan");
+      }
+
+      // ======================
+      // Validasi mentor
+      // ======================
+
+      if (user.roles.includes("mentor")) {
+        const courseMentorId =
+          assignment.text.subBab.subChapter.course.mentorId;
+
+        if (courseMentorId !== user.userId) {
+          throw new Error(
+            "Mentor tidak memiliki izin memperbarui assignment ini",
+          );
+        }
+      }
+
+      // ======================
+      // Update
+      // ======================
+
       const updated = await tx.eLearningAssignment.update({
-        where: { id: assignmentId },
+        where: {
+          id: assignmentId,
+        },
         data: {
           ...data,
           updatedAt: new Date(),
         },
         include: {
-          subBab: {
+          text: {
             select: {
               id: true,
               title: true,
-              subChapter: {
+
+              subBab: {
                 select: {
+                  id: true,
                   title: true,
-                  course: { select: { id: true, title: true } },
+
+                  subChapter: {
+                    select: {
+                      id: true,
+                      title: true,
+
+                      course: {
+                        select: {
+                          id: true,
+                          title: true,
+                        },
+                      },
+                    },
+                  },
                 },
               },
             },
@@ -292,20 +430,27 @@ export class ELearningAssignmentService {
     });
   }
 
-  static async deleteAssignment(assignmentId: string) {
+  static async deleteAssignment(
+    assignmentId: string,
+    user: {
+      userId: string;
+      roles: string[];
+      mentorProfileId?: string;
+    },
+  ) {
     return await prisma.$transaction(async (tx) => {
-      // Cek apakah assignment ada
-      const existing = await tx.eLearningAssignment.findUnique({
+      const assignment = await tx.eLearningAssignment.findUnique({
         where: { id: assignmentId },
         include: {
-          subBab: {
-            select: {
-              id: true,
-              title: true,
-              subChapter: {
-                select: {
-                  title: true,
-                  course: { select: { id: true, title: true } },
+          text: {
+            include: {
+              subBab: {
+                include: {
+                  subChapter: {
+                    include: {
+                      course: true,
+                    },
+                  },
                 },
               },
             },
@@ -313,17 +458,46 @@ export class ELearningAssignmentService {
         },
       });
 
-      if (!existing) throw new Error("Assignment tidak ditemukan");
+      if (!assignment) {
+        throw new Error("Assignment tidak ditemukan");
+      }
 
-      // Hapus assignment (otomatis hapus submissions lewat onDelete: Cascade jika diatur)
+      // Validasi mentor
+      if (user.roles.includes("mentor")) {
+        const mentorId = assignment.text.subBab.subChapter.course.mentorId;
+
+        if (mentorId !== user.mentorProfileId) {
+          throw new Error(
+            "Mentor tidak memiliki izin menghapus assignment ini",
+          );
+        }
+      }
+
       await tx.eLearningAssignment.delete({
-        where: { id: assignmentId },
+        where: {
+          id: assignmentId,
+        },
       });
 
       return {
-        id: existing.id,
-        title: existing.title,
-        subBab: existing.subBab,
+        id: assignment.id,
+        title: assignment.title,
+        text: {
+          id: assignment.text.id,
+          title: assignment.text.title,
+          subBab: {
+            id: assignment.text.subBab.id,
+            title: assignment.text.subBab.title,
+            subChapter: {
+              id: assignment.text.subBab.subChapter.id,
+              title: assignment.text.subBab.subChapter.title,
+              course: {
+                id: assignment.text.subBab.subChapter.course.id,
+                title: assignment.text.subBab.subChapter.course.title,
+              },
+            },
+          },
+        },
       };
     });
   }
@@ -338,7 +512,7 @@ export class ELearningAssignmentService {
       order?: "asc" | "desc";
       minScore?: number;
       maxScore?: number;
-    }
+    },
   ) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
@@ -438,25 +612,46 @@ export class ELearningAssignmentService {
 
   static async getAssignmentDetail(
     assignmentId: string,
-    user: { userId: string; roles: string[]; mentorProfileId?: string }
+    user: {
+      userId: string;
+      roles: string[];
+      mentorProfileId?: string;
+    },
   ) {
-    // 🔹 Ambil data assignment lengkap
     const assignment = await prisma.eLearningAssignment.findUnique({
       where: { id: assignmentId },
       include: {
-        subBab: {
+        text: {
           include: {
-            subChapter: {
+            subBab: {
               include: {
-                course: {
+                subChapter: {
                   include: {
-                    mentorProfile: true,
+                    course: {
+                      include: {
+                        mentorProfile: {
+                          select: {
+                            id: true,
+                            userId: true,
+                          },
+                        },
+                      },
+                    },
                   },
                 },
               },
             },
           },
         },
+
+        instructions: {
+          orderBy: {
+            orderNumber: "asc",
+          },
+        },
+
+        supportingFiles: true,
+
         submissions: {
           select: {
             id: true,
@@ -470,14 +665,16 @@ export class ELearningAssignmentService {
       },
     });
 
-    if (!assignment) throw new Error("Assignment tidak ditemukan");
+    if (!assignment) {
+      throw new Error("Assignment tidak ditemukan");
+    }
 
-    const course = assignment.subBab.subChapter.course;
-    const courseId = course.id;
+    const course = assignment.text.subBab.subChapter.course;
 
-    // 🔹 Validasi Akses
+    // ===== VALIDASI AKSES =====
+
     if (user.roles.includes("admin")) {
-      // Admin boleh semua
+      // boleh akses semua
     } else if (user.roles.includes("mentor")) {
       if (course.mentorProfile.userId !== user.userId) {
         throw new Error("Mentor tidak memiliki izin mengakses assignment ini");
@@ -485,52 +682,73 @@ export class ELearningAssignmentService {
     } else if (user.roles.includes("mentee")) {
       const now = new Date();
 
-      // Cek apakah mentee memiliki subscription aktif
       const activeSubscription = await prisma.eLearningSubscription.findFirst({
         where: {
           userId: user.userId,
           status: {
             in: ["active", "confirmed", "completed"],
-          }, // sesuaikan jika enum / value berbeda
-          startAt: { lte: now },
-          endAt: { gte: now },
+          },
+          startAt: {
+            lte: now,
+          },
+          endAt: {
+            gte: now,
+          },
+
+          // tambahkan jika ada field courseId
+          // courseId: course.id,
         },
       });
 
       if (!activeSubscription) {
         throw new Error(
-          "Mentee tidak memiliki akses karena tidak ada subscription aktif"
+          "Mentee tidak memiliki akses karena tidak ada subscription aktif",
         );
       }
     } else {
       throw new Error("Role tidak dikenali");
     }
 
-    // 🔹 Format response
     return {
       id: assignment.id,
+      textId: assignment.textId,
+
       title: assignment.title,
       description: assignment.description,
       dueDays: assignment.dueDays,
+
       createdAt: assignment.createdAt,
       updatedAt: assignment.updatedAt,
+
+      text: {
+        id: assignment.text.id,
+        title: assignment.text.title,
+      },
+
       subBab: {
-        id: assignment.subBab.id,
-        title: assignment.subBab.title,
-        subChapter: {
-          id: assignment.subBab.subChapter.id,
-          title: assignment.subBab.subChapter.title,
-          course: {
-            id: course.id,
-            title: course.title,
-            mentor: {
-              id: course.mentorProfile.id,
-              userId: course.mentorProfile.userId,
-            },
-          },
+        id: assignment.text.subBab.id,
+        title: assignment.text.subBab.title,
+      },
+
+      subChapter: {
+        id: assignment.text.subBab.subChapter.id,
+        title: assignment.text.subBab.subChapter.title,
+      },
+
+      course: {
+        id: course.id,
+        title: course.title,
+        mentor: {
+          id: course.mentorProfile.id,
+          userId: course.mentorProfile.userId,
         },
       },
-      submissions: assignment.submissions ?? [],
+
+      instructions: assignment.instructions,
+
+      supportingFiles: assignment.supportingFiles,
+
+      submissions: assignment.submissions,
     };
   }
 
@@ -543,7 +761,7 @@ export class ELearningAssignmentService {
       sortBy?: "createdAt" | "updatedAt" | "title";
       order?: "asc" | "desc";
       search?: string;
-    }
+    },
   ) {
     const {
       page = 1,
@@ -554,62 +772,104 @@ export class ELearningAssignmentService {
     } = options;
 
     return await prisma.$transaction(async (tx) => {
-      // ====== Cek apakah course ada ======
+      // ====== Cek course ======
       const course = await tx.eLearningCourse.findUnique({
         where: { id: courseId },
-        include: { mentorProfile: true },
+        include: {
+          mentorProfile: true,
+        },
       });
 
-      if (!course) throw new Error("Course tidak ditemukan");
-
-      // ====== Validasi role mentor ======
-      if (user.roles.includes("mentor")) {
-        if (course.mentorProfile.userId !== user.userId) {
-          throw new Error("Mentor tidak memiliki izin melihat assignment ini");
-        }
+      if (!course) {
+        throw new Error("Course tidak ditemukan");
       }
 
-      // ====== Query dasar ======
-      const whereCondition: any = {
-        subBab: {
-          subChapter: {
-            courseId: courseId,
+      // ====== Validasi mentor ======
+      if (
+        user.roles.includes("mentor") &&
+        course.mentorProfile.userId !== user.userId
+      ) {
+        throw new Error(
+          "Mentor tidak memiliki izin melihat assignment course ini",
+        );
+      }
+
+      // ====== Filter ======
+      const whereCondition: Prisma.ELearningAssignmentWhereInput = {
+        text: {
+          subBab: {
+            subChapter: {
+              courseId,
+            },
           },
         },
       };
 
-      // ====== Search (judul/deskripsi) ======
       if (search) {
         whereCondition.OR = [
-          { title: { contains: search, mode: "insensitive" } },
-          { description: { contains: search, mode: "insensitive" } },
+          {
+            title: {
+              contains: search,
+              mode: "insensitive",
+            },
+          },
+          {
+            description: {
+              contains: search,
+              mode: "insensitive",
+            },
+          },
         ];
       }
 
-      // ====== Hitung total ======
+      // ====== Total ======
       const total = await tx.eLearningAssignment.count({
         where: whereCondition,
       });
 
-      // ====== Ambil data ======
+      // ====== Data ======
       const assignments = await tx.eLearningAssignment.findMany({
         where: whereCondition,
         include: {
-          subBab: {
+          text: {
             select: {
               id: true,
               title: true,
-              subChapter: {
+
+              subBab: {
                 select: {
                   id: true,
                   title: true,
-                  course: { select: { id: true, title: true } },
+
+                  subChapter: {
+                    select: {
+                      id: true,
+                      title: true,
+
+                      course: {
+                        select: {
+                          id: true,
+                          title: true,
+                        },
+                      },
+                    },
+                  },
                 },
               },
             },
           },
+
+          _count: {
+            select: {
+              submissions: true,
+            },
+          },
         },
-        orderBy: { [sortBy]: order },
+
+        orderBy: {
+          [sortBy]: order,
+        },
+
         skip: (page - 1) * limit,
         take: limit,
       });
@@ -627,46 +887,62 @@ export class ELearningAssignmentService {
   }
 
   static async exportAssignmentsToFile(
-    exportFormat: "csv" | "excel"
+    exportFormat: "csv" | "excel",
   ): Promise<{ buffer: Buffer; filename: string; mimetype: string }> {
     const assignments = await prisma.eLearningAssignment.findMany({
       include: {
-        subBab: {
+        text: {
           include: {
-            subChapter: {
+            subBab: {
               include: {
-                course: {
-                  select: {
-                    id: true,
-                    title: true,
+                subChapter: {
+                  include: {
+                    course: {
+                      select: {
+                        id: true,
+                        title: true,
+                      },
+                    },
                   },
                 },
               },
             },
           },
         },
+
         submissions: true,
       },
     });
 
     const rows = assignments.map((assignment) => ({
       ID: assignment.id,
+
+      TextID: assignment.text.id,
+      TextTitle: assignment.text.title ?? "-",
+
       Title: assignment.title,
       Description: assignment.description || "-",
       DueDays: assignment.dueDays ?? "-",
-      SubBabID: assignment.subBabId,
-      SubBabTitle: assignment.subBab.title,
-      SubChapterTitle: assignment.subBab.subChapter.title,
-      CourseID: assignment.subBab.subChapter.course.id,
-      CourseTitle: assignment.subBab.subChapter.course.title,
+
+      SubBabID: assignment.text.subBab.id,
+      SubBabTitle: assignment.text.subBab.title,
+
+      SubChapterID: assignment.text.subBab.subChapter.id,
+      SubChapterTitle: assignment.text.subBab.subChapter.title,
+
+      CourseID: assignment.text.subBab.subChapter.course.id,
+      CourseTitle: assignment.text.subBab.subChapter.course.title,
+
       TotalSubmissions: assignment.submissions.length,
+
       CreatedAt: formatDate(
         assignment.createdAt ?? new Date(),
-        "yyyy-MM-dd HH:mm:ss"
+        "yyyy-MM-dd HH:mm:ss",
       ),
+
       UpdatedAt: formatDate(
         assignment.updatedAt ?? new Date(),
-        "yyyy-MM-dd HH:mm:ss"
+        "yyyy-MM-dd HH:mm:ss",
       ),
     }));
 
@@ -676,7 +952,7 @@ export class ELearningAssignmentService {
         "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
       return Array.from(
         { length },
-        () => chars[Math.floor(Math.random() * chars.length)]
+        () => chars[Math.floor(Math.random() * chars.length)],
       ).join("");
     }
 

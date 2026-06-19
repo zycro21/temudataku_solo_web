@@ -7,13 +7,14 @@ import {
   Pencil,
   GripVertical,
   ChevronDown,
-  ChevronUp,  
+  ChevronUp,
   LayoutList,
   Eye,
 } from "lucide-react";
 import RichTextEditor, {
   type RichTextEditorRef,
 } from "@/components/admin/elearning/materials/RichTextEditor";
+import { getFontStyle, DEFAULT_FONT_TYPE, FONT_PRESETS } from "./fontStyles";
 
 interface ContentCardItem {
   id: string;
@@ -39,6 +40,8 @@ function ContentCardCanvas({
   wrapperRef,
   onEditorFocus,
   onSelectionChange,
+  fontType, // ← tambah ini
+  fontSize, // ← tambah ini
 }: {
   title: string;
   description: string;
@@ -59,8 +62,12 @@ function ContentCardCanvas({
   wrapperRef: React.RefObject<HTMLDivElement>;
   onEditorFocus?: (ref: RichTextEditorRef) => void;
   onSelectionChange?: Parameters<typeof RichTextEditor>[0]["onSelectionChange"];
+  fontType?: string; // ← tambah
+  fontSize?: number; // ← tambah
 }) {
   const [activeEditorId, setActiveEditorId] = useState<string | null>(null);
+
+  const textStyle = getFontStyle(fontType, fontSize);
 
   const descRef = useRef<RichTextEditorRef>(null);
   const cardTitleRefs = useRef<Map<string, RichTextEditorRef>>(new Map());
@@ -91,6 +98,10 @@ function ContentCardCanvas({
           onFocus={() => setActiveEditorId(null)}
           placeholder="Enter card title ..."
           className="w-full text-lg font-semibold text-gray-700 outline-none placeholder-gray-300 bg-transparent"
+          style={{
+            fontSize: textStyle.fontSize,
+            fontWeight: textStyle.fontWeight,
+          }} // ← tambah
         />
 
         {/* Description */}
@@ -104,6 +115,7 @@ function ContentCardCanvas({
             onChange={onDescriptionChange}
             placeholder="Add a description ..."
             className="text-sm text-gray-400 min-h-[1.5em]"
+            style={textStyle} // ← tambah ini!
             onFocus={() => {
               setActiveEditorId("desc");
               if (descRef.current) onEditorFocus?.(descRef.current);
@@ -183,6 +195,7 @@ function ContentCardCanvas({
                     onChange={(val) => onCardChange(card.id, "title", val)}
                     placeholder="Card title"
                     className="text-sm text-gray-700 min-h-[1.5em]"
+                    style={textStyle}
                     onFocus={() => {
                       const editorId = `card-title-${card.id}`;
                       setActiveEditorId(editorId);
@@ -213,6 +226,7 @@ function ContentCardCanvas({
                       onChange={(val) => onCardChange(card.id, "content", val)}
                       placeholder="Add content for this card"
                       className="text-sm text-gray-700 min-h-[3em]"
+                      style={textStyle}
                       onFocus={() => {
                         const editorId = `card-content-${card.id}`;
                         setActiveEditorId(editorId);
@@ -243,6 +257,7 @@ function ContentCardCanvas({
                         }
                         placeholder="Add additional details here"
                         className="text-sm text-gray-700 min-h-[3em]"
+                        style={textStyle}
                         onFocus={() => {
                           const editorId = `card-expanded-${card.id}`;
                           setActiveEditorId(editorId);
@@ -296,12 +311,16 @@ function ContentCardPreview({
   description,
   cards,
   disableExpandable,
+  fontType,
+  fontSize,
   onEdit,
 }: {
   title: string;
   description: string;
   cards: ContentCardItem[];
   disableExpandable: boolean;
+  fontType?: string;
+  fontSize?: number;
   onEdit: () => void;
 }) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
@@ -313,6 +332,9 @@ function ContentCardPreview({
       return next;
     });
   };
+
+  // Apply font styling to card content areas
+  const contentStyle = getFontStyle(fontType, fontSize);
 
   return (
     <div className="relative border-2 border-dashed border-gray-300 rounded-xl p-4 bg-white group/preview">
@@ -347,6 +369,13 @@ function ContentCardPreview({
               (Arahkan kursor untuk melihat detail)
             </p>
           )}
+          {/* ⚠️ Hover info: font styling tidak diterapkan pada label dan button */}
+          <div className="absolute bottom-2 left-2 opacity-0 group-hover/preview:opacity-100 transition-opacity">
+            <span className="text-[9px] text-gray-300 bg-white px-1.5 py-0.5 rounded shadow-sm">
+              ℹ️ Font styling hanya untuk konten preview (label & button tidak
+              terpengaruh)
+            </span>
+          </div>
         </div>
       </div>
 
@@ -376,6 +405,7 @@ function ContentCardPreview({
                 />
                 <div
                   className="text-[11px] text-gray-500 leading-relaxed"
+                  style={contentStyle}
                   dangerouslySetInnerHTML={{ __html: card.content || "—" }}
                 />
               </div>
@@ -399,6 +429,7 @@ function ContentCardPreview({
                 />
                 <div
                   className="text-[11px] text-gray-500 leading-relaxed"
+                  style={contentStyle}
                   dangerouslySetInnerHTML={{ __html: card.content || "—" }}
                 />
               </div>
@@ -407,6 +438,7 @@ function ContentCardPreview({
                 <div className="px-3 pb-3 border-t border-gray-100">
                   <div
                     className="text-[11px] text-gray-500 leading-relaxed pt-2"
+                    style={contentStyle}
                     dangerouslySetInnerHTML={{ __html: card.expandedContent }}
                   />
                 </div>
@@ -437,13 +469,18 @@ function ContentCardPreview({
 }
 
 // ─── Controller ───────────────────────────────────────────────────────────────
+// Update interface ContentCardBodyProps
 export function ContentCardBody({
   initialData,
+  fontType: propFontType,
+  fontSize: propFontSize,
   onChangeData,
   onEditorFocus,
   onSelectionChange,
 }: {
   initialData?: any;
+  fontType?: string;
+  fontSize?: number;
   onChangeData?: (data: any) => void;
   onEditorFocus?: (ref: RichTextEditorRef) => void;
   onSelectionChange?: Parameters<typeof RichTextEditor>[0]["onSelectionChange"];
@@ -456,20 +493,45 @@ export function ContentCardBody({
     { id: "cc-1", title: "", content: "", expandedContent: "" },
     { id: "cc-2", title: "", content: "", expandedContent: "" },
   ]);
+  const [fontType, setFontType] = useState<string>(DEFAULT_FONT_TYPE);
+  const [fontSize, setFontSize] = useState<number>(
+    FONT_PRESETS[DEFAULT_FONT_TYPE].fontSize,
+  );
+
+  // Track whether we have restored initial data
+  const hasRestoredRef = useRef(false);
 
   const wrapperRef = useRef<HTMLDivElement>(null!);
 
-  // ── Restore from initialData on first mount ───────────────────────────────
+  // ── Restore from initialData only once on mount ───────────────────────────
   useEffect(() => {
-    if (initialData?.cards && initialData.cards.length > 0) {
+    if (
+      initialData?.cards &&
+      initialData.cards.length > 0 &&
+      !hasRestoredRef.current
+    ) {
       setTitle(initialData.title ?? "");
       setDescription(initialData.description ?? "");
       setDisableExpandable(initialData.disableExpandable ?? false);
       setCards(initialData.cards);
+      setFontType(propFontType ?? initialData.fontType ?? DEFAULT_FONT_TYPE);
+      setFontSize(
+        propFontSize ??
+          initialData.fontSize ??
+          FONT_PRESETS[DEFAULT_FONT_TYPE].fontSize,
+      );
       setMode("preview");
+      hasRestoredRef.current = true;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [initialData, propFontType, propFontSize]); // Added dependencies but with ref guard
+
+  // ── Update font from props when in preview mode (without changing mode) ───
+  useEffect(() => {
+    if (mode === "preview") {
+      if (propFontType !== undefined) setFontType(propFontType);
+      if (propFontSize !== undefined) setFontSize(propFontSize);
+    }
+  }, [propFontType, propFontSize, mode]);
 
   const handleAddCard = () => {
     if (cards.length >= 3) {
@@ -508,13 +570,13 @@ export function ContentCardBody({
 
   // ── Persist to page and switch to preview ─────────────────────────────────
   const handleCreate = () => {
-    // Structure matches what ContentCardPreview in MaterialPreviewModal expects:
-    // data.cards = [{ id, title, content }]
     const data = {
       title,
       description,
       disableExpandable,
       cards,
+      fontType,
+      fontSize,
     };
     onChangeData?.(data);
     setMode("preview");
@@ -527,6 +589,8 @@ export function ContentCardBody({
         description={description}
         cards={cards}
         disableExpandable={disableExpandable}
+        fontType={fontType} // ← tambah
+        fontSize={fontSize}
         onTitleChange={setTitle}
         onDescriptionChange={setDescription}
         onToggleExpandable={() => setDisableExpandable((v) => !v)}
@@ -548,6 +612,8 @@ export function ContentCardBody({
       description={description}
       cards={cards}
       disableExpandable={disableExpandable}
+      fontType={fontType}
+      fontSize={fontSize}
       onEdit={() => setMode("canvas")}
     />
   );

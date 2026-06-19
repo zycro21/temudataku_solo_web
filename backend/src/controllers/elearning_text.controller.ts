@@ -144,7 +144,6 @@ export class ELearningTextController {
         }) ?? {};
 
       const assignmentFiles = files.supportingFiles ?? [];
-
       const mediaFiles = files.mediaFiles ?? [];
 
       const updated = await ELearningTextService.updateText(
@@ -171,7 +170,10 @@ export class ELearningTextController {
           success: false,
           message: err.message,
         });
-      } else if (err.message.includes("duplikat")) {
+      } else if (
+        err.message.includes("duplikat") ||
+        err.message.includes("hanya boleh memiliki 1")
+      ) {
         res.status(409).json({
           success: false,
           message: err.message,

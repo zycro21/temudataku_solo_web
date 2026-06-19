@@ -1,7 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Trash2, Plus, ChevronDown, Eye, Pencil } from "lucide-react";
+import RichTextEditor, { type RichTextEditorRef } from "./RichTextEditor";
+import {
+  normalizeEditorHTML,
+  richTextDisplayClass,
+} from "@/lib/editorHTMLUtils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type QuestionType = "single" | "multiple";
@@ -167,17 +172,39 @@ function QuestionEditor({
   onChange,
   onRemove,
   canRemove,
+  onEditorFocus,
+  onSelectionChange,
 }: {
   question: QuizQuestion;
   index: number;
   onChange: (q: QuizQuestion) => void;
   onRemove: () => void;
   canRemove: boolean;
+  onEditorFocus?: (ref: RichTextEditorRef) => void;
+  onSelectionChange?: Parameters<typeof RichTextEditor>[0]["onSelectionChange"];
 }) {
+  const [focused, setFocused] = useState(false);
+
   const updateField = <K extends keyof QuizQuestion>(
     key: K,
     val: QuizQuestion[K],
-  ) => onChange({ ...question, [key]: val });
+  ) => {
+    // Kalau ganti questionType dari multiple → single, cek apakah ada >1 opsi true
+    // Kalau iya, reset semua opsi ke false supaya user pilih ulang dengan benar
+    if (key === "questionType" && val === "single") {
+      const trueCount = question.options.filter(
+        (o) => o.value === "true",
+      ).length;
+      if (trueCount > 1) {
+        return onChange({
+          ...question,
+          [key]: val,
+          options: question.options.map((o) => ({ ...o, value: "" })),
+        });
+      }
+    }
+    onChange({ ...question, [key]: val });
+  };
 
   const updateOptionText = (optId: string, text: string) =>
     onChange({
@@ -190,9 +217,14 @@ function QuestionEditor({
   const updateOptionValue = (optId: string, value: string) =>
     onChange({
       ...question,
-      options: question.options.map((o) =>
-        o.id === optId ? { ...o, value } : o,
-      ),
+      options: question.options.map((o) => {
+        if (o.id === optId) return { ...o, value };
+        // Single choice: kalau opsi ini di-set true, paksa semua opsi lain jadi false
+        if (question.questionType === "single" && value === "true") {
+          return { ...o, value: "false" };
+        }
+        return o;
+      }),
     });
 
   const addOption = () =>
@@ -230,17 +262,28 @@ function QuestionEditor({
       <div className="px-4 py-3 space-y-3">
         {/* Question text */}
         <div>
-          <textarea
-            value={question.questionText}
-            onChange={(e) => updateField("questionText", e.target.value)}
-            placeholder="Enter a single choice question"
-            rows={3}
-            maxLength={250}
-            className="w-full text-[12px] text-gray-700 placeholder-gray-300 border border-gray-200 rounded-lg px-3 py-2.5 resize-none focus:outline-none focus:ring-1 focus:ring-emerald-400"
-          />
-          <p className="text-[10px] text-gray-400 mt-0.5">
-            {question.questionText.length}/250
+          <p className="text-[12px] font-bold text-gray-700 mb-1.5">
+            Question Text
           </p>
+          <div
+            className={`rounded-lg border px-3 py-2.5 transition ${
+              focused
+                ? "border-emerald-400 ring-1 ring-emerald-400"
+                : "border-gray-200"
+            }`}
+          >
+            <RichTextEditor
+              value={question.questionText}
+              onChange={(val) => updateField("questionText", val)}
+              placeholder="Enter a question..."
+              className="text-[12px] text-gray-700 min-h-[3em]"
+              onMount={(ref) => onEditorFocus?.(ref)}
+              onUnmount={() => {}}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              onSelectionChange={onSelectionChange}
+            />
+          </div>
         </div>
 
         {/* Question Type */}
@@ -315,10 +358,14 @@ function QuizCanvas({
   data,
   onChange,
   onCreateQuiz,
+  onEditorFocus,
+  onSelectionChange,
 }: {
   data: QuizData;
   onChange: (d: QuizData) => void;
   onCreateQuiz: () => void;
+  onEditorFocus?: (ref: RichTextEditorRef) => void;
+  onSelectionChange?: Parameters<typeof RichTextEditor>[0]["onSelectionChange"];
 }) {
   const addQuestion = () =>
     onChange({
@@ -378,6 +425,8 @@ function QuizCanvas({
           onChange={updateQuestion}
           onRemove={() => removeQuestion(q.id)}
           canRemove={data.questions.length > 1}
+          onEditorFocus={onEditorFocus}
+          onSelectionChange={onSelectionChange}
         />
       ))}
 
@@ -546,9 +595,14 @@ function QuizPreview({ data, onEdit }: { data: QuizData; onEdit: () => void }) {
               <p className="text-[13px] font-bold text-gray-800 mb-0.5">
                 Pertanyaan {qIdx + 1}
               </p>
-              <p className="text-[13px] text-gray-700 mb-1 leading-snug">
-                {q.questionText || `Question ${qIdx + 1}`}
-              </p>
+              <div
+                className={`text-[13px] text-gray-700 mb-1 leading-snug ${richTextDisplayClass}`}
+                dangerouslySetInnerHTML={{
+                  __html:
+                    normalizeEditorHTML(q.questionText) ||
+                    `Question ${qIdx + 1}`,
+                }}
+              />
               {q.questionType === "multiple" && (
                 <p className="text-[10px] font-semibold text-gray-400 mb-3 uppercase tracking-wide">
                   Pilih pernyataan yang BENAR.
@@ -750,9 +804,13 @@ function QuizPreview({ data, onEdit }: { data: QuizData; onEdit: () => void }) {
 export function QuizBody({
   initialData,
   onChangeData,
+  onEditorFocus,
+  onSelectionChange,
 }: {
   initialData?: any;
   onChangeData?: (data: any) => void;
+  onEditorFocus?: (ref: RichTextEditorRef) => void;
+  onSelectionChange?: Parameters<typeof RichTextEditor>[0]["onSelectionChange"];
 }) {
   const [mode, setMode] = useState<"canvas" | "preview">("canvas");
   const [data, setData] = useState<QuizData>({
@@ -774,8 +832,8 @@ export function QuizBody({
   }, []);
 
   const handleChange = (d: QuizData) => {
+    // Hanya update internal state — jangan emit ke parent sampai user eksplisit klik Create
     setData(d);
-    onChangeData?.(d);
   };
 
   const handleCreate = () => {
@@ -789,6 +847,8 @@ export function QuizBody({
         data={data}
         onChange={handleChange}
         onCreateQuiz={handleCreate}
+        onEditorFocus={onEditorFocus}
+        onSelectionChange={onSelectionChange}
       />
     );
   }

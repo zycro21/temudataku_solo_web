@@ -18,65 +18,73 @@ export class ELearningQuestionService {
       correctAnswer: string;
       explanation?: string;
     },
-    user: { userId: string; roles: string[]; mentorProfileId?: string }
+    user: { userId: string; roles: string[]; mentorProfileId?: string },
   ) {
     return await prisma.$transaction(async (tx) => {
-      // cek quiz valid
       const quiz = await tx.eLearningQuiz.findUnique({
         where: { id: quizId },
         include: {
-          subBab: {
+          text: {
             include: {
-              subChapter: {
-                include: { course: true },
+              subBab: {
+                include: {
+                  subChapter: {
+                    include: {
+                      course: true,
+                    },
+                  },
+                },
               },
             },
           },
         },
       });
-      if (!quiz) throw new Error("Quiz tidak ditemukan");
 
-      // cek akses mentor
+      if (!quiz) {
+        throw new Error("Quiz tidak ditemukan");
+      }
+
       if (
         user.roles.includes("mentor") &&
-        user.mentorProfileId !== quiz.subBab.subChapter.course.mentorId
+        user.mentorProfileId !== quiz.text.subBab.subChapter.course.mentorId
       ) {
         throw new Error(
-          "Akses ditolak: hanya mentor dari course ini yang bisa menambah pertanyaan"
+          "Akses ditolak: hanya mentor dari course ini yang bisa menambah pertanyaan",
         );
       }
 
-      // generate custom ID
       const today = new Date();
       const formattedDate = today.toISOString().split("T")[0].replace(/-/g, "");
+
       const randomHex = crypto.randomBytes(6).toString("hex");
+
       const questionId = `question-${formattedDate}-${randomHex}`;
 
-      // hitung orderNumber berikutnya (auto increment manual)
       const lastQuestion = await tx.eLearningQuestion.findFirst({
         where: { quizId },
         orderBy: { orderNumber: "desc" },
       });
+
       const nextOrder = (lastQuestion?.orderNumber || 0) + 1;
 
-      // simpan pertanyaan baru
       const newQuestion = await tx.eLearningQuestion.create({
         data: {
           id: questionId,
           quizId,
           questionText: data.questionText,
           options: data.options,
-          correctAnswer: data.correctAnswer,
+          correctAnswers: [data.correctAnswer],
           explanation: data.explanation || null,
           orderNumber: nextOrder,
           createdAt: new Date(),
         },
       });
 
-      // update total pertanyaan
       await tx.eLearningQuiz.update({
         where: { id: quizId },
-        data: { totalQuestions: (quiz.totalQuestions ?? 0) + 1 },
+        data: {
+          totalQuestions: (quiz.totalQuestions ?? 0) + 1,
+        },
       });
 
       return newQuestion;
@@ -92,43 +100,138 @@ export class ELearningQuestionService {
       search?: string;
       sortBy?: string;
       order?: "asc" | "desc";
-    }
+    },
   ) {
     const page = Number(options.page) || 1;
     const limit = Number(options.limit) || 10;
     const skip = (page - 1) * limit;
+
     const sortField = options.sortBy || "orderNumber";
     const sortOrder = options.order || "asc";
 
-    // Cek quiz valid
+    // ambil quiz + relasi sampai course
     const quiz = await prisma.eLearningQuiz.findUnique({
       where: { id: quizId },
       include: {
-        subBab: {
+        text: {
           include: {
-            subChapter: {
+            subBab: {
               include: {
-                course: true, // ⬅️ TIDAK lagi include purchases
+                subChapter: {
+                  include: {
+                    course: true,
+                  },
+                },
               },
             },
           },
         },
       },
     });
-    if (!quiz) throw new Error("Quiz tidak ditemukan");
 
-    const course = quiz.subBab.subChapter.course;
+    if (!quiz) {
+      throw new Error("Quiz tidak ditemukan");
+    }
 
-    // Role-based access
+    const course = quiz.text.subBab.subChapter.course;
+
+    // role-based access
     const isAdmin = user.roles.includes("admin");
     const isMentor = user.roles.includes("mentor");
-    const isMentee = user.roles.includes("mentee");
 
     if (isMentor && user.mentorProfileId !== course.mentorId) {
       throw new Error("Akses ditolak: quiz ini bukan milik Anda");
     }
 
-    if (isMentee) {
+    // ⚠️ DIHAPUS karena model tidak ada di schema kamu
+    // (kalau kamu memang punya subscription model, baru bisa dipakai lagi)
+
+    const whereCondition: any = {
+      quizId,
+    };
+
+    if (options.search) {
+      whereCondition.questionText = {
+        contains: options.search,
+        mode: "insensitive",
+      };
+    }
+
+    const [questions, total] = await prisma.$transaction([
+      prisma.eLearningQuestion.findMany({
+        where: whereCondition,
+        orderBy: {
+          [sortField]: sortOrder,
+        },
+        skip,
+        take: limit,
+      }),
+      prisma.eLearningQuestion.count({
+        where: whereCondition,
+      }),
+    ]);
+
+    return {
+      data: questions,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  static async getQuestionById(
+    questionId: string,
+    user: { userId: string; roles: string[]; mentorProfileId?: string },
+  ) {
+    const question = await prisma.eLearningQuestion.findUnique({
+      where: { id: questionId },
+      include: {
+        quiz: {
+          include: {
+            text: {
+              include: {
+                subBab: {
+                  include: {
+                    subChapter: {
+                      include: {
+                        course: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!question) {
+      throw new Error("Pertanyaan tidak ditemukan");
+    }
+
+    const course = question.quiz?.text?.subBab?.subChapter?.course;
+
+    if (!course) {
+      throw new Error("Relasi course tidak valid");
+    }
+
+    const isAdmin = user.roles.includes("admin");
+    const isMentor = user.roles.includes("mentor");
+    const isMentee = user.roles.includes("mentee");
+
+    // 🔹 Mentor access control
+    if (!isAdmin && isMentor) {
+      if (user.mentorProfileId !== course.mentorId) {
+        throw new Error("Akses ditolak: pertanyaan ini bukan dari course Anda");
+      }
+    }
+
+    // 🔹 Mentee subscription check
+    if (!isAdmin && isMentee) {
       const now = new Date();
 
       const activeSubscription = await prisma.eLearningSubscription.findFirst({
@@ -151,96 +254,7 @@ export class ELearningQuestionService {
 
       if (!activeSubscription) {
         throw new Error(
-          "Akses ditolak: Anda tidak memiliki subscription aktif"
-        );
-      }
-    }
-
-    // Filter dan query pertanyaan
-    const whereCondition: any = { quizId };
-    if (options.search) {
-      whereCondition.questionText = {
-        contains: options.search,
-        mode: "insensitive",
-      };
-    }
-
-    const [questions, total] = await prisma.$transaction([
-      prisma.eLearningQuestion.findMany({
-        where: whereCondition,
-        orderBy: { [sortField]: sortOrder },
-        skip,
-        take: limit,
-      }),
-      prisma.eLearningQuestion.count({ where: whereCondition }),
-    ]);
-
-    return {
-      data: questions,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
-  }
-
-  static async getQuestionById(
-    questionId: string,
-    user: { userId: string; roles: string[]; mentorProfileId?: string }
-  ) {
-    // 🔹 Ambil pertanyaan + quiz + course hierarchy
-    const question = await prisma.eLearningQuestion.findUnique({
-      where: { id: questionId },
-      include: {
-        quiz: {
-          include: {
-            subBab: {
-              include: {
-                subChapter: {
-                  include: {
-                    course: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
-
-    if (!question) throw new Error("Pertanyaan tidak ditemukan");
-
-    const course = question.quiz.subBab.subChapter.course;
-
-    const isAdmin = user.roles.includes("admin");
-    const isMentor = user.roles.includes("mentor");
-    const isMentee = user.roles.includes("mentee");
-
-    // 🔹 Mentor hanya boleh akses question dari course yang dia ampu
-    if (isMentor && user.mentorProfileId !== course.mentorId) {
-      throw new Error("Akses ditolak: pertanyaan ini bukan dari course Anda");
-    }
-
-    // 🔹 Mentee hanya boleh akses jika punya subscription aktif
-    if (isMentee) {
-      const now = new Date();
-
-      const activeSubscription = await prisma.eLearningSubscription.findFirst({
-        where: {
-          userId: user.userId,
-          status: {
-            in: ["active", "confirmed", "completed"],
-          },
-          startAt: { lte: now },
-          endAt: { gte: now },
-        },
-      });
-
-      if (!activeSubscription) {
-        throw new Error(
-          "Akses ditolak: Anda tidak memiliki subscription aktif"
+          "Akses ditolak: Anda tidak memiliki subscription aktif",
         );
       }
     }
@@ -249,13 +263,15 @@ export class ELearningQuestionService {
       id: question.id,
       questionText: question.questionText,
       options: question.options,
-      correctAnswer: question.correctAnswer,
+      correctAnswers: question.correctAnswers, // ✅ FIX: schema kamu pakai plural
       explanation: question.explanation,
       orderNumber: question.orderNumber,
       quizId: question.quizId,
-      createdAt: question.createdAt,
+
       quizTitle: question.quiz.title,
       courseTitle: course.title,
+
+      createdAt: question.createdAt,
     };
   }
 
@@ -264,24 +280,28 @@ export class ELearningQuestionService {
     data: {
       questionText?: string;
       options?: string[];
-      correctAnswer?: string;
+      correctAnswers?: string[];
       explanation?: string;
       orderNumber?: number;
     },
-    user: { userId: string; roles: string[]; mentorProfileId?: string }
+    user: { userId: string; roles: string[]; mentorProfileId?: string },
   ) {
     return await prisma.$transaction(async (tx) => {
-      // ambil pertanyaan beserta quiz -> subBab -> subChapter -> course
+      // ambil question + hierarchy
       const existing = await tx.eLearningQuestion.findUnique({
         where: { id },
         include: {
           quiz: {
             include: {
-              subBab: {
+              text: {
                 include: {
-                  subChapter: {
+                  subBab: {
                     include: {
-                      course: true,
+                      subChapter: {
+                        include: {
+                          course: true,
+                        },
+                      },
                     },
                   },
                 },
@@ -293,144 +313,107 @@ export class ELearningQuestionService {
 
       if (!existing) throw new Error("Pertanyaan tidak ditemukan");
 
-      // akses control: mentor hanya pemilik course
+      const course = existing.quiz.text.subBab.subChapter.course;
+
+      // role check
       if (
         user.roles.includes("mentor") &&
-        user.mentorProfileId !== existing.quiz.subBab.subChapter.course.mentorId
+        user.mentorProfileId !== course.mentorId
       ) {
         throw new Error(
-          "Akses ditolak: hanya mentor dari course ini yang bisa mengedit pertanyaan"
+          "Akses ditolak: hanya mentor dari course ini yang bisa mengedit pertanyaan",
         );
       }
 
-      // jika options diubah, pastikan correctAnswer (baru atau lama) valid
-      if (data.options) {
-        // jika correctAnswer baru diberikan -> must be in new options
-        if (data.correctAnswer) {
-          if (!data.options.includes(data.correctAnswer)) {
-            throw new Error(
-              "Jawaban benar harus salah satu dari opsi yang tersedia"
-            );
-          }
-        } else {
-          // correctAnswer tidak diberikan => gunakan existing.correctAnswer, harus tetap ada di new options
-          if (!data.options.includes(existing.correctAnswer)) {
-            throw new Error(
-              "Perubahan opsi akan menghapus jawaban benar yang ada — sertakan correctAnswer yang valid"
-            );
-          }
-        }
-      } else {
-        // options tidak diubah, tapi correctAnswer diubah -> make sure it's still valid compared to existing.options
-        if (
-          data.correctAnswer &&
-          !existing.options.includes(data.correctAnswer)
-        ) {
-          throw new Error(
-            "Jawaban benar harus salah satu dari opsi yang tersedia"
-          );
-        }
+      const newOptions = data.options ?? existing.options;
+      const newCorrectAnswers = data.correctAnswers ?? existing.correctAnswers;
+
+      // validasi correctAnswers harus ada di options
+      if (
+        data.correctAnswers &&
+        !data.correctAnswers.every((ans) => newOptions.includes(ans))
+      ) {
+        throw new Error("Semua correctAnswers harus ada di dalam options");
       }
 
-      // handle orderNumber logic
-      // jika orderNumber tidak disediakan: hanya update fields lain
-      const newOrderRequested =
-        typeof data.orderNumber === "number" ? data.orderNumber : null;
-
-      if (newOrderRequested === null) {
-        // simple update
+      // update tanpa reorder
+      if (typeof data.orderNumber !== "number") {
         const updated = await tx.eLearningQuestion.update({
           where: { id },
           data: {
             questionText: data.questionText ?? existing.questionText,
-            options: data.options ?? existing.options,
-            correctAnswer: data.correctAnswer ?? existing.correctAnswer,
+            options: newOptions,
+            correctAnswers: newCorrectAnswers,
             explanation: data.explanation ?? existing.explanation,
-            // don't touch orderNumber
           },
         });
+
         return updated;
       }
 
-      // Jika orderNumber diberikan -> harus merapikan semua order dalam quiz
+      // reorder logic
       const quizId = existing.quizId;
 
-      // Ambil semua pertanyaan quiz ini ordered asc
       const allQuestions = await tx.eLearningQuestion.findMany({
         where: { quizId },
         orderBy: { orderNumber: "asc" },
       });
 
-      // Kalau belum ada orderNumber pada beberapa pertanyaan, kita treat them as last by createdAt
-      // Normalisasi: buat array urut berdasarkan existing.orderNumber (fallback big number)
       const normalized = allQuestions
         .map((q) => ({
           id: q.id,
-          order:
-            typeof q.orderNumber === "number"
-              ? q.orderNumber
-              : Number.MAX_SAFE_INTEGER,
+          order: q.orderNumber ?? Number.MAX_SAFE_INTEGER,
         }))
         .sort((a, b) => a.order - b.order);
 
-      // Hitung total existing (sebelum update). Note: existing is included in normalized.
       const total = normalized.length;
 
-      // target position (1-based). Jika user request lebih dari total -> place at last (position = total)
-      let targetPos = Math.max(1, Math.floor(newOrderRequested));
+      let targetPos = Math.max(1, Math.floor(data.orderNumber));
       if (targetPos > total) targetPos = total;
 
-      // Build new ordering: remove the existing id from list then insert at targetPos-1
-      const idsWithoutExisting = normalized
+      const idsWithoutCurrent = normalized
         .map((n) => n.id)
         .filter((qid) => qid !== id);
-      // Insert id at index targetPos - 1 (0-based)
-      const newOrderIds = [...idsWithoutExisting];
+
+      const newOrderIds = [...idsWithoutCurrent];
       newOrderIds.splice(targetPos - 1, 0, id);
 
-      // Now assign sequential orderNumbers starting from 1
-      const updates: Array<Promise<any>> = [];
+      const updates: any[] = [];
+
       for (let i = 0; i < newOrderIds.length; i++) {
         const qid = newOrderIds[i];
         const desiredOrder = i + 1;
-        // update only if order changed or if it's the one we're updating fields for
-        const originalQuestion = allQuestions.find((aq) => aq.id === qid);
-        const origOrder = originalQuestion?.orderNumber ?? null;
-        const shouldUpdateOrder = origOrder !== desiredOrder;
 
-        // For the question being updated, we also need to update other fields (text/options/etc)
+        const original = allQuestions.find((q) => q.id === qid);
+
         if (qid === id) {
           updates.push(
             tx.eLearningQuestion.update({
               where: { id: qid },
               data: {
                 questionText: data.questionText ?? existing.questionText,
-                options: data.options ?? existing.options,
-                correctAnswer: data.correctAnswer ?? existing.correctAnswer,
+                options: newOptions,
+                correctAnswers: newCorrectAnswers,
                 explanation: data.explanation ?? existing.explanation,
                 orderNumber: desiredOrder,
               },
-            })
+            }),
           );
-        } else if (shouldUpdateOrder) {
+        } else if (original?.orderNumber !== desiredOrder) {
           updates.push(
             tx.eLearningQuestion.update({
               where: { id: qid },
               data: { orderNumber: desiredOrder },
-            })
+            }),
           );
         }
       }
 
-      // run updates in transaction
       await Promise.all(updates);
 
-      // Return updated question (fresh)
-      const updatedQuestion = await tx.eLearningQuestion.findUnique({
+      return await tx.eLearningQuestion.findUnique({
         where: { id },
       });
-
-      return updatedQuestion;
     });
   }
 
@@ -448,7 +431,7 @@ export class ELearningQuestionService {
       // Cek role user
       if (!user.roles.includes("admin")) {
         throw new Error(
-          "Akses ditolak: hanya admin yang bisa menghapus pertanyaan"
+          "Akses ditolak: hanya admin yang bisa menghapus pertanyaan",
         );
       }
 
@@ -488,64 +471,59 @@ export class ELearningQuestionService {
   static async duplicateQuestion(
     sourceQuestionId: string,
     targetQuizId: string,
-    user: { userId: string; roles: string[]; mentorProfileId?: string }
+    user: { userId: string; roles: string[]; mentorProfileId?: string },
   ) {
     return await prisma.$transaction(async (tx) => {
       // hanya admin
       if (!user.roles.includes("admin")) {
         throw new Error(
-          "Akses ditolak: hanya admin yang dapat menyalin pertanyaan"
+          "Akses ditolak: hanya admin yang dapat menyalin pertanyaan",
         );
       }
 
-      // cek pertanyaan sumber
+      // source question
       const sourceQuestion = await tx.eLearningQuestion.findUnique({
         where: { id: sourceQuestionId },
-        include: { quiz: true },
       });
+
       if (!sourceQuestion) {
         throw new Error("Pertanyaan sumber tidak ditemukan");
       }
 
-      // cek quiz tujuan
+      // target quiz
       const targetQuiz = await tx.eLearningQuiz.findUnique({
         where: { id: targetQuizId },
         include: { questions: true },
       });
+
       if (!targetQuiz) {
         throw new Error("Quiz tujuan tidak ditemukan");
       }
 
-      // hitung orderNumber baru
-      const existingQuestions = targetQuiz.questions.sort(
-        (a, b) => (a.orderNumber ?? 0) - (b.orderNumber ?? 0)
-      );
-      const nextOrder = existingQuestions.length + 1;
+      // next order number
+      const nextOrder =
+        (targetQuiz.questions
+          .map((q) => q.orderNumber ?? 0)
+          .sort((a, b) => b - a)[0] ?? 0) + 1;
 
-      // buat ID baru dengan format custom
-      const today = new Date();
-      const formattedDate = today.toISOString().split("T")[0].replace(/-/g, "");
-      const randomHex = crypto.randomBytes(6).toString("hex");
-      const newQuestionId = `question-${formattedDate}-${randomHex}`;
-
-      // buat pertanyaan baru
+      // create duplicate (PAKAI CUID, jangan custom id)
       const newQuestion = await tx.eLearningQuestion.create({
         data: {
-          id: newQuestionId,
           quizId: targetQuizId,
           questionText: sourceQuestion.questionText,
           options: sourceQuestion.options,
-          correctAnswer: sourceQuestion.correctAnswer,
+          correctAnswers: sourceQuestion.correctAnswers,
           explanation: sourceQuestion.explanation,
           orderNumber: nextOrder,
         },
       });
 
-      // update totalQuestions di quiz tujuan
-      const newTotal = (targetQuiz.totalQuestions ?? 0) + 1;
+      // update totalQuestions (kalau masih dipakai)
       await tx.eLearningQuiz.update({
         where: { id: targetQuizId },
-        data: { totalQuestions: newTotal },
+        data: {
+          totalQuestions: (targetQuiz.totalQuestions ?? 0) + 1,
+        },
       });
 
       return newQuestion;
@@ -566,35 +544,70 @@ export class ELearningQuestionService {
 
     const where: any = {};
 
+    // search lebih fleksibel
     if (search) {
-      where.questionText = { contains: search, mode: "insensitive" };
+      where.OR = [
+        {
+          questionText: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+        {
+          quiz: {
+            title: {
+              contains: search,
+              mode: "insensitive",
+            },
+          },
+        },
+      ];
     }
 
     if (quizId) {
       where.quizId = quizId;
     }
 
+    // whitelist sorting biar aman
+    const allowedSortFields = ["createdAt", "orderNumber", "questionText"];
+    const safeSortBy = allowedSortFields.includes(sortBy)
+      ? sortBy
+      : "createdAt";
+
+    const orderBy: any = {
+      [safeSortBy]: sortOrder === "asc" ? "asc" : "desc",
+    };
+
     const [data, total] = await Promise.all([
       prisma.eLearningQuestion.findMany({
         where,
-        orderBy: { [sortBy]: sortOrder },
+        orderBy,
         skip,
-        take: limit,
+        take: Number(limit),
         include: {
           quiz: {
             select: {
               id: true,
               title: true,
-              subBab: {
+              text: {
                 select: {
                   id: true,
                   title: true,
-                  subChapter: {
+                  subBab: {
                     select: {
                       id: true,
                       title: true,
-                      course: {
-                        select: { id: true, title: true },
+                      subChapter: {
+                        select: {
+                          id: true,
+                          title: true,
+                          course: {
+                            select: {
+                              id: true,
+                              title: true,
+                            },
+                          },
+                        },
                       },
                     },
                   },
@@ -604,14 +617,15 @@ export class ELearningQuestionService {
           },
         },
       }),
+
       prisma.eLearningQuestion.count({ where }),
     ]);
 
     return {
       pagination: {
         total,
-        page,
-        limit,
+        page: Number(page),
+        limit: Number(limit),
         totalPages: Math.ceil(total / limit),
       },
       questions: data,
@@ -619,7 +633,7 @@ export class ELearningQuestionService {
   }
 
   static async exportQuestionsToFile(
-    exportFormat: "csv" | "excel"
+    exportFormat: "csv" | "excel",
   ): Promise<{ buffer: Buffer; filename: string; mimetype: string }> {
     const questions = await prisma.eLearningQuestion.findMany({
       include: {
@@ -627,16 +641,22 @@ export class ELearningQuestionService {
           select: {
             id: true,
             title: true,
-            subBab: {
+            text: {
               select: {
                 id: true,
                 title: true,
-                subChapter: {
+                subBab: {
                   select: {
                     id: true,
                     title: true,
-                    course: {
-                      select: { id: true, title: true },
+                    subChapter: {
+                      select: {
+                        id: true,
+                        title: true,
+                        course: {
+                          select: { id: true, title: true },
+                        },
+                      },
                     },
                   },
                 },
@@ -651,17 +671,27 @@ export class ELearningQuestionService {
       QuestionID: q.id,
       QuizID: q.quizId,
       QuizTitle: q.quiz?.title || "-",
-      SubBabID: q.quiz?.subBab?.id || "-",
-      SubBabTitle: q.quiz?.subBab?.title || "-",
-      SubChapterID: q.quiz?.subBab?.subChapter?.id || "-",
-      SubChapterTitle: q.quiz?.subBab?.subChapter?.title || "-",
-      CourseID: q.quiz?.subBab?.subChapter?.course?.id || "-",
-      CourseTitle: q.quiz?.subBab?.subChapter?.course?.title || "-",
+
+      TextID: q.quiz?.text?.id || "-",
+      TextTitle: q.quiz?.text?.title || "-",
+
+      SubBabID: q.quiz?.text?.subBab?.id || "-",
+      SubBabTitle: q.quiz?.text?.subBab?.title || "-",
+
+      SubChapterID: q.quiz?.text?.subBab?.subChapter?.id || "-",
+      SubChapterTitle: q.quiz?.text?.subBab?.subChapter?.title || "-",
+
+      CourseID: q.quiz?.text?.subBab?.subChapter?.course?.id || "-",
+      CourseTitle: q.quiz?.text?.subBab?.subChapter?.course?.title || "-",
+
       QuestionText: q.questionText,
-      Options: q.options.join(" | "),
-      CorrectAnswer: q.correctAnswer,
+
+      Options: q.options?.join(" | ") || "-",
+      CorrectAnswers: q.correctAnswers?.join(" | ") || "-",
+
       Explanation: q.explanation || "-",
-      OrderNumber: q.orderNumber || "-",
+      OrderNumber: q.orderNumber ?? "-",
+
       CreatedAt: format(q.createdAt ?? new Date(), "yyyy-MM-dd HH:mm:ss"),
     }));
 
@@ -669,7 +699,7 @@ export class ELearningQuestionService {
       const chars =
         "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
       return Array.from({ length }, () =>
-        chars.charAt(Math.floor(Math.random() * chars.length))
+        chars.charAt(Math.floor(Math.random() * chars.length)),
       ).join("");
     }
 
@@ -687,7 +717,7 @@ export class ELearningQuestionService {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("ELearningQuestions");
 
-    worksheet.columns = Object.keys(rows[0]).map((key) => ({
+    worksheet.columns = Object.keys(rows[0] || {}).map((key) => ({
       header: key,
       key,
       width: 25,

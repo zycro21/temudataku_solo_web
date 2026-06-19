@@ -97,9 +97,12 @@ export const ELearningSubChapterService = {
       include: {
         subBabs: {
           include: {
-            texts: true,
-            quiz: true,
-            assignment: true,
+            texts: {
+              include: {
+                quiz: true,
+                assignment: true,
+              },
+            },
           },
         },
       },
@@ -132,9 +135,12 @@ export const ELearningSubChapterService = {
       include: {
         subBabs: {
           include: {
-            texts: true,
-            quiz: true,
-            assignment: true,
+            texts: {
+              include: {
+                quiz: true,
+                assignment: true,
+              },
+            },
           },
         },
         course: true,
@@ -479,7 +485,12 @@ export const ELearningSubChapterService = {
         course: true,
         subBabs: {
           include: {
-            texts: true,
+            texts: {
+              include: {
+                quiz: true,
+                assignment: true,
+              },
+            },
           },
         },
       },

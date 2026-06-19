@@ -11,6 +11,7 @@ import {
   Eye,
 } from "lucide-react";
 import RichTextEditor, { type RichTextEditorRef } from "./RichTextEditor";
+import { getFontStyle } from "./fontStyles";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface AccordionItem {
@@ -21,6 +22,8 @@ interface AccordionItem {
 
 export interface AccordionBodyProps {
   initialData?: any;
+  fontType?: string;
+  fontSize?: number;
   onChangeData?: (data: any) => void;
   onEditorFocus?: (ref: RichTextEditorRef) => void;
   onSelectionChange?: Parameters<typeof RichTextEditor>[0]["onSelectionChange"];
@@ -33,16 +36,21 @@ function AccordionPreview({
   titleHTML,
   descriptionHTML,
   items,
+  fontType,
+  fontSize,
   onEdit,
 }: {
   titleHTML: string;
   descriptionHTML: string;
   items: AccordionItem[];
+  fontType?: string;
+  fontSize?: number;
   onEdit: () => void;
 }) {
   const [openIds, setOpenIds] = useState<Set<string>>(
     () => new Set(items.slice(0, 2).map((i) => i.id)),
   );
+  const textStyle = getFontStyle(fontType, fontSize);
 
   const toggle = (id: string) => {
     setOpenIds((prev) => {
@@ -80,7 +88,8 @@ function AccordionPreview({
           </span>
         ) : (
           <div
-            className="text-sm font-bold text-gray-700"
+            className="font-bold text-gray-700"
+            style={textStyle}
             dangerouslySetInnerHTML={{ __html: titleHTML }}
           />
         )}
@@ -88,7 +97,8 @@ function AccordionPreview({
 
       {!isEmpty(descriptionHTML) && (
         <div
-          className="text-sm text-gray-500 mb-3 leading-relaxed"
+          className="text-gray-500 mb-3 leading-relaxed"
+          style={textStyle}
           dangerouslySetInnerHTML={{ __html: descriptionHTML }}
         />
       )}
@@ -114,7 +124,8 @@ function AccordionPreview({
                   </span>
                 ) : (
                   <div
-                    className="text-sm font-semibold text-gray-700 text-left"
+                    className="font-semibold text-gray-700 text-left"
+                    style={textStyle}
                     dangerouslySetInnerHTML={{ __html: item.titleHTML }}
                   />
                 )}
@@ -130,7 +141,8 @@ function AccordionPreview({
                     <p className="text-sm text-gray-400 italic">—</p>
                   ) : (
                     <div
-                      className="text-sm text-gray-600 leading-relaxed"
+                      className="text-gray-600 leading-relaxed"
+                      style={textStyle}
                       dangerouslySetInnerHTML={{ __html: item.contentHTML }}
                     />
                   )}
@@ -151,6 +163,8 @@ function AccordionCanvas({
   titleHTML,
   descriptionHTML,
   items,
+  fontType,
+  fontSize,
   onTitleChange,
   onDescriptionChange,
   onItemChange,
@@ -164,6 +178,8 @@ function AccordionCanvas({
   titleHTML: string;
   descriptionHTML: string;
   items: AccordionItem[];
+  fontType?: string;
+  fontSize?: number;
   onTitleChange: (v: string) => void;
   onDescriptionChange: (v: string) => void;
   onItemChange: (
@@ -179,6 +195,7 @@ function AccordionCanvas({
   onSelectionChange?: Parameters<typeof RichTextEditor>[0]["onSelectionChange"];
 }) {
   const [activeEditorId, setActiveEditorId] = useState<string | null>(null);
+  const textStyle = getFontStyle(fontType, fontSize);
 
   const titleRef = useRef<RichTextEditorRef>(null);
   const descRef = useRef<RichTextEditorRef>(null);
@@ -209,7 +226,8 @@ function AccordionCanvas({
           value={titleHTML}
           onChange={onTitleChange}
           placeholder="Enter accordion title ..."
-          className="text-lg font-semibold text-gray-700 w-full"
+          className="font-semibold text-gray-700 w-full"
+          style={textStyle}
           onFocus={() => {
             setActiveEditorId("title");
             if (titleRef.current) onEditorFocus?.(titleRef.current);
@@ -228,7 +246,8 @@ function AccordionCanvas({
           value={descriptionHTML}
           onChange={onDescriptionChange}
           placeholder="Add a description ..."
-          className="text-sm text-gray-400 w-full"
+          className="text-gray-400 w-full"
+          style={textStyle}
           onFocus={() => {
             setActiveEditorId("desc");
             if (descRef.current) onEditorFocus?.(descRef.current);
@@ -261,7 +280,8 @@ function AccordionCanvas({
                   value={item.titleHTML}
                   onChange={(val) => onItemChange(item.id, "titleHTML", val)}
                   placeholder="Accordion item title"
-                  className="text-sm text-gray-700 w-full"
+                  className="text-gray-700 w-full"
+                  style={textStyle}
                   onFocus={() => {
                     const editorId = `${item.id}-title`;
                     setActiveEditorId(editorId);
@@ -298,7 +318,8 @@ function AccordionCanvas({
                   value={item.contentHTML}
                   onChange={(val) => onItemChange(item.id, "contentHTML", val)}
                   placeholder="Add content for this section"
-                  className="text-sm text-gray-700 w-full min-h-[5em]"
+                  className="text-gray-700 w-full min-h-[5em]"
+                  style={textStyle}
                   onFocus={() => {
                     const editorId = `${item.id}-content`;
                     setActiveEditorId(editorId);
@@ -343,6 +364,8 @@ function AccordionCanvas({
 // ═══════════════════════════════════════════════════════════════════════════════
 export function AccordionBody({
   initialData,
+  fontType,
+  fontSize,
   onChangeData,
   onEditorFocus,
   onSelectionChange,
@@ -405,6 +428,8 @@ export function AccordionBody({
         titleHTML={titleHTML}
         descriptionHTML={descriptionHTML}
         items={items}
+        fontType={fontType}
+        fontSize={fontSize}
         onTitleChange={setTitleHTML}
         onDescriptionChange={setDescriptionHTML}
         onItemChange={handleItemChange}
@@ -423,6 +448,8 @@ export function AccordionBody({
       titleHTML={titleHTML}
       descriptionHTML={descriptionHTML}
       items={items}
+      fontType={fontType}
+      fontSize={fontSize}
       onEdit={() => setMode("canvas")}
     />
   );

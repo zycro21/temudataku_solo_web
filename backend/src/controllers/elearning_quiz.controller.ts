@@ -6,19 +6,19 @@ export class ELearningQuizController {
   static async createQuiz(
     req: AuthenticatedRequestQuiz,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, validatedBody, user } = req;
 
-      if (!validatedParams?.subBabId || !validatedBody || !user) {
+      if (!validatedParams?.textId || !validatedBody || !user) {
         res
           .status(400)
           .json({ success: false, message: "Data request tidak valid" });
         return;
       }
 
-      const { subBabId } = validatedParams;
+      const { textId } = validatedParams;
       const { title, description, timeLimitMinutes } = validatedBody;
 
       if (!title) {
@@ -29,9 +29,13 @@ export class ELearningQuizController {
       }
 
       const newQuiz = await ELearningQuizService.createQuiz(
-        subBabId,
-        { title, description, timeLimitMinutes },
-        user
+        textId,
+        {
+          title,
+          description,
+          timeLimitMinutes,
+        },
+        user,
       );
 
       res.status(201).json({
@@ -59,7 +63,7 @@ export class ELearningQuizController {
   static async getQuizBySubBab(
     req: AuthenticatedRequestQuiz,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, validatedQuery, user } = req;
@@ -76,7 +80,7 @@ export class ELearningQuizController {
       const quizzes = await ELearningQuizService.getQuizBySubBab(
         subBabId,
         { search, sortBy, sortOrder, page, limit },
-        user
+        user,
       );
 
       if (!quizzes || quizzes.data.length === 0) {
@@ -104,7 +108,7 @@ export class ELearningQuizController {
   static async getQuizById(
     req: AuthenticatedRequestQuiz,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, user } = req;
@@ -119,7 +123,7 @@ export class ELearningQuizController {
 
       const quiz = await ELearningQuizService.getQuizById(
         validatedParams.id,
-        user
+        user,
       );
 
       if (!quiz) {
@@ -151,7 +155,7 @@ export class ELearningQuizController {
   static async updateQuiz(
     req: AuthenticatedRequestQuiz,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, validatedBody, user } = req;
@@ -165,7 +169,7 @@ export class ELearningQuizController {
       const updated = await ELearningQuizService.updateQuiz(
         validatedParams.id,
         validatedBody,
-        user
+        user,
       );
 
       res.status(200).json({
@@ -192,69 +196,110 @@ export class ELearningQuizController {
   static async deleteQuiz(
     req: AuthenticatedRequestQuiz,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
-      const { validatedParams } = req;
+      const { validatedParams, user } = req;
+
       const quizId = validatedParams?.id;
 
       if (!quizId) {
-        res
-          .status(400)
-          .json({ success: false, message: "Quiz ID wajib diisi" });
+        res.status(400).json({
+          success: false,
+          message: "Quiz ID wajib diisi",
+        });
         return;
       }
 
-      await ELearningQuizService.deleteQuiz(quizId);
+      if (!user) {
+        res.status(401).json({
+          success: false,
+          message: "Unauthorized",
+        });
+        return;
+      }
+
+      const result = await ELearningQuizService.deleteQuiz(quizId, {
+        userId: user.userId,
+        roles: user.roles,
+        mentorProfileId: user.mentorProfileId,
+      });
 
       res.status(200).json({
         success: true,
-        message: "Quiz berhasil dihapus",
+        message: result.message,
+        data: result,
       });
     } catch (err: any) {
       if (err.message.includes("tidak ditemukan")) {
-        res.status(404).json({ success: false, message: err.message });
+        res.status(404).json({
+          success: false,
+          message: err.message,
+        });
         return;
-      } else if (err.message.includes("Akses ditolak")) {
-        res.status(403).json({ success: false, message: err.message });
-        return;
-      } else {
-        next(err);
       }
+
+      if (err.message.includes("Akses ditolak")) {
+        res.status(403).json({
+          success: false,
+          message: err.message,
+        });
+        return;
+      }
+
+      next(err);
     }
   }
 
   static async getAllQuizzes(
     req: AuthenticatedRequestQuiz,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedQuery, user } = req;
-      if (!user || !user.roles.includes("admin")) {
-        res.status(403).json({ success: false, message: "Akses ditolak" });
+
+      if (!user) {
+        res.status(401).json({
+          success: false,
+          message: "Unauthorized",
+        });
         return;
       }
 
-      const { search, sortBy, sortOrder, page, limit, courseId, mentorId } =
+      const { search, sortBy, sortOrder, page, limit, courseId } =
         validatedQuery;
 
-      const result = await ELearningQuizService.getAllQuizzes({
-        search,
-        sortBy,
-        sortOrder,
-        page,
-        limit,
-        courseId,
-        mentorId,
-      });
+      const result = await ELearningQuizService.getAllQuizzes(
+        {
+          search,
+          sortBy,
+          sortOrder,
+          page,
+          limit,
+          courseId,
+        },
+        {
+          userId: user.userId,
+          roles: user.roles,
+          mentorProfileId: user.mentorProfileId,
+        },
+      );
 
       res.status(200).json({
         success: true,
         message: "Daftar quiz berhasil diambil",
         ...result,
       });
-    } catch (err) {
+    } catch (err: any) {
+      if (err.message.includes("Akses ditolak")) {
+        res.status(403).json({
+          success: false,
+          message: err.message,
+        });
+        return;
+      }
+
       next(err);
     }
   }
@@ -262,7 +307,7 @@ export class ELearningQuizController {
   static async getQuizzesByCourse(
     req: AuthenticatedRequestQuiz,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, validatedQuery, user } = req;
@@ -280,7 +325,7 @@ export class ELearningQuizController {
       const result = await ELearningQuizService.getQuizzesByCourse(
         courseId,
         user,
-        { page, limit, search, sortBy, order }
+        { page, limit, search, sortBy, order },
       );
 
       res.status(200).json({
@@ -300,11 +345,11 @@ export class ELearningQuizController {
       }
     }
   }
-  
+
   static async exportQuizzes(
     req: AuthenticatedRequestQuiz,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedQuery, user } = req;
@@ -330,7 +375,7 @@ export class ELearningQuizController {
 
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename=${file.filename}`
+        `attachment; filename=${file.filename}`,
       );
       res.setHeader("Content-Type", file.mimetype);
 

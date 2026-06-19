@@ -147,8 +147,12 @@ export default function CoursesTable({
 
           // AUTO TASK TYPE (kalau backend belum handle)
           let assessment = "None";
-          const hasQuiz = sc.subBabs.some((sb: any) => sb.quiz);
-          const hasProject = sc.subBabs.some((sb: any) => sb.assignment);
+          const hasQuiz = sc.subBabs.some((sb: any) =>
+            sb.texts?.some((text: any) => text.quiz != null),
+          );
+          const hasProject = sc.subBabs.some((sb: any) =>
+            sb.texts?.some((text: any) => text.assignment != null),
+          );
 
           if (hasQuiz && hasProject) assessment = "Quiz & Project";
           else if (hasQuiz) assessment = "Quiz";
@@ -429,12 +433,12 @@ export default function CoursesTable({
             >
               Modules <SortIcon colKey="modules" />
             </th>
-            <th
+            {/* <th
               className={`${thBase("materials")} text-center`}
               onClick={() => handleSort("materials")}
             >
               Materials <SortIcon colKey="materials" />
-            </th>
+            </th> */}
             <th
               className={`${thBase("assessment")} text-center`}
               onClick={() => handleSort("assessment")}
@@ -539,9 +543,9 @@ export default function CoursesTable({
                 <td className="px-4 py-3 text-[12px] text-center">
                   {course.modules}
                 </td>
-                <td className="px-4 py-3 text-[12px] text-center">
+                {/* <td className="px-4 py-3 text-[12px] text-center">
                   {course.materials}
-                </td>
+                </td> */}
                 <td className="px-4 py-3 text-[12px] text-center">
                   {course.assessment}
                 </td>

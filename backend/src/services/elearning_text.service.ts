@@ -75,6 +75,7 @@ type AdditionalContentInput =
         mediaType: "IMAGE" | "VIDEO";
         thumbnailUrl?: string;
         durationSeconds?: number;
+        widthPercent?: number;
       };
     }
   | {
@@ -312,59 +313,122 @@ export class ELearningTextService {
         subBab: {
           include: {
             subChapter: {
-              include: { course: true },
-            },
-            // ✅ Tambah quiz dan assignment
-            quiz: {
               include: {
-                questions: { orderBy: { orderNumber: "asc" } },
-              },
-            },
-            assignment: {
-              include: {
-                instructions: { orderBy: { orderNumber: "asc" } },
-                supportingFiles: true,
+                course: true,
               },
             },
           },
         },
-        // ✅ Tambah blocks dengan semua relasinya
+
+        quiz: {
+          include: {
+            questions: {
+              orderBy: {
+                orderNumber: "asc",
+              },
+            },
+          },
+        },
+
+        assignment: {
+          include: {
+            instructions: {
+              orderBy: {
+                orderNumber: "asc",
+              },
+            },
+            supportingFiles: true,
+          },
+        },
+
         blocks: {
-          orderBy: { orderNumber: "asc" },
+          orderBy: {
+            orderNumber: "asc",
+          },
           include: {
             contentBlocks: {
-              orderBy: { orderNumber: "asc" },
+              orderBy: {
+                orderNumber: "asc",
+              },
               include: {
                 headingContent: true,
                 paragraphContent: true,
                 highlightContent: true,
                 accordionContent: {
-                  include: { items: { orderBy: { orderNumber: "asc" } } },
+                  include: {
+                    items: {
+                      orderBy: {
+                        orderNumber: "asc",
+                      },
+                    },
+                  },
                 },
                 carouselContent: {
-                  include: { items: { orderBy: { orderNumber: "asc" } } },
+                  include: {
+                    items: {
+                      orderBy: {
+                        orderNumber: "asc",
+                      },
+                    },
+                  },
                 },
                 contentCardContent: {
-                  include: { items: { orderBy: { orderNumber: "asc" } } },
+                  include: {
+                    items: {
+                      orderBy: {
+                        orderNumber: "asc",
+                      },
+                    },
+                  },
                 },
                 tabContent: {
-                  include: { tabs: { orderBy: { orderNumber: "asc" } } },
+                  include: {
+                    tabs: {
+                      orderBy: {
+                        orderNumber: "asc",
+                      },
+                    },
+                  },
                 },
                 summaryContent: {
-                  include: { comments: { orderBy: { orderNumber: "asc" } } },
+                  include: {
+                    comments: {
+                      orderBy: {
+                        orderNumber: "asc",
+                      },
+                    },
+                  },
                 },
               },
             },
+
             additionalContents: {
-              orderBy: { orderNumber: "asc" },
+              orderBy: {
+                orderNumber: "asc",
+              },
               include: {
                 video: true,
+
                 multipleChoice: {
-                  include: { options: { orderBy: { orderNumber: "asc" } } },
+                  include: {
+                    options: {
+                      orderBy: {
+                        orderNumber: "asc",
+                      },
+                    },
+                  },
                 },
+
                 matching: {
-                  include: { items: { orderBy: { orderNumber: "asc" } } },
+                  include: {
+                    items: {
+                      orderBy: {
+                        orderNumber: "asc",
+                      },
+                    },
+                  },
                 },
+
                 code: true,
               },
             },
@@ -518,6 +582,7 @@ export class ELearningTextService {
                 mediaType: ac.video?.mediaType,
                 thumbnailUrl: ac.video?.thumbnailUrl,
                 durationSeconds: ac.video?.durationSeconds,
+                widthPercent: ac.video?.widthPercent ?? 100,
               },
             };
           case "MULTIPLE_CHOICE":
@@ -584,10 +649,9 @@ export class ELearningTextService {
       subBab: {
         id: text.subBab.id,
         title: text.subBab.title,
-        // ✅ quiz dan assignment untuk canvas restore
-        quiz: text.subBab.quiz,
-        assignment: text.subBab.assignment,
       },
+      quiz: text.quiz,
+      assignment: text.assignment,
       course: {
         id: course.id,
         title: course.title,
@@ -743,7 +807,7 @@ export class ELearningTextService {
         }
       }
 
-      // ── 2. Shift orderNumber (logika lama, tidak diubah) ────────────────
+      // ── 2. Shift orderNumber ─────────────────────────────────────────────
       if (
         data.orderNumber !== undefined &&
         data.orderNumber !== existing.orderNumber
@@ -786,13 +850,10 @@ export class ELearningTextService {
         data: { ...scalarData, updatedAt: new Date() },
       });
 
-      // ── 4. Jika blocks dikirim → delete all lama, recreate ──────────────
+      // ── 4. Blocks ────────────────────────────────────────────────────────
       if (blocks !== undefined) {
-        // Cascade delete: TextBlock → ContentBlock → *Content
-        //                          → AdditionalContent → *Content
         await tx.eLearningTextBlock.deleteMany({ where: { textId: id } });
 
-        // Validasi jumlah media yang diupload
         const imageVideoCount = blocks.reduce((total, block) => {
           return (
             total +
@@ -819,7 +880,6 @@ export class ELearningTextService {
             },
           });
 
-          // ── contents ────────────────────────────────────────────────────
           for (const content of block.contents ?? []) {
             const contentBlock = await tx.eLearningContentBlock.create({
               data: {
@@ -958,7 +1018,6 @@ export class ELearningTextService {
             }
           }
 
-          // ── additionalContents ───────────────────────────────────────────
           for (const additional of block.additionalContents ?? []) {
             const additionalContent =
               await tx.eLearningAdditionalContent.create({
@@ -1001,6 +1060,7 @@ export class ELearningTextService {
                     mediaType: additional.content.mediaType,
                     thumbnailUrl: additional.content.thumbnailUrl,
                     durationSeconds: additional.content.durationSeconds,
+                    widthPercent: additional.content.widthPercent ?? 100,
                   },
                 });
                 break;
@@ -1039,8 +1099,6 @@ export class ELearningTextService {
                     explanation: additional.content.explanation,
                   },
                 });
-                // Matching items: matchWithId dari frontend adalah temp ID (string),
-                // disimpan apa adanya karena tidak ada relasi FK ke row lain.
                 for (const item of additional.content.items) {
                   await tx.eLearningMatchingItem.create({
                     data: {
@@ -1073,24 +1131,20 @@ export class ELearningTextService {
         }
       }
 
-      if (quiz) {
+      // ── 5. Quiz ──────────────────────────────────────────────────────────
+      if (quiz !== undefined) {
         const existingQuiz = await tx.eLearningQuiz.findUnique({
-          where: {
-            subBabId: existing.subBabId,
-          },
+          where: { textId: id },
         });
 
         if (existingQuiz) {
+          // Text ini sudah punya quiz → update
           await tx.eLearningQuestion.deleteMany({
-            where: {
-              quizId: existingQuiz.id,
-            },
+            where: { quizId: existingQuiz.id },
           });
 
           await tx.eLearningQuiz.update({
-            where: {
-              id: existingQuiz.id,
-            },
+            where: { id: existingQuiz.id },
             data: {
               title: quiz.title,
               description: quiz.description,
@@ -1104,30 +1158,39 @@ export class ELearningTextService {
             await tx.eLearningQuestion.create({
               data: {
                 quizId: existingQuiz.id,
-
                 questionText: question.questionText,
-
                 options: question.options,
-
                 correctAnswers: question.correctAnswers,
-
                 explanation: question.explanation,
-
                 orderNumber: question.orderNumber,
               },
             });
           }
         } else {
+          // Text ini belum punya quiz → cek dulu apakah SubBab sudah ada quiz di text lain
+          const quizInSameSubBab = await tx.eLearningQuiz.findFirst({
+            where: {
+              text: { subBabId: existing.subBabId },
+              // kecualikan text yang sedang di-update (sudah dicek di atas, tidak ada)
+            },
+            select: {
+              id: true,
+              text: { select: { title: true, orderNumber: true } },
+            },
+          });
+
+          if (quizInSameSubBab) {
+            throw new Error(
+              `SubBab ini sudah memiliki quiz di modul lain (modul: "${quizInSameSubBab.text.title ?? `#${quizInSameSubBab.text.orderNumber}`}"). Setiap SubBab hanya boleh memiliki 1 quiz.`,
+            );
+          }
+
           const newQuiz = await tx.eLearningQuiz.create({
             data: {
-              subBabId: existing.subBabId,
-
+              textId: id,
               title: quiz.title,
-
               description: quiz.description,
-
               totalQuestions: quiz.questions.length,
-
               timeLimitMinutes: quiz.timeLimitMinutes,
             },
           });
@@ -1136,15 +1199,10 @@ export class ELearningTextService {
             await tx.eLearningQuestion.create({
               data: {
                 quizId: newQuiz.id,
-
                 questionText: question.questionText,
-
                 options: question.options,
-
                 correctAnswers: question.correctAnswers,
-
                 explanation: question.explanation,
-
                 orderNumber: question.orderNumber,
               },
             });
@@ -1152,7 +1210,8 @@ export class ELearningTextService {
         }
       }
 
-      if (assignment) {
+      // ── 6. Assignment ────────────────────────────────────────────────────
+      if (assignment !== undefined) {
         const assignmentFilesNeeded = (assignment.supportingFiles ?? []).filter(
           (f) => f.isNewUpload,
         ).length;
@@ -1163,32 +1222,24 @@ export class ELearningTextService {
           );
         }
 
-        // Deklarasi index counter di sini, dipakai di kedua loop (existingAssignment & newAssignment)
         let newFileIndex = 0;
 
         const existingAssignment = await tx.eLearningAssignment.findUnique({
-          where: {
-            subBabId: existing.subBabId,
-          },
+          where: { textId: id },
         });
 
         if (existingAssignment) {
+          // Text ini sudah punya assignment → update
           await tx.eLearningAssignmentInstruction.deleteMany({
-            where: {
-              assignmentId: existingAssignment.id,
-            },
+            where: { assignmentId: existingAssignment.id },
           });
 
           await tx.eLearningAssignmentSupportingFile.deleteMany({
-            where: {
-              assignmentId: existingAssignment.id,
-            },
+            where: { assignmentId: existingAssignment.id },
           });
 
           await tx.eLearningAssignment.update({
-            where: {
-              id: existingAssignment.id,
-            },
+            where: { id: existingAssignment.id },
             data: {
               title: assignment.title,
               description: assignment.description,
@@ -1201,9 +1252,7 @@ export class ELearningTextService {
             await tx.eLearningAssignmentInstruction.create({
               data: {
                 assignmentId: existingAssignment.id,
-
                 instruction: instruction.instruction,
-
                 orderNumber: instruction.orderNumber,
               },
             });
@@ -1216,20 +1265,18 @@ export class ELearningTextService {
 
             if (meta.isNewUpload) {
               const uploaded = assignmentFiles[newFileIndex++];
-              if (!uploaded) {
+              if (!uploaded)
                 throw new Error(
                   `File upload untuk "${meta.name}" tidak ditemukan`,
                 );
-              }
               finalUrl = `/uploads/elearningAssignments/${uploaded.filename}`;
               finalFormat = path.extname(uploaded.originalname);
               finalSizeKB = Math.ceil(uploaded.size / 1024);
             } else {
-              if (!meta.url) {
+              if (!meta.url)
                 throw new Error(
                   `url wajib diisi untuk file "${meta.name}" yang tidak diupload ulang`,
                 );
-              }
               finalUrl = meta.url;
               finalFormat = meta.format;
               finalSizeKB = meta.sizeKB;
@@ -1237,8 +1284,7 @@ export class ELearningTextService {
 
             await tx.eLearningAssignmentSupportingFile.create({
               data: {
-                assignmentId: existingAssignment.id, // ← blok existing: pakai ini
-                // assignmentId: newAssignment.id,   // ← blok new: pakai ini
+                assignmentId: existingAssignment.id,
                 name: meta.name,
                 type: meta.type,
                 url: finalUrl,
@@ -1249,14 +1295,30 @@ export class ELearningTextService {
             });
           }
         } else {
+          // Text ini belum punya assignment → cek dulu apakah SubBab sudah ada assignment di text lain
+          const assignmentInSameSubBab = await tx.eLearningAssignment.findFirst(
+            {
+              where: {
+                text: { subBabId: existing.subBabId },
+              },
+              select: {
+                id: true,
+                text: { select: { title: true, orderNumber: true } },
+              },
+            },
+          );
+
+          if (assignmentInSameSubBab) {
+            throw new Error(
+              `SubBab ini sudah memiliki project/assignment di modul lain (modul: "${assignmentInSameSubBab.text.title ?? `#${assignmentInSameSubBab.text.orderNumber}`}"). Setiap SubBab hanya boleh memiliki 1 assignment.`,
+            );
+          }
+
           const newAssignment = await tx.eLearningAssignment.create({
             data: {
-              subBabId: existing.subBabId,
-
+              textId: id,
               title: assignment.title,
-
               description: assignment.description,
-
               dueDays: assignment.dueDays,
             },
           });
@@ -1265,9 +1327,7 @@ export class ELearningTextService {
             await tx.eLearningAssignmentInstruction.create({
               data: {
                 assignmentId: newAssignment.id,
-
                 instruction: instruction.instruction,
-
                 orderNumber: instruction.orderNumber,
               },
             });
@@ -1280,20 +1340,18 @@ export class ELearningTextService {
 
             if (meta.isNewUpload) {
               const uploaded = assignmentFiles[newFileIndex++];
-              if (!uploaded) {
+              if (!uploaded)
                 throw new Error(
                   `File upload untuk "${meta.name}" tidak ditemukan`,
                 );
-              }
               finalUrl = `/uploads/elearningAssignments/${uploaded.filename}`;
               finalFormat = path.extname(uploaded.originalname);
               finalSizeKB = Math.ceil(uploaded.size / 1024);
             } else {
-              if (!meta.url) {
+              if (!meta.url)
                 throw new Error(
                   `url wajib diisi untuk file "${meta.name}" yang tidak diupload ulang`,
                 );
-              }
               finalUrl = meta.url;
               finalFormat = meta.format;
               finalSizeKB = meta.sizeKB;
@@ -1301,8 +1359,7 @@ export class ELearningTextService {
 
             await tx.eLearningAssignmentSupportingFile.create({
               data: {
-                // assignmentId: existingAssignment.id, // ← blok existing: pakai ini
-                assignmentId: newAssignment.id, // ← blok new: pakai ini
+                assignmentId: newAssignment.id,
                 name: meta.name,
                 type: meta.type,
                 url: finalUrl,
@@ -1315,34 +1372,19 @@ export class ELearningTextService {
         }
       }
 
-      // ── 5. Return text terbaru dengan semua relasinya ───────────────────
+      // ── 7. Return text terbaru ───────────────────────────────────────────
       return tx.eLearningText.findUnique({
         where: { id },
-
         include: {
-          subBab: {
+          quiz: {
             include: {
-              quiz: {
-                include: {
-                  questions: {
-                    orderBy: {
-                      orderNumber: "asc",
-                    },
-                  },
-                },
-              },
-
-              assignment: {
-                include: {
-                  instructions: {
-                    orderBy: {
-                      orderNumber: "asc",
-                    },
-                  },
-
-                  supportingFiles: true,
-                },
-              },
+              questions: { orderBy: { orderNumber: "asc" } },
+            },
+          },
+          assignment: {
+            include: {
+              instructions: { orderBy: { orderNumber: "asc" } },
+              supportingFiles: true,
             },
           },
           blocks: {
@@ -1366,7 +1408,6 @@ export class ELearningTextService {
                   tabContent: {
                     include: { tabs: { orderBy: { orderNumber: "asc" } } },
                   },
-                  // highlightContent: true,
                   summaryContent: {
                     include: { comments: { orderBy: { orderNumber: "asc" } } },
                   },

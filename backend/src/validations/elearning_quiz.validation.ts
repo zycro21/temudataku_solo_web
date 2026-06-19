@@ -2,8 +2,9 @@ import { z } from "zod";
 
 export const createQuizSchema = z.object({
   params: z.object({
-    subBabId: z.string().min(1, "SubBab ID wajib diisi"),
+    textId: z.string().min(1, "Text ID wajib diisi"),
   }),
+
   body: z.object({
     title: z.string().min(1, "Judul quiz wajib diisi"),
     description: z.string().optional(),
@@ -104,4 +105,4 @@ export const exportQuizSchema = z.object({
   query: z.object({
     format: z.enum(["csv", "excel"]).default("csv"),
   }),
-})
+});

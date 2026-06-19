@@ -14,6 +14,7 @@ import {
 import RichTextEditor, {
   type RichTextEditorRef,
 } from "@/components/admin/elearning/materials/RichTextEditor";
+import { getFontStyle } from "@/components/admin/elearning/materials/fontStyles";
 
 interface CarouselItem {
   id: string;
@@ -29,6 +30,8 @@ function CarouselCanvas({
   description,
   items,
   cardsPerSlide,
+  fontType,
+  fontSize,
   onTitleChange,
   onDescriptionChange,
   onCardsPerSlideChange,
@@ -45,6 +48,8 @@ function CarouselCanvas({
   description: string;
   items: CarouselItem[];
   cardsPerSlide: CardsPerSlide;
+  fontType?: string;
+  fontSize?: number;
   onTitleChange: (v: string) => void;
   onDescriptionChange: (v: string) => void;
   onCardsPerSlideChange: (v: CardsPerSlide) => void;
@@ -60,6 +65,7 @@ function CarouselCanvas({
   const [activeEditorId, setActiveEditorId] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const textStyle = getFontStyle(fontType, fontSize);
 
   const descRef = useRef<RichTextEditorRef>(null);
   const itemLabelRefs = useRef<Map<string, RichTextEditorRef>>(new Map());
@@ -100,7 +106,8 @@ function CarouselCanvas({
           onChange={(e) => onTitleChange(e.target.value)}
           onFocus={() => setActiveEditorId(null)}
           placeholder="Enter carousel title ..."
-          className="w-full text-lg font-semibold text-gray-700 outline-none placeholder-gray-300 bg-transparent"
+          className="w-full font-semibold text-gray-700 outline-none placeholder-gray-300 bg-transparent"
+          style={textStyle}
         />
 
         {/* Description */}
@@ -113,7 +120,8 @@ function CarouselCanvas({
             value={description}
             onChange={onDescriptionChange}
             placeholder="Add a description ..."
-            className="text-sm text-gray-400 min-h-[1.5em]"
+            className="text-gray-400 min-h-[1.5em]"
+            style={textStyle}
             onFocus={() => {
               setActiveEditorId("desc");
               if (descRef.current) onEditorFocus?.(descRef.current);
@@ -269,12 +277,16 @@ function CarouselPreview({
   description,
   items,
   cardsPerSlide,
+  fontType,
+  fontSize,
   onEdit,
 }: {
   title: string;
   description: string;
   items: CarouselItem[];
   cardsPerSlide: CardsPerSlide;
+  fontType?: string;
+  fontSize?: number;
   onEdit: () => void;
 }) {
   const [page, setPage] = useState(0);
@@ -283,6 +295,7 @@ function CarouselPreview({
     page * cardsPerSlide,
     page * cardsPerSlide + cardsPerSlide,
   );
+  const textStyle = getFontStyle(fontType, fontSize);
 
   const prev = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -310,14 +323,15 @@ function CarouselPreview({
         <span className="text-emerald-500">
           <Pencil size={15} />
         </span>
-        <span className="text-sm font-bold text-gray-800">
+        <span className="font-bold text-gray-800" style={textStyle}>
           {title || "Carousel"}
         </span>
       </div>
 
       {description && (
         <div
-          className="text-sm text-gray-700 leading-relaxed mb-3"
+          className="text-gray-700 leading-relaxed mb-3"
+          style={textStyle}
           dangerouslySetInnerHTML={{ __html: description }}
         />
       )}
@@ -396,11 +410,15 @@ function CarouselPreview({
 // ─── Controller ───────────────────────────────────────────────────────────────
 export function CarouselBody({
   initialData,
+  fontType,
+  fontSize,
   onChangeData,
   onEditorFocus,
   onSelectionChange,
 }: {
   initialData?: any;
+  fontType?: string;
+  fontSize?: number;
   onChangeData?: (data: any) => void;
   onEditorFocus?: (ref: RichTextEditorRef) => void;
   onSelectionChange?: Parameters<typeof RichTextEditor>[0]["onSelectionChange"];
@@ -473,6 +491,8 @@ export function CarouselBody({
         description={description}
         items={items}
         cardsPerSlide={cardsPerSlide}
+        fontType={fontType}
+        fontSize={fontSize}
         onTitleChange={setTitle}
         onDescriptionChange={setDescription}
         onCardsPerSlideChange={setCardsPerSlide}
@@ -494,6 +514,8 @@ export function CarouselBody({
       description={description}
       items={items}
       cardsPerSlide={cardsPerSlide}
+      fontType={fontType}
+      fontSize={fontSize}
       onEdit={() => setMode("canvas")}
     />
   );

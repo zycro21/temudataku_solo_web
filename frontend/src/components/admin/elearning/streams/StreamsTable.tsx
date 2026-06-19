@@ -470,7 +470,7 @@ export default function StreamsTable({
             >
               Courses <SortIcon colKey="coursesCount" />
             </th>
-            <th
+            {/* <th
               className={`${thBase("modulesCount")} text-center`}
               onClick={() => handleSort("modulesCount")}
             >
@@ -481,7 +481,7 @@ export default function StreamsTable({
               onClick={() => handleSort("materialsCount")}
             >
               Materials <SortIcon colKey="materialsCount" />
-            </th>
+            </th> */}
             <th
               className={`${thBase("status")} text-center`}
               onClick={() => handleSort("status")}
@@ -601,14 +601,14 @@ export default function StreamsTable({
                   </td>
 
                   {/* Modules */}
-                  <td className="px-4 py-3 text-[12px] text-center">
+                  {/* <td className="px-4 py-3 text-[12px] text-center">
                     {stream.modulesCount}
-                  </td>
+                  </td> */}
 
                   {/* Materials */}
-                  <td className="px-4 py-3 text-[12px] text-center">
+                  {/* <td className="px-4 py-3 text-[12px] text-center">
                     {stream.materialsCount}
-                  </td>
+                  </td> */}
 
                   {/* Status */}
                   <td className="px-4 py-3 text-center">
