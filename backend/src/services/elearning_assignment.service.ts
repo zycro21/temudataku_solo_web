@@ -530,11 +530,13 @@ export class ELearningAssignmentService {
 
     // Filtering by mentor (if not admin)
     if (user.roles.includes("mentor")) {
-      whereClause.subBab = {
-        subChapter: {
-          course: {
-            mentorProfile: {
-              userId: user.userId,
+      whereClause.text = {
+        subBab: {
+          subChapter: {
+            course: {
+              mentorProfile: {
+                userId: user.userId,
+              },
             },
           },
         },
@@ -565,20 +567,29 @@ export class ELearningAssignmentService {
         take: limit,
         orderBy,
         include: {
-          subBab: {
+          text: {
             select: {
               id: true,
               title: true,
-              subChapter: {
+              subBab: {
                 select: {
                   id: true,
                   title: true,
-                  course: {
+                  subChapter: {
                     select: {
                       id: true,
                       title: true,
-                      mentorProfile: {
-                        select: { id: true, userId: true },
+                      course: {
+                        select: {
+                          id: true,
+                          title: true,
+                          mentorProfile: {
+                            select: {
+                              id: true,
+                              userId: true,
+                            },
+                          },
+                        },
                       },
                     },
                   },
@@ -586,6 +597,7 @@ export class ELearningAssignmentService {
               },
             },
           },
+
           submissions: {
             select: {
               id: true,

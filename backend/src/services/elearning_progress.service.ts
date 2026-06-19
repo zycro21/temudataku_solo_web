@@ -125,9 +125,15 @@ export const getSubBabProgress = async ({
           courseId: true,
         },
       },
-      texts: true,
-      quiz: true,
-      assignment: true,
+      texts: {
+        include: {
+          quiz: true,
+          assignment: true,
+        },
+        orderBy: {
+          orderNumber: "asc",
+        },
+      },
     },
   });
 
@@ -182,8 +188,6 @@ export const getSubBabProgress = async ({
       title: subBab.title,
       estimatedTime: subBab.estimatedTime,
       texts: subBab.texts,
-      quiz: subBab.quiz,
-      assignment: subBab.assignment,
     },
     progress: {
       exists: !!progress,
@@ -341,13 +345,13 @@ export const updateSubBabProgress = async ({
   const MAX_TIME_SPENT_PER_REQUEST = 300;
   const safeTimeSpent = Math.min(
     payload.timeSpent ?? 0,
-    MAX_TIME_SPENT_PER_REQUEST
+    MAX_TIME_SPENT_PER_REQUEST,
   );
 
   const newTimeSpent = (existing?.timeSpent ?? 0) + safeTimeSpent;
 
   const isCompleted =
-    payload.isCompleted === true ? true : existing?.isCompleted ?? false;
+    payload.isCompleted === true ? true : (existing?.isCompleted ?? false);
 
   /**
    * 5. Generate ID custom (hanya kalau create)
@@ -448,12 +452,12 @@ export const getCourseProgress = async ({
   });
 
   const completedSubBab = progresses.filter(
-    (p) => p.isCompleted === true
+    (p) => p.isCompleted === true,
   ).length;
 
   const totalTimeSpent = progresses.reduce(
     (sum, p) => sum + (p.timeSpent ?? 0),
-    0
+    0,
   );
 
   const progressPercent =
@@ -534,7 +538,7 @@ export const getSubChapterProgress = async ({
   const totalSubBab = subChapter.subBabs.length;
 
   const completedSubBab = subChapter.subBabs.filter((sb) =>
-    sb.progresses.some((p) => p.isCompleted === true)
+    sb.progresses.some((p) => p.isCompleted === true),
   ).length;
 
   const progressPercent =
@@ -635,7 +639,7 @@ export const getCourseRoadmap = async ({
   const totalSubBab = allSubBabs.length;
 
   const completedSubBab = allSubBabs.filter((sb) =>
-    sb.progresses.some((p) => p.isCompleted === true)
+    sb.progresses.some((p) => p.isCompleted === true),
   ).length;
 
   const progressPercent =
@@ -647,7 +651,7 @@ export const getCourseRoadmap = async ({
   const roadmap = course.subChapters.map((sc) => {
     const total = sc.subBabs.length;
     const completed = sc.subBabs.filter((sb) =>
-      sb.progresses.some((p) => p.isCompleted === true)
+      sb.progresses.some((p) => p.isCompleted === true),
     ).length;
 
     return {
@@ -677,7 +681,7 @@ export const getCourseRoadmap = async ({
     progressPercent,
     isEligibleCertificate: totalSubBab > 0 && completedSubBab === totalSubBab,
     hasStarted: allSubBabs.some(
-      (sb) => sb.progresses[0]?.timeSpent && sb.progresses[0].timeSpent > 0
+      (sb) => sb.progresses[0]?.timeSpent && sb.progresses[0].timeSpent > 0,
     ),
     roadmap,
   };
@@ -836,7 +840,7 @@ export const exportElearningProgressToFile = async ({
     const chars =
       "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     return Array.from({ length }, () =>
-      chars.charAt(Math.floor(Math.random() * chars.length))
+      chars.charAt(Math.floor(Math.random() * chars.length)),
     ).join("");
   };
 
