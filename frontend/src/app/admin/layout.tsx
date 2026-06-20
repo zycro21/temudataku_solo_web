@@ -208,12 +208,25 @@ function BreadcrumbNav({ pathname }: { pathname: string }) {
   );
 
   if (modulesMatch) {
+    const mStreamId = modulesMatch[1];
     return (
       <div className="flex items-center gap-1.5 text-sm">
         <HamburgerBtn />
-        <span className="font-medium text-gray-500 text-sm">{streamName}</span>
+        <Link
+          href="/admin/elearning"
+          className="font-medium text-gray-500 text-sm hover:text-emerald-600 transition-colors truncate max-w-[120px]"
+          title={streamName}
+        >
+          {streamName}
+        </Link>
         <Sep />
-        <span className="font-medium text-gray-500 text-sm">{courseName}</span>
+        <Link
+          href={`/admin/elearning/streams/${mStreamId}/courses`}
+          className="font-medium text-gray-500 text-sm hover:text-emerald-600 transition-colors truncate max-w-[140px]"
+          title={courseName}
+        >
+          {courseName}
+        </Link>
         <Sep />
         <span className="font-bold text-gray-700">Modules</span>
       </div>
@@ -225,7 +238,13 @@ function BreadcrumbNav({ pathname }: { pathname: string }) {
     return (
       <div className="flex items-center gap-1.5 text-sm">
         <HamburgerBtn />
-        <span className="font-medium text-gray-500 text-sm">{name}</span>
+        <Link
+          href="/admin/elearning"
+          className="font-medium text-gray-500 text-sm hover:text-emerald-600 transition-colors truncate max-w-[120px]"
+          title={name}
+        >
+          {name}
+        </Link>
         <Sep />
         <span className="font-bold text-gray-700">Courses</span>
       </div>
@@ -233,29 +252,34 @@ function BreadcrumbNav({ pathname }: { pathname: string }) {
   }
 
   if (materialsMatch) {
+    const matStreamId = materialsMatch[1];
+    const matCourseId = materialsMatch[2];
     return (
       <div className="flex items-center gap-1.5 text-sm">
         <HamburgerBtn />
-        <span
-          className="font-medium text-gray-400 text-sm truncate max-w-[120px]"
+        <Link
+          href="/admin/elearning"
+          className="font-medium text-gray-400 text-sm truncate max-w-[120px] hover:text-emerald-600 transition-colors"
           title={matStreamName}
         >
           {matStreamName || "..."}
-        </span>
+        </Link>
         <Sep />
-        <span
-          className="font-medium text-gray-500 text-sm truncate max-w-[140px]"
+        <Link
+          href={`/admin/elearning/streams/${matStreamId}/courses`}
+          className="font-medium text-gray-500 text-sm truncate max-w-[140px] hover:text-emerald-600 transition-colors"
           title={matCourseName}
         >
           {matCourseName || "..."}
-        </span>
+        </Link>
         <Sep />
-        <span
-          className="font-medium text-gray-500 text-sm truncate max-w-[140px]"
+        <Link
+          href={`/admin/elearning/streams/${matStreamId}/courses/${matCourseId}/modules`}
+          className="font-medium text-gray-500 text-sm truncate max-w-[140px] hover:text-emerald-600 transition-colors"
           title={matModuleName}
         >
           {matModuleName || "..."}
-        </span>
+        </Link>
         <Sep />
         <span className="font-bold text-gray-700 shrink-0">Materials</span>
       </div>

@@ -247,16 +247,7 @@ export class ELearningTextService {
     const whereCondition: any = {
       subBabId,
       ...(search && {
-        OR: [
-          { title: { contains: search, mode: "insensitive" } },
-          {
-            blocks: {
-              some: {
-                content: { contains: search, mode: "insensitive" },
-              },
-            },
-          },
-        ],
+        title: { contains: search, mode: "insensitive" },
       }),
     };
 

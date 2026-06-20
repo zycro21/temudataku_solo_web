@@ -238,8 +238,12 @@ export const ELearningCourseService = {
 
     /* ===== 2. ROLE-BASED ACCESS ===== */
 
-    // ADMIN → bebas
-    if (user.roles.includes("admin")) {
+    // ADMIN / CM / CURDEV → bebas
+    if (
+      user.roles.includes("admin") ||
+      user.roles.includes("cm") ||
+      user.roles.includes("curdev")
+    ) {
       return course;
     }
 

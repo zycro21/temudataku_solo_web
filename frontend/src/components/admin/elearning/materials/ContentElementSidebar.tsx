@@ -160,12 +160,12 @@ const CATEGORIES: Category[] = [
   },
   {
     key: "interactive",
-    label: "Interactive Compo..",
+    label: "Interactive Component",
     description: "Interactive elements to engage learners",
   },
   {
     key: "assesment",
-    label: "Assesment Compo..",
+    label: "Assesment Component",
     description: "Assesment Component, only 1 and/or 2 maximum",
   },
 ];
