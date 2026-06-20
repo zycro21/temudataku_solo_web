@@ -135,6 +135,7 @@ model AYCLBooking {
   batch       AYCLBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
   payment     Payment?
   referralUsage ReferralUsage? @relation("ReferralUsageAYCL", fields: [referralUsageId], references: [id])
+  voucherUsage  VoucherUsage?  @relation("VoucherUsageAYCL")
 
   participants AYCLParticipant[]
 
@@ -176,6 +177,7 @@ model Booking {
   mentee              User      @relation(fields: [menteeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   mentoringService    MentoringService  @relation(fields: [mentoringServiceId], references: [id], onDelete: Cascade, onUpdate: Cascade) 
   referralUsage       ReferralUsage?    @relation("ReferralUsageBooking", fields: [referralUsageId],  references: [id], onDelete: Cascade, onUpdate: Cascade)
+  voucherUsage        VoucherUsage?     @relation("VoucherUsageBooking")
   invoice             BookingInvoice?
   participants        BookingParticipant[]
 
@@ -914,6 +916,7 @@ model ELearningSubscription {
   plan          ELearningSubscriptionPlan @relation(fields: [planId], references: [id])
   payment       Payment?
   referralUsage ReferralUsage?  @relation("ReferralUsageELearningSubscription", fields: [referralUsageId], references: [id])
+  voucherUsage  VoucherUsage?  @relation("VoucherUsageELearning")
 
   @@map("e_learning_subscriptions")
 }
@@ -1453,6 +1456,7 @@ model PracticePurchase {
   practice         Practice         @relation(fields: [practiceId], references: [id])
   payment          Payment?         @relation("PracticePurchasePayment")
   referralUsage    ReferralUsage?   @relation("ReferralUsagePracticePurchase", fields: [referralUsageId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  voucherUsage     VoucherUsage?    @relation("VoucherUsagePractice")
 
   @@map("practice_purchases")
 }
@@ -1777,8 +1781,107 @@ model User {
   eLearningBookmarks         ELearningBookmark[]
   codeRuns                   ELearningCodeRun[] 
   ayclBookings               AYCLBooking[]
+  vouchersCreated            Voucher[]             @relation("VoucherCreatedBy")
+  voucherUsages              VoucherUsage[]        @relation("VoucherUsageUser")
 
   @@map("users")
+}
+
+enum VoucherDiscountType {
+  PERCENTAGE
+  FLAT
+}
+
+enum VoucherProductScope {
+  GLOBAL
+  ELEARNING
+  PRACTICE
+  MENTORING
+  AYCL
+}
+
+model Voucher {
+  id                String              @id @default(cuid())
+  code              String              @unique @db.VarChar
+  name              String              @db.VarChar
+  description       String?             @db.Text
+
+  discountType      VoucherDiscountType
+  discountValue     Decimal             @db.Decimal(10, 2) @map("discount_value")
+
+  // Hanya relevan jika discountType = PERCENTAGE
+  // Contoh: diskon 30% tapi maks potongan Rp 100.000
+  maxDiscountAmount Decimal?            @db.Decimal(10, 2) @map("max_discount_amount")
+
+  minimumPurchase   Decimal?            @db.Decimal(10, 2) @map("minimum_purchase")
+
+  productScope      VoucherProductScope @default(GLOBAL) @map("product_scope")
+
+  // null = unlimited
+  usageLimit        Int?                @map("usage_limit")
+  usageLimitPerUser Int                 @default(1) @map("usage_limit_per_user")
+
+  // Di-increment setiap redemption berhasil (untuk cek kuota)
+  usageCount        Int                 @default(0) @map("usage_count")
+
+  startDate         DateTime?           @map("start_date")
+  expiryDate        DateTime?           @map("expiry_date")
+
+  isActive          Boolean             @default(true) @map("is_active")
+
+  // Admin/marketing yang membuat (untuk audit trail)
+  createdById       String?             @map("created_by_id")
+
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+
+  createdBy         User?               @relation("VoucherCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  usages            VoucherUsage[]
+
+  @@index([code])
+  @@index([isActive])
+  @@index([productScope])
+  @@map("vouchers")
+}
+
+enum VoucherUsageStatus {
+  RESERVED
+  USED
+  CANCELLED
+}
+
+model VoucherUsage {
+  id          String   @id @default(cuid())
+
+  voucherId   String   @map("voucher_id")
+  userId      String   @map("user_id")
+  status       VoucherUsageStatus @default(RESERVED)
+
+  // Audit trail — simpan harga asli, besaran diskon, dan harga final
+  originalAmount  Decimal  @db.Decimal(10, 2) @map("original_amount")
+  discountAmount  Decimal  @db.Decimal(10, 2) @map("discount_amount")
+  finalAmount     Decimal  @db.Decimal(10, 2) @map("final_amount")
+
+  // Hanya satu yang terisi sesuai produk yang dibeli
+  bookingId               String?  @unique @map("booking_id")
+  practicePurchaseId      String?  @unique @map("practice_purchase_id")
+  eLearningSubscriptionId String?  @unique @map("e_learning_subscription_id")
+  ayclBookingId           String?  @unique @map("aycl_booking_id")
+
+  usedAt      DateTime @default(now()) @map("used_at")
+
+  voucher               Voucher                @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  user                  User                   @relation("VoucherUsageUser", fields: [userId], references: [id], onDelete: Cascade)
+  booking               Booking?               @relation("VoucherUsageBooking", fields: [bookingId], references: [id])
+  practicePurchase      PracticePurchase?      @relation("VoucherUsagePractice", fields: [practicePurchaseId], references: [id])
+  eLearningSubscription ELearningSubscription? @relation("VoucherUsageELearning", fields: [eLearningSubscriptionId], references: [id])
+  ayclBooking           AYCLBooking?           @relation("VoucherUsageAYCL", fields: [ayclBookingId], references: [id])
+
+  @@index([voucherId])
+  @@index([userId])
+  @@index([voucherId, userId])
+
+  @@map("voucher_usages")
 }
 
 model WithdrawalMethod {

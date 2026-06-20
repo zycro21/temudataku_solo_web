@@ -12,14 +12,14 @@ export const registerSchema = z.object({
         /[!@#$%^&*(),.?":{}|<>]/.test(val),
       {
         message: "Password must contain letters, numbers, and symbols",
-      }
+      },
     ),
   fullName: z.string().min(3, "Full name is required"),
   phoneNumber: z.string().optional(),
   city: z.string().optional(),
   province: z.string().optional(),
   role: z
-    .enum(["mentee", "mentor", "affiliator", "admin"], {
+    .enum(["mentee", "mentor", "affiliator", "admin", "cm", "curdev"], {
       invalid_type_error: "Invalid role selected",
     })
     .default("mentee"),
@@ -55,7 +55,7 @@ export const resetPasswordSchema = z.object({
         /[!@#$%^&*(),.?":{}|<>]/.test(val),
       {
         message: "Password must contain letters, numbers, and symbols",
-      }
+      },
     ),
 });
 
@@ -71,6 +71,6 @@ export const changePasswordSchema = z.object({
         /[!@#$%^&*(),.?":{}|<>]/.test(val),
       {
         message: "New password must contain letters, numbers, and symbols",
-      }
+      },
     ),
 });

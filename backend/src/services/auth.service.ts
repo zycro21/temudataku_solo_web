@@ -200,6 +200,8 @@ export const registerUser = async (data: {
     mentor: "mentor",
     affiliator: "aff",
     admin: "admin",
+    cm: "cm",
+    curdev: "curdev",
   }[role];
 
   const userRoleId = `${prefix}-${nanoid(10)}`;
