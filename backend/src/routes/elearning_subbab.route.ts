@@ -290,7 +290,7 @@ router.post(
 router.delete(
   "/subbabs/:id",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(deleteSubBabSchema),
   ELearningSubBabController.deleteSubBab
 );

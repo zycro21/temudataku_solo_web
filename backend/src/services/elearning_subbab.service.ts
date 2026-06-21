@@ -488,8 +488,16 @@ export const ELearningSubBabService = {
     });
   },
 
-  async deleteSubBab(id: string) {
+  async deleteSubBab(id: string, user: { userId: string; roles: string[] }) {
     return await prisma.$transaction(async (prismaTx) => {
+      // 🔹 Admin, CM, dan Curdev boleh menghapus
+      const allowedRoles = ["admin", "cm", "curdev"];
+      const isAllowed = user.roles.some((role) => allowedRoles.includes(role));
+
+      if (!isAllowed) {
+        throw new Error("Akses ditolak");
+      }
+
       // 🔹 Cek apakah sub-bab ada
       const subBab = await prismaTx.eLearningSubBab.findUnique({
         where: { id },

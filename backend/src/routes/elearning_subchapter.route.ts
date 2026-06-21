@@ -285,7 +285,7 @@ router.post(
 router.delete(
   "/subchapters/:id",
   authenticate,
-  authorizeRoles("admin"), // hanya admin yang boleh
+  authorizeRoles("admin", "cm", "curdev"), // hanya admin yang boleh
   validate(deleteSubChapterSchema),
   ELearningSubChapterController.deleteSubChapter
 );

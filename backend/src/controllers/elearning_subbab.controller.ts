@@ -193,6 +193,7 @@ export const ELearningSubBabController = {
       // Panggil service
       const result = await ELearningSubBabService.deleteSubBab(
         validatedParams.id,
+        user,
       );
 
       res.status(200).json({
@@ -203,6 +204,8 @@ export const ELearningSubBabController = {
     } catch (err: any) {
       if (err.message.includes("tidak ditemukan")) {
         res.status(404).json({ success: false, message: err.message });
+      } else if (err.message.includes("Akses ditolak")) {
+        res.status(403).json({ success: false, message: err.message });
       } else {
         next(err);
       }

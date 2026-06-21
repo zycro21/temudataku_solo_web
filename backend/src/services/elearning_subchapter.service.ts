@@ -447,8 +447,11 @@ export const ELearningSubChapterService = {
     id: string,
     user: { userId: string; roles: string[] },
   ) {
-    // Hanya admin yang boleh
-    if (!user.roles.includes("admin")) {
+    // Admin, CM, dan Curdev boleh menghapus
+    const allowedRoles = ["admin", "cm", "curdev"];
+    const isAllowed = user.roles.some((role) => allowedRoles.includes(role));
+
+    if (!isAllowed) {
       throw new Error("Akses ditolak");
     }
 
