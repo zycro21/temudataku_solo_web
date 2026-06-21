@@ -828,13 +828,22 @@ export const ELearningSubChapterService = {
           };
         }
       } else if (user.roles.includes("mentee")) {
-        const subscription = await prisma.eLearningSubscription.findFirst({
-          where: { userId: user.userId, courseId: subChapter.courseId },
-        });
-        if (!subscription) {
+        const now = new Date();
+        const activeSubscription = await prisma.eLearningSubscription.findFirst(
+          {
+            where: {
+              userId: user.userId,
+              status: { in: ["active", "confirmed", "completed"] },
+              startAt: { lte: now },
+              endAt: { gt: now },
+            },
+            orderBy: { endAt: "desc" },
+          },
+        );
+        if (!activeSubscription) {
           throw {
             status: 403,
-            message: "Akses ditolak: belum berlangganan",
+            message: "Akses ditolak: Anda tidak memiliki subscription aktif",
           };
         }
       } else {
