@@ -15,6 +15,7 @@ import {
   X,
   Globe,
   FileText,
+  History as HistoryIcon,
 } from "lucide-react";
 
 interface MaterialsTableProps {
@@ -32,6 +33,27 @@ interface ELearningText {
   orderNumber: number | null;
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   updatedAt: string | null;
+}
+
+// ─── Type untuk Audit Log History ────────────────────────────────────────────
+interface AuditLogUser {
+  id: string;
+  fullName: string;
+  email: string | null;
+  profilePicture: string | null;
+}
+
+interface AuditLogItem {
+  id: string;
+  userId: string;
+  entityType: string;
+  entityId: string;
+  action: "CREATE" | "UPDATE" | "DELETE" | "PUBLISH" | "ARCHIVE";
+  description: string | null;
+  oldValue: any;
+  newValue: any;
+  createdAt: string;
+  user: AuditLogUser | null;
 }
 
 // ─── Komponen-komponen kecil didefinisikan di LUAR komponen utama ─────────────
@@ -113,6 +135,7 @@ export default function MaterialsTable({
   const [internalRefreshKey, setInternalRefreshKey] = useState(0);
 
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [menuOpenUpward, setMenuOpenUpward] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>(null);
   const [sortDir, setSortDir] = useState<SortDirection>(null);
@@ -149,6 +172,138 @@ export default function MaterialsTable({
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
   const [deleteSuccessVisible, setDeleteSuccessVisible] = useState(false);
+
+  // ─── History modal ───────────────────────────────────────────────────────
+  const [historyModal, setHistoryModal] = useState<{
+    materialId: string;
+    materialTitle: string;
+  } | null>(null);
+  const [historyVisible, setHistoryVisible] = useState(false);
+  const [historyLogs, setHistoryLogs] = useState<AuditLogItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyTotalPages, setHistoryTotalPages] = useState(1);
+  const [selectedLog, setSelectedLog] = useState<AuditLogItem | null>(null);
+  const [selectedLogVisible, setSelectedLogVisible] = useState(false);
+
+  const fetchHistory = async (materialId: string, page: number) => {
+    setHistoryLoading(true);
+    try {
+      const res = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/elearningText/texts/${materialId}/history`,
+        {
+          withCredentials: true,
+          params: { page, limit: 10 },
+        },
+      );
+      setHistoryLogs(res.data.data ?? []);
+      setHistoryTotalPages(res.data.pagination?.totalPages ?? 1);
+    } catch (err: any) {
+      console.error("Failed to fetch history:", err);
+      toast.error(
+        err.response?.data?.message ||
+          err.message ||
+          "Gagal mengambil riwayat perubahan",
+      );
+      setHistoryLogs([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (historyModal) {
+      fetchHistory(historyModal.materialId, historyPage);
+    }
+    setSelectedLog(null);
+    setSelectedLogVisible(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [historyModal, historyPage]);
+
+  const openHistoryModal = (mat: ELearningText) => {
+    setHistoryPage(1);
+    setHistoryModal({
+      materialId: mat.id,
+      materialTitle: mat.title ?? "(tanpa judul)",
+    });
+    setTimeout(() => setHistoryVisible(true), 10);
+  };
+
+  const closeHistoryModal = () => {
+    setHistoryVisible(false);
+    setSelectedLogVisible(false);
+    setTimeout(() => {
+      setHistoryModal(null);
+      setHistoryLogs([]);
+      setSelectedLog(null);
+    }, 250);
+  };
+
+  // ─── Detail diff panel (old vs new) ─────────────────────────────────────
+  const openDetailPanel = (log: AuditLogItem) => {
+    setSelectedLog(log);
+    setTimeout(() => setSelectedLogVisible(true), 10);
+  };
+
+  const closeDetailPanel = () => {
+    setSelectedLogVisible(false);
+    setTimeout(() => setSelectedLog(null), 200);
+  };
+
+  const formatAuditValue = (value: any): string => {
+    if (value === null || value === undefined || value === "") return "-";
+    if (typeof value === "boolean") return value ? "Ya" : "Tidak";
+    if (Array.isArray(value)) {
+      if (value.length === 0) return "-";
+      return value
+        .map((v) => (typeof v === "object" ? JSON.stringify(v) : String(v)))
+        .join(", ");
+    }
+    if (typeof value === "object") {
+      try {
+        return JSON.stringify(value, null, 2);
+      } catch {
+        return String(value);
+      }
+    }
+    return String(value);
+  };
+
+  const getAuditDiffRows = (
+    oldValue: any,
+    newValue: any,
+  ): { key: string; oldVal: any; newVal: any }[] => {
+    const oldObj =
+      oldValue && typeof oldValue === "object" && !Array.isArray(oldValue)
+        ? oldValue
+        : {};
+    const newObj =
+      newValue && typeof newValue === "object" && !Array.isArray(newValue)
+        ? newValue
+        : {};
+
+    const keys = Array.from(
+      new Set([...Object.keys(oldObj), ...Object.keys(newObj)]),
+    );
+
+    return keys
+      .map((key) => ({ key, oldVal: oldObj[key], newVal: newObj[key] }))
+      .filter(
+        (row) => JSON.stringify(row.oldVal) !== JSON.stringify(row.newVal),
+      );
+  };
+
+  const auditActionMeta: Record<string, { label: string; className: string }> =
+    {
+      CREATE: { label: "Dibuat", className: "bg-emerald-100 text-emerald-700" },
+      UPDATE: { label: "Diperbarui", className: "bg-blue-100 text-blue-700" },
+      DELETE: { label: "Dihapus", className: "bg-red-100 text-red-700" },
+      PUBLISH: {
+        label: "Dipublikasikan",
+        className: "bg-emerald-100 text-emerald-700",
+      },
+      ARCHIVE: { label: "Diarsipkan", className: "bg-gray-200 text-gray-700" },
+    };
 
   // ── Fetch Data ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -491,67 +646,93 @@ export default function MaterialsTable({
                   </td>
 
                   <td className="px-4 py-3 text-center relative">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setOpenMenu(openMenu === mat.id ? null : mat.id);
-                      }}
-                      className="p-2 rounded-md hover:bg-gray-100"
-                    >
-                      <MoreVertical size={15} />
-                    </button>
-
-                    {openMenu === mat.id && (
-                      <div
-                        ref={menuRef}
-                        onClick={(e) => e.stopPropagation()}
-                        className="absolute right-6 mt-2 w-40 bg-white border rounded-lg shadow-md z-50 text-sm"
+                    <div className="relative inline-block">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (openMenu === mat.id) {
+                            setOpenMenu(null);
+                          } else {
+                            const rect =
+                              e.currentTarget.getBoundingClientRect();
+                            const spaceBelow = window.innerHeight - rect.bottom;
+                            const estimatedMenuHeight = 260;
+                            setMenuOpenUpward(spaceBelow < estimatedMenuHeight);
+                            setOpenMenu(mat.id);
+                          }
+                        }}
+                        className="p-2 rounded-md hover:bg-gray-100"
                       >
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOpenMenu(null);
-                            handleEditMaterial(mat);
-                          }}
-                          className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-100 text-gray-700"
+                        <MoreVertical size={15} />
+                      </button>
+
+                      {openMenu === mat.id && (
+                        <div
+                          ref={menuRef}
+                          onClick={(e) => e.stopPropagation()}
+                          className={`absolute right-0 w-40 bg-white border rounded-lg shadow-md z-50 text-sm ${
+                            menuOpenUpward
+                              ? "bottom-full mb-2"
+                              : "top-full mt-2"
+                          }`}
                         >
-                          <Pencil size={15} /> Edit
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOpenMenu(null);
-                            openActionModal(
-                              mat.status === "PUBLISHED"
-                                ? "unpublish"
-                                : "publish",
-                              mat.id,
-                            );
-                          }}
-                          className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-100 text-gray-700"
-                        >
-                          {mat.status === "PUBLISHED" ? (
-                            <>
-                              <FileText size={15} /> Unpublish
-                            </>
-                          ) : (
-                            <>
-                              <Globe size={15} /> Publish
-                            </>
-                          )}
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOpenMenu(null);
-                            openDeleteModal(mat.id);
-                          }}
-                          className="flex items-center gap-2 w-full px-4 py-2 hover:bg-red-50 text-red-600"
-                        >
-                          <Trash2 size={15} /> Delete
-                        </button>
-                      </div>
-                    )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenMenu(null);
+                              openHistoryModal(mat);
+                            }}
+                            className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-100 text-gray-700"
+                          >
+                            <HistoryIcon size={15} />
+                            History
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenMenu(null);
+                              handleEditMaterial(mat);
+                            }}
+                            className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-100 text-gray-700"
+                          >
+                            <Pencil size={15} /> Edit
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenMenu(null);
+                              openActionModal(
+                                mat.status === "PUBLISHED"
+                                  ? "unpublish"
+                                  : "publish",
+                                mat.id,
+                              );
+                            }}
+                            className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-100 text-gray-700"
+                          >
+                            {mat.status === "PUBLISHED" ? (
+                              <>
+                                <FileText size={15} /> Unpublish
+                              </>
+                            ) : (
+                              <>
+                                <Globe size={15} /> Publish
+                              </>
+                            )}
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenMenu(null);
+                              openDeleteModal(mat.id);
+                            }}
+                            className="flex items-center gap-2 w-full px-4 py-2 hover:bg-red-50 text-red-600"
+                          >
+                            <Trash2 size={15} /> Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );
@@ -908,6 +1089,262 @@ export default function MaterialsTable({
               Done
             </button>
           </div>
+        </div>
+      )}
+
+      {/* ── HISTORY MODAL ───────────────────────────────────────────────────── */}
+      {historyModal && (
+        <div
+          className={`fixed inset-0 z-[9999] flex items-center justify-center gap-4 transition-opacity duration-300 ${
+            historyVisible
+              ? "bg-black/60 backdrop-blur-sm opacity-100"
+              : "bg-black/0 opacity-0"
+          }`}
+        >
+          {/* List riwayat */}
+          <div
+            className={`bg-white w-[560px] max-h-[80vh] flex flex-col rounded-2xl shadow-2xl transform transition-all duration-300 ${
+              historyVisible
+                ? "scale-100 opacity-100 translate-y-0"
+                : "scale-95 opacity-0 translate-y-4"
+            }`}
+          >
+            {/* Header — sticky */}
+            <div className="flex items-start justify-between pt-6 px-7 pb-4 border-b border-gray-100 shrink-0">
+              <div className="min-w-0">
+                <h2 className="text-lg font-semibold text-gray-800">
+                  Riwayat Perubahan
+                </h2>
+                <p className="text-sm text-gray-400 mt-0.5 truncate">
+                  {historyModal.materialTitle}
+                </p>
+              </div>
+              <button
+                onClick={closeHistoryModal}
+                className="text-gray-400 hover:text-gray-600 transition mt-0.5 shrink-0"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Scrollable body */}
+            <div className="overflow-y-auto flex-1 px-7 py-5">
+              {historyLoading ? (
+                <p className="text-sm text-gray-400 text-center py-10">
+                  Memuat riwayat...
+                </p>
+              ) : historyLogs.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-10">
+                  Belum ada riwayat perubahan untuk material ini.
+                </p>
+              ) : (
+                <ul className="space-y-3">
+                  {historyLogs.map((log) => {
+                    const meta = auditActionMeta[log.action] ?? {
+                      label: log.action,
+                      className: "bg-gray-100 text-gray-600",
+                    };
+                    const createdDate = new Date(log.createdAt);
+                    const isSelected = selectedLog?.id === log.id;
+
+                    return (
+                      <li
+                        key={log.id}
+                        onClick={() => openDetailPanel(log)}
+                        className={`rounded-lg border px-3 py-3 cursor-pointer transition-colors ${
+                          isSelected
+                            ? "border-emerald-400 bg-emerald-50"
+                            : "border-gray-100 hover:bg-gray-50"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <span className="text-sm font-medium text-gray-800 truncate block">
+                              {log.user?.fullName ?? "Pengguna tidak diketahui"}
+                            </span>
+                            <span className="text-xs text-gray-400 truncate block">
+                              {log.user?.email ?? "-"}
+                            </span>
+                          </div>
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0 ${meta.className}`}
+                          >
+                            {meta.label}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-500 mt-2">
+                          {log.description ?? "Tidak ada deskripsi perubahan"}
+                        </p>
+                        <span className="text-[11px] text-gray-400 mt-1 block">
+                          {createdDate.toLocaleDateString("id-ID", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })}{" "}
+                          ·{" "}
+                          {createdDate.toLocaleTimeString("id-ID", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+
+            {/* Footer / Pagination */}
+            {historyTotalPages > 1 && (
+              <div className="flex items-center justify-between px-7 py-4 border-t border-gray-100 shrink-0">
+                <button
+                  onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}
+                  disabled={historyPage === 1}
+                  className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="text-xs text-gray-500">
+                  Halaman {historyPage} dari {historyTotalPages}
+                </span>
+                <button
+                  onClick={() =>
+                    setHistoryPage((p) => Math.min(historyTotalPages, p + 1))
+                  }
+                  disabled={historyPage === historyTotalPages}
+                  className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Detail perubahan (old vs new) — muncul di sebelah kanan */}
+          {selectedLog && (
+            <div
+              className={`bg-white w-[400px] max-h-[80vh] flex flex-col rounded-2xl shadow-2xl transform transition-all duration-200 ${
+                selectedLogVisible
+                  ? "scale-100 opacity-100 translate-x-0"
+                  : "scale-95 opacity-0 -translate-x-3"
+              }`}
+            >
+              <div className="flex items-start justify-between pt-6 px-6 pb-4 border-b border-gray-100 shrink-0">
+                <div className="min-w-0">
+                  <h3 className="text-base font-semibold text-gray-800">
+                    Detail Perubahan
+                  </h3>
+                  <p className="text-xs text-gray-400 mt-0.5 truncate">
+                    {(auditActionMeta[selectedLog.action]?.label ??
+                      selectedLog.action) +
+                      " oleh " +
+                      (selectedLog.user?.fullName ??
+                        "Pengguna tidak diketahui")}
+                  </p>
+                </div>
+                <button
+                  onClick={closeDetailPanel}
+                  className="text-gray-400 hover:text-gray-600 transition mt-0.5 shrink-0"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="overflow-y-auto flex-1 px-6 py-5">
+                {(() => {
+                  const rows = getAuditDiffRows(
+                    selectedLog.oldValue,
+                    selectedLog.newValue,
+                  );
+
+                  if (rows.length === 0) {
+                    return (
+                      <p className="text-sm text-gray-400 text-center py-10">
+                        Tidak ada detail perubahan field yang tercatat.
+                      </p>
+                    );
+                  }
+
+                  // Label field yang lebih ramah dibaca
+                  const fieldLabels: Record<string, string> = {
+                    title: "Judul",
+                    status: "Status",
+                    components: "Komponen",
+                    quiz: "Quiz",
+                    assignment: "Assignment",
+                  };
+
+                  return (
+                    <div className="space-y-4">
+                      {rows.map((row) => (
+                        <div key={row.key}>
+                          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                            {fieldLabels[row.key] ?? row.key}
+                          </span>
+                          <div className="mt-1.5 space-y-1.5">
+                            <div className="rounded-lg bg-red-50 border border-red-100 px-3 py-2">
+                              <span className="block text-[10px] font-semibold text-red-500 mb-0.5">
+                                Sebelum
+                              </span>
+                              {Array.isArray(row.oldVal) ? (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {row.oldVal.length === 0 ? (
+                                    <span className="text-xs text-red-700">
+                                      -
+                                    </span>
+                                  ) : (
+                                    row.oldVal.map((v: string, i: number) => (
+                                      <span
+                                        key={i}
+                                        className="px-1.5 py-0.5 rounded bg-red-100 text-[10px] text-red-700"
+                                      >
+                                        {v}
+                                      </span>
+                                    ))
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-xs text-red-700 whitespace-pre-wrap break-words">
+                                  {formatAuditValue(row.oldVal)}
+                                </span>
+                              )}
+                            </div>
+                            <div className="rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-2">
+                              <span className="block text-[10px] font-semibold text-emerald-600 mb-0.5">
+                                Sesudah
+                              </span>
+                              {Array.isArray(row.newVal) ? (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {row.newVal.length === 0 ? (
+                                    <span className="text-xs text-emerald-700">
+                                      -
+                                    </span>
+                                  ) : (
+                                    row.newVal.map((v: string, i: number) => (
+                                      <span
+                                        key={i}
+                                        className="px-1.5 py-0.5 rounded bg-emerald-100 text-[10px] text-emerald-700"
+                                      >
+                                        {v}
+                                      </span>
+                                    ))
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-xs text-emerald-700 whitespace-pre-wrap break-words">
+                                  {formatAuditValue(row.newVal)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

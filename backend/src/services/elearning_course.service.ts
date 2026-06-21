@@ -284,7 +284,7 @@ export const ELearningCourseService = {
     throw { status: 403, message: "Akses ditolak: role tidak valid" };
   },
 
-  async createCourse(data: any) {
+  async createCourse(data: any, userId: string) {
     // Pastikan mentor valid
     const mentor = await prisma.mentorProfile.findUnique({
       where: { id: data.mentorId },
@@ -294,7 +294,7 @@ export const ELearningCourseService = {
     // Generate custom ID
     const today = new Date();
     const formattedDate = today.toISOString().split("T")[0].replace(/-/g, "");
-    const randomId = crypto.randomBytes(3).toString("hex"); // 6 karakter hex
+    const randomId = crypto.randomBytes(3).toString("hex");
     const courseId = `elearn-${formattedDate}-${randomId}`;
 
     // Buat data kursus baru
@@ -317,6 +317,29 @@ export const ELearningCourseService = {
       },
     });
 
+    // Ambil email user untuk description audit log
+    const creator = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true },
+    });
+
+    // Catat audit log
+    await prisma.eLearningAuditLog.create({
+      data: {
+        userId,
+        entityType: "COURSE",
+        entityId: newCourse.id,
+        action: "CREATE",
+        description: `${creator?.email ?? userId} membuat stream ${newCourse.title}`,
+        newValue: {
+          id: newCourse.id,
+          title: newCourse.title,
+          mentorId: newCourse.mentorId,
+          status: newCourse.status,
+        },
+      },
+    });
+
     return newCourse;
   },
 
@@ -334,18 +357,14 @@ export const ELearningCourseService = {
     }
 
     const roles = user.roles || [];
-
-    // Role yang diperlakukan seperti admin
     const adminLikeRoles = ["admin", "cm", "curdev"];
     const isAdminLike = roles.some((role) => adminLikeRoles.includes(role));
     const isMentor = roles.includes("mentor");
 
-    // Jika mentor tapi bukan pemilik kursus
     if (isMentor && !isAdminLike && course.mentorId !== user.mentorProfileId) {
-      throw { status: 403, message: "Akses ditolak: bukan pemilik kursus ini" };
+      throw { status: 403, message: "Akses ditolak: bukan pemilik stream ini" };
     }
 
-    // Mentor tidak boleh ubah mentorId
     if (
       isMentor &&
       !isAdminLike &&
@@ -354,22 +373,19 @@ export const ELearningCourseService = {
     ) {
       throw {
         status: 403,
-        message: "Mentor tidak dapat mengubah mentorId kursus",
+        message: "Mentor tidak dapat mengubah mentorId stream",
       };
     }
 
-    // Admin / CM / Curdev boleh mengubah mentorId tapi harus valid
     if (isAdminLike && data.mentorId) {
       const mentorExists = await prisma.mentorProfile.findUnique({
         where: { id: data.mentorId },
       });
-
       if (!mentorExists) {
         throw { status: 400, message: "Mentor baru tidak ditemukan" };
       }
     }
 
-    // Hapus thumbnail lama jika upload baru
     if (data.thumbnailImages && course.thumbnailImages?.length > 0) {
       try {
         for (const oldImagePath of course.thumbnailImages) {
@@ -377,10 +393,8 @@ export const ELearningCourseService = {
             elearningThumbnailPath,
             path.basename(oldImagePath),
           );
-
           if (fs.existsSync(absolutePath)) {
             fs.unlinkSync(absolutePath);
-            console.log(`Deleted old thumbnail: ${absolutePath}`);
           }
         }
       } catch (err) {
@@ -395,6 +409,70 @@ export const ELearningCourseService = {
         updatedAt: new Date(),
       },
     });
+
+    // ── Audit log ─────────────────────────────────────────────────────────────
+
+    // Ambil email updater
+    const updater = await prisma.user.findUnique({
+      where: { id: user.userId },
+      select: { email: true },
+    });
+
+    // Field-field yang bisa diubah beserta label human-readablenya
+    const auditableFields: { key: string; label: string }[] = [
+      { key: "title", label: "judul" },
+      { key: "description", label: "deskripsi" },
+      { key: "thumbnailImages", label: "thumbnail" },
+      { key: "mentorId", label: "mentor" },
+      { key: "category", label: "kategori" },
+      { key: "tags", label: "tags" },
+      { key: "targetAudience", label: "target audiens" },
+      { key: "level", label: "level" },
+      { key: "estimatedDuration", label: "estimasi durasi" },
+      { key: "benefits", label: "manfaat" },
+      { key: "toolsUsed", label: "tools yang digunakan" },
+      { key: "isActive", label: "status aktif" },
+      { key: "status", label: "status publikasi" },
+    ];
+
+    // Kumpulkan field yang benar-benar berubah
+    const changedFields: string[] = [];
+    const oldValue: Record<string, any> = {};
+    const newValue: Record<string, any> = {};
+
+    for (const { key, label } of auditableFields) {
+      if (!(key in data)) continue;
+
+      const before = (course as any)[key];
+      const after = (updated as any)[key];
+
+      // Bandingkan — array pakai JSON.stringify
+      const isDifferent = JSON.stringify(before) !== JSON.stringify(after);
+
+      if (isDifferent) {
+        changedFields.push(label);
+        oldValue[key] = before;
+        newValue[key] = after;
+      }
+    }
+
+    // Hanya catat jika ada yang benar-benar berubah
+    if (changedFields.length > 0) {
+      const email = updater?.email ?? user.userId;
+      const fieldList = changedFields.join(", ");
+
+      await prisma.eLearningAuditLog.create({
+        data: {
+          userId: user.userId,
+          entityType: "COURSE",
+          entityId: updated.id,
+          action: "UPDATE",
+          description: `${email} mengubah ${fieldList} dari stream ${updated.title}`,
+          oldValue,
+          newValue,
+        },
+      });
+    }
 
     return updated;
   },
@@ -1017,5 +1095,82 @@ export const ELearningCourseService = {
     }
 
     return newCourse;
+  },
+
+  async getCourseHistory(
+    id: string,
+    user: { userId: string; roles: string[]; mentorProfileId?: string },
+    page: number = 1,
+    limit: number = 10,
+  ) {
+    /* ===== 1. PASTIKAN COURSE ADA ===== */
+    const course = await prisma.eLearningCourse.findUnique({
+      where: { id },
+      select: { id: true, mentorId: true },
+    });
+
+    if (!course) {
+      throw { status: 404, message: "Stream tidak ditemukan" };
+    }
+
+    /* ===== 2. ROLE-BASED ACCESS (sama seperti getCourseById) ===== */
+    const isPrivileged =
+      user.roles.includes("admin") ||
+      user.roles.includes("cm") ||
+      user.roles.includes("curdev");
+
+    if (!isPrivileged) {
+      if (user.roles.includes("mentor")) {
+        if (course.mentorId !== user.mentorProfileId) {
+          throw {
+            status: 403,
+            message: "Akses ditolak: bukan mentor Stream ini",
+          };
+        }
+      } else {
+        throw { status: 403, message: "Akses ditolak: role tidak valid" };
+      }
+    }
+
+    /* ===== 3. AMBIL AUDIT LOG ===== */
+    const skip = (page - 1) * limit;
+
+    const [logs, total] = await Promise.all([
+      prisma.eLearningAuditLog.findMany({
+        where: {
+          entityType: "COURSE",
+          entityId: id,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              profilePicture: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.eLearningAuditLog.count({
+        where: {
+          entityType: "COURSE",
+          entityId: id,
+        },
+      }),
+    ]);
+
+    return {
+      data: logs,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+    };
   },
 };

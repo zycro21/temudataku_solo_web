@@ -468,3 +468,25 @@ export const getTextContentSchema = z.object({
     textId: z.string().min(1, "Text ID wajib diisi"),
   }),
 });
+
+export const getTextHistorySchema = z.object({
+  params: z.object({
+    id: z.string().min(1, "ID teks wajib diisi"),
+  }),
+  query: z.object({
+    page: z
+      .string()
+      .optional()
+      .transform((val) => (val ? parseInt(val, 10) : 1))
+      .refine((val) => !isNaN(val) && val > 0, {
+        message: "page harus berupa angka positif",
+      }),
+    limit: z
+      .string()
+      .optional()
+      .transform((val) => (val ? parseInt(val, 10) : 10))
+      .refine((val) => !isNaN(val) && val > 0 && val <= 100, {
+        message: "limit harus berupa angka positif (maks. 100)",
+      }),
+  }),
+});

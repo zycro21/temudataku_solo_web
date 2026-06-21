@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma } from "@prisma/client";
+import { PrismaClient, Prisma, CourseStatus } from "@prisma/client";
 import { parseAsync } from "json2csv";
 import ExcelJS from "exceljs";
 import { format } from "date-fns";
@@ -276,6 +276,32 @@ export const ELearningSubChapterService = {
         },
       });
 
+      // ✅ AUDIT LOG
+      const creator = await prismaTx.user.findUnique({
+        where: { id: user.userId },
+        select: { email: true },
+      });
+
+      await prismaTx.eLearningAuditLog.create({
+        data: {
+          userId: user.userId,
+          entityType: "SUB_CHAPTER",
+          entityId: newSubChapter.id,
+          action: "CREATE",
+          description: `${creator?.email ?? user.userId} membuat course ${newSubChapter.title}`,
+          newValue: {
+            id: newSubChapter.id,
+            courseId: newSubChapter.courseId,
+            title: newSubChapter.title,
+            description: newSubChapter.description,
+            coverImage: newSubChapter.coverImage,
+            orderNumber: newSubChapter.orderNumber,
+            estimatedTime: newSubChapter.estimatedTime,
+            status: newSubChapter.status,
+          },
+        },
+      });
+
       return newSubChapter;
     });
   },
@@ -287,7 +313,8 @@ export const ELearningSubChapterService = {
       description: string;
       orderNumber: number;
       estimatedTime: string;
-      coverImage?: string; // tambahan
+      coverImage?: string;
+      status?: CourseStatus; // ✅ tambahan agar status ikut bisa diaudit
     }>,
     user: { userId: string; roles: string[]; mentorProfileId?: string },
   ) {
@@ -354,7 +381,7 @@ export const ELearningSubChapterService = {
     }
 
     // UPDATE (SATU PINTU, TIDAK DUPLIKASI)
-    return await prisma.eLearningSubChapter.update({
+    const updated = await prisma.eLearningSubChapter.update({
       where: { id },
       data: {
         ...data,
@@ -362,6 +389,58 @@ export const ELearningSubChapterService = {
       },
       include: { subBabs: true },
     });
+
+    // ── Audit log ─────────────────────────────────────────────────────────────
+    // Ambil email updater
+    const updater = await prisma.user.findUnique({
+      where: { id: user.userId },
+      select: { email: true },
+    });
+
+    // Field-field yang bisa diubah beserta label human-readable-nya
+    const auditableFields: { key: string; label: string }[] = [
+      { key: "title", label: "judul" },
+      { key: "description", label: "deskripsi" },
+      { key: "coverImage", label: "cover image" },
+      { key: "orderNumber", label: "urutan" },
+      { key: "estimatedTime", label: "estimasi waktu" },
+      { key: "status", label: "status publikasi" },
+    ];
+
+    // Kumpulkan field yang benar-benar berubah
+    const changedFields: string[] = [];
+    const oldValue: Record<string, any> = {};
+    const newValue: Record<string, any> = {};
+    for (const { key, label } of auditableFields) {
+      if (!(key in data)) continue;
+      const before = (subChapter as any)[key];
+      const after = (updated as any)[key];
+      const isDifferent = JSON.stringify(before) !== JSON.stringify(after);
+      if (isDifferent) {
+        changedFields.push(label);
+        oldValue[key] = before;
+        newValue[key] = after;
+      }
+    }
+
+    // Hanya catat jika ada yang benar-benar berubah
+    if (changedFields.length > 0) {
+      const email = updater?.email ?? user.userId;
+      const fieldList = changedFields.join(", ");
+      await prisma.eLearningAuditLog.create({
+        data: {
+          userId: user.userId,
+          entityType: "SUB_CHAPTER",
+          entityId: updated.id,
+          action: "UPDATE",
+          description: `${email} mengubah ${fieldList} dari course ${updated.title}`,
+          oldValue,
+          newValue,
+        },
+      });
+    }
+
+    return updated;
   },
 
   async deleteSubChapter(
@@ -706,6 +785,99 @@ export const ELearningSubChapterService = {
       filename: `subchapters_${Date.now()}_${randomString(6)}.xlsx`,
       mimetype:
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    };
+  },
+
+  async getSubChapterHistory(
+    id: string,
+    user: { userId: string; roles: string[]; mentorProfileId?: string },
+    page: number = 1,
+    limit: number = 50,
+  ) {
+    /* ===== 1. PASTIKAN SUB-CHAPTER ADA (sekalian ambil mentorId course induknya) ===== */
+    const subChapter = await prisma.eLearningSubChapter.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        courseId: true,
+        course: {
+          select: { id: true, mentorId: true },
+        },
+      },
+    });
+
+    if (!subChapter) {
+      throw { status: 404, message: "Sub-chapter tidak ditemukan" };
+    }
+
+    /* ===== 2. ROLE-BASED ACCESS (sama seperti getSubChapterById) ===== */
+    const isPrivileged =
+      user.roles.includes("admin") ||
+      user.roles.includes("cm") ||
+      user.roles.includes("curdev");
+
+    if (!isPrivileged) {
+      if (user.roles.includes("mentor")) {
+        if (subChapter.course.mentorId !== user.mentorProfileId) {
+          throw {
+            status: 403,
+            message: "Akses ditolak: bukan mentor Course ini",
+          };
+        }
+      } else if (user.roles.includes("mentee")) {
+        const subscription = await prisma.eLearningSubscription.findFirst({
+          where: { userId: user.userId, courseId: subChapter.courseId },
+        });
+        if (!subscription) {
+          throw {
+            status: 403,
+            message: "Akses ditolak: belum berlangganan",
+          };
+        }
+      } else {
+        throw { status: 403, message: "Akses ditolak: role tidak valid" };
+      }
+    }
+
+    /* ===== 3. AMBIL AUDIT LOG ===== */
+    const skip = (page - 1) * limit;
+
+    const [logs, total] = await Promise.all([
+      prisma.eLearningAuditLog.findMany({
+        where: {
+          entityType: "SUB_CHAPTER",
+          entityId: id,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              profilePicture: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.eLearningAuditLog.count({
+        where: {
+          entityType: "SUB_CHAPTER",
+          entityId: id,
+        },
+      }),
+    ]);
+
+    return {
+      data: logs,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
     };
   },
 };

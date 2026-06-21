@@ -13,6 +13,7 @@ import {
   duplicateSubChapterSchema,
   listSubChaptersSchema,
   exportSubChaptersSchema,
+  getSubChapterHistorySchema,
 } from "../validations/elearning_subchapter.validation.js";
 import { handleElearningThumbnailUpload } from "../middlewares/uploadImage.js";
 
@@ -496,6 +497,52 @@ router.get(
   authorizeRoles("admin"),
   validate(exportSubChaptersSchema),
   ELearningSubChapterController.exportSubChapters
+);
+
+/**
+ * @swagger
+ * /api/elearningSubChapter/subchapters/{id}/history:
+ *   get:
+ *     summary: Riwayat perubahan (audit log) satu sub-chapter
+ *     description: >
+ *       - Admin/CM/Curdev dapat melihat riwayat sub-chapter dari course manapun.
+ *       - Mentor hanya bisa melihat riwayat sub-chapter dari course yang dia ampu.
+ *     tags: [E-Learning SubChapters]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID sub-chapter
+ *       - name: page
+ *         in: query
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - name: limit
+ *         in: query
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *     responses:
+ *       200:
+ *         description: Riwayat perubahan berhasil diambil
+ *       403:
+ *         description: Akses ditolak
+ *       404:
+ *         description: Sub-chapter tidak ditemukan
+ */
+router.get(
+  "/subchapters/:id/history",
+  authenticate,
+  authorizeRoles("admin", "mentor", "mentee", "cm", "curdev"),
+  validate(getSubChapterHistorySchema),
+  ELearningSubChapterController.getSubChapterHistory
 );
 
 export default router;

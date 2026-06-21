@@ -16,6 +16,7 @@ import {
   exportCoursesSchema,
   exportProductEventSchema,
   duplicateCourseSchema,
+  getCourseHistorySchema,
 } from "../validations/elearning_course.validation.js";
 import { handleElearningThumbnailUpload } from "../middlewares/uploadImage.js";
 
@@ -97,7 +98,7 @@ router.get(
   authenticate,
   authorizeRoles("admin", "mentor", "mentee", "cm", "curdev"),
   validate(getAllCoursesSchema),
-  ELearningCourseController.getAllCourses
+  ELearningCourseController.getAllCourses,
 );
 
 /**
@@ -130,7 +131,7 @@ router.get(
   authenticate,
   authorizeRoles("admin", "mentor", "mentee", "cm", "curdev"),
   validate(getCourseByIdSchema),
-  ELearningCourseController.getCourseById
+  ELearningCourseController.getCourseById,
 );
 
 /**
@@ -209,7 +210,7 @@ router.post(
   authorizeRoles("admin", "cm", "curdev"),
   handleElearningThumbnailUpload("thumbnailImages", true),
   validate(createCourseSchema),
-  ELearningCourseController.createCourse
+  ELearningCourseController.createCourse,
 );
 
 /**
@@ -296,7 +297,7 @@ router.put(
   authorizeRoles("admin", "mentor", "cm", "curdev"),
   handleElearningThumbnailUpload("thumbnailImages", true),
   validate(updateCourseSchema),
-  ELearningCourseController.updateCourse
+  ELearningCourseController.updateCourse,
 );
 
 /**
@@ -341,7 +342,7 @@ router.patch(
   authenticate,
   authorizeRoles("admin", "cm", "curdev"),
   validate(toggleStatusSchema),
-  ELearningCourseController.toggleStatus
+  ELearningCourseController.toggleStatus,
 );
 
 /**
@@ -374,7 +375,7 @@ router.delete(
   authenticate,
   authorizeRoles("admin", "cm", "curdev"),
   validate(deleteCourseSchema),
-  ELearningCourseController.deleteCourse
+  ELearningCourseController.deleteCourse,
 );
 
 /**
@@ -426,7 +427,7 @@ router.delete(
 router.get(
   "/publicCourses",
   validate(getCoursesSchema),
-  ELearningCourseController.listCourses
+  ELearningCourseController.listCourses,
 );
 
 /**
@@ -453,7 +454,7 @@ router.get(
 router.get(
   "/publicCourses/:id",
   validate(getCourseDetailSchema),
-  ELearningCourseController.getCourseDetail
+  ELearningCourseController.getCourseDetail,
 );
 
 /**
@@ -486,7 +487,7 @@ router.get(
   authenticate,
   authorizeRoles("mentor", "admin"),
   validate(getCourseStatisticsSchema),
-  ELearningCourseController.getCourseStatistics
+  ELearningCourseController.getCourseStatistics,
 );
 
 /**
@@ -532,7 +533,7 @@ router.get(
   authenticate,
   authorizeRoles("admin"),
   validate(exportCoursesSchema),
-  ELearningCourseController.exportCourses
+  ELearningCourseController.exportCourses,
 );
 
 /**
@@ -570,7 +571,7 @@ router.get(
   authenticate,
   authorizeRoles("admin", "cm", "curdev"),
   validate(exportProductEventSchema),
-  ELearningCourseController.exportProductEvent
+  ELearningCourseController.exportProductEvent,
 );
 
 /**
@@ -587,8 +588,50 @@ router.post(
   authenticate,
   authorizeRoles("admin", "mentor", "cm", "curdev"),
   validate(duplicateCourseSchema),
-  ELearningCourseController.duplicateCourse
+  ELearningCourseController.duplicateCourse,
 );
 
+/**
+ * @swagger
+ * /api/elearningCourse/courses/{id}/history:
+ *   get:
+ *     summary: Mendapatkan riwayat perubahan (audit log) sebuah kursus
+ *     tags: [E-Learning Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID kursus
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *     responses:
+ *       200:
+ *         description: Riwayat perubahan kursus berhasil diambil
+ *       403:
+ *         description: Akses ditolak
+ *       404:
+ *         description: Kursus tidak ditemukan
+ *       500:
+ *         description: Kesalahan server
+ */
+router.get(
+  "/courses/:id/history",
+  authenticate,
+  authorizeRoles("admin", "mentor", "cm", "curdev"),
+  validate(getCourseHistorySchema),
+  ELearningCourseController.getCourseHistory,
+);
 
 export default router;

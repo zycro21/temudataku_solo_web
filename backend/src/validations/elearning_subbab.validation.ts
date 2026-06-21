@@ -67,7 +67,7 @@ export const reorderSubBabSchema = z.object({
         z.object({
           subBabId: z.string().min(1, "SubBab ID wajib diisi"),
           newOrderNumber: z.number().min(1, "Order number minimal 1"),
-        })
+        }),
       )
       .min(1, "Minimal satu sub-bab untuk diubah urutannya"),
   }),
@@ -95,5 +95,27 @@ export const getAllSubBabsSchema = z.object({
 export const exportSubBabsSchema = z.object({
   query: z.object({
     format: z.enum(["csv", "excel"]).default("csv"),
+  }),
+});
+
+export const getSubBabHistorySchema = z.object({
+  params: z.object({
+    id: z.string().min(1, "SubBab ID wajib diisi"),
+  }),
+  query: z.object({
+    page: z
+      .string()
+      .optional()
+      .transform((val) => (val ? parseInt(val, 10) : 1))
+      .refine((val) => !isNaN(val) && val > 0, {
+        message: "page harus berupa angka positif",
+      }),
+    limit: z
+      .string()
+      .optional()
+      .transform((val) => (val ? parseInt(val, 10) : 10))
+      .refine((val) => !isNaN(val) && val > 0 && val <= 100, {
+        message: "limit harus berupa angka positif (maks. 100)",
+      }),
   }),
 });

@@ -655,7 +655,9 @@ export class ELearningTextService {
     data: {
       title?: string;
       status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
-      blocks?: BlockInput[]; // ← pakai BlockInput yang sudah ada, optional
+      blocks?: BlockInput[];
+      quiz?: any;
+      assignment?: any;
     },
     user: { userId: string; roles: string[]; mentorProfileId?: string },
   ) {
@@ -664,7 +666,7 @@ export class ELearningTextService {
       // 1. Validasi blocks
       // ======================
       if (data.blocks && data.blocks.length > 0) {
-        const orders = data.blocks.map((b) => b.orderNumber); // ← b.order → b.orderNumber
+        const orders = data.blocks.map((b) => b.orderNumber);
         const uniqueOrders = new Set(orders);
         if (uniqueOrders.size !== orders.length) {
           throw new Error("Order block harus unik");
@@ -740,9 +742,82 @@ export class ELearningTextService {
       await tx.eLearningTextBlock.createMany({
         data: (data.blocks ?? []).map((b) => ({
           textId: text.id,
-          orderNumber: b.orderNumber, // ← b.order → b.orderNumber
+          orderNumber: b.orderNumber,
           createdAt: new Date(),
         })),
+      });
+
+      // ======================
+      // 9. Audit log — deteksi komponen yang ikut dibuat (dari payload)
+      // ======================
+      const creator = await tx.user.findUnique({
+        where: { id: user.userId },
+        select: { email: true },
+      });
+      const email = creator?.email ?? user.userId;
+
+      // Label human-readable per tipe content block
+      const contentTypeLabels: Record<string, string> = {
+        heading: "Heading",
+        paragraph: "Paragraph",
+        highlight: "Highlight",
+        accordion: "Accordion",
+        carousel: "Carousel",
+        content_card: "Content Card",
+        tab_navigation: "Tab Navigation",
+        summary: "Summary",
+      };
+
+      // Label human-readable per tipe additional content
+      const additionalTypeLabels: Record<string, string> = {
+        image_video: null as any, // ditentukan dinamis dari mediaType (Image/Video)
+        multiple_choice: "True/False",
+        matching: "Matching",
+        interactive_code: "Code",
+      };
+
+      const componentNames: string[] = [];
+
+      for (const block of data.blocks ?? []) {
+        for (const content of block.contents ?? []) {
+          const label = contentTypeLabels[content.type];
+          if (label) componentNames.push(label);
+        }
+
+        for (const additional of block.additionalContents ?? []) {
+          if (additional.type === "image_video") {
+            const mediaType = additional.content?.mediaType;
+            componentNames.push(mediaType === "VIDEO" ? "Video" : "Image");
+          } else {
+            const label = additionalTypeLabels[additional.type];
+            if (label) componentNames.push(label);
+          }
+        }
+      }
+
+      if (data.quiz) componentNames.push("Quiz");
+      if (data.assignment) componentNames.push("Assignment");
+
+      const description =
+        componentNames.length > 0
+          ? `${email} membuat material ${text.title ?? "(tanpa judul)"} dengan komponen ${componentNames.join(", ")}`
+          : `${email} membuat material ${text.title ?? "(tanpa judul)"}`;
+
+      await tx.eLearningAuditLog.create({
+        data: {
+          userId: user.userId,
+          entityType: "TEXT",
+          entityId: text.id,
+          action: "CREATE",
+          description,
+          newValue: {
+            id: text.id,
+            subBabId: text.subBabId,
+            title: text.title,
+            status: text.status,
+            ...(componentNames.length > 0 && { components: componentNames }),
+          },
+        },
       });
 
       // ======================
@@ -798,6 +873,88 @@ export class ELearningTextService {
         }
       }
 
+      // ── 1b. Audit log: ambil snapshot komponen LAMA sebelum apa pun diubah ──
+      const { blocks, quiz, assignment, ...scalarDataForAudit } = data;
+
+      const contentTypeLabels: Record<string, string> = {
+        heading: "Heading",
+        paragraph: "Paragraph",
+        highlight: "Highlight",
+        accordion: "Accordion",
+        carousel: "Carousel",
+        content_card: "Content Card",
+        tab_navigation: "Tab Navigation",
+        summary: "Summary",
+      };
+
+      const additionalTypeLabels: Record<string, string> = {
+        multiple_choice: "True/False",
+        matching: "Matching",
+        interactive_code: "Code",
+      };
+
+      // Label dari enum DB (ContentBlockType / AdditionalContentType) → dipakai
+      // untuk membaca komponen LAMA dari DB (karena di DB tersimpan uppercase)
+      const dbContentTypeLabels: Record<string, string> = {
+        HEADING: "Heading",
+        PARAGRAPH: "Paragraph",
+        HIGHLIGHT: "Highlight",
+        ACCORDION: "Accordion",
+        CAROUSEL: "Carousel",
+        CONTENT_CARD: "Content Card",
+        TAB_NAVIGATION: "Tab Navigation",
+        SUMMARY: "Summary",
+      };
+
+      const dbAdditionalTypeLabels: Record<string, string> = {
+        MULTIPLE_CHOICE: "True/False",
+        MATCHING: "Matching",
+        INTERACTIVE_CODE: "Code",
+      };
+
+      let oldComponentNames: string[] = [];
+
+      if (blocks !== undefined) {
+        const oldBlocks = await tx.eLearningTextBlock.findMany({
+          where: { textId: id },
+          include: {
+            contentBlocks: { select: { type: true } },
+            additionalContents: {
+              select: {
+                type: true,
+                video: { select: { mediaType: true } },
+              },
+            },
+          },
+        });
+
+        for (const block of oldBlocks) {
+          for (const cb of block.contentBlocks) {
+            const label = dbContentTypeLabels[cb.type as string];
+            if (label) oldComponentNames.push(label);
+          }
+          for (const ac of block.additionalContents) {
+            if (ac.type === "IMAGE_VIDEO") {
+              oldComponentNames.push(
+                ac.video?.mediaType === "VIDEO" ? "Video" : "Image",
+              );
+            } else {
+              const label = dbAdditionalTypeLabels[ac.type as string];
+              if (label) oldComponentNames.push(label);
+            }
+          }
+        }
+      }
+
+      const hadQuizBefore = !!(await tx.eLearningQuiz.findUnique({
+        where: { textId: id },
+        select: { id: true },
+      }));
+      const hadAssignmentBefore = !!(await tx.eLearningAssignment.findUnique({
+        where: { textId: id },
+        select: { id: true },
+      }));
+
       // ── 2. Shift orderNumber ─────────────────────────────────────────────
       if (
         data.orderNumber !== undefined &&
@@ -834,11 +991,9 @@ export class ELearningTextService {
       }
 
       // ── 3. Update field text utama ───────────────────────────────────────
-      const { blocks, quiz, assignment, ...scalarData } = data;
-
-      await tx.eLearningText.update({
+      const updatedScalar = await tx.eLearningText.update({
         where: { id },
-        data: { ...scalarData, updatedAt: new Date() },
+        data: { ...scalarDataForAudit, updatedAt: new Date() },
       });
 
       // ── 4. Blocks ────────────────────────────────────────────────────────
@@ -1162,7 +1317,6 @@ export class ELearningTextService {
           const quizInSameSubBab = await tx.eLearningQuiz.findFirst({
             where: {
               text: { subBabId: existing.subBabId },
-              // kecualikan text yang sedang di-update (sudah dicek di atas, tidak ada)
             },
             select: {
               id: true,
@@ -1363,7 +1517,137 @@ export class ELearningTextService {
         }
       }
 
-      // ── 7. Return text terbaru ───────────────────────────────────────────
+      // ── 7a. Audit log ────────────────────────────────────────────────────
+      const updater = await tx.user.findUnique({
+        where: { id: user.userId },
+        select: { email: true },
+      });
+      const email = updater?.email ?? user.userId;
+
+      // Bagian 1: perubahan field scalar text (title, status)
+      const auditableScalarFields: { key: string; label: string }[] = [
+        { key: "title", label: "judul" },
+        { key: "status", label: "status publikasi" },
+      ];
+
+      const changedScalarFields: string[] = [];
+      const oldValue: Record<string, any> = {};
+      const newValue: Record<string, any> = {};
+
+      for (const { key, label } of auditableScalarFields) {
+        if (!(key in scalarDataForAudit)) continue;
+
+        const before = (existing as any)[key];
+        const after = (updatedScalar as any)[key];
+
+        const isDifferent = JSON.stringify(before) !== JSON.stringify(after);
+
+        if (isDifferent) {
+          changedScalarFields.push(label);
+          oldValue[key] = before;
+          newValue[key] = after;
+        }
+      }
+
+      // Bagian 2: komponen baru di blocks (kalau blocks dikirim)
+      let newComponentNames: string[] = [];
+      if (blocks !== undefined) {
+        for (const block of blocks) {
+          for (const content of block.contents ?? []) {
+            const label = contentTypeLabels[content.type];
+            if (label) newComponentNames.push(label);
+          }
+          for (const additional of block.additionalContents ?? []) {
+            if (additional.type === "image_video") {
+              const mediaType = additional.content?.mediaType;
+              newComponentNames.push(mediaType === "VIDEO" ? "Video" : "Image");
+            } else {
+              const label = additionalTypeLabels[additional.type];
+              if (label) newComponentNames.push(label);
+            }
+          }
+        }
+      }
+
+      // Bandingkan komposisi komponen lama vs baru (multiset comparison)
+      const componentsChanged =
+        blocks !== undefined &&
+        JSON.stringify([...oldComponentNames].sort()) !==
+          JSON.stringify([...newComponentNames].sort());
+
+      if (componentsChanged) {
+        oldValue.components = oldComponentNames;
+        newValue.components = newComponentNames;
+      }
+
+      // Bagian 3: Quiz
+      let quizChangeLabel: string | null = null;
+      if (quiz !== undefined) {
+        quizChangeLabel = hadQuizBefore
+          ? "memperbarui Quiz"
+          : "menambahkan Quiz";
+        oldValue.quiz = hadQuizBefore ? "ada" : null;
+        newValue.quiz = {
+          title: quiz.title,
+          totalQuestions: quiz.questions.length,
+        };
+      }
+
+      // Bagian 4: Assignment
+      let assignmentChangeLabel: string | null = null;
+      if (assignment !== undefined) {
+        assignmentChangeLabel = hadAssignmentBefore
+          ? "memperbarui Assignment"
+          : "menambahkan Assignment";
+        oldValue.assignment = hadAssignmentBefore ? "ada" : null;
+        newValue.assignment = { title: assignment.title };
+      }
+
+      // ── Susun description dinamis ──────────────────────────────────────
+      const descriptionParts: string[] = [];
+
+      if (changedScalarFields.length > 0) {
+        descriptionParts.push(changedScalarFields.join(", "));
+      }
+
+      const componentMentions: string[] = [];
+      if (componentsChanged && newComponentNames.length > 0) {
+        componentMentions.push(...newComponentNames);
+      }
+      if (quizChangeLabel) componentMentions.push(quizChangeLabel);
+      if (assignmentChangeLabel) componentMentions.push(assignmentChangeLabel);
+
+      const hasAnyChange =
+        changedScalarFields.length > 0 ||
+        componentsChanged ||
+        quizChangeLabel ||
+        assignmentChangeLabel;
+
+      if (hasAnyChange) {
+        let description = `${email} mengubah material ${updatedScalar.title ?? "(tanpa judul)"}`;
+
+        if (changedScalarFields.length > 0) {
+          description += ` (${changedScalarFields.join(", ")})`;
+        }
+
+        if (componentMentions.length > 0) {
+          description += ` dengan komponen ${componentMentions.join(", ")}`;
+        }
+
+        await tx.eLearningAuditLog.create({
+          data: {
+            userId: user.userId,
+            entityType: "TEXT",
+            entityId: updatedScalar.id,
+            action: "UPDATE",
+            description,
+            oldValue,
+            newValue,
+          },
+        });
+      }
+
+      // ── 7b. Return text terbaru ───────────────────────────────────────────
       return tx.eLearningText.findUnique({
         where: { id },
         include: {
@@ -1719,6 +2003,115 @@ export class ELearningTextService {
       filename: `elearning_texts_${Date.now()}_${randomString(6)}.xlsx`,
       mimetype:
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    };
+  }
+
+  static async getTextHistory(
+    id: string,
+    user: { userId: string; roles: string[]; mentorProfileId?: string },
+    page: number = 1,
+    limit: number = 10,
+  ) {
+    /* ===== 1. PASTIKAN TEXT ADA (sekalian ambil mentorId course induknya) ===== */
+    const text = await prisma.eLearningText.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        subBabId: true,
+        subBab: {
+          select: {
+            subChapter: {
+              select: {
+                course: {
+                  select: { id: true, mentorId: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!text) {
+      throw new Error("Teks tidak ditemukan");
+    }
+
+    const course = text.subBab.subChapter.course;
+
+    /* ===== 2. ROLE-BASED ACCESS (sama seperti getTextById) ===== */
+    const isAdminLike = ["admin", "cm", "curdev"].some((role) =>
+      user.roles.includes(role),
+    );
+
+    if (!isAdminLike) {
+      if (
+        user.roles.includes("mentor") &&
+        user.mentorProfileId !== course.mentorId
+      ) {
+        throw new Error("Akses ditolak: Anda bukan mentor dari course ini");
+      }
+
+      if (user.roles.includes("mentee")) {
+        const now = new Date();
+        const activeSubscription = await prisma.eLearningSubscription.findFirst(
+          {
+            where: {
+              userId: user.userId,
+              status: { in: ["active", "confirmed", "completed"] },
+              startAt: { lte: now },
+              endAt: { gt: now },
+            },
+            orderBy: { endAt: "desc" },
+          },
+        );
+
+        if (!activeSubscription) {
+          throw new Error(
+            "Akses ditolak: Anda tidak memiliki subscription aktif",
+          );
+        }
+      }
+    }
+
+    /* ===== 3. AMBIL AUDIT LOG ===== */
+    const skip = (page - 1) * limit;
+
+    const [logs, total] = await Promise.all([
+      prisma.eLearningAuditLog.findMany({
+        where: {
+          entityType: "TEXT",
+          entityId: id,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              profilePicture: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.eLearningAuditLog.count({
+        where: {
+          entityType: "TEXT",
+          entityId: id,
+        },
+      }),
+    ]);
+
+    return {
+      data: logs,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
     };
   }
 }

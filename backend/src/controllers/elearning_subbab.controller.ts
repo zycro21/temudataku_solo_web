@@ -359,4 +359,49 @@ export const ELearningSubBabController = {
       next(err);
     }
   },
+
+  async getSubBabHistory(
+    req: AuthenticatedRequestSubBab,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const { validatedParams, validatedQuery, user } = req;
+
+      if (!user || !validatedParams?.id) {
+        res.status(400).json({
+          success: false,
+          message: "Data request tidak valid",
+        });
+        return;
+      }
+
+      const page = validatedQuery?.page ?? 1;
+      const limit = validatedQuery?.limit ?? 100;
+
+      const result = await ELearningSubBabService.getSubBabHistory(
+        validatedParams.id,
+        user,
+        page,
+        limit,
+      );
+
+      res.status(200).json({
+        success: true,
+        data: result.data,
+        pagination: result.pagination,
+      });
+    } catch (err: any) {
+      if (err.message?.includes("tidak ditemukan")) {
+        res.status(404).json({ success: false, message: err.message });
+      } else if (
+        err.message?.includes("Akses") ||
+        err.message?.includes("hanya bisa")
+      ) {
+        res.status(403).json({ success: false, message: err.message });
+      } else {
+        next(err);
+      }
+    }
+  },
 };

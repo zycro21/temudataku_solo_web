@@ -314,11 +314,37 @@ export const ELearningSubBabService = {
           title: data.title,
           estimatedTime: data.estimatedTime || "",
           orderNumber: newOrder,
-          status, // ← TAMBAHAN
+          status,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
       });
+
+      // ── Audit log ────────────────────────────────────────────────────────────
+      // Ambil email user untuk description audit log
+      const creator = await prismaTx.user.findUnique({
+        where: { id: user.userId },
+        select: { email: true },
+      });
+
+      await prismaTx.eLearningAuditLog.create({
+        data: {
+          userId: user.userId,
+          entityType: "SUB_BAB",
+          entityId: newSubBab.id,
+          action: "CREATE",
+          description: `${creator?.email ?? user.userId} membuat module ${newSubBab.title}`,
+          newValue: {
+            id: newSubBab.id,
+            subChapterId: newSubBab.subChapterId,
+            title: newSubBab.title,
+            estimatedTime: newSubBab.estimatedTime,
+            orderNumber: newSubBab.orderNumber,
+            status: newSubBab.status,
+          },
+        },
+      });
+      // ────────────────────────────────────────────────────────────────────────
 
       return newSubBab;
     });
@@ -394,6 +420,61 @@ export const ELearningSubBabService = {
           },
         },
       });
+
+      // ── Audit log ─────────────────────────────────────────────────────────────
+
+      // Ambil email updater
+      const updater = await prismaTx.user.findUnique({
+        where: { id: user.userId },
+        select: { email: true },
+      });
+
+      // Field-field yang bisa diubah beserta label human-readablenya
+      const auditableFields: { key: string; label: string }[] = [
+        { key: "title", label: "judul" },
+        { key: "estimatedTime", label: "estimasi waktu" },
+        { key: "orderNumber", label: "urutan" },
+        { key: "status", label: "status publikasi" },
+      ];
+
+      // Kumpulkan field yang benar-benar berubah
+      const changedFields: string[] = [];
+      const oldValue: Record<string, any> = {};
+      const newValue: Record<string, any> = {};
+
+      for (const { key, label } of auditableFields) {
+        if (!(key in data)) continue;
+
+        const before = (subBab as any)[key];
+        const after = (updatedSubBab as any)[key];
+
+        const isDifferent = JSON.stringify(before) !== JSON.stringify(after);
+
+        if (isDifferent) {
+          changedFields.push(label);
+          oldValue[key] = before;
+          newValue[key] = after;
+        }
+      }
+
+      // Hanya catat jika ada yang benar-benar berubah
+      if (changedFields.length > 0) {
+        const email = updater?.email ?? user.userId;
+        const fieldList = changedFields.join(", ");
+
+        await prismaTx.eLearningAuditLog.create({
+          data: {
+            userId: user.userId,
+            entityType: "SUB_BAB",
+            entityId: updatedSubBab.id,
+            action: "UPDATE",
+            description: `${email} mengubah ${fieldList} dari module ${updatedSubBab.title}`,
+            oldValue,
+            newValue,
+          },
+        });
+      }
+      // ────────────────────────────────────────────────────────────────────────
 
       return {
         id: updatedSubBab.id,
@@ -741,6 +822,117 @@ export const ELearningSubBabService = {
       filename: `subbabs_${Date.now()}_${randomString(6)}.xlsx`,
       mimetype:
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    };
+  },
+
+  async getSubBabHistory(
+    id: string,
+    user: { userId: string; roles: string[]; mentorProfileId?: string },
+    page: number = 1,
+    limit: number = 50,
+  ) {
+    const now = new Date();
+
+    /* ===== 1. PASTIKAN SUB-BAB ADA (sekalian ambil mentorId course induknya) ===== */
+    const subBab = await prisma.eLearningSubBab.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        subChapterId: true,
+        subChapter: {
+          select: {
+            course: {
+              select: { id: true, mentorId: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!subBab) {
+      throw new Error("Sub-bab tidak ditemukan");
+    }
+
+    const course = subBab.subChapter.course;
+
+    /* ===== 2. ROLE-BASED ACCESS (sama seperti getSubBabById) ===== */
+    if (user.roles.includes("mentor")) {
+      if (user.mentorProfileId !== course.mentorId) {
+        throw new Error(
+          "Mentor hanya bisa melihat riwayat sub-bab dari course yang dia ampu",
+        );
+      }
+    } else if (user.roles.includes("mentee")) {
+      const activeSubscription = await prisma.eLearningSubscription.findFirst({
+        where: {
+          userId: user.userId,
+          status: {
+            in: ["active", "confirmed", "completed"],
+          },
+          startAt: {
+            lte: now,
+          },
+          endAt: {
+            gt: now,
+          },
+        },
+        orderBy: {
+          endAt: "desc",
+        },
+      });
+
+      if (!activeSubscription) {
+        throw new Error(
+          "Akses ditolak. Anda tidak memiliki subscription aktif.",
+        );
+      }
+    } else if (
+      !user.roles.includes("admin") &&
+      !user.roles.includes("cm") &&
+      !user.roles.includes("curdev")
+    ) {
+      throw new Error("Akses ditolak: role tidak valid");
+    }
+
+    /* ===== 3. AMBIL AUDIT LOG ===== */
+    const skip = (page - 1) * limit;
+
+    const [logs, total] = await Promise.all([
+      prisma.eLearningAuditLog.findMany({
+        where: {
+          entityType: "SUB_BAB",
+          entityId: id,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              profilePicture: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.eLearningAuditLog.count({
+        where: {
+          entityType: "SUB_BAB",
+          entityId: id,
+        },
+      }),
+    ]);
+
+    return {
+      data: logs,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
     };
   },
 };

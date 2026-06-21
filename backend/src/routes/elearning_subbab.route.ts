@@ -13,6 +13,7 @@ import {
   reorderSubBabSchema,
   getAllSubBabsSchema,
   exportSubBabsSchema,
+  getSubBabHistorySchema,
 } from "../validations/elearning_subbab.validation.js";
 
 const router = express.Router();
@@ -454,6 +455,53 @@ router.get(
   authorizeRoles("admin"),
   validate(exportSubBabsSchema),
   ELearningSubBabController.exportSubBabs
+);
+
+/**
+ * @swagger
+ * /api/elearningSubBab/subbabs/{id}/history:
+ *   get:
+ *     summary: Riwayat perubahan (audit log) satu sub-bab
+ *     description: >
+ *       - Admin/CM/Curdev dapat melihat riwayat sub-bab dari course manapun.
+ *       - Mentor hanya bisa melihat riwayat sub-bab dari course yang dia ampu.
+ *       - Mentee hanya bisa melihat jika memiliki subscription aktif.
+ *     tags: [E-Learning SubBabs]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID Sub-Bab
+ *       - name: page
+ *         in: query
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - name: limit
+ *         in: query
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *     responses:
+ *       200:
+ *         description: Riwayat perubahan berhasil diambil
+ *       403:
+ *         description: Akses ditolak
+ *       404:
+ *         description: Sub-bab tidak ditemukan
+ */
+router.get(
+  "/subbabs/:id/history",
+  authenticate,
+  authorizeRoles("admin", "mentor", "mentee", "cm", "curdev"),
+  validate(getSubBabHistorySchema),
+  ELearningSubBabController.getSubBabHistory
 );
 
 export default router;

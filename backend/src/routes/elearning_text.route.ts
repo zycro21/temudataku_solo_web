@@ -11,6 +11,7 @@ import {
   reorderTextSchema,
   searchTextSchema,
   exportTextSchema,
+  getTextHistorySchema,
 } from "../validations/elearning_text.validation.js";
 import { ELearningTextController } from "../controllers/elearning_text.controller.js";
 import { handleELearningTextFilesUpload } from "../middlewares/uploadImage.js";
@@ -486,6 +487,53 @@ router.get(
   authorizeRoles("admin"),
   validate(exportTextSchema),
   ELearningTextController.exportTexts,
+);
+
+/**
+ * @swagger
+ * /api/elearningText/texts/{id}/history:
+ *   get:
+ *     summary: Riwayat perubahan (audit log) satu teks/materi
+ *     description: >
+ *       - Admin/CM/Curdev dapat melihat riwayat teks dari sub-bab mana pun.
+ *       - Mentor hanya bisa melihat riwayat teks dari course yang dia ampu.
+ *       - Mentee hanya bisa melihat jika memiliki subscription aktif.
+ *     tags: [E-Learning Texts]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID teks
+ *       - name: page
+ *         in: query
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - name: limit
+ *         in: query
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *     responses:
+ *       200:
+ *         description: Riwayat perubahan berhasil diambil
+ *       403:
+ *         description: Akses ditolak
+ *       404:
+ *         description: Teks tidak ditemukan
+ */
+router.get(
+  "/texts/:id/history",
+  authenticate,
+  authorizeRoles("admin", "mentor", "mentee", "cm", "curdev"),
+  validate(getTextHistorySchema),
+  ELearningTextController.getTextHistory,
 );
 
 export default router;

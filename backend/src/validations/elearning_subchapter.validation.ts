@@ -120,3 +120,25 @@ export const exportSubChaptersSchema = z.object({
     format: z.enum(["csv", "excel"]).default("csv"),
   }),
 });
+
+export const getSubChapterHistorySchema = z.object({
+  params: z.object({
+    id: z.string().min(1, "Sub-chapter ID wajib diisi"),
+  }),
+  query: z.object({
+    page: z
+      .string()
+      .optional()
+      .transform((val) => (val ? parseInt(val, 10) : 1))
+      .refine((val) => !isNaN(val) && val > 0, {
+        message: "page harus berupa angka positif",
+      }),
+    limit: z
+      .string()
+      .optional()
+      .transform((val) => (val ? parseInt(val, 10) : 10))
+      .refine((val) => !isNaN(val) && val > 0 && val <= 100, {
+        message: "limit harus berupa angka positif (maks. 100)",
+      }),
+  }),
+});

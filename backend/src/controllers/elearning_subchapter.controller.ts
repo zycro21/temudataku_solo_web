@@ -350,4 +350,41 @@ export const ELearningSubChapterController = {
       next(err);
     }
   },
+
+  async getSubChapterHistory(
+    req: AuthenticatedRequestSubChapter,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const { user, validatedParams, validatedQuery } = req;
+
+      if (!user || !validatedParams || !validatedParams.id) {
+        res.status(400).json({
+          success: false,
+          message: "Data request tidak valid",
+        });
+        return;
+      }
+
+      const id = validatedParams.id;
+      const page = validatedQuery?.page ?? 1;
+      const limit = validatedQuery?.limit ?? 10;
+
+      const result = await ELearningSubChapterService.getSubChapterHistory(
+        id,
+        user,
+        page,
+        limit,
+      );
+
+      res.status(200).json({
+        success: true,
+        data: result.data,
+        pagination: result.pagination,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
 };

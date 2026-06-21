@@ -112,10 +112,13 @@ export const ELearningCourseController = {
           )
         : [];
 
-      const result = await ELearningCourseService.createCourse({
-        ...validatedBody,
-        thumbnailImages: uploadedImages,
-      });
+      const result = await ELearningCourseService.createCourse(
+        {
+          ...validatedBody,
+          thumbnailImages: uploadedImages,
+        },
+        user.userId, // ← tambah ini
+      );
 
       res.status(201).json({
         success: true,
@@ -492,6 +495,43 @@ export const ELearningCourseController = {
         success: true,
         message: "Course berhasil diduplicate",
         data: duplicated,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async getCourseHistory(
+    req: AuthenticatedRequestElearning,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const { validatedParams, validatedQuery, user } = req;
+
+      if (!validatedParams?.id || !user) {
+        res.status(400).json({
+          success: false,
+          message: "Parameter ID atau user tidak valid",
+        });
+        return;
+      }
+
+      const page = validatedQuery?.page ?? 1;
+      const limit = validatedQuery?.limit ?? 10;
+
+      const result = await ELearningCourseService.getCourseHistory(
+        validatedParams.id,
+        user,
+        page,
+        limit,
+      );
+
+      res.status(200).json({
+        success: true,
+        message: "Riwayat perubahan kursus berhasil diambil",
+        data: result.data,
+        pagination: result.pagination,
       });
     } catch (err) {
       next(err);

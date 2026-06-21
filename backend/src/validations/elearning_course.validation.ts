@@ -153,3 +153,15 @@ export const duplicateCourseSchema = z.object({
     id: z.string().min(1, "ID kursus harus diisi"),
   }),
 });
+
+export const getCourseHistorySchema = z.object({
+  params: z.object({
+    id: z.string().min(1, "ID kursus harus diisi"),
+  }),
+  query: z
+    .object({
+      page: z.coerce.number().int().min(1).optional().default(1),
+      limit: z.coerce.number().int().min(1).max(100).optional().default(10),
+    })
+    .optional(),
+});
