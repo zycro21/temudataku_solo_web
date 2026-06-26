@@ -491,6 +491,12 @@ export default function AdminLayout({
       activeIcon: "/assets/admin/whitetrans.svg",
     },
     {
+      name: "Voucher Non-Affiliator",
+      href: "/admin/voucher",
+      icon: "/assets/admin/voucher.svg",
+      activeIcon: "/assets/admin/voucheractive.svg",
+    },
+    {
       name: "Produk & Event",
       href: "/admin/produk-event",
       icon: "/assets/admin/pro.svg",

@@ -693,7 +693,7 @@ router.post(
  *       400:
  *         description: Parameter tidak valid
  *       401:
- *         description: Unauthorized
+ *         description: Unauthorized  
  */
 router.get(
   "/referral-commissions",

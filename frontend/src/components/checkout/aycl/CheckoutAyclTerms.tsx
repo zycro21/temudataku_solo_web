@@ -30,24 +30,40 @@ export default function CheckoutAyclTerms({
       setLoading(true);
 
       const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/referral/aycl/${bookingId}/apply-referral`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/voucher/aycl/${bookingId}/apply-code`,
         { code: coupon },
         { withCredentials: true },
       );
 
-      onReferralApplied(res.data.data);
+      const data = res.data.data;
 
-      toast.success("Referral berhasil diterapkan", {
-        description: `Harga baru: Rp ${res.data.data.finalPrice.toLocaleString()}`,
-      });
+      // Normalize response: voucher pakai finalAmount, referral pakai finalPrice
+      // CheckoutSummary membaca priceSummary.finalPrice dan priceSummary.originalPrice
+      const normalizedSummary = {
+        originalPrice: data.originalPrice ?? data.originalAmount,
+        finalPrice: data.finalPrice ?? data.finalAmount,
+        discountAmount:
+          data.discountAmount ?? data.originalPrice - data.finalPrice,
+      };
+
+      onReferralApplied(normalizedSummary);
+
+      if (data.type === "voucher") {
+        toast.success("Voucher berhasil diterapkan", {
+          description: `Hemat Rp${normalizedSummary.discountAmount.toLocaleString("id-ID")} · Total: Rp${normalizedSummary.finalPrice.toLocaleString("id-ID")}`,
+        });
+      } else {
+        toast.success("Referral berhasil diterapkan", {
+          description: `Harga baru: Rp${normalizedSummary.finalPrice.toLocaleString("id-ID")}`,
+        });
+      }
 
       setIsVoucherApplied(true);
       setCoupon(coupon);
     } catch (err: any) {
-      const message =
-        err?.response?.data?.message || "Gagal menerapkan referral.";
+      const message = err?.response?.data?.message || "Gagal menerapkan kode.";
 
-      toast.error("Gagal menerapkan referral", {
+      toast.error("Gagal menerapkan kode", {
         description: message,
       });
     } finally {

@@ -30,24 +30,44 @@ export default function CheckoutTerms({
       setLoading(true);
 
       const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/referral/booking/${bookingId}/apply-referral`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/voucher/booking/${bookingId}/apply-code`,
         { code: coupon },
         { withCredentials: true },
       );
 
-      onReferralApplied(res.data.data);
+      const data = res.data.data;
 
-      toast.success("Referral berhasil diterapkan", {
-        description: `Harga baru: Rp ${res.data.data.finalPrice.toLocaleString()}`,
-      });
+      // Normalize response: voucher pakai finalAmount/originalAmount, referral pakai finalPrice/originalPrice
+      const normalizedSummary = {
+        originalPrice: data.originalPrice ?? data.originalAmount,
+        finalPrice: data.finalPrice ?? data.finalAmount,
+        discountAmount:
+          data.discountAmount ??
+          (data.originalPrice ?? data.originalAmount) -
+            (data.finalPrice ?? data.finalAmount),
+        paymentType: data.paymentType,
+        installmentCount: data.installmentCount,
+        recalculatedPayments: data.recalculatedPayments,
+      };
 
-      setIsVoucherApplied(true); // ✅ lock setelah sukses
-      setCoupon(res.data.data.code || coupon); // opsional: tampilkan kode yg dipakai
+      onReferralApplied(normalizedSummary);
+
+      if (data.type === "voucher") {
+        toast.success("Voucher berhasil diterapkan", {
+          description: `Hemat Rp${normalizedSummary.discountAmount.toLocaleString("id-ID")} · Total: Rp${normalizedSummary.finalPrice.toLocaleString("id-ID")}`,
+        });
+      } else {
+        toast.success("Referral berhasil diterapkan", {
+          description: `Harga baru: Rp${normalizedSummary.finalPrice.toLocaleString("id-ID")}`,
+        });
+      }
+
+      setIsVoucherApplied(true);
+      setCoupon(coupon);
     } catch (err: any) {
-      const message =
-        err?.response?.data?.message || "Gagal menerapkan referral.";
+      const message = err?.response?.data?.message || "Gagal menerapkan kode.";
 
-      toast.error("Gagal menerapkan referral", {
+      toast.error("Gagal menerapkan kode", {
         description: message,
       });
     } finally {

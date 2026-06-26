@@ -473,7 +473,36 @@ export const processDuitkuCallback = async ({
       },
     });
 
-    if (!isSuccess) return;
+    if (!isSuccess) {
+      // Cancel voucherUsage yang RESERVED jika payment gagal + decrement usageCount
+      const cancelledUsages = await tx.voucherUsage.findMany({
+        where: {
+          status: "RESERVED",
+          OR: [
+            { bookingId: payment.bookingInvoice?.bookingId ?? undefined },
+            {
+              eLearningSubscriptionId:
+                payment.eLearningSubscriptionId ?? undefined,
+            },
+            { ayclBookingId: payment.ayclBookingId ?? undefined },
+          ],
+        },
+        select: { id: true, voucherId: true },
+      });
+
+      for (const usage of cancelledUsages) {
+        await tx.voucherUsage.update({
+          where: { id: usage.id },
+          data: { status: "CANCELLED" },
+        });
+        await tx.voucher.update({
+          where: { id: usage.voucherId },
+          data: { usageCount: { decrement: 1 } },
+        });
+      }
+
+      return;
+    }
 
     // =====================================================
     // BOOKING PAYMENT
@@ -576,6 +605,11 @@ export const processDuitkuCallback = async ({
             });
           }
         }
+
+        await tx.voucherUsage.updateMany({
+          where: { bookingId: booking.id, status: "RESERVED" },
+          data: { status: "USED" },
+        });
       }
 
       // -----------------------------------------------------------------------
@@ -752,6 +786,11 @@ export const processDuitkuCallback = async ({
           });
         }
       }
+
+      await tx.voucherUsage.updateMany({
+        where: { eLearningSubscriptionId: subscription.id, status: "RESERVED" },
+        data: { status: "USED" },
+      });
     }
 
     // =====================================================
@@ -790,6 +829,11 @@ export const processDuitkuCallback = async ({
           });
         }
       }
+
+      await tx.voucherUsage.updateMany({
+        where: { ayclBookingId: ayclBooking.id, status: "RESERVED" },
+        data: { status: "USED" },
+      });
 
       ayclEmailPayload = {
         email: ayclBooking.user.email,

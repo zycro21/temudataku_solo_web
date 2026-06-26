@@ -747,7 +747,7 @@ export interface AuthenticatedRequestText extends Request {
               mediaType: "IMAGE" | "VIDEO";
               thumbnailUrl?: string;
               durationSeconds?: number;
-              widthPercent?: number; 
+              widthPercent?: number;
             };
           }
         | {
@@ -1194,6 +1194,45 @@ export interface AuthenticatedRequestAyclBooking extends Request {
   validatedBody?: any;
   validatedParams?: any;
   validatedQuery?: any;
+}
+
+export interface AuthenticatedRequestVoucher extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+    fullName?: string;
+  };
+  validatedBody?: {
+    code?: string;
+    name?: string;
+    description?: string;
+    discountType?: "PERCENTAGE" | "FLAT";
+    discountValue?: number;
+    maxDiscountAmount?: number;
+    minimumPurchase?: number;
+    productScope?: "GLOBAL" | "ELEARNING" | "PRACTICE" | "MENTORING" | "AYCL";
+    usageLimit?: number;
+    usageLimitPerUser?: number;
+    startDate?: Date;
+    expiryDate?: Date;
+    isActive?: boolean;
+    // khusus endpoint validate
+    amount?: number;
+  };
+  validatedParams?: { id?: string };
+  validatedQuery?: {
+    search?: string;
+    productScope?: "GLOBAL" | "ELEARNING" | "PRACTICE" | "MENTORING" | "AYCL";
+    discountType?: "PERCENTAGE" | "FLAT"; // ✅ tambahan
+    isActive?: boolean;
+    page?: number;
+    limit?: number;
+    sortBy?: "createdAt" | "code" | "name" | "expiryDate";
+    order?: "asc" | "desc";
+  };
 }
 
 export const authenticate = (
