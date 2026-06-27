@@ -134,11 +134,15 @@ export default function VouchersHeader({
     >,
   ) {
     const { name, value, type } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]:
-        type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
-    }));
+    let finalValue: string | boolean =
+      type === "checkbox" ? (e.target as HTMLInputElement).checked : value;
+
+    // Auto-set waktu ke 00:01 saat pilih tanggal mulai / kedaluwarsa
+    if ((name === "startDate" || name === "expiryDate") && value) {
+      finalValue = `${value}T00:01`;
+    }
+
+    setForm((prev) => ({ ...prev, [name]: finalValue }));
   }
 
   async function handleSubmit() {
@@ -468,8 +472,8 @@ export default function VouchersHeader({
                   </label>
                   <input
                     name="startDate"
-                    type="datetime-local"
-                    value={form.startDate}
+                    type="date"
+                    value={form.startDate ? form.startDate.slice(0, 10) : ""}
                     onChange={handleChange}
                     className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
                   />
@@ -483,8 +487,8 @@ export default function VouchersHeader({
                   </label>
                   <input
                     name="expiryDate"
-                    type="datetime-local"
-                    value={form.expiryDate}
+                    type="date"
+                    value={form.expiryDate ? form.expiryDate.slice(0, 10) : ""}
                     onChange={handleChange}
                     className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
                   />

@@ -210,11 +210,15 @@ export default function VouchersTable({
   ) {
     if (!editForm) return;
     const { name, value, type } = e.target;
-    setEditForm((prev) => ({
-      ...prev!,
-      [name]:
-        type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
-    }));
+    let finalValue: string | boolean =
+      type === "checkbox" ? (e.target as HTMLInputElement).checked : value;
+
+    // Auto-set waktu ke 00:01 saat pilih tanggal mulai / kedaluwarsa
+    if ((name === "startDate" || name === "expiryDate") && value) {
+      finalValue = `${value}T00:01`;
+    }
+
+    setEditForm((prev) => ({ ...prev!, [name]: finalValue }));
   }
 
   async function handleEditSubmit() {
@@ -976,8 +980,10 @@ export default function VouchersTable({
                   </label>
                   <input
                     name="startDate"
-                    type="datetime-local"
-                    value={editForm.startDate}
+                    type="date"
+                    value={
+                      editForm.startDate ? editForm.startDate.slice(0, 10) : ""
+                    }
                     onChange={handleEditChange}
                     className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
                   />
@@ -991,8 +997,12 @@ export default function VouchersTable({
                   </label>
                   <input
                     name="expiryDate"
-                    type="datetime-local"
-                    value={editForm.expiryDate}
+                    type="date"
+                    value={
+                      editForm.expiryDate
+                        ? editForm.expiryDate.slice(0, 10)
+                        : ""
+                    }
                     onChange={handleEditChange}
                     className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
                   />
