@@ -30,12 +30,13 @@ export const ELearningSubChapterController = {
         limit = 10,
         search,
         orderNumber,
+        level,
       } = validatedQuery || {};
 
       const result = await ELearningSubChapterService.getSubChaptersByCourse(
         courseId,
         user,
-        { page, limit, search, orderNumber },
+        { page, limit, search, orderNumber, level },
       );
 
       res.status(200).json({ success: true, data: result });

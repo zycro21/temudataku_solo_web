@@ -18,9 +18,10 @@ export const ELearningSubChapterService = {
       limit?: number;
       search?: string;
       orderNumber?: number;
+      level?: string;
     },
   ) {
-    const { page = 1, limit = 10, search, orderNumber } = options;
+    const { page = 1, limit = 10, search, orderNumber, level } = options; // ✅ tambah level
 
     // =========================
     // CEK COURSE
@@ -89,6 +90,14 @@ export const ELearningSubChapterService = {
       where.orderNumber = orderNumber;
     }
 
+    if (level) {
+      // ✅ tambahan
+      where.level = {
+        equals: level,
+        mode: "insensitive",
+      };
+    }
+
     // =========================
     // QUERY DATA
     // =========================
@@ -153,10 +162,9 @@ export const ELearningSubChapterService = {
 
     const course = subChapter.course;
 
-    // =========================
-    // ROLE: ADMIN
-    // =========================
-    if (user.roles.includes("admin")) {
+    // ROLE: ADMIN / CM / CURDEV
+    const adminLikeRoles = ["admin", "cm", "curdev"];
+    if (user.roles.some((r) => adminLikeRoles.includes(r))) {
       return subChapter;
     }
 
@@ -271,6 +279,7 @@ export const ELearningSubChapterService = {
           orderNumber,
           estimatedTime: data.estimatedTime || "",
           status: data.status || "DRAFT",
+          level: data.level || null,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -298,6 +307,7 @@ export const ELearningSubChapterService = {
             orderNumber: newSubChapter.orderNumber,
             estimatedTime: newSubChapter.estimatedTime,
             status: newSubChapter.status,
+            level: newSubChapter.level,
           },
         },
       });
@@ -315,6 +325,7 @@ export const ELearningSubChapterService = {
       estimatedTime: string;
       coverImage?: string;
       status?: CourseStatus; // ✅ tambahan agar status ikut bisa diaudit
+      level?: string;
     }>,
     user: { userId: string; roles: string[]; mentorProfileId?: string },
   ) {
@@ -405,6 +416,7 @@ export const ELearningSubChapterService = {
       { key: "orderNumber", label: "urutan" },
       { key: "estimatedTime", label: "estimasi waktu" },
       { key: "status", label: "status publikasi" },
+      { key: "level", label: "level" },
     ];
 
     // Kumpulkan field yang benar-benar berubah

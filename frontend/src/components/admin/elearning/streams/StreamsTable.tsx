@@ -39,7 +39,6 @@ type SortDirection = "desc" | "asc" | null;
 type SortKey =
   | "title"
   | "description"
-  | "level"
   | "coursesCount"
   | "modulesCount"
   | "materialsCount"
@@ -108,7 +107,6 @@ export default function StreamsTable({
     streamId: string;
     name: string;
     description: string;
-    level: string;
     thumbnail: string;
     status: string;
   } | null>(null);
@@ -479,22 +477,9 @@ export default function StreamsTable({
 
   // ─── Edit modal ──────────────────────────────────────────────────────────────
   const openEditModal = (stream: StreamFromAPI) => {
-    const normalizeLevel = (level: string | null) => {
-      if (!level) return "Beginner";
-
-      const l = level.toLowerCase();
-
-      if (l === "beginner") return "Beginner";
-      if (l === "intermediate") return "Intermediate";
-      if (l === "advanced") return "Advanced";
-
-      return "Beginner";
-    };
-
     const initialData = {
       name: stream.title ?? "",
       description: stream.description ?? "",
-      level: normalizeLevel(stream.level),
       status: stream.status === "PUBLISHED" ? "Published" : "Archived",
       thumbnail: stream.thumbnailImages?.[0] ?? "",
     };
@@ -503,7 +488,6 @@ export default function StreamsTable({
       streamId: stream.id,
       name: initialData.name,
       description: initialData.description,
-      level: initialData.level,
       thumbnail: initialData.thumbnail,
       status: initialData.status,
     });
@@ -541,7 +525,6 @@ export default function StreamsTable({
       const isSame =
         initialEditData.name === editModal.name &&
         initialEditData.description === editModal.description &&
-        initialEditData.level === editModal.level &&
         initialEditData.status === editModal.status &&
         !editThumbnailFile; // penting
 
@@ -555,7 +538,7 @@ export default function StreamsTable({
       const formData = new FormData();
       formData.append("title", editModal.name);
       formData.append("description", editModal.description);
-      formData.append("level", editModal.level.toLowerCase());
+      formData.append("level", "beginner");
 
       // Map nilai status dari display ke enum backend
       const statusMap: Record<string, string> = {
@@ -610,12 +593,6 @@ export default function StreamsTable({
               onClick={() => handleSort("description")}
             >
               Description <SortIcon colKey="description" />
-            </th>
-            <th
-              className={`${thBase("level")} text-left`}
-              onClick={() => handleSort("level")}
-            >
-              Level <SortIcon colKey="level" />
             </th>
             <th
               className={`${thBase("coursesCount")} text-center`}
@@ -729,23 +706,6 @@ export default function StreamsTable({
                     <span className="line-clamp-3">
                       {stream.description ?? "-"}
                     </span>
-                  </td>
-
-                  {/* Level */}
-                  <td className="px-4 py-3 text-[12px] font-semibold">
-                    {(() => {
-                      const level = stream.level?.toUpperCase();
-
-                      let colorClass = "text-gray-500";
-
-                      if (level === "BEGINNER") colorClass = "text-green-600";
-                      else if (level === "INTERMEDIATE")
-                        colorClass = "text-yellow-600";
-                      else if (level === "ADVANCED")
-                        colorClass = "text-red-600";
-
-                      return <span className={colorClass}>{level ?? "-"}</span>;
-                    })()}
                   </td>
 
                   {/* Courses */}
@@ -1266,30 +1226,6 @@ export default function StreamsTable({
                   rows={4}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 resize-none"
                 />
-              </div>
-
-              {/* Level */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Level
-                </label>
-                <div className="relative">
-                  <select
-                    value={editModal.level}
-                    onChange={(e) =>
-                      setEditModal({ ...editModal, level: e.target.value })
-                    }
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 appearance-none focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-white"
-                  >
-                    <option value="Beginner">Beginner</option>
-                    <option value="Intermediate">Intermediate</option>
-                    <option value="Advanced">Advanced</option>
-                  </select>
-                  <ChevronDown
-                    size={16}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-                  />
-                </div>
               </div>
 
               {/* Thumbnail */}

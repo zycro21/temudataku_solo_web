@@ -30,7 +30,6 @@ export default function StreamsHeader({
   const [form, setForm] = useState({
     title: "",
     description: "",
-    level: "",
     status: "",
   });
 
@@ -59,7 +58,6 @@ export default function StreamsHeader({
       setForm({
         title: "",
         description: "",
-        level: "",
         status: "",
       });
     }, 250);
@@ -75,10 +73,6 @@ export default function StreamsHeader({
       return toast.error("Description wajib diisi");
     }
 
-    if (!form.level) {
-      return toast.error("Level wajib dipilih");
-    }
-
     if (!form.status) {
       return toast.error("Status wajib dipilih");
     }
@@ -92,7 +86,7 @@ export default function StreamsHeader({
 
       formData.append("title", form.title);
       formData.append("description", form.description);
-      formData.append("level", form.level);
+      formData.append("level", "beginner");
       formData.append(
         "status",
         form.status === "published" ? "PUBLISHED" : "ARCHIVED",
@@ -125,7 +119,6 @@ export default function StreamsHeader({
         setForm({
           title: "",
           description: "",
-          level: "",
           status: "",
         });
 
@@ -248,39 +241,6 @@ export default function StreamsHeader({
                     rows={4}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 resize-none"
                   />
-                </div>
-
-                {/* Level */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2.5">
-                    Level
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={form.level}
-                      onChange={(e) =>
-                        setForm({ ...form, level: e.target.value })
-                      }
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-400 appearance-none focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-white"
-                    >
-                      <option value="" disabled>
-                        Select difficulty level
-                      </option>
-                      <option value="beginner" className="text-gray-700">
-                        Beginner
-                      </option>
-                      <option value="intermediate" className="text-gray-700">
-                        Intermediate
-                      </option>
-                      <option value="advanced" className="text-gray-700">
-                        Advanced
-                      </option>
-                    </select>
-                    <ChevronDown
-                      size={16}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-                    />
-                  </div>
                 </div>
 
                 {/* Thumbnail */}

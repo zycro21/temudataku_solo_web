@@ -594,6 +594,8 @@ export interface AuthenticatedRequestSubChapter extends Request {
     description?: string;
     orderNumber: number;
     estimatedTime?: string;
+    // status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+    level?: string;
   };
   validatedParams?: {
     id?: string;

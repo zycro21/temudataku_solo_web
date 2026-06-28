@@ -354,6 +354,7 @@ model ELearningSubChapter {
   estimatedTime   String?           @db.VarChar
   taskType        TaskType?         @map("task_type")
   status          CourseStatus      @default(DRAFT)
+  level           String?           @db.VarChar // Beginner, Intermediate, Advanced, Professional
   createdAt       DateTime?         @default(now()) @db.Timestamp(6) @map("created_at")
   updatedAt       DateTime?         @db.Timestamp(6) @map("updated_at")
 

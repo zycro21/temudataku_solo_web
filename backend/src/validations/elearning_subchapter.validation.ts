@@ -16,6 +16,7 @@ export const getSubChaptersByCourseSchema = z.object({
       (val) => (val ? Number(val) : undefined),
       z.number().int().optional(),
     ),
+    level: z.string().optional(),
   }),
 });
 
@@ -41,6 +42,7 @@ export const createSubChapterSchema = z.object({
       z.string().optional(),
     ),
     status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).optional(),
+    level: z.string().optional(),
   }),
 });
 
@@ -60,6 +62,7 @@ export const updateSubChapterSchema = z.object({
       z.string().optional(),
     ),
     status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).optional(),
+    level: z.string().optional(),
   }),
 });
 

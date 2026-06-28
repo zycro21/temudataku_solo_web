@@ -17,6 +17,12 @@ interface CoursesHeaderProps {
   onCourseCreated?: () => void;
 }
 
+const LEVEL_OPTIONS = [
+  { value: "beginner", label: "Beginner" },
+  { value: "intermediate", label: "Intermediate" },
+  { value: "advanced", label: "Advanced" },
+];
+
 export default function CoursesHeader({
   search,
   onSearchChange,
@@ -37,6 +43,7 @@ export default function CoursesHeader({
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState("");
   const [estimatedTime, setEstimatedTime] = useState("");
+  const [level, setLevel] = useState("");
   const [createLoading, setCreateLoading] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,6 +60,7 @@ export default function CoursesHeader({
     setDescription("");
     setStatus("");
     setEstimatedTime("");
+    setLevel("");
     setThumbnailFile(null);
     setThumbnailPreview(null);
     setShowCreateModal(true);
@@ -126,6 +134,10 @@ export default function CoursesHeader({
         formData.append("status", statusMap[status] ?? "ARCHIVED");
       }
 
+      if (level) {
+        formData.append("level", level);
+      }
+
       if (thumbnailFile) {
         formData.append("thumbnail", thumbnailFile);
       }
@@ -158,6 +170,7 @@ export default function CoursesHeader({
           orderNumber: "Order Number",
           estimatedTime: "Estimated Time",
           status: "Status",
+          level: "Level",
           courseId: "Course ID",
         };
         const messages = responseData.errors
@@ -207,35 +220,29 @@ export default function CoursesHeader({
         </Button>
       </div>
 
-      {/* Stream Info Banner — nama stream (elearningcourse) induk dari courses ini */}
-      <div className="bg-emerald-100 text-emerald-700 px-6 py-3 rounded-lg text-[13px] font-medium flex items-center gap-2.5">
-        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500 shrink-0">
-          <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
-            <path
-              d="M2 5.5L4.5 8L9 3"
-              stroke="white"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </span>
-        Part of Stream:{" "}
-        <span className="font-semibold">{streamName || "Loading..."}</span>
-      </div>
-
       {/* Search */}
-      <div className="relative w-[60rem]">
+      <div className="relative w-72">
+        <Search
+          size={16}
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+        />
         <Input
-          placeholder="Search courses..."
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="pl-11 py-2 text-sm bg-white h-auto"
+          placeholder="Search courses..."
+          className="pl-9 text-sm border-gray-200 focus-visible:ring-emerald-400"
         />
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+        {search && (
+          <button
+            onClick={() => onSearchChange("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            <X size={14} />
+          </button>
+        )}
       </div>
 
-      {/* Create Course Modal */}
+      {/* Create Modal */}
       {showCreateModal && (
         <div
           className={`fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 ${
@@ -347,6 +354,35 @@ export default function CoursesHeader({
                     placeholder="Contoh: 30"
                     className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
                   />
+                </div>
+
+                {/* Level */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Level
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={level}
+                      onChange={(e) => setLevel(e.target.value)}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-400 appearance-none focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-white"
+                    >
+                      <option value="">Select level</option>
+                      {LEVEL_OPTIONS.map((opt) => (
+                        <option
+                          key={opt.value}
+                          value={opt.value}
+                          className="text-gray-700"
+                        >
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown
+                      size={16}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                    />
+                  </div>
                 </div>
 
                 {/* Status */}

@@ -18,6 +18,7 @@ import {
   ChevronRight,
   X,
   History as HistoryIcon,
+  Eye,
 } from "lucide-react";
 
 interface CoursesTableProps {
@@ -51,6 +52,18 @@ interface AuditLogItem {
   user: AuditLogUser | null;
 }
 
+const LEVEL_OPTIONS = [
+  { value: "beginner", label: "Beginner" },
+  { value: "intermediate", label: "Intermediate" },
+  { value: "advanced", label: "Advanced" },
+];
+
+const formatLevel = (level: string | null | undefined): string => {
+  if (!level) return "-";
+  const found = LEVEL_OPTIONS.find((opt) => opt.value === level.toLowerCase());
+  return found ? found.label : level;
+};
+
 export default function CoursesTable({
   search,
   streamId,
@@ -76,6 +89,7 @@ export default function CoursesTable({
     thumbnail: string;
     status: string;
     estimatedTime: string;
+    level: string;
   } | null>(null);
 
   const [editForm, setEditForm] = useState({
@@ -83,6 +97,7 @@ export default function CoursesTable({
     description: "",
     estimatedTime: "",
     status: "",
+    level: "",
   });
   const [editVisible, setEditVisible] = useState(false);
   const [showEditSuccess, setShowEditSuccess] = useState(false);
@@ -140,6 +155,36 @@ export default function CoursesTable({
   const [historyTotalPages, setHistoryTotalPages] = useState(1);
   const [selectedLog, setSelectedLog] = useState<AuditLogItem | null>(null);
   const [selectedLogVisible, setSelectedLogVisible] = useState(false);
+
+  // ─── Detail modal ─────────────────────────────────────────────────────────
+  const [detailModal, setDetailModal] = useState<any | null>(null);
+  const [detailVisible, setDetailVisible] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  const openDetailModal = async (courseId: string) => {
+    setDetailLoading(true);
+    setDetailModal({});
+    setTimeout(() => setDetailVisible(true), 10);
+    try {
+      const res = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/elearningSubChapter/subchapters/${courseId}`,
+        { withCredentials: true },
+      );
+      setDetailModal(res.data.data ?? res.data);
+    } catch (err: any) {
+      toast.error(
+        err?.response?.data?.message || "Gagal mengambil detail course",
+      );
+      closeDetailModal();
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const closeDetailModal = () => {
+    setDetailVisible(false);
+    setTimeout(() => setDetailModal(null), 250);
+  };
 
   const fetchHistory = async (courseId: string, page: number) => {
     setHistoryLoading(true);
@@ -321,6 +366,7 @@ export default function CoursesTable({
             assessment,
             duration: Number(sc.estimatedTime || 0),
             status: sc.status?.toUpperCase(),
+            level: sc.level ?? "",
             created: sc.createdAt,
           };
         });
@@ -461,12 +507,14 @@ export default function CoursesTable({
       thumbnail: course.thumbnail,
       status: course.status,
       estimatedTime: String(course.duration || ""),
+      level: course.level ?? "",
     });
     setEditForm({
       name: course.name,
       description: course.description,
       estimatedTime: String(course.duration || ""),
       status: course.status,
+      level: course.level ?? "",
     });
     setEditThumbnailFile(null);
     setEditThumbnailPreview(null);
@@ -574,12 +622,6 @@ export default function CoursesTable({
               Course Name <SortIcon colKey="name" />
             </th>
             <th
-              className={`${thBase("description")} text-left`}
-              onClick={() => handleSort("description")}
-            >
-              Description <SortIcon colKey="description" />
-            </th>
-            <th
               className={`${thBase("modules")} text-center`}
               onClick={() => handleSort("modules")}
             >
@@ -604,16 +646,16 @@ export default function CoursesTable({
               Duration <SortIcon colKey="duration" />
             </th>
             <th
+              className={`${thBase("level")} text-center`}
+              onClick={() => handleSort("level")}
+            >
+              Level <SortIcon colKey="level" />
+            </th>
+            <th
               className={`${thBase("status")} text-center`}
               onClick={() => handleSort("status")}
             >
               Status <SortIcon colKey="status" />
-            </th>
-            <th
-              className={`${thBase("created")} text-center`}
-              onClick={() => handleSort("created")}
-            >
-              Created At <SortIcon colKey="created" />
             </th>
             <th className="px-4 py-3 text-center text-gray-700 text-[13px] font-semibold">
               Action
@@ -624,14 +666,14 @@ export default function CoursesTable({
         <tbody>
           {loading ? (
             <tr>
-              <td colSpan={11} className="text-center py-10 text-gray-400">
+              <td colSpan={9} className="text-center py-10 text-gray-400">
                 Loading...
               </td>
             </tr>
           ) : courses.length === 0 ? (
             <tr>
               <td
-                colSpan={11}
+                colSpan={9}
                 className="px-5 py-10 text-center text-gray-400 text-sm"
               >
                 No courses available in this stream
@@ -688,10 +730,6 @@ export default function CoursesTable({
                   {course.name}
                 </td>
 
-                <td className="px-4 py-3 text-[12px] text-gray-500 max-w-[250px]">
-                  <span className="line-clamp-3">{course.description}</span>
-                </td>
-
                 <td className="px-4 py-3 text-[12px] text-center">
                   {course.modules}
                 </td>
@@ -705,26 +743,22 @@ export default function CoursesTable({
                   {formatDuration(course.duration)}
                 </td>
 
+                <td className="px-4 py-3 text-[12px] text-center">
+                  {course.level ? (
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-medium border border-emerald-100">
+                      {formatLevel(course.level)}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400">-</span>
+                  )}
+                </td>
+
                 <td className="px-4 py-3 text-center">
                   <StatusBadge
                     status={
                       course.status === "PUBLISHED" ? "Published" : "Archived"
                     }
                   />
-                </td>
-
-                <td className="px-4 py-3 text-center text-gray-500">
-                  {(() => {
-                    const { date, time } = formatDateTime(course.created);
-                    return (
-                      <div className="flex flex-col items-center leading-tight">
-                        <span className="text-[12px]">{date}</span>
-                        <span className="text-[10px] text-gray-400">
-                          {time}
-                        </span>
-                      </div>
-                    );
-                  })()}
                 </td>
 
                 <td className="px-4 py-3 text-center relative">
@@ -765,6 +799,17 @@ export default function CoursesTable({
                         >
                           <HistoryIcon size={15} />
                           History
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenMenu(null);
+                            openDetailModal(course.id);
+                          }}
+                          className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-100 text-gray-700"
+                        >
+                          <Eye size={15} />
+                          Detail
                         </button>
                         <button
                           onClick={(e) => {
@@ -821,7 +866,7 @@ export default function CoursesTable({
           ) : (
             <tr>
               <td
-                colSpan={11}
+                colSpan={9}
                 className="px-5 py-10 text-center text-gray-400 text-sm"
               >
                 No courses found matching &quot;{search}&quot;
@@ -1023,6 +1068,36 @@ export default function CoursesTable({
                 )}
               </div>
 
+              {/* Level */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Level
+                </label>
+                <div className="relative">
+                  <select
+                    value={editForm.level}
+                    onChange={(e) =>
+                      setEditForm((prev) => ({
+                        ...prev,
+                        level: e.target.value,
+                      }))
+                    }
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 appearance-none focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-white"
+                  >
+                    <option value="">No level</option>
+                    {LEVEL_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    size={16}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   Status
@@ -1076,6 +1151,9 @@ export default function CoursesTable({
 
                     if (editForm.status)
                       formData.append("status", editForm.status);
+
+                    // level boleh kosong string (artinya hapus level)
+                    formData.append("level", editForm.level);
 
                     if (editThumbnailFile) {
                       formData.append("thumbnail", editThumbnailFile);
@@ -1375,6 +1453,156 @@ export default function CoursesTable({
                 className="flex-1 bg-red-500 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-red-600 transition"
               >
                 Hapus
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Detail Modal */}
+      {detailModal !== null && (
+        <div
+          className={`fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 ${
+            detailVisible ? "bg-black/60 opacity-100" : "bg-black/0 opacity-0"
+          }`}
+          onClick={closeDetailModal}
+        >
+          <div
+            className={`bg-white w-[560px] max-h-[85vh] flex flex-col rounded-2xl shadow-2xl transform transition-all duration-300 ${
+              detailVisible
+                ? "scale-100 opacity-100 translate-y-0"
+                : "scale-95 opacity-0 translate-y-4"
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between pt-6 px-7 pb-4 border-b border-gray-100 shrink-0">
+              <div className="min-w-0">
+                <h2 className="text-lg font-semibold text-gray-800">
+                  Detail Course
+                </h2>
+                <p className="text-sm text-gray-400 mt-0.5 truncate">
+                  {detailModal?.title ?? "Memuat..."}
+                </p>
+              </div>
+              <button
+                onClick={closeDetailModal}
+                className="text-gray-400 hover:text-gray-600 transition mt-0.5 shrink-0"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="overflow-y-auto flex-1 px-7 py-5">
+              {detailLoading ? (
+                <p className="text-sm text-gray-400 text-center py-10">
+                  Memuat detail...
+                </p>
+              ) : (
+                <div className="space-y-5">
+                  {/* Thumbnail */}
+                  {detailModal?.coverImage && (
+                    <div>
+                      <span className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                        Thumbnail
+                      </span>
+                      <img
+                        src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${detailModal.coverImage}`}
+                        alt="cover"
+                        className="w-full max-h-48 object-cover rounded-lg border border-gray-100"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Grid info */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {[
+                      { label: "Title", value: detailModal?.title },
+                      {
+                        label: "Level",
+                        value: detailModal?.level
+                          ? formatLevel(detailModal.level)
+                          : null,
+                      },
+                      { label: "Status", value: detailModal?.status },
+                      {
+                        label: "Estimated Time",
+                        value: detailModal?.estimatedTime
+                          ? formatDuration(Number(detailModal.estimatedTime))
+                          : null,
+                      },
+                      {
+                        label: "Task Type",
+                        value: detailModal?.taskType ?? null,
+                      },
+                      {
+                        label: "Modules",
+                        value:
+                          detailModal?.subBabs?.length != null
+                            ? String(detailModal.subBabs.length)
+                            : null,
+                      },
+                      {
+                        label: "Created At",
+                        value: detailModal?.createdAt
+                          ? (() => {
+                              const { date, time } = formatDateTime(
+                                detailModal.createdAt,
+                              );
+                              return `${date} · ${time}`;
+                            })()
+                          : null,
+                      },
+                      {
+                        label: "Updated At",
+                        value: detailModal?.updatedAt
+                          ? (() => {
+                              const { date, time } = formatDateTime(
+                                detailModal.updatedAt,
+                              );
+                              return `${date} · ${time}`;
+                            })()
+                          : null,
+                      },
+                    ].map(({ label, value }) => (
+                      <div
+                        key={label}
+                        className="bg-gray-50 rounded-lg px-4 py-3"
+                      >
+                        <span className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">
+                          {label}
+                        </span>
+                        <span className="text-sm text-gray-700 font-medium break-words">
+                          {value ?? "-"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Description – full width */}
+                  <div className="bg-gray-50 rounded-lg px-4 py-3">
+                    <span className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">
+                      Description
+                    </span>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                      {detailModal?.description ?? "-"}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-7 py-4 border-t border-gray-100 shrink-0 flex justify-end">
+              <button
+                onClick={closeDetailModal}
+                className="px-5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium transition"
+              >
+                Tutup
               </button>
             </div>
           </div>
