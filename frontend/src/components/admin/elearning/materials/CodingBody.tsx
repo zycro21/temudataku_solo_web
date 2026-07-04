@@ -1,20 +1,62 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Pencil, ChevronDown, Play, Eye, Copy } from "lucide-react";
+import { Pencil, ChevronDown, Eye, Copy, Play, Loader2 } from "lucide-react";
 import RichTextEditor, {
   type RichTextEditorRef,
 } from "@/components/admin/elearning/materials/RichTextEditor";
 
-type CodingLanguage = "javascript" | "python" | "sql" | "r" | "c++";
+// ─── Language config ──────────────────────────────────────────────────────────
+// JavaScript dihapus sesuai permintaan. Tersisa 4 bahasa.
+type CodingLanguage = "python" | "sql" | "r" | "c++";
 
 const LANGUAGE_LABELS: Record<CodingLanguage, string> = {
-  javascript: "JavaScript",
   python: "Python",
   sql: "SQL",
   r: "R",
   "c++": "C++",
 };
+
+// Eksekusi kode via Next.js API Route → JDoodle
+async function executeCode(
+  lang: CodingLanguage,
+  code: string,
+): Promise<string> {
+  try {
+    const res = await fetch("/api/execute-code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ language: lang, code }),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      return `[Failed to run code]\n${json?.error ?? `HTTP ${res.status}`}`;
+    }
+    return json.output ?? "(no output)";
+  } catch (err: any) {
+    return `[Failed to run code]\n${err?.message ?? String(err)}`;
+  }
+}
+
+// Strip HTML dari RichTextEditor → plain text untuk eksekusi dan tampilan
+function htmlToPlainText(html: string): string {
+  if (!html) return "";
+  let text = html
+    .replace(/<div>/gi, "\n")
+    .replace(/<\/div>/gi, "")
+    .replace(/<p>/gi, "\n")
+    .replace(/<\/p>/gi, "")
+    .replace(/<br\s*\/?>/gi, "\n");
+  text = text.replace(/<[^>]+>/g, "");
+  text = text
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, " ");
+  return text.replace(/\n{3,}/g, "\n\n").trim();
+}
 
 // ─── Language Dropdown ────────────────────────────────────────────────────────
 function LanguageDropdown({
@@ -72,18 +114,17 @@ function LanguageDropdown({
   );
 }
 
-// ─── Canvas edit mode (unchanged) ────────────────────────────────────────────
+// ─── Canvas edit mode ─────────────────────────────────────────────────────────
+// expectedOutput dihapus — output dijalankan otomatis saat preview.
 function CodingCanvas({
   title,
   description,
   language,
   question,
-  expectedOutput,
   onTitleChange,
   onDescriptionChange,
   onLanguageChange,
   onQuestionChange,
-  onExpectedOutputChange,
   onCreate,
   wrapperRef,
   onEditorFocus,
@@ -93,12 +134,10 @@ function CodingCanvas({
   description: string;
   language: CodingLanguage | null;
   question: string;
-  expectedOutput: string;
   onTitleChange: (v: string) => void;
   onDescriptionChange: (v: string) => void;
   onLanguageChange: (v: CodingLanguage) => void;
   onQuestionChange: (v: string) => void;
-  onExpectedOutputChange: (v: string) => void;
   onCreate: () => void;
   wrapperRef: React.RefObject<HTMLDivElement>;
   onEditorFocus?: (ref: RichTextEditorRef) => void;
@@ -123,6 +162,7 @@ function CodingCanvas({
         <Eye size={11} /> Preview
       </button>
 
+      {/* Title */}
       <div className="mb-1">
         <input
           value={title}
@@ -133,6 +173,7 @@ function CodingCanvas({
         />
       </div>
 
+      {/* Description */}
       <div className="mb-5">
         <p className="text-[10px] font-semibold text-gray-400 mb-0.5">
           Description
@@ -154,6 +195,7 @@ function CodingCanvas({
         />
       </div>
 
+      {/* Language selector */}
       <div className="mb-4">
         <p className="text-[12px] font-semibold text-gray-600 mb-1.5">
           Language
@@ -161,17 +203,16 @@ function CodingCanvas({
         <LanguageDropdown value={language} onChange={onLanguageChange} />
       </div>
 
+      {/* Code input */}
       <div className="mb-4">
-        <p className="text-[12px] font-semibold text-gray-600 mb-1.5">
-          Code Syntax
-        </p>
+        <p className="text-[12px] font-semibold text-gray-600 mb-1.5">Code</p>
         <div className="border border-gray-200 rounded-lg px-3 py-2.5 focus-within:border-emerald-400 transition">
           <RichTextEditor
             ref={questionRef}
             value={question}
             onChange={onQuestionChange}
-            placeholder="Enter coding problem or instructions"
-            className="text-sm text-gray-700 min-h-[5em]"
+            placeholder="Enter code here ..."
+            className="text-sm text-gray-700 min-h-[5em] font-mono"
             onFocus={() => {
               setActiveEditorId("question");
               if (questionRef.current) onEditorFocus?.(questionRef.current);
@@ -182,20 +223,9 @@ function CodingCanvas({
             }
           />
         </div>
-      </div>
-
-      <div className="mb-2">
-        <p className="text-[12px] font-semibold text-gray-600 mb-1.5">
-          Expected Output
+        <p className="text-[10px] text-gray-400 mt-1">
+          Output akan dihasilkan otomatis saat Run Code ditekan.
         </p>
-        <textarea
-          value={expectedOutput}
-          onChange={(e) => onExpectedOutputChange(e.target.value)}
-          onFocus={() => setActiveEditorId(null)}
-          placeholder="Enter expected output here ..."
-          rows={3}
-          className="w-full text-sm font-mono text-gray-700 border border-gray-200 rounded-lg px-3 py-2.5 outline-none resize-none placeholder-gray-300 leading-relaxed focus:border-emerald-400 transition bg-gray-50"
-        />
       </div>
 
       <div className="flex items-center justify-center">
@@ -211,38 +241,39 @@ function CodingCanvas({
 }
 
 // ─── Canvas preview mode ──────────────────────────────────────────────────────
-function CodingPreview({
+// Run Code memanggil Piston API secara nyata.
+function CodingPreviewCard({
   title,
   description,
   language,
   question,
-  expectedOutput,
   onEdit,
 }: {
   title: string;
   description: string;
   language: CodingLanguage | null;
   question: string;
-  expectedOutput: string;
   onEdit: () => void;
 }) {
   const [output, setOutput] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  const handleRunCode = (e: React.MouseEvent) => {
+  const handleRunCode = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!language || !question) return;
     setRunning(true);
-    setTimeout(() => {
-      setOutput(
-        expectedOutput ||
-          "// Output akan muncul di sini setelah kode dijalankan.",
-      );
-      setRunning(false);
-    }, 600);
+    setOutput(null);
+    const result = await executeCode(language, htmlToPlainText(question));
+    setOutput(result);
+    setRunning(false);
   };
 
   const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text);
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
   };
 
   return (
@@ -275,47 +306,55 @@ function CodingPreview({
       )}
 
       <div className="mx-4 mb-3 rounded-lg overflow-hidden">
+        {/* Header bar */}
         <div className="flex items-center justify-between px-4 py-2.5 bg-[#1e2433]">
           <span className="text-[11px] font-bold text-emerald-400 tracking-widest uppercase">
             {language ? LANGUAGE_LABELS[language] : "CODE"}
           </span>
-          <button
-            onClick={handleRunCode}
-            disabled={running}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-600 transition disabled:opacity-60"
-          >
-            <Play size={11} />
-            {running ? "Running..." : "Run Code"}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCopy(htmlToPlainText(question));
+              }}
+              className="text-gray-400 hover:text-white transition text-xs px-2 py-1 rounded"
+            >
+              {copied ? "Copied!" : <Copy size={12} />}
+            </button>
+            <button
+              onClick={handleRunCode}
+              disabled={running || !language}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-600 transition disabled:opacity-60"
+            >
+              {running ? (
+                <>
+                  <Loader2 size={11} className="animate-spin" /> Running...
+                </>
+              ) : (
+                <>
+                  <Play size={11} /> Run Code
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
-        <div className="bg-[#252d3d] px-4 py-3 relative">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleCopy(question);
-            }}
-            className="absolute top-2 right-2 text-gray-400 hover:text-white transition"
-            title="Copy code"
-          >
-            <Copy size={14} />
-          </button>
-          <textarea
-            value={question}
-            readOnly
-            onClick={(e) => e.stopPropagation()}
-            rows={5}
-            spellCheck={false}
-            className="w-full bg-transparent text-sm font-mono text-gray-200 outline-none resize-none leading-relaxed caret-transparent"
-          />
+        {/* Code area */}
+        <div className="bg-[#252d3d] px-4 py-3">
+          <pre className="text-sm font-mono text-gray-200 whitespace-pre-wrap leading-relaxed">
+            {htmlToPlainText(question) || (
+              <span className="text-gray-500 italic">No code entered</span>
+            )}
+          </pre>
         </div>
 
+        {/* Output area */}
         {output !== null && (
           <div className="bg-[#1a2030] border-t border-[#2d3548] px-4 py-3 relative">
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                handleCopy(output || "");
+                handleCopy(output);
               }}
               className="absolute top-2 right-2 text-gray-400 hover:text-white transition"
               title="Copy output"
@@ -352,28 +391,29 @@ export function CodingBody({
   const [description, setDescription] = useState("");
   const [language, setLanguage] = useState<CodingLanguage | null>(null);
   const [question, setQuestion] = useState("");
-  const [expectedOutput, setExpectedOutput] = useState("");
 
   const wrapperRef = useRef<HTMLDivElement>(null!);
 
-  // ── Restore from initialData on first mount ───────────────────────────────
+  // Restore dari initialData saat mount
   useEffect(() => {
     if (initialData?.question) {
       setTitle(initialData.title ?? "");
       setDescription(initialData.description ?? "");
-      setLanguage(initialData.language ?? null);
+      // Validasi bahasa — javascript tidak lagi valid
+      const savedLang = initialData.language as CodingLanguage | null;
+      const validLangs: CodingLanguage[] = ["python", "sql", "r", "c++"];
+      setLanguage(
+        savedLang && validLangs.includes(savedLang) ? savedLang : null,
+      );
       setQuestion(initialData.question);
-      setExpectedOutput(initialData.expectedOutput ?? "");
       setMode("preview");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Persist to page and switch to preview ─────────────────────────────────
   const handleCreate = () => {
-    // MaterialPreviewModal.CodingPreview reads:
-    //   data.title, data.description, data.language, data.question, data.expectedOutput
-    onChangeData?.({ title, description, language, question, expectedOutput });
+    // expectedOutput dihapus — tidak disimpan, output digenerate saat run
+    onChangeData?.({ title, description, language, question });
     setMode("preview");
   };
 
@@ -384,12 +424,10 @@ export function CodingBody({
         description={description}
         language={language}
         question={question}
-        expectedOutput={expectedOutput}
         onTitleChange={setTitle}
         onDescriptionChange={setDescription}
         onLanguageChange={setLanguage}
         onQuestionChange={setQuestion}
-        onExpectedOutputChange={setExpectedOutput}
         onCreate={handleCreate}
         wrapperRef={wrapperRef}
         onEditorFocus={onEditorFocus}
@@ -399,12 +437,11 @@ export function CodingBody({
   }
 
   return (
-    <CodingPreview
+    <CodingPreviewCard
       title={title}
       description={description}
       language={language}
       question={question}
-      expectedOutput={expectedOutput}
       onEdit={() => setMode("canvas")}
     />
   );

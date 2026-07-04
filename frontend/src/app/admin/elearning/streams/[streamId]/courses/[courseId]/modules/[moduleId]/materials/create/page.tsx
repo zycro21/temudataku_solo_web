@@ -649,7 +649,16 @@ function mapMaterialToCanvasItems(material: any): CanvasItem[] {
               data: {
                 title: markdownToHTML(c.title ?? ""),
                 description: markdownToHTML(c.description ?? ""),
-                language: (c.language ?? "PYTHON").toLowerCase(),
+                language: (() => {
+                  const dbToFrontend: Record<string, string> = {
+                    PYTHON: "python",
+                    SQL: "sql",
+                    R: "r",
+                    CPP: "c++",
+                    JAVASCRIPT: "javascript",
+                  };
+                  return dbToFrontend[c.language ?? "PYTHON"] ?? "python";
+                })(),
                 question: c.initialCode ?? "",
                 expectedOutput: c.expectedResult ?? "",
               },
@@ -1379,12 +1388,17 @@ export default function CreateMaterialPage() {
             content: {
               title: htmlToMarkdown(d.title ?? ""),
               description: htmlToMarkdown(d.description ?? ""),
-              language: (d.language ?? "python").toUpperCase() as
-                | "PYTHON"
-                | "JAVASCRIPT"
-                | "CPP"
-                | "SQL"
-                | "R",
+              language: (() => {
+                const langMap: Record<string, string> = {
+                  python: "PYTHON",
+                  sql: "SQL",
+                  r: "R",
+                  "c++": "CPP",
+                  javascript: "JAVASCRIPT",
+                };
+                return (langMap[(d.language ?? "python").toLowerCase()] ??
+                  "PYTHON") as "PYTHON" | "JAVASCRIPT" | "CPP" | "SQL" | "R";
+              })(),
               initialCode: d.question ?? "",
               isEditable: true,
               expectedResult: d.expectedOutput ?? "",

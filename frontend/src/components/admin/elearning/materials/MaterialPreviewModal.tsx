@@ -849,20 +849,75 @@ function MatchingPreview({ data }: { data: any }) {
 }
 
 // ─── Coding preview ───────────────────────────────────────────────────────────
+// Run Code sekarang benar-benar menjalankan kode via Piston API.
+// expectedOutput tidak lagi dipakai.
+// ─── helper — hanya dipakai di CodingPreview ─────────────────────────────────
+function stripCodeHTML(html: string): string {
+  if (!html) return "";
+  let text = html
+    .replace(/<div>/gi, "\n")
+    .replace(/<\/div>/gi, "")
+    .replace(/<p>/gi, "\n")
+    .replace(/<\/p>/gi, "")
+    .replace(/<br\s*\/?>/gi, "\n");
+  text = text.replace(/<[^>]+>/g, "");
+  text = text
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, " ");
+  return text.replace(/\n{3,}/g, "\n\n").trim();
+}
+
 function CodingPreview({ data }: { data: any }) {
   const [output, setOutput] = useState<string | null>(null);
+  const [running, setRunning] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedOutput, setCopiedOutput] = useState(false);
 
-  // New structure: data.title, data.description, data.question (code), data.language, data.expectedOutput
   const title: string = data?.title || "";
   const description: string = data?.description || "";
-  const code: string = data?.question || data?.code || "";
-  const language: string = data?.language
-    ? data.language.charAt(0).toUpperCase() + data.language.slice(1)
-    : "Code";
-  const expectedOutput: string =
-    data?.expectedOutput || data?.expectedResult || "";
+  // Strip HTML dari RichTextEditor sebelum dipakai
+  const rawCode: string = data?.question || data?.code || "";
+  const code: string = stripCodeHTML(rawCode);
+  const rawLang: string = (data?.language ?? "").toLowerCase();
+
+  const LANG_LABEL: Record<string, string> = {
+    python: "Python",
+    sql: "SQL",
+    r: "R",
+    "c++": "C++",
+  };
+  const languageLabel =
+    (LANG_LABEL[rawLang] ?? rawLang.toUpperCase()) || "Code";
+
+  // Sekarang pakai /api/execute-code (JDoodle), bukan Piston
+  const handleRunCode = async () => {
+    if (!code || !rawLang) return;
+    setRunning(true);
+    setOutput(null);
+    try {
+      const res = await fetch("/api/execute-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ language: rawLang, code }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setOutput(
+          `[Failed to run code]\n${json?.error ?? `HTTP ${res.status}`}`,
+        );
+      } else {
+        setOutput(json.output ?? "(no output)");
+      }
+    } catch (err: any) {
+      setOutput(`[Failed to run code]\n${err?.message ?? String(err)}`);
+    } finally {
+      setRunning(false);
+    }
+  };
 
   const handleCopy = async (text: string, type: "code" | "output") => {
     try {
@@ -889,7 +944,6 @@ function CodingPreview({ data }: { data: any }) {
 
   return (
     <div className="w-full">
-      {/* Title & description — start aligned */}
       {title && (
         <div className="text-lg font-semibold text-gray-700 mb-1 break-words">
           {title}
@@ -902,45 +956,69 @@ function CodingPreview({ data }: { data: any }) {
         />
       )}
 
-      {/* Code block — centered */}
       <div className="flex justify-center">
         <div className="w-full max-w-2xl bg-[#0F172A] rounded-xl overflow-hidden shadow-xl">
+          {/* Header */}
           <div className="flex items-center justify-between px-5 py-3 bg-[#1E293B] border-b border-slate-700">
             <span className="text-sm font-medium text-emerald-400 uppercase tracking-wide">
-              {language}
+              {languageLabel}
             </span>
-
             <div className="flex items-center gap-2">
-              {/* Copy Code */}
               <button
                 onClick={() => handleCopy(code, "code")}
                 className="px-3 py-1 text-xs bg-slate-700 text-white rounded hover:bg-slate-600 transition"
               >
                 {copiedCode ? "Copied!" : "Copy"}
               </button>
-
-              {/* Run */}
               <button
-                onClick={() => setOutput(expectedOutput)}
-                className="px-4 py-1.5 text-sm font-semibold bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition"
+                onClick={handleRunCode}
+                disabled={running}
+                className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition disabled:opacity-60"
               >
-                Run Code
+                {running ? (
+                  <>
+                    <svg
+                      className="animate-spin w-3.5 h-3.5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v8z"
+                      />
+                    </svg>
+                    Running...
+                  </>
+                ) : (
+                  "Run Code"
+                )}
               </button>
             </div>
           </div>
+
+          {/* Code block — tampil plain text, bukan HTML */}
           <pre className="p-6 text-sm text-slate-200 font-mono whitespace-pre-wrap overflow-x-auto">
             {code}
           </pre>
-          {output && (
+
+          {/* Output */}
+          {output !== null && (
             <div className="border-t border-slate-700 bg-black px-6 py-4 relative">
-              {/* Copy Output */}
               <button
                 onClick={() => handleCopy(output, "output")}
                 className="absolute top-3 right-4 px-3 py-1 text-xs bg-slate-700 text-white rounded hover:bg-slate-600 transition"
               >
                 {copiedOutput ? "Copied!" : "Copy"}
               </button>
-
               <p className="text-xs text-gray-400 mb-2">Output:</p>
               <pre className="text-emerald-400 text-sm font-mono whitespace-pre-wrap">
                 {output}
