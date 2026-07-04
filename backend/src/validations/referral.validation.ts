@@ -12,14 +12,6 @@ export const createReferralCodeSchema = z.object({
         /^[A-Za-z0-9-_]+$/,
         "Referral code must contain only letters, numbers, hyphens, or underscores",
       ),
-    discountPercentage: z
-      .number()
-      .min(0, "Discount percentage must be at least 0")
-      .max(100, "Discount percentage cannot exceed 100"),
-    commissionPercentage: z
-      .number()
-      .min(0, "Commission percentage must be at least 0")
-      .max(100, "Commission percentage cannot exceed 100"),
     expiryDate: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/, {
@@ -84,16 +76,7 @@ export const updateReferralCodeSchema = z.object({
           message: "Invalid expiry date",
         }),
       isActive: z.boolean().optional(),
-      discountPercentage: z
-        .number()
-        .min(0, "Discount percentage must be at least 0")
-        .max(100, "Discount percentage cannot exceed 100")
-        .optional(),
-      commissionPercentage: z
-        .number()
-        .min(0, "Commission percentage must be at least 0")
-        .max(100, "Commission percentage cannot exceed 100")
-        .optional(),
+      // HAPUS: discountPercentage, commissionPercentage
     })
     .refine(
       (data) => Object.values(data).some((value) => value !== undefined),
@@ -156,6 +139,18 @@ export const applyReferralAyclSchema = z.object({
 export const getReferralCommissionsSchema = z.object({
   query: z.object({
     referralCodeId: z.string().optional(),
+    productType: z
+      .enum([
+        "ELEARNING_1M",
+        "ELEARNING_3M",
+        "ELEARNING_6M",
+        "MENTORING_BOOTCAMP",
+        "MENTORING_ONE_ON_ONE",
+        "MENTORING_GROUP",
+        "AYCL",
+      ])
+      .optional(),
+    tier: z.enum(["BRONZE", "SILVER", "GOLD"]).optional(),
     startDate: z.string().optional(),
     endDate: z.string().optional(),
     page: z.string().transform(Number).default("1"),
@@ -180,7 +175,12 @@ export const getReferralUsagesSchema = z.object({
   }),
   query: z.object({
     context: z
-      .enum(["booking", "practice_purchase", "elearning_subscription"])
+      .enum([
+        "booking",
+        "practice_purchase",
+        "elearning_subscription",
+        "ayclpurchase", // tambah
+      ])
       .optional(),
     page: z.string().transform(Number).default("1"),
     limit: z.string().transform(Number).default("10"),
@@ -287,4 +287,98 @@ export const exportCommissionPaymentsSchema = z.object({
       errorMap: () => ({ message: "Format must be 'csv' or 'excel'" }),
     }),
   }),
+});
+
+// ============================================================
+// GET /affiliator/profile
+// (tidak ada params/query/body, tapi tetap buat schema kosong
+//  agar konsisten dengan pattern validate() middleware)
+// ============================================================
+export const getAffiliatorProfileSchema = z.object({});
+
+// ============================================================
+// Admin CRUD AffiliatorProductConfig
+// ============================================================
+
+export const getProductConfigsSchema = z.object({
+  query: z
+    .object({
+      productType: z.string().optional(),
+      tier: z.enum(["BRONZE", "SILVER", "GOLD"]).optional(),
+      isActive: z
+        .string()
+        .optional()
+        .transform((val) => {
+          if (val === "true") return true;
+          if (val === "false") return false;
+          return undefined;
+        }),
+    })
+    .optional(),
+});
+
+export const updateProductConfigSchema = z.object({
+  params: z.object({
+    id: z.string().min(1, "Config ID is required"),
+  }),
+  body: z
+    .object({
+      commissionAmount: z.number().nonnegative().optional(),
+      discountAmount: z.number().nonnegative().optional(),
+      commissionPercent: z.number().min(0).max(100).optional(),
+      discountPercent: z.number().min(0).max(100).optional(),
+      pointsAwarded: z.number().int().nonnegative().optional(),
+      isActive: z.boolean().optional(),
+    })
+    .refine((data) => Object.keys(data).length > 0, {
+      message: "Minimal satu field harus diisi untuk update",
+    }),
+});
+
+// ============================================================
+// GET /admin/affiliator-profiles
+// ============================================================
+export const getAdminAffiliatorProfilesSchema = z.object({
+  query: z
+    .object({
+      page: z
+        .string()
+        .optional()
+        .transform((val) => (val ? parseInt(val, 10) : 1))
+        .refine((val) => val >= 1, { message: "Page minimal 1" }),
+      limit: z
+        .string()
+        .optional()
+        .transform((val) => (val ? parseInt(val, 10) : 10))
+        .refine((val) => val >= 1, { message: "Limit minimal 1" }),
+      tier: z.enum(["BRONZE", "SILVER", "GOLD"]).optional(),
+      isActive: z
+        .string()
+        .optional()
+        .transform((val) => {
+          if (val === "true") return true;
+          if (val === "false") return false;
+          return undefined;
+        }),
+      search: z.string().optional(), // filter by nama / email affiliator
+    })
+    .optional(),
+});
+
+// ============================================================
+// GET /admin/seasons
+// ============================================================
+export const getAdminSeasonsSchema = z.object({
+  query: z
+    .object({
+      isActive: z
+        .string()
+        .optional()
+        .transform((val) => {
+          if (val === "true") return true;
+          if (val === "false") return false;
+          return undefined;
+        }),
+    })
+    .optional(),
 });

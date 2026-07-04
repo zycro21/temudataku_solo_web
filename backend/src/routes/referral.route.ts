@@ -17,6 +17,10 @@ import {
   exportCommissionPaymentsSchema,
   applyReferralSchema,
   applyReferralAyclSchema,
+  updateProductConfigSchema,
+  getProductConfigsSchema,
+  getAdminSeasonsSchema,
+  getAdminAffiliatorProfilesSchema,
 } from "../validations/referral.validation.js";
 import { validate } from "../middlewares/validate.js";
 import { authenticate } from "../middlewares/authenticate.js";
@@ -693,7 +697,7 @@ router.post(
  *       400:
  *         description: Parameter tidak valid
  *       401:
- *         description: Unauthorized  
+ *         description: Unauthorized
  */
 router.get(
   "/referral-commissions",
@@ -1639,6 +1643,566 @@ router.get(
   authorizeRoles("admin"),
   validate(exportCommissionPaymentsSchema),
   ReferralController.exportCommissionPaymentsController,
+);
+
+/**
+ * @swagger
+ * /api/referral/affiliator/profile:
+ *   get:
+ *     summary: Lihat profil affiliator (tier, poin, season, saldo komisi)
+ *     tags: [Referral]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Profil affiliator berhasil diambil
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         fullName:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                         phoneNumber:
+ *                           type: string
+ *                           nullable: true
+ *                         profilePicture:
+ *                           type: string
+ *                           nullable: true
+ *                     profile:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         currentTier:
+ *                           type: string
+ *                           enum: [BRONZE, SILVER, GOLD]
+ *                         totalPoints:
+ *                           type: integer
+ *                         isActive:
+ *                           type: boolean
+ *                         joinedAt:
+ *                           type: string
+ *                           format: date-time
+ *                     tierProgress:
+ *                       type: object
+ *                       properties:
+ *                         currentTier:
+ *                           type: string
+ *                         nextTier:
+ *                           type: string
+ *                           nullable: true
+ *                         totalPoints:
+ *                           type: integer
+ *                         pointsToNextTier:
+ *                           type: integer
+ *                           nullable: true
+ *                         maintenanceQuota:
+ *                           type: integer
+ *                           nullable: true
+ *                     currentSeason:
+ *                       type: object
+ *                       nullable: true
+ *                       properties:
+ *                         seasonName:
+ *                           type: string
+ *                         startDate:
+ *                           type: string
+ *                           format: date-time
+ *                         endDate:
+ *                           type: string
+ *                           format: date-time
+ *                         pointsThisSeason:
+ *                           type: integer
+ *                         tierAtSeasonStart:
+ *                           type: string
+ *                         maintenanceQuota:
+ *                           type: integer
+ *                           nullable: true
+ *                         maintenanceProgress:
+ *                           type: integer
+ *                           nullable: true
+ *                           description: Persentase 0-100, null jika BRONZE
+ *                     seasonHistory:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           seasonName:
+ *                             type: string
+ *                           points:
+ *                             type: integer
+ *                           tierAtSeasonStart:
+ *                             type: string
+ *                           tierAtSeasonEnd:
+ *                             type: string
+ *                             nullable: true
+ *                           maintenanceQuotaMet:
+ *                             type: boolean
+ *                             nullable: true
+ *                     referralCodes:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           code:
+ *                             type: string
+ *                           isActive:
+ *                             type: boolean
+ *                     commissionSummary:
+ *                       type: object
+ *                       properties:
+ *                         totalEarned:
+ *                           type: number
+ *                         totalPaid:
+ *                           type: number
+ *                         pendingWithdrawal:
+ *                           type: number
+ *                         availableBalance:
+ *                           type: number
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Affiliator profile tidak ditemukan
+ */
+router.get(
+  "/affiliator/profile",
+  authenticate,
+  authorizeRoles("affiliator"),
+  ReferralController.getAffiliatorProfileController,
+);
+
+/**
+ * @swagger
+ * /api/referral/admin/product-configs:
+ *   get:
+ *     summary: Daftar konfigurasi komisi & diskon per produk per tier (admin)
+ *     tags: [Referral]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: productType
+ *         schema:
+ *           type: string
+ *           enum:
+ *             - ELEARNING_1M
+ *             - ELEARNING_3M
+ *             - ELEARNING_6M
+ *             - MENTORING_BOOTCAMP
+ *             - MENTORING_ONE_ON_ONE
+ *             - MENTORING_GROUP
+ *             - AYCL
+ *         description: Filter berdasarkan tipe produk
+ *       - in: query
+ *         name: tier
+ *         schema:
+ *           type: string
+ *           enum: [BRONZE, SILVER, GOLD]
+ *         description: Filter berdasarkan tier
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: boolean
+ *         description: Filter berdasarkan status aktif
+ *     responses:
+ *       200:
+ *         description: Daftar product config berhasil diambil
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       productType:
+ *                         type: string
+ *                       tier:
+ *                         type: string
+ *                       commissionAmount:
+ *                         type: number
+ *                         nullable: true
+ *                       discountAmount:
+ *                         type: number
+ *                         nullable: true
+ *                       commissionPercent:
+ *                         type: number
+ *                         nullable: true
+ *                       discountPercent:
+ *                         type: number
+ *                         nullable: true
+ *                       pointsAwarded:
+ *                         type: integer
+ *                       isActive:
+ *                         type: boolean
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
+ *                         nullable: true
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ */
+router.get(
+  "/admin/product-configs",
+  authenticate,
+  authorizeRoles("admin"),
+  validate(getProductConfigsSchema),
+  ReferralController.getProductConfigsController,
+);
+
+/**
+ * @swagger
+ * /api/referral/admin/product-configs/{id}:
+ *   patch:
+ *     summary: Update konfigurasi komisi & diskon satu produk (admin)
+ *     tags: [Referral]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID config yang akan diupdate
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               commissionAmount:
+ *                 type: number
+ *                 description: Komisi flat (untuk produk harga fixed)
+ *                 example: 45000
+ *               discountAmount:
+ *                 type: number
+ *                 description: Diskon flat (untuk produk harga fixed)
+ *                 example: 50000
+ *               commissionPercent:
+ *                 type: number
+ *                 description: Persentase komisi (untuk produk harga variabel)
+ *                 example: 10
+ *               discountPercent:
+ *                 type: number
+ *                 description: Persentase diskon (untuk produk harga variabel)
+ *                 example: 15
+ *               pointsAwarded:
+ *                 type: integer
+ *                 description: Poin yang diberikan per transaksi sukses
+ *                 example: 2
+ *               isActive:
+ *                 type: boolean
+ *                 description: Aktifkan atau nonaktifkan config ini
+ *                 example: true
+ *     responses:
+ *       200:
+ *         description: Product config berhasil diupdate
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     productType:
+ *                       type: string
+ *                     tier:
+ *                       type: string
+ *                     commissionAmount:
+ *                       type: number
+ *                       nullable: true
+ *                     discountAmount:
+ *                       type: number
+ *                       nullable: true
+ *                     commissionPercent:
+ *                       type: number
+ *                       nullable: true
+ *                     discountPercent:
+ *                       type: number
+ *                       nullable: true
+ *                     pointsAwarded:
+ *                       type: integer
+ *                     isActive:
+ *                       type: boolean
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *       400:
+ *         description: Body tidak valid atau kosong
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Config tidak ditemukan
+ */
+router.patch(
+  "/admin/product-configs/:id",
+  authenticate,
+  authorizeRoles("admin"),
+  validate(updateProductConfigSchema),
+  ReferralController.updateProductConfigController,
+);
+
+/**
+ * @swagger
+ * /api/referral/admin/affiliator-profiles:
+ *   get:
+ *     summary: Daftar semua affiliator profiles (admin)
+ *     tags: [Referral]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *       - in: query
+ *         name: tier
+ *         schema:
+ *           type: string
+ *           enum: [BRONZE, SILVER, GOLD]
+ *         description: Filter berdasarkan tier
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: boolean
+ *         description: Filter berdasarkan status aktif affiliator
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Cari berdasarkan nama atau email
+ *     responses:
+ *       200:
+ *         description: Daftar affiliator profiles berhasil diambil
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           currentTier:
+ *                             type: string
+ *                             enum: [BRONZE, SILVER, GOLD]
+ *                           totalPoints:
+ *                             type: integer
+ *                           isActive:
+ *                             type: boolean
+ *                           joinedAt:
+ *                             type: string
+ *                             format: date-time
+ *                           user:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: string
+ *                               fullName:
+ *                                 type: string
+ *                               email:
+ *                                 type: string
+ *                               phoneNumber:
+ *                                 type: string
+ *                                 nullable: true
+ *                           currentSeason:
+ *                             type: object
+ *                             nullable: true
+ *                             properties:
+ *                               seasonName:
+ *                                 type: string
+ *                               pointsThisSeason:
+ *                                 type: integer
+ *                               tierAtSeasonStart:
+ *                                 type: string
+ *                           stats:
+ *                             type: object
+ *                             properties:
+ *                               totalReferralCodes:
+ *                                 type: integer
+ *                               totalUsages:
+ *                                 type: integer
+ *                               totalCommissionEarned:
+ *                                 type: number
+ *                               totalCommissionTransactions:
+ *                                 type: integer
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ */
+router.get(
+  "/admin/affiliator-profiles",
+  authenticate,
+  authorizeRoles("admin"),
+  validate(getAdminAffiliatorProfilesSchema),
+  ReferralController.getAdminAffiliatorProfilesController,
+);
+
+/**
+ * @swagger
+ * /api/referral/admin/seasons:
+ *   get:
+ *     summary: Daftar semua season afiliator (admin)
+ *     tags: [Referral]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: boolean
+ *         description: >
+ *           Filter: true = hanya season aktif,
+ *           false = hanya season selesai,
+ *           kosong = semua season
+ *     responses:
+ *       200:
+ *         description: Daftar season berhasil diambil
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       seasonName:
+ *                         type: string
+ *                         example: "Season 1 2025"
+ *                       startDate:
+ *                         type: string
+ *                         format: date-time
+ *                       endDate:
+ *                         type: string
+ *                         format: date-time
+ *                       isActive:
+ *                         type: boolean
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                       stats:
+ *                         type: object
+ *                         properties:
+ *                           totalAffiliators:
+ *                             type: integer
+ *                             description: Jumlah affiliator yang terdaftar di season ini
+ *                           totalPointsGenerated:
+ *                             type: integer
+ *                           averagePoints:
+ *                             type: integer
+ *                           highestPoints:
+ *                             type: integer
+ *                           tierDistribution:
+ *                             type: object
+ *                             description: Distribusi tier di awal season
+ *                             properties:
+ *                               BRONZE:
+ *                                 type: integer
+ *                               SILVER:
+ *                                 type: integer
+ *                               GOLD:
+ *                                 type: integer
+ *                           evaluationResult:
+ *                             type: object
+ *                             nullable: true
+ *                             description: Null jika season masih aktif
+ *                             properties:
+ *                               passed:
+ *                                 type: integer
+ *                               failed:
+ *                                 type: integer
+ *                               notEvaluated:
+ *                                 type: integer
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ */
+router.get(
+  "/admin/seasons",
+  authenticate,
+  authorizeRoles("admin"),
+  validate(getAdminSeasonsSchema),
+  ReferralController.getAdminSeasonsController,
 );
 
 export default router;

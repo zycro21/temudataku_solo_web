@@ -390,16 +390,12 @@ export interface AuthenticatedRequestReferralCode extends Request {
     | {
         ownerId: string;
         code: string;
-        discountPercentage: number;
-        commissionPercentage: number;
         expiryDate?: Date;
         isActive?: boolean;
       }
     | {
         expiryDate?: Date;
         isActive?: boolean;
-        discountPercentage?: number;
-        commissionPercentage?: number;
       }
     | {
         code: string;
@@ -412,6 +408,14 @@ export interface AuthenticatedRequestReferralCode extends Request {
     | {
         referralCodeId: string;
         amount: number;
+      }
+    | {
+        commissionAmount?: number;
+        discountAmount?: number;
+        commissionPercent?: number;
+        discountPercent?: number;
+        pointsAwarded?: number;
+        isActive?: boolean;
       };
   validatedParams?: {
     id?: string;
@@ -422,8 +426,12 @@ export interface AuthenticatedRequestReferralCode extends Request {
     isActive?: boolean;
     ownerId?: string;
     referralCodeId?: string;
+    productType?: string;
+    tier?: string;
+    status?: string;
     startDate?: string;
     endDate?: string;
+    search?: string; // ← tambah
     context?:
       | "booking"
       | "practice_purchase"

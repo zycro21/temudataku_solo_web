@@ -1,6 +1,7 @@
 import cron from "node-cron";
 import { updateUsersStatus } from "../services/user.service.js";
 import "./installmentReminder.cron.js";
+import "./seasonEvaluation.cron.js"; // tambah ini
 
 console.log("CRON FILE LOADED");
 

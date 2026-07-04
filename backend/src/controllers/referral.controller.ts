@@ -24,23 +24,13 @@ export const createReferralCodeController = async (
     const adminId = req.user.userId;
     const rolesLog = req.user?.roles || [];
 
-    // Pastikan pengguna adalah admin
     if (!req.user!.roles.includes("admin")) {
       throw new Error("Unauthorized: Only admins can create referral codes");
     }
 
-    const {
-      ownerId,
-      code,
-      discountPercentage,
-      commissionPercentage,
-      expiryDate,
-      isActive,
-    } = req.validatedBody as {
+    const { ownerId, code, expiryDate, isActive } = req.validatedBody as {
       ownerId: string;
       code: string;
-      discountPercentage: number;
-      commissionPercentage: number;
       expiryDate?: Date;
       isActive?: boolean;
     };
@@ -48,8 +38,6 @@ export const createReferralCodeController = async (
     const referralCode = await ReferralService.createReferralCodeService({
       ownerId,
       code,
-      discountPercentage,
-      commissionPercentage,
       expiryDate,
       isActive,
     });
@@ -157,25 +145,20 @@ export const updateReferralCodeController = async (
     const adminId = req.user.userId;
     const rolesLog = req.user?.roles || [];
 
-    // Pastikan pengguna adalah admin
     if (!req.user!.roles.includes("admin")) {
       throw new Error("Unauthorized: Only admins can update referral codes");
     }
 
     const { id } = req.validatedParams as { id: string };
-    const { expiryDate, isActive, discountPercentage, commissionPercentage } =
-      req.validatedBody as {
-        expiryDate?: Date;
-        isActive?: boolean;
-        discountPercentage?: number;
-        commissionPercentage?: number;
-      };
+    const { expiryDate, isActive } = req.validatedBody as {
+      expiryDate?: Date;
+      isActive?: boolean;
+      // HAPUS: discountPercentage, commissionPercentage
+    };
 
     const referralCode = await ReferralService.updateReferralCodeService(id, {
       expiryDate,
       isActive,
-      discountPercentage,
-      commissionPercentage,
     });
 
     if (!referralCode) {
@@ -408,6 +391,8 @@ export const getReferralCommissionsController = async (
 
     const {
       referralCodeId,
+      productType,
+      tier,
       startDate,
       endDate,
       page = 1,
@@ -416,6 +401,8 @@ export const getReferralCommissionsController = async (
 
     const commissions = await ReferralService.getReferralCommissions({
       referralCodeId,
+      productType,
+      tier,
       startDate,
       endDate,
       page,
@@ -638,18 +625,19 @@ export const getCommissionPaymentsController = async (
       return;
     }
 
-    const { page, limit, status, startDate, endDate } = req.query as {
-      page?: string;
-      limit?: string;
-      status?: string;
-      startDate?: string;
-      endDate?: string;
-    };
+    // FIX: baca dari req.validatedQuery, bukan req.query langsung
+    const {
+      page = 1,
+      limit = 10,
+      status,
+      startDate,
+      endDate,
+    } = req.validatedQuery ?? {};
 
     const payments = await ReferralService.getCommissionPayments({
       ownerId: req.user.userId,
-      page: page ? parseInt(page) : 1,
-      limit: limit ? parseInt(limit) : 10,
+      page: page ?? 1,
+      limit: limit ?? 10,
       status,
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
@@ -680,20 +668,20 @@ export const getAllCommissionPaymentsController = async (
       return;
     }
 
-    const { page, limit, status, startDate, endDate, referralCodeId, ownerId } =
-      req.query as {
-        page?: string;
-        limit?: string;
-        status?: string;
-        startDate?: string;
-        endDate?: string;
-        referralCodeId?: string;
-        ownerId?: string;
-      };
+    // FIX: baca dari req.validatedQuery, bukan req.query langsung
+    const {
+      page = 1,
+      limit = 10,
+      status,
+      startDate,
+      endDate,
+      referralCodeId,
+      ownerId,
+    } = req.validatedQuery ?? {};
 
     const payments = await ReferralService.getAllCommissionPayments({
-      page: page ? parseInt(page) : 1,
-      limit: limit ? parseInt(limit) : 10,
+      page: page ?? 1,
+      limit: limit ?? 10,
       status,
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
@@ -823,5 +811,235 @@ export const exportCommissionPaymentsController = async (
     const status = error.status || 500;
     const message = error.message || "Terjadi kesalahan pada server.";
     res.status(status).json({ success: false, message });
+  }
+};
+
+// ============================================================
+// GET /affiliator/profile
+// ============================================================
+
+export const getAffiliatorProfileController = async (
+  req: AuthenticatedRequestReferralCode,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    if (!req.user?.userId) {
+      res.status(401).json({ success: false, message: "Unauthorized." });
+      return;
+    }
+
+    const profile = await ReferralService.getAffiliatorProfileService(
+      req.user.userId,
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Affiliator profile retrieved successfully.",
+      data: profile,
+    });
+    return;
+  } catch (error: any) {
+    const status = error.status || 500;
+    const message = error.message || "Terjadi kesalahan pada server.";
+    res.status(status).json({ success: false, message });
+    return;
+  }
+};
+
+// ============================================================
+// Admin: GET /admin/product-configs
+// ============================================================
+
+export const getProductConfigsController = async (
+  req: AuthenticatedRequestReferralCode,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    if (!req.user?.userId) {
+      res.status(401).json({ success: false, message: "Unauthorized." });
+      return;
+    }
+
+    const { productType, tier, isActive } =
+      (req.validatedQuery as {
+        productType?: string;
+        tier?: string;
+        isActive?: boolean;
+      }) ?? {};
+
+    const configs = await ReferralService.getProductConfigsService({
+      productType,
+      tier,
+      isActive,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Product configs retrieved successfully.",
+      data: configs,
+    });
+    return;
+  } catch (error: any) {
+    const status = error.status || 500;
+    const message = error.message || "Terjadi kesalahan pada server.";
+    res.status(status).json({ success: false, message });
+    return;
+  }
+};
+
+// ============================================================
+// Admin: PATCH /admin/product-configs/:id
+// ============================================================
+
+export const updateProductConfigController = async (
+  req: AuthenticatedRequestReferralCode,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    if (!req.user?.userId) {
+      res.status(401).json({ success: false, message: "Unauthorized." });
+      return;
+    }
+
+    const adminId = req.user.userId;
+    const rolesLog = req.user?.roles || [];
+
+    if (!req.validatedParams?.id) {
+      res
+        .status(400)
+        .json({ success: false, message: "Config ID tidak valid." });
+      return;
+    }
+
+    if (!req.validatedBody) {
+      res
+        .status(400)
+        .json({ success: false, message: "Request body tidak valid." });
+      return;
+    }
+
+    const { id } = req.validatedParams;
+    const updateData = req.validatedBody as {
+      commissionAmount?: number;
+      discountAmount?: number;
+      commissionPercent?: number;
+      discountPercent?: number;
+      pointsAwarded?: number;
+      isActive?: boolean;
+    };
+
+    const updated = await ReferralService.updateProductConfigService(
+      id,
+      updateData,
+    );
+
+    if (rolesLog.includes("admin") && adminId) {
+      await logActivity({
+        userId: adminId,
+        action: "UPDATE_PRODUCT_CONFIG",
+        type: "UPDATE",
+        description: `Admin mengubah product config ID: ${id}`,
+        req,
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Product config updated successfully.",
+      data: updated,
+    });
+    return;
+  } catch (error: any) {
+    const status = error.status || 500;
+    const message = error.message || "Terjadi kesalahan pada server.";
+    res.status(status).json({ success: false, message });
+    return;
+  }
+};
+
+// ============================================================
+// Admin: GET /admin/affiliator-profiles
+// ============================================================
+
+export const getAdminAffiliatorProfilesController = async (
+  req: AuthenticatedRequestReferralCode,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    if (!req.user?.userId) {
+      res.status(401).json({ success: false, message: "Unauthorized." });
+      return;
+    }
+
+    const {
+      page = 1,
+      limit = 10,
+      tier,
+      isActive,
+      search,
+    } = (req.validatedQuery as {
+      page?: number;
+      limit?: number;
+      tier?: string;
+      isActive?: boolean;
+      search?: string;
+    }) ?? {};
+
+    const result = await ReferralService.getAdminAffiliatorProfilesService({
+      page,
+      limit,
+      tier,
+      isActive,
+      search,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Affiliator profiles retrieved successfully.",
+      data: result,
+    });
+    return;
+  } catch (error: any) {
+    const status = error.status || 500;
+    const message = error.message || "Terjadi kesalahan pada server.";
+    res.status(status).json({ success: false, message });
+    return;
+  }
+};
+
+// ============================================================
+// Admin: GET /admin/seasons
+// ============================================================
+
+export const getAdminSeasonsController = async (
+  req: AuthenticatedRequestReferralCode,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    if (!req.user?.userId) {
+      res.status(401).json({ success: false, message: "Unauthorized." });
+      return;
+    }
+
+    const { isActive } = (req.validatedQuery as { isActive?: boolean }) ?? {};
+
+    const result = await ReferralService.getAdminSeasonsService({ isActive });
+
+    res.status(200).json({
+      success: true,
+      message: "Seasons retrieved successfully.",
+      data: result,
+    });
+    return;
+  } catch (error: any) {
+    const status = error.status || 500;
+    const message = error.message || "Terjadi kesalahan pada server.";
+    res.status(status).json({ success: false, message });
+    return;
   }
 };

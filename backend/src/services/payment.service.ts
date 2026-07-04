@@ -15,6 +15,11 @@ import { sendAyclPaymentSuccessEmail } from "../utils/sendAyclPaymentSuccess.js"
 import { sendBookingPaymentSuccessEmail } from "../utils/sendBookingPaymentSuccessEmail.js";
 import { sendMentorBookingNotificationEmail } from "../utils/sendMentorBookingNotificationEmail.js";
 import { sendAdminBookingNotificationEmail } from "../utils/sendAdminBookingNotificationEmail.js";
+import {
+  resolveMentoringProductType,
+  resolveElearningProductType,
+  recordReferralCommission,
+} from "../utils/referral.helper.js";
 
 const prisma = new PrismaClient();
 
@@ -330,7 +335,6 @@ export const processDuitkuCallback = async ({
    * 1️⃣ VALIDATE SIGNATURE
    */
   const raw = `${merchantCode}${amount}${merchantOrderId}${API_KEY}`;
-
   const expectedSignature = crypto.createHash("md5").update(raw).digest("hex");
 
   if (signature !== expectedSignature) {
@@ -348,40 +352,37 @@ export const processDuitkuCallback = async ({
           booking: {
             include: {
               mentee: true,
-
               mentoringService: {
                 include: {
                   mentors: {
                     include: {
-                      mentorProfile: {
-                        include: {
-                          user: true,
-                        },
-                      },
+                      mentorProfile: { include: { user: true } },
                     },
                   },
-
-                  // Ambil semua field sesi (date, startTime, endTime,
-                  // durationMinutes, meetingLink) untuk email mentor & admin
                   mentoringSessions: {
                     include: {
                       mentors: {
                         include: {
-                          mentorProfile: {
-                            include: {
-                              user: true,
-                            },
-                          },
+                          mentorProfile: { include: { user: true } },
                         },
                       },
                     },
                   },
                 },
               },
-
               referralUsage: {
                 include: {
-                  referralCode: true,
+                  referralCode: {
+                    include: {
+                      owner: {
+                        select: {
+                          affiliatorProfile: {
+                            select: { id: true, currentTier: true },
+                          },
+                        },
+                      },
+                    },
+                  },
                 },
               },
             },
@@ -395,13 +396,21 @@ export const processDuitkuCallback = async ({
       eLearningSubscription: {
         include: {
           plan: true,
-
           referralUsage: {
             include: {
-              referralCode: true,
+              referralCode: {
+                include: {
+                  owner: {
+                    select: {
+                      affiliatorProfile: {
+                        select: { id: true, currentTier: true },
+                      },
+                    },
+                  },
+                },
+              },
             },
           },
-
           user: true,
         },
       },
@@ -410,10 +419,19 @@ export const processDuitkuCallback = async ({
         include: {
           user: true,
           batch: true,
-
           referralUsage: {
             include: {
-              referralCode: true,
+              referralCode: {
+                include: {
+                  owner: {
+                    select: {
+                      affiliatorProfile: {
+                        select: { id: true, currentTier: true },
+                      },
+                    },
+                  },
+                },
+              },
             },
           },
         },
@@ -439,10 +457,6 @@ export const processDuitkuCallback = async ({
   const isSuccess = resultCode === "00";
   const now = new Date();
 
-  // =========================================================================
-  // Payload email dikumpulkan di sini, diisi di dalam transaction,
-  // lalu dikirim di LUAR transaction supaya tidak menahan DB connection.
-  // =========================================================================
   let bookingEmailPayload:
     | Parameters<typeof sendBookingPaymentSuccessEmail>[0]
     | null = null;
@@ -460,9 +474,6 @@ export const processDuitkuCallback = async ({
    * 3️⃣ TRANSACTION — hanya DB, tidak ada email di sini
    */
   await prisma.$transaction(async (tx) => {
-    /**
-     * UPDATE PAYMENT
-     */
     await tx.payment.update({
       where: { id: payment.id },
       data: {
@@ -474,7 +485,6 @@ export const processDuitkuCallback = async ({
     });
 
     if (!isSuccess) {
-      // Cancel voucherUsage yang RESERVED jika payment gagal + decrement usageCount
       const cancelledUsages = await tx.voucherUsage.findMany({
         where: {
           status: "RESERVED",
@@ -512,14 +522,8 @@ export const processDuitkuCallback = async ({
       const invoice = payment.bookingInvoice;
       const booking = invoice.booking;
 
-      /**
-       * 🔥 HITUNG TOTAL PAID
-       */
       const allPayments = await tx.payment.findMany({
-        where: {
-          bookingInvoiceId: invoice.id,
-          status: "confirmed",
-        },
+        where: { bookingInvoiceId: invoice.id, status: "confirmed" },
       });
 
       const paidAmount = allPayments.reduce(
@@ -528,14 +532,9 @@ export const processDuitkuCallback = async ({
       );
 
       const totalAmount = invoice.totalAmount.toNumber();
-
       const remainingAmount = Math.max(totalAmount - paidAmount, 0);
 
-      /**
-       * 🔥 DETERMINE INVOICE STATUS
-       */
       let invoiceStatus = "HAVENT_PAID";
-
       if (paidAmount <= 0) {
         invoiceStatus = "HAVENT_PAID";
       } else if (remainingAmount > 0) {
@@ -544,9 +543,6 @@ export const processDuitkuCallback = async ({
         invoiceStatus = "PAID_DONE";
       }
 
-      /**
-       * 🔥 UPDATE INVOICE
-       */
       await tx.bookingInvoice.update({
         where: { id: invoice.id },
         data: {
@@ -557,20 +553,10 @@ export const processDuitkuCallback = async ({
         },
       });
 
-      /**
-       * 🔥 BOOKING STATUS
-       *
-       * langsung confirmed saat:
-       * - FULL payment
-       * - atau cicilan pertama berhasil
-       */
       if (invoice.paymentType === "FULL" || payment.installmentNumber === 1) {
         await tx.booking.update({
           where: { id: booking.id },
-          data: {
-            status: "confirmed",
-            updatedAt: now,
-          },
+          data: { status: "confirmed", updatedAt: now },
         });
 
         /* ===============================
@@ -578,31 +564,23 @@ export const processDuitkuCallback = async ({
         =============================== */
         if (booking.referralUsage?.referralCode) {
           const referralCode = booking.referralUsage.referralCode;
+          const affiliatorProfile = referralCode.owner.affiliatorProfile;
 
-          const commissionPercentage =
-            referralCode.commissionPercentage.toNumber();
+          if (affiliatorProfile) {
+            const serviceType = booking.mentoringService.serviceType;
+            if (serviceType) {
+              const productType = resolveMentoringProductType(serviceType);
+              const originalPrice = booking.mentoringService.price.toNumber();
 
-          const originalPrice = booking.mentoringService.price.toNumber();
-
-          const commissionAmount = Math.round(
-            originalPrice * (commissionPercentage / 100),
-          );
-
-          const existingCommission = await tx.referralCommisions.findFirst({
-            where: {
-              transactionId: payment.id,
-            },
-          });
-
-          if (!existingCommission) {
-            await tx.referralCommisions.create({
-              data: {
+              await recordReferralCommission(tx, {
                 referralCodeId: referralCode.id,
+                affiliatorProfileId: affiliatorProfile.id,
                 transactionId: payment.id,
-                amount: commissionAmount,
-                created_at: now,
-              },
-            });
+                productType,
+                tier: affiliatorProfile.currentTier,
+                originalPrice,
+              });
+            }
           }
         }
 
@@ -613,7 +591,7 @@ export const processDuitkuCallback = async ({
       }
 
       // -----------------------------------------------------------------------
-      // KUMPULKAN PAYLOAD EMAIL — tidak ada sendMail di sini
+      // KUMPULKAN PAYLOAD EMAIL
       // -----------------------------------------------------------------------
 
       const shouldSendWhatsappGroup =
@@ -635,7 +613,6 @@ export const processDuitkuCallback = async ({
         orderBy: { installmentNumber: "asc" },
       });
 
-      // Payload email ke mentee (semua tipe booking)
       bookingEmailPayload = {
         email: booking.mentee.email,
         fullName: booking.mentee.fullName,
@@ -656,13 +633,9 @@ export const processDuitkuCallback = async ({
         installmentCount: invoice.installmentCount,
       };
 
-      // -----------------------------------------------------------------------
-      // Payload email mentor + admin — khusus one-on-one & group
-      // -----------------------------------------------------------------------
       const serviceType = booking.mentoringService.serviceType ?? "-";
 
       if (serviceType === "one-on-one" || serviceType === "group") {
-        // Ambil sesi pertama (untuk one-on-one & group hanya ada 1 sesi)
         const mentoringSession =
           booking.mentoringService.mentoringSessions?.[0] ?? null;
 
@@ -670,14 +643,12 @@ export const processDuitkuCallback = async ({
           .map((m) => m.mentorProfile?.user)
           .filter(Boolean) as { email: string; fullName: string }[];
 
-        // Data sesi dari MentoringSession
         const sessionDate = mentoringSession?.date ?? null;
         const startTime = mentoringSession?.startTime ?? null;
         const endTime = mentoringSession?.endTime ?? null;
         const durationMinutes = mentoringSession?.durationMinutes ?? null;
         const meetingLink = mentoringSession?.meetingLink ?? null;
 
-        // Payload per mentor — tanpa payment info, dengan session info
         mentorEmailPayloads = mentorUsers.map((mentor) => ({
           mentorEmail: mentor.email,
           mentorName: mentor.fullName,
@@ -695,7 +666,6 @@ export const processDuitkuCallback = async ({
           meetingLink,
         }));
 
-        // Payload admin — payment info lengkap + session info
         adminEmailPayload = {
           menteeName: booking.mentee.fullName,
           menteeEmail: booking.mentee.email,
@@ -723,10 +693,7 @@ export const processDuitkuCallback = async ({
     if (payment.practicePurchaseId) {
       await tx.practicePurchase.update({
         where: { id: payment.practicePurchaseId },
-        data: {
-          status: "confirmed",
-          updatedAt: now,
-        },
+        data: { status: "confirmed", updatedAt: now },
       });
     }
 
@@ -738,10 +705,7 @@ export const processDuitkuCallback = async ({
       const subscription = payment.eLearningSubscription;
 
       const lastActiveSubscription = await tx.eLearningSubscription.findFirst({
-        where: {
-          userId: subscription.userId,
-          status: "confirmed",
-        },
+        where: { userId: subscription.userId, status: "confirmed" },
         orderBy: { endAt: "desc" },
       });
 
@@ -754,35 +718,26 @@ export const processDuitkuCallback = async ({
 
       await tx.eLearningSubscription.update({
         where: { id: subscription.id },
-        data: {
-          status: "confirmed",
-          startAt,
-          endAt,
-          updatedAt: now,
-        },
+        data: { status: "confirmed", startAt, endAt, updatedAt: now },
       });
 
       if (subscription.referralUsage?.referralCode) {
         const referralCode = subscription.referralUsage.referralCode;
-        const commissionPercentage =
-          referralCode.commissionPercentage.toNumber();
-        const originalPrice = subscription.plan.price.toNumber();
-        const commissionAmount = Math.round(
-          originalPrice * (commissionPercentage / 100),
-        );
+        const affiliatorProfile = referralCode.owner.affiliatorProfile;
 
-        const existingCommission = await tx.referralCommisions.findFirst({
-          where: { transactionId: payment.id },
-        });
+        if (affiliatorProfile) {
+          const productType = resolveElearningProductType(
+            subscription.plan.durationDay,
+          );
+          const originalPrice = subscription.plan.price.toNumber();
 
-        if (!existingCommission) {
-          await tx.referralCommisions.create({
-            data: {
-              referralCodeId: referralCode.id,
-              transactionId: payment.id,
-              amount: commissionAmount,
-              created_at: now,
-            },
+          await recordReferralCommission(tx, {
+            referralCodeId: referralCode.id,
+            affiliatorProfileId: affiliatorProfile.id,
+            transactionId: payment.id,
+            productType,
+            tier: affiliatorProfile.currentTier,
+            originalPrice,
           });
         }
       }
@@ -807,25 +762,20 @@ export const processDuitkuCallback = async ({
 
       if (ayclBooking.referralUsage?.referralCode) {
         const referralCode = ayclBooking.referralUsage.referralCode;
-        const commissionPercentage =
-          referralCode.commissionPercentage.toNumber();
-        const originalPrice = ayclBooking.batch.price.toNumber();
-        const commissionAmount = Math.round(
-          originalPrice * (commissionPercentage / 100),
-        );
+        const affiliatorProfile = referralCode.owner.affiliatorProfile;
 
-        const existingCommission = await tx.referralCommisions.findFirst({
-          where: { transactionId: payment.id },
-        });
+        if (affiliatorProfile) {
+          const originalPrice = ayclBooking.batch.price.toNumber();
 
-        if (!existingCommission) {
-          await tx.referralCommisions.create({
-            data: {
-              referralCodeId: referralCode.id,
-              transactionId: payment.id,
-              amount: commissionAmount,
-              created_at: now,
-            },
+          // AYCL config saat ini isActive: false — recordReferralCommission
+          // akan log warning & return null tanpa menggagalkan transaksi
+          await recordReferralCommission(tx, {
+            referralCodeId: referralCode.id,
+            affiliatorProfileId: affiliatorProfile.id,
+            transactionId: payment.id,
+            productType: "AYCL",
+            tier: affiliatorProfile.currentTier,
+            originalPrice,
           });
         }
       }
@@ -849,7 +799,7 @@ export const processDuitkuCallback = async ({
   });
 
   // ===========================================================================
-  // 4️⃣ KIRIM EMAIL — di luar transaction, paralel, tidak menahan DB connection
+  // 4️⃣ KIRIM EMAIL — di luar transaction, paralel
   // ===========================================================================
 
   const emailJobs: Promise<void>[] = [];

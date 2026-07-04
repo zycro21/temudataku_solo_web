@@ -22,6 +22,76 @@ model AdminActivityLog {
   @@map("activity_logs")
 }
 
+model AffiliatorProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  currentTier String   @default("BRONZE") // BRONZE | SILVER | GOLD
+  totalPoints Int      @default(0)         // poin akumulasi lifetime (untuk referensi)
+  isActive    Boolean  @default(true)
+  joinedAt    DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime?
+
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  seasonPoints      AffiliatorSeasonPoint[]
+
+  @@map("affiliator_profiles")
+}
+
+model AffiliatorSeason {
+  id          String   @id @default(cuid())
+  seasonName  String   // "Season 1 2025", "Season 2 2025", dst
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  seasonPoints AffiliatorSeasonPoint[]
+  referralCommisions ReferralCommisions[] 
+
+  @@map("affiliator_seasons")
+}
+
+model AffiliatorSeasonPoint {
+  id                  String   @id @default(cuid())
+  affiliatorProfileId String
+  seasonId            String
+  points              Int      @default(0)      // akumulasi poin dalam musim ini
+  tierAtSeasonStart   String                    // tier awal saat musim dimulai
+  tierAtSeasonEnd     String?                   // diisi saat evaluasi akhir musim
+  maintenanceQuotaMet Boolean? // null = belum dievaluasi, true/false = hasil evaluasi
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime?
+
+  affiliatorProfile AffiliatorProfile @relation(fields: [affiliatorProfileId], references: [id], onDelete: Cascade)
+  season            AffiliatorSeason  @relation(fields: [seasonId], references: [id])
+
+  @@unique([affiliatorProfileId, seasonId])
+  @@map("affiliator_season_points")
+}
+
+model AffiliatorProductConfig {
+  id          String   @id @default(cuid())
+  productType String   // ELEARNING_1M | ELEARNING_3M | ELEARNING_6M | MENTORING_BOOTCAMP | MENTORING_ONE_ON_ONE | MENTORING_GROUP | AYCL
+  tier        String   // BRONZE | SILVER | GOLD
+
+  // Untuk produk dengan harga fixed (E-Learning)
+  commissionAmount  Decimal? // komisi flat dalam rupiah
+  discountAmount    Decimal? // diskon flat dalam rupiah
+
+  // Untuk produk dengan harga variabel (Bootcamp, One-on-One, Group, AYCL)
+  commissionPercent Decimal? // persentase komisi dari harga
+  discountPercent   Decimal? // persentase diskon dari harga
+
+  pointsAwarded Int      // poin yang diberikan per transaksi sukses
+  isActive      Boolean  @default(true) // bisa dinonaktifkan per produk
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime?
+
+  @@unique([productType, tier])
+  @@map("affiliator_product_configs")
+}
+
 model AYCLBatch {
   id          String   @id @default(cuid())
   title       String
@@ -1644,13 +1714,21 @@ enum ReviewStatus {
 }
 
 model ReferralCommisions {
-  id                String       @id @default(cuid())
-  referralCodeId    String       // Terhubung ke kode referral
-  transactionId     String       @map("transaction_id")// Dari tabel payments
-  amount            Decimal
-  created_at        DateTime     @default(now())
+  id                String   @id @default(cuid())
+  referralCodeId    String
+  transactionId     String   @map("transaction_id")
+  amount            Decimal                      // komisi yang diterima (hasil kalkulasi saat itu)
+  
+  // Snapshot kondisi saat transaksi — penting untuk audit
+  tierAtTransaction String?                      // tier affiliator saat transaksi terjadi
+  productType       String ?                      // jenis produk yang dibeli
+  pointsAwarded     Int?                          // poin yang diberikan dari transaksi ini
+  seasonId          String?                       // musim saat transaksi terjadi
 
-  referral_code     ReferralCode @relation(fields: [referralCodeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  created_at        DateTime @default(now())
+
+  referral_code     ReferralCode      @relation(fields: [referralCodeId], references: [id], onDelete: Cascade)
+  season            AffiliatorSeason?  @relation(fields: [seasonId], references: [id])
 
   @@map("referral_commisions")
 }
@@ -1659,8 +1737,6 @@ model ReferralCode {
   id                    String           @id @default(cuid())
   ownerId               String
   code                  String           @unique
-  discountPercentage    Decimal
-  commissionPercentage  Decimal
   createdDate           DateTime?        @default(now())
   expiryDate            DateTime?
   isActive              Boolean?         @default(true)
@@ -1825,7 +1901,8 @@ model User {
   ayclBookings               AYCLBooking[]
   vouchersCreated            Voucher[]             @relation("VoucherCreatedBy")
   voucherUsages              VoucherUsage[]        @relation("VoucherUsageUser")
-  eLearningAuditLogs ELearningAuditLog[]
+  eLearningAuditLogs         ELearningAuditLog[]
+  affiliatorProfile          AffiliatorProfile? 
 
   @@map("users")
 }
