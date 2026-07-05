@@ -527,8 +527,6 @@ export class AyclBookingService {
               select: {
                 id: true,
                 code: true,
-                discountPercentage: true,
-                commissionPercentage: true,
               },
             },
           },
@@ -552,15 +550,7 @@ export class AyclBookingService {
       referralUsage: b.referralUsage
         ? {
             ...b.referralUsage,
-            referralCode: {
-              ...b.referralUsage.referralCode,
-              discountPercentage: Number(
-                b.referralUsage.referralCode.discountPercentage,
-              ),
-              commissionPercentage: Number(
-                b.referralUsage.referralCode.commissionPercentage,
-              ),
-            },
+            referralCode: b.referralUsage.referralCode,
           }
         : null,
     }));

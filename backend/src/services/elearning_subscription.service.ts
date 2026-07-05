@@ -419,8 +419,6 @@ export const getMySubscriptionHistory = async (input: {
             referralCode: {
               select: {
                 code: true,
-                discountPercentage: true,
-                commissionPercentage: true,
               },
             },
           },
@@ -616,8 +614,6 @@ export const getAllSubscriptions = async (query: {
               select: {
                 id: true,
                 code: true,
-                discountPercentage: true,
-                commissionPercentage: true,
               },
             },
           },
