@@ -86,7 +86,7 @@ export const createPractice = async (input: {
 
 const thumbnailUploadPath = path.join(
   __dirname,
-  "../../images/thumbnailPractice"
+  "../../images/thumbnailPractice",
 );
 
 export const updatePractice = async (
@@ -107,7 +107,7 @@ export const updatePractice = async (
     estimatedDuration?: string;
     targetAudience?: string;
   },
-  uploadedImages: string[] = []
+  uploadedImages: string[] = [],
 ) => {
   const existingPractice = await prisma.practice.findUnique({
     where: { id },
@@ -142,7 +142,7 @@ export const updatePractice = async (
         } catch (err) {
           console.error(`Gagal menghapus file lama: ${filePath}`, err);
         }
-      })
+      }),
     );
 
     finalThumbnails = uploadedImages;
@@ -290,7 +290,7 @@ export const getPracticeById = async (id: string) => {
       throw new Error("Failed to fetch practice details: " + error.message);
     } else {
       throw new Error(
-        "An unknown error occurred while fetching practice details"
+        "An unknown error occurred while fetching practice details",
       );
     }
   }
@@ -335,7 +335,7 @@ export const getPracticesByMentorId = async (
     sortBy: string;
     sortOrder: "asc" | "desc";
     search: string;
-  }
+  },
 ) => {
   try {
     const skip = (page - 1) * limit;
@@ -378,7 +378,7 @@ export const getPracticesByMentorId = async (
 
 export const getPracticeDetailByMentor = async (
   practiceId: string,
-  mentorProfileId?: string
+  mentorProfileId?: string,
 ) => {
   if (!mentorProfileId) return null;
 
@@ -829,7 +829,7 @@ export const deletePracticeFile = async (fileId: string) => {
   const fileFullPath = path.join(
     __dirname,
     "../../uploads",
-    existingFile.filePath // tidak perlu practiceFile lagi
+    existingFile.filePath, // tidak perlu practiceFile lagi
   );
 
   await new Promise<void>((resolve, reject) => {
@@ -899,7 +899,7 @@ export const getPracticeFilesByMaterialService = async ({
 
   if (!isAdmin && !isMentor && !isConfirmedMentee) {
     const error = new Error(
-      "You do not have permission to access these practice files"
+      "You do not have permission to access these practice files",
     );
     (error as any).statusCode = 403;
     throw error;
@@ -948,7 +948,7 @@ export const getPracticeMaterialsService = async (
     mentorProfileId?: string;
   },
   page: number,
-  limit: number
+  limit: number,
 ) => {
   const practice = await prisma.practice.findUnique({
     where: { id: practiceId },
@@ -978,7 +978,7 @@ export const getPracticeMaterialsService = async (
 
   if (!isAdmin && !isMentor && !isConfirmedMentee) {
     const error = new Error(
-      "You do not have permission to access this practice materials"
+      "You do not have permission to access this practice materials",
     );
     (error as any).statusCode = 403;
     throw error;
@@ -1040,7 +1040,7 @@ export const getPracticeMaterialDetailService = async (
     userId: string;
     roles: string[];
     mentorProfileId?: string;
-  }
+  },
 ) => {
   const practice = await prisma.practice.findUnique({
     where: { id: practiceId },
@@ -1071,7 +1071,7 @@ export const getPracticeMaterialDetailService = async (
 
   if (!isAdmin && !isMentor && !isConfirmedMentee) {
     const error = new Error(
-      "You do not have permission to access this practice material"
+      "You do not have permission to access this practice material",
     );
     (error as any).statusCode = 403;
     throw error;
@@ -1115,7 +1115,7 @@ export const getPracticeMaterialDetailService = async (
 
 // Fungsi untuk menghasilkan ID unik untuk Payment
 const generatePaymentId = async (
-  type: "booking" | "practice"
+  type: "booking" | "practice",
 ): Promise<string> => {
   const datePart = formatDate(new Date(), "yyyyMMdd");
   const prefix = type === "booking" ? "PAY-BKG" : "PAY-PRC";
@@ -1194,48 +1194,80 @@ export const createPracticePurchase = async (input: {
     };
   }
 
-  let discountPercentage = 0;
   let originalPrice = practice.price.toNumber();
   let finalPrice = originalPrice;
   let referralCodeId: string | null = null;
-  let commissionPercentage = 0;
+  let commissionAmount = 0;
+  let discountAmount = 0;
+  let tierAtTransaction: string | null = null;
+  let pointsAwarded = 0;
+  let activeSeasonId: string | null = null;
+
+  // Practice pakai persentase (harga variabel per practice)
+  const practiceProductType = "PRACTICE"; // tambahkan ke AffiliatorProductConfig jika perlu
 
   if (referralUsageId) {
     const referralUsage = await prisma.referralUsage.findUnique({
       where: { id: referralUsageId },
-      include: {
-        practicePurchase: true,
-        booking: true,
+      select: {
+        id: true,
+        referralCodeId: true,
+        practicePurchase: { select: { id: true } },
+        booking: { select: { id: true } },
         referralCode: {
           select: {
             id: true,
-            discountPercentage: true,
-            commissionPercentage: true,
+            ownerId: true,
           },
         },
       },
     });
 
     if (!referralUsage) {
-      throw {
-        status: 404,
-        message: "Referral usage tidak ditemukan.",
-      };
+      throw { status: 404, message: "Referral usage tidak ditemukan." };
     }
 
     if (referralUsage.practicePurchase || referralUsage.booking) {
-      throw {
-        status: 400,
-        message: "Referral usage sudah digunakan.",
-      };
+      throw { status: 400, message: "Referral usage sudah digunakan." };
     }
 
-    discountPercentage =
-      referralUsage.referralCode.discountPercentage.toNumber();
-    commissionPercentage =
-      referralUsage.referralCode.commissionPercentage.toNumber();
+    // Ambil tier affiliator saat ini
+    const affiliatorProfile = await prisma.affiliatorProfile.findUnique({
+      where: { userId: referralUsage.referralCode.ownerId },
+      select: { currentTier: true },
+    });
+
+    const currentTier = affiliatorProfile?.currentTier ?? "BRONZE";
+    tierAtTransaction = currentTier;
+
+    // Ambil config komisi & diskon untuk Practice berdasarkan tier
+    const productConfig = await prisma.affiliatorProductConfig.findUnique({
+      where: {
+        productType_tier: {
+          productType: practiceProductType,
+          tier: currentTier,
+        },
+      },
+    });
+
+    if (productConfig?.isActive) {
+      const discountPct = productConfig.discountPercent?.toNumber() ?? 0;
+      const commissionPct = productConfig.commissionPercent?.toNumber() ?? 0;
+      pointsAwarded = productConfig.pointsAwarded;
+
+      discountAmount = originalPrice * (discountPct / 100);
+      commissionAmount = originalPrice * (commissionPct / 100);
+      finalPrice = originalPrice - discountAmount;
+    }
+
     referralCodeId = referralUsage.referralCode.id;
-    finalPrice = originalPrice * (1 - discountPercentage / 100);
+
+    // Ambil season aktif
+    const activeSeason = await prisma.affiliatorSeason.findFirst({
+      where: { isActive: true },
+      select: { id: true },
+    });
+    activeSeasonId = activeSeason?.id ?? null;
   }
 
   const purchase = await prisma.$transaction(async (tx) => {
@@ -1265,24 +1297,70 @@ export const createPracticePurchase = async (input: {
       },
     });
 
-    // if (payment.bookingId) {
-    //   throw {
-    //     status: 400,
-    //     message:
-    //       "Payment tidak boleh terkait dengan Booking dan PracticePurchase bersamaan.",
-    //   };
-    // }
-
     if (referralUsageId && referralCodeId) {
-      const commissionAmount = finalPrice * (commissionPercentage / 100);
       await tx.referralCommisions.create({
         data: {
           referralCodeId,
           transactionId: paymentId,
           amount: commissionAmount,
+          tierAtTransaction,
+          productType: practiceProductType,
+          pointsAwarded,
+          seasonId: activeSeasonId,
           created_at: new Date(),
         },
       });
+
+      // Update totalPoints + tier affiliator
+      if (pointsAwarded > 0) {
+        const owner = await tx.affiliatorProfile.findFirst({
+          where: {
+            user: {
+              referralCodes: { some: { id: referralCodeId } },
+            },
+          },
+          select: { id: true, totalPoints: true, currentTier: true },
+        });
+
+        if (owner) {
+          const newTotalPoints = owner.totalPoints + pointsAwarded;
+
+          let newTier = owner.currentTier;
+          if (newTotalPoints >= 120) newTier = "GOLD";
+          else if (newTotalPoints >= 40) newTier = "SILVER";
+          else newTier = "BRONZE";
+
+          await tx.affiliatorProfile.update({
+            where: { id: owner.id },
+            data: {
+              totalPoints: newTotalPoints,
+              currentTier: newTier,
+              updatedAt: new Date(),
+            },
+          });
+
+          if (activeSeasonId) {
+            await tx.affiliatorSeasonPoint.upsert({
+              where: {
+                affiliatorProfileId_seasonId: {
+                  affiliatorProfileId: owner.id,
+                  seasonId: activeSeasonId,
+                },
+              },
+              update: {
+                points: { increment: pointsAwarded },
+                updatedAt: new Date(),
+              },
+              create: {
+                affiliatorProfileId: owner.id,
+                seasonId: activeSeasonId,
+                points: pointsAwarded,
+                tierAtSeasonStart: owner.currentTier,
+              },
+            });
+          }
+        }
+      }
     }
 
     return {
@@ -1535,7 +1613,7 @@ export const getPracticePurchaseDetailService = async (id: string) => {
 
 export const updatePracticePurchaseStatusService = async (
   id: string,
-  status: string
+  status: string,
 ) => {
   // 1. Cari Practice Purchase
   const practicePurchase = await prisma.practicePurchase.findUnique({
@@ -1569,7 +1647,7 @@ export const updatePracticePurchaseStatusService = async (
 };
 
 export const exportPracticePurchasesService = async (
-  format: "csv" | "excel"
+  format: "csv" | "excel",
 ) => {
   const practicePurchases = await prisma.practicePurchase.findMany({
     include: {
@@ -1745,7 +1823,7 @@ export const updatePracticeProgress = async ({
     const practice = existingProgress.practiceMaterial.practice;
     if (practice.mentorId !== user.mentorProfileId) {
       throw new Error(
-        "You are not authorized to update this mentee's progress."
+        "You are not authorized to update this mentee's progress.",
       );
     }
   } else if (user?.roles.includes("admin")) {
@@ -1931,7 +2009,7 @@ export const getPracticeProgressByIdService = async ({
     }
     if (progress.practiceMaterial.practice.mentorId !== user!.mentorProfileId) {
       throw new Error(
-        "Unauthorized: You can only view progress for your own practices"
+        "Unauthorized: You can only view progress for your own practices",
       );
     }
   } else if (user!.roles.includes("admin")) {
@@ -2006,7 +2084,7 @@ export const createPracticeReviewService = async ({
   });
   if (!purchase) {
     throw new Error(
-      "Unauthorized: You must purchase this practice with confirmed status to review it"
+      "Unauthorized: You must purchase this practice with confirmed status to review it",
     );
   }
 

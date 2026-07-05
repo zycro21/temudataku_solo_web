@@ -139,13 +139,28 @@ export const registerUser = async (data: {
       if (!existingReferral) {
         const newCode = await generateUniqueReferralCode(email);
 
-        await prisma.referralCode.create({
-          data: {
-            ownerId: existingUser.id,
-            code: newCode,
-            discountPercentage: new Prisma.Decimal(0),
-            commissionPercentage: new Prisma.Decimal(0),
-          },
+        await prisma.$transaction(async (tx) => {
+          // Auto-create AffiliatorProfile jika belum ada
+          const existingProfile = await tx.affiliatorProfile.findUnique({
+            where: { userId: existingUser.id },
+          });
+          if (!existingProfile) {
+            await tx.affiliatorProfile.create({
+              data: {
+                userId: existingUser.id,
+                currentTier: "BRONZE",
+                totalPoints: 0,
+                isActive: true,
+              },
+            });
+          }
+
+          await tx.referralCode.create({
+            data: {
+              ownerId: existingUser.id,
+              code: newCode,
+            },
+          });
         });
       }
     }
@@ -233,13 +248,22 @@ export const registerUser = async (data: {
   if (role === "affiliator") {
     const newCode = await generateUniqueReferralCode(email);
 
-    await prisma.referralCode.create({
-      data: {
-        ownerId: user.id,
-        code: newCode,
-        discountPercentage: new Prisma.Decimal(0),
-        commissionPercentage: new Prisma.Decimal(0),
-      },
+    await prisma.$transaction(async (tx) => {
+      await tx.affiliatorProfile.create({
+        data: {
+          userId: user.id,
+          currentTier: "BRONZE",
+          totalPoints: 0,
+          isActive: true,
+        },
+      });
+
+      await tx.referralCode.create({
+        data: {
+          ownerId: user.id,
+          code: newCode,
+        },
+      });
     });
   }
 

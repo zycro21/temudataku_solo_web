@@ -23,7 +23,7 @@ const __dirname = path.dirname(__filename);
 
 export const generateELearningSubscriptionId = async () => {
   return `SUB-EL-${Date.now()}-${Math.floor(
-    1000000000 + Math.random() * 9000000000
+    1000000000 + Math.random() * 9000000000,
   )}`;
 };
 
@@ -122,14 +122,35 @@ export const createSubscription = async (input: {
   /* ===== 4. REFERRAL LOGIC ===== */
   let finalPrice = plan.price.toNumber();
   let referralCodeId: string | null = null;
-  let commissionPercentage = 0;
+  let commissionAmount = 0;
+  let discountAmount = 0;
+  let tierAtTransaction: string | null = null;
+  let pointsAwarded = 0;
+  let activeSeasonId: string | null = null;
+
+  // Tentukan productType berdasarkan durationDay plan
+  const durationToProductType: Record<number, string> = {
+    30: "ELEARNING_1M",
+    90: "ELEARNING_3M",
+    180: "ELEARNING_6M",
+  };
+  const elearningProductType =
+    durationToProductType[plan.durationDay] ?? "ELEARNING_1M";
 
   if (referralUsageId) {
     const referralUsage = await prisma.referralUsage.findUnique({
       where: { id: referralUsageId },
-      include: {
-        eLearningSubscription: true,
-        referralCode: true,
+      select: {
+        id: true,
+        referralCodeId: true,
+        eLearningSubscription: { select: { id: true } },
+        referralCode: {
+          select: {
+            id: true,
+            ownerId: true,
+            isActive: true,
+          },
+        },
       },
     });
 
@@ -145,12 +166,42 @@ export const createSubscription = async (input: {
       throw { status: 400, message: "Referral code sudah tidak aktif." };
     }
 
-    const discount = referralUsage.referralCode.discountPercentage.toNumber();
-    commissionPercentage =
-      referralUsage.referralCode.commissionPercentage.toNumber();
+    // Ambil tier affiliator saat ini
+    const affiliatorProfile = await prisma.affiliatorProfile.findUnique({
+      where: { userId: referralUsage.referralCode.ownerId },
+      select: { currentTier: true },
+    });
+
+    const currentTier = affiliatorProfile?.currentTier ?? "BRONZE";
+    tierAtTransaction = currentTier;
+
+    // Ambil config komisi & diskon untuk E-Learning berdasarkan productType + tier
+    const productConfig = await prisma.affiliatorProductConfig.findUnique({
+      where: {
+        productType_tier: {
+          productType: elearningProductType,
+          tier: currentTier,
+        },
+      },
+    });
+
+    if (productConfig?.isActive) {
+      // E-Learning pakai flat amount (harga fixed)
+      discountAmount = productConfig.discountAmount?.toNumber() ?? 0;
+      commissionAmount = productConfig.commissionAmount?.toNumber() ?? 0;
+      pointsAwarded = productConfig.pointsAwarded;
+
+      finalPrice = Math.max(0, finalPrice - discountAmount);
+    }
 
     referralCodeId = referralUsage.referralCode.id;
-    finalPrice = finalPrice * (1 - discount / 100);
+
+    // Ambil season aktif
+    const activeSeason = await prisma.affiliatorSeason.findFirst({
+      where: { isActive: true },
+      select: { id: true },
+    });
+    activeSeasonId = activeSeason?.id ?? null;
   }
 
   /* ===== 5. TRANSACTION ===== */
@@ -184,10 +235,65 @@ export const createSubscription = async (input: {
         data: {
           referralCodeId,
           transactionId: payment.id,
-          amount: finalPrice * (commissionPercentage / 100),
+          amount: commissionAmount,
+          tierAtTransaction,
+          productType: elearningProductType,
+          pointsAwarded,
+          seasonId: activeSeasonId,
           created_at: new Date(),
         },
       });
+
+      // Update totalPoints + tier affiliator
+      if (pointsAwarded > 0) {
+        const owner = await tx.affiliatorProfile.findFirst({
+          where: {
+            user: {
+              referralCodes: { some: { id: referralCodeId } },
+            },
+          },
+          select: { id: true, totalPoints: true, currentTier: true },
+        });
+
+        if (owner) {
+          const newTotalPoints = owner.totalPoints + pointsAwarded;
+
+          let newTier = owner.currentTier;
+          if (newTotalPoints >= 120) newTier = "GOLD";
+          else if (newTotalPoints >= 40) newTier = "SILVER";
+          else newTier = "BRONZE";
+
+          await tx.affiliatorProfile.update({
+            where: { id: owner.id },
+            data: {
+              totalPoints: newTotalPoints,
+              currentTier: newTier,
+              updatedAt: new Date(),
+            },
+          });
+
+          if (activeSeasonId) {
+            await tx.affiliatorSeasonPoint.upsert({
+              where: {
+                affiliatorProfileId_seasonId: {
+                  affiliatorProfileId: owner.id,
+                  seasonId: activeSeasonId,
+                },
+              },
+              update: {
+                points: { increment: pointsAwarded },
+                updatedAt: new Date(),
+              },
+              create: {
+                affiliatorProfileId: owner.id,
+                seasonId: activeSeasonId,
+                points: pointsAwarded,
+                tierAtSeasonStart: owner.currentTier,
+              },
+            });
+          }
+        }
+      }
     }
 
     return {
@@ -245,7 +351,7 @@ export const getMyActiveSubscription = async (userId: string) => {
 
   const remainingDays = Math.max(
     differenceInCalendarDays(activeSubscription.endAt, now),
-    0
+    0,
   );
 
   return {
@@ -574,7 +680,7 @@ export const getSubscriptionDetail = async (subscriptionId: string) => {
   /* ===== STATUS & TIME CALCULATION ===== */
   const remainingDays = Math.max(
     differenceInCalendarDays(subscription.endAt, now),
-    0
+    0,
   );
 
   const isExpired = subscription.endAt < now;
@@ -589,17 +695,37 @@ export const getSubscriptionDetail = async (subscriptionId: string) => {
   let referralSummary = null;
 
   if (subscription.referralUsage) {
+    // Ambil snapshot komisi dari ReferralCommisions
+    // (disimpan saat transaksi terjadi, tidak perlu baca dari ReferralCode lagi)
+    const commissionRecord = await prisma.referralCommisions.findFirst({
+      where: {
+        referralCodeId: subscription.referralUsage.referralCodeId,
+        transactionId: subscription.payment?.id ?? "",
+      },
+      select: {
+        amount: true,
+        tierAtTransaction: true,
+        productType: true,
+        pointsAwarded: true,
+      },
+    });
+
     referralSummary = {
       usageId: subscription.referralUsage.id,
       usedAt: subscription.referralUsage.usedAt,
       referralCode: {
         code: subscription.referralUsage.referralCode.code,
-        discountPercentage:
-          subscription.referralUsage.referralCode.discountPercentage,
-        commissionPercentage:
-          subscription.referralUsage.referralCode.commissionPercentage,
         owner: subscription.referralUsage.referralCode.owner,
       },
+      // Snapshot dari saat transaksi — lebih akurat untuk audit
+      commissionSnapshot: commissionRecord
+        ? {
+            amount: commissionRecord.amount,
+            tierAtTransaction: commissionRecord.tierAtTransaction,
+            productType: commissionRecord.productType,
+            pointsAwarded: commissionRecord.pointsAwarded,
+          }
+        : null,
     };
   }
 
@@ -646,7 +772,7 @@ type UpdateSubscriptionStatusInput = {
 };
 
 export const updateSubscriptionStatus = async (
-  input: UpdateSubscriptionStatusInput
+  input: UpdateSubscriptionStatusInput,
 ) => {
   const { subscriptionId, newStatus, reason } = input;
 

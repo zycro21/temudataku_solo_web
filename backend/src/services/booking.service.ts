@@ -402,48 +402,88 @@ export const createBooking = async (
     };
   }
 
-  let discountPercentage = 0;
   let originalPrice = mentoringService.price.toNumber();
   let finalPrice = originalPrice;
   let referralCodeId: string | null = null;
-  let commissionPercentage = 0;
+  let commissionAmount = 0;
+  let discountAmount = 0;
+  let tierAtTransaction: string | null = null;
+  let pointsAwarded = 0;
+  let activeSeasonId: string | null = null;
+
+  // Tentukan productType berdasarkan serviceType
+  const serviceTypeToProductType: Record<string, string> = {
+    "one-on-one": "MENTORING_ONE_ON_ONE",
+    group: "MENTORING_GROUP",
+    bootcamp: "MENTORING_BOOTCAMP",
+  };
+  const bookingProductType =
+    serviceTypeToProductType[mentoringService.serviceType] ??
+    "MENTORING_ONE_ON_ONE";
 
   if (referralUsageId) {
     const referralUsage = await prisma.referralUsage.findUnique({
       where: { id: referralUsageId },
-      include: {
-        booking: true,
-        practicePurchase: true,
+      select: {
+        id: true,
+        referralCodeId: true,
+        booking: { select: { id: true } },
+        practicePurchase: { select: { id: true } },
         referralCode: {
           select: {
             id: true,
-            discountPercentage: true,
-            commissionPercentage: true,
+            ownerId: true,
           },
         },
       },
     });
 
     if (!referralUsage) {
-      throw {
-        status: 404,
-        message: "Referral usage tidak ditemukan.",
-      };
+      throw { status: 404, message: "Referral usage tidak ditemukan." };
     }
 
     if (referralUsage.booking || referralUsage.practicePurchase) {
-      throw {
-        status: 400,
-        message: "Referral usage sudah digunakan.",
-      };
+      throw { status: 400, message: "Referral usage sudah digunakan." };
     }
 
-    discountPercentage =
-      referralUsage.referralCode.discountPercentage.toNumber();
-    commissionPercentage =
-      referralUsage.referralCode.commissionPercentage.toNumber();
+    // Ambil tier affiliator saat ini
+    const affiliatorProfile = await prisma.affiliatorProfile.findUnique({
+      where: { userId: referralUsage.referralCode.ownerId },
+      select: { currentTier: true },
+    });
+
+    const currentTier = affiliatorProfile?.currentTier ?? "BRONZE";
+    tierAtTransaction = currentTier;
+
+    // Ambil config komisi & diskon berdasarkan productType + tier
+    const productConfig = await prisma.affiliatorProductConfig.findUnique({
+      where: {
+        productType_tier: {
+          productType: bookingProductType,
+          tier: currentTier,
+        },
+      },
+    });
+
+    if (productConfig?.isActive) {
+      // Booking pakai persentase (harga variabel)
+      const discountPct = productConfig.discountPercent?.toNumber() ?? 0;
+      const commissionPct = productConfig.commissionPercent?.toNumber() ?? 0;
+      pointsAwarded = productConfig.pointsAwarded;
+
+      discountAmount = originalPrice * (discountPct / 100);
+      commissionAmount = originalPrice * (commissionPct / 100);
+      finalPrice = originalPrice - discountAmount;
+    }
+
     referralCodeId = referralUsage.referralCode.id;
-    finalPrice = originalPrice * (1 - discountPercentage / 100);
+
+    // Ambil season aktif
+    const activeSeason = await prisma.affiliatorSeason.findFirst({
+      where: { isActive: true },
+      select: { id: true },
+    });
+    activeSeasonId = activeSeason?.id ?? null;
   }
 
   // bookingDate database = selalu waktu booking dibuat
@@ -673,16 +713,69 @@ export const createBooking = async (
 
     // Catat komisi referral jika ada referralUsageId
     if (referralUsageId && referralCodeId) {
-      const commissionAmount = finalPrice * (commissionPercentage / 100);
-
       await tx.referralCommisions.create({
         data: {
           referralCodeId,
           transactionId: firstPayment.id,
           amount: commissionAmount,
+          tierAtTransaction,
+          productType: bookingProductType,
+          pointsAwarded,
+          seasonId: activeSeasonId,
           created_at: new Date(),
         },
       });
+
+      // Update totalPoints + tier affiliator
+      if (pointsAwarded > 0) {
+        const owner = await tx.affiliatorProfile.findFirst({
+          where: {
+            user: {
+              referralCodes: { some: { id: referralCodeId } },
+            },
+          },
+          select: { id: true, totalPoints: true, currentTier: true },
+        });
+
+        if (owner) {
+          const newTotalPoints = owner.totalPoints + pointsAwarded;
+
+          let newTier = owner.currentTier;
+          if (newTotalPoints >= 120) newTier = "GOLD";
+          else if (newTotalPoints >= 40) newTier = "SILVER";
+          else newTier = "BRONZE";
+
+          await tx.affiliatorProfile.update({
+            where: { id: owner.id },
+            data: {
+              totalPoints: newTotalPoints,
+              currentTier: newTier,
+              updatedAt: new Date(),
+            },
+          });
+
+          if (activeSeasonId) {
+            await tx.affiliatorSeasonPoint.upsert({
+              where: {
+                affiliatorProfileId_seasonId: {
+                  affiliatorProfileId: owner.id,
+                  seasonId: activeSeasonId,
+                },
+              },
+              update: {
+                points: { increment: pointsAwarded },
+                updatedAt: new Date(),
+              },
+              create: {
+                affiliatorProfileId: owner.id,
+                seasonId: activeSeasonId,
+                points: pointsAwarded,
+                tierAtSeasonStart: owner.currentTier,
+              },
+            });
+          }
+        }
+      }
     }
     // =======================================================
     // ✅ AUTO CREATE MENTORING SESSION

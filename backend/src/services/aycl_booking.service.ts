@@ -114,42 +114,78 @@ export class AyclBookingService {
 
     let finalPrice = Number(batch.price);
     let referralCodeId: string | null = null;
-    let commissionPercentage = 0;
+    let commissionAmount = 0;
+    let discountAmount = 0;
+    let tierAtTransaction: string | null = null;
+    let pointsAwarded = 0;
+    let activeSeasonId: string | null = null;
 
-    // 🔥 REFERRAL
+    // ── REFERRAL ──────────────────────────────────────────────────────────────────
     if (referralUsageId) {
       const referral = await prisma.referralUsage.findUnique({
         where: { id: referralUsageId },
-        include: {
-          ayclBooking: true,
-          referralCode: true,
+        select: {
+          id: true,
+          referralCodeId: true,
+          ayclBooking: { select: { id: true } },
+          referralCode: {
+            select: {
+              id: true,
+              ownerId: true,
+            },
+          },
         },
       });
 
       if (!referral) {
-        throw {
-          status: 404,
-          message: "Referral tidak ditemukan",
-        };
+        throw { status: 404, message: "Referral tidak ditemukan" };
       }
 
       if (referral.ayclBooking) {
-        throw {
-          status: 400,
-          message: "Referral sudah digunakan",
-        };
+        throw { status: 400, message: "Referral sudah digunakan" };
       }
 
-      const discount = referral.referralCode.discountPercentage.toNumber();
+      // Ambil tier affiliator saat ini
+      const affiliatorProfile = await prisma.affiliatorProfile.findUnique({
+        where: { userId: referral.referralCode.ownerId },
+        select: { currentTier: true, totalPoints: true },
+      });
 
-      commissionPercentage =
-        referral.referralCode.commissionPercentage.toNumber();
+      const currentTier = affiliatorProfile?.currentTier ?? "BRONZE";
+      tierAtTransaction = currentTier;
 
-      finalPrice = finalPrice * (1 - discount / 100);
+      // Ambil config komisi & diskon untuk AYCL berdasarkan tier
+      const productConfig = await prisma.affiliatorProductConfig.findUnique({
+        where: {
+          productType_tier: {
+            productType: "AYCL",
+            tier: currentTier,
+          },
+        },
+      });
+
+      if (productConfig?.isActive) {
+        // AYCL pakai persentase (harga variabel)
+        const discountPct = productConfig.discountPercent?.toNumber() ?? 0;
+        const commissionPct = productConfig.commissionPercent?.toNumber() ?? 0;
+        pointsAwarded = productConfig.pointsAwarded;
+
+        discountAmount = finalPrice * (discountPct / 100);
+        commissionAmount = finalPrice * (commissionPct / 100);
+        finalPrice = finalPrice - discountAmount;
+      }
+
       referralCodeId = referral.referralCode.id;
+
+      // Ambil season aktif
+      const activeSeason = await prisma.affiliatorSeason.findFirst({
+        where: { isActive: true },
+        select: { id: true },
+      });
+      activeSeasonId = activeSeason?.id ?? null;
     }
 
-    // 🔥 TRANSACTION
+    // ── TRANSACTION ───────────────────────────────────────────────────────────────
     const result = await prisma.$transaction(async (tx) => {
       const bookingId = await this.generateAyclBookingId();
 
@@ -160,7 +196,6 @@ export class AyclBookingService {
           batchId,
           referralUsageId,
           status: "pending",
-
           currentStatus,
           institution,
           studyProgram,
@@ -182,18 +217,75 @@ export class AyclBookingService {
         },
       });
 
-      // 🔥 Referral Commission
+      // ── Referral Commission + Poin ─────────────────────────────────────────────
       if (referralUsageId && referralCodeId) {
-        const commissionAmount = finalPrice * (commissionPercentage / 100);
-
         await tx.referralCommisions.create({
           data: {
             referralCodeId,
             transactionId: paymentId,
             amount: commissionAmount,
+            tierAtTransaction,
+            productType: "AYCL",
+            pointsAwarded,
+            seasonId: activeSeasonId,
             created_at: new Date(),
           },
         });
+
+        // Update totalPoints affiliator
+        if (pointsAwarded > 0) {
+          const owner = await tx.affiliatorProfile.findFirst({
+            where: {
+              user: {
+                referralCodes: {
+                  some: { id: referralCodeId },
+                },
+              },
+            },
+            select: { id: true, totalPoints: true, currentTier: true },
+          });
+
+          if (owner) {
+            const newTotalPoints = owner.totalPoints + pointsAwarded;
+
+            // Hitung tier baru berdasarkan totalPoints
+            let newTier = owner.currentTier;
+            if (newTotalPoints >= 120) newTier = "GOLD";
+            else if (newTotalPoints >= 40) newTier = "SILVER";
+            else newTier = "BRONZE";
+
+            await tx.affiliatorProfile.update({
+              where: { id: owner.id },
+              data: {
+                totalPoints: newTotalPoints,
+                currentTier: newTier,
+                updatedAt: new Date(),
+              },
+            });
+
+            // Update poin season aktif
+            if (activeSeasonId) {
+              await tx.affiliatorSeasonPoint.upsert({
+                where: {
+                  affiliatorProfileId_seasonId: {
+                    affiliatorProfileId: owner.id,
+                    seasonId: activeSeasonId,
+                  },
+                },
+                update: {
+                  points: { increment: pointsAwarded },
+                  updatedAt: new Date(),
+                },
+                create: {
+                  affiliatorProfileId: owner.id,
+                  seasonId: activeSeasonId,
+                  points: pointsAwarded,
+                  tierAtSeasonStart: owner.currentTier,
+                },
+              });
+            }
+          }
+        }
       }
 
       return {
@@ -201,6 +293,7 @@ export class AyclBookingService {
         payment,
         originalPrice: Number(batch.price),
         finalPrice,
+        discountAmount,
       };
     });
 
