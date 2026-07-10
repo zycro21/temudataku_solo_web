@@ -28,7 +28,7 @@ export default function DashboardHeaderAffiliator() {
       try {
         const res = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/me`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
         setUser(res.data.data);
       } catch (err: any) {
@@ -72,10 +72,16 @@ export default function DashboardHeaderAffiliator() {
   const displayName = user?.fullName || "Guest Affiliator";
   const displayRole =
     user?.userRoles?.map((ur) => ur.role.roleName).join(", ") || "Affiliator";
+    
+  const isExternalUrl = (url: string) =>
+    url.startsWith("http://") || url.startsWith("https://");
+
   const displayAvatar =
     user?.profilePicture && user.profilePicture !== "default.jpg"
-      ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${user.profilePicture}`
-      : "/assets/dashboard/user/avatar.png"; // fallback avatar lokal
+      ? isExternalUrl(user.profilePicture)
+        ? user.profilePicture // Google URL — pakai langsung
+        : `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${user.profilePicture}` // file lokal
+      : "/assets/dashboard/user/default-avatar.svg";
 
   return (
     <>

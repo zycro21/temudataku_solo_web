@@ -419,7 +419,7 @@ export const googleAuth = async (
   next: NextFunction,
 ) => {
   try {
-    const { token } = req.body;
+    const { token, role } = req.body; // ← tambah role
 
     const ticket = await client.verifyIdToken({
       idToken: token,
@@ -427,16 +427,14 @@ export const googleAuth = async (
     });
 
     const payload = ticket.getPayload();
-
-    if (!payload) {
-      throw new HttpError("Invalid Google token", 400);
-    }
+    if (!payload) throw new HttpError("Invalid Google token", 400);
 
     const user = await AuthService.googleLogin({
       email: payload.email!,
       fullName: payload.name!,
       googleId: payload.sub,
       picture: payload.picture,
+      role: role ?? "mentee", // ← tambah pass role
     });
 
     const roles = user.userRoles.map((ur) => ({

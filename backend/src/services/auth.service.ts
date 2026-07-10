@@ -8,41 +8,71 @@ import jwt from "jsonwebtoken";
 
 const prisma = new PrismaClient();
 
+async function enrollAffiliatorToActiveSeason(
+  tx: Prisma.TransactionClient,
+  affiliatorProfileId: string,
+  currentTier: string,
+): Promise<void> {
+  const activeSeason = await tx.affiliatorSeason.findFirst({
+    where: { isActive: true },
+    select: { id: true },
+  });
+
+  if (!activeSeason) return; // tidak ada season aktif, skip saja
+
+  const existing = await tx.affiliatorSeasonPoint.findUnique({
+    where: {
+      affiliatorProfileId_seasonId: {
+        affiliatorProfileId,
+        seasonId: activeSeason.id,
+      },
+    },
+  });
+
+  if (existing) return; // sudah ada, skip
+
+  await tx.affiliatorSeasonPoint.create({
+    data: {
+      affiliatorProfileId,
+      seasonId: activeSeason.id,
+      points: 0,
+      tierAtSeasonStart: currentTier,
+    },
+  });
+}
+
 // Generate referral code unik
 async function generateUniqueReferralCode(email: string): Promise<string> {
   const username = email.split("@")[0];
 
-  // Ambil hanya huruf A-Z (case-insensitive)
   const lettersOnly = username.replace(/[^a-zA-Z]/g, "");
-
-  // Convert array huruf
   let letters = lettersOnly.toUpperCase().split("");
 
-  // Jika huruf kurang dari 4 → tambahkan huruf random sampai 4
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
   while (letters.length < 4) {
     const randomChar = alphabet[Math.floor(Math.random() * alphabet.length)];
     letters.push(randomChar);
   }
 
-  // Acak urutan huruf lalu ambil 4 pertama
   const picked = letters
     .sort(() => Math.random() - 0.5)
     .slice(0, 4)
     .join("");
 
-  // 3 angka random
   const numbers = String(Math.floor(Math.random() * 1000)).padStart(3, "0");
-
   const finalCode = `${picked}-${numbers}`;
 
-  // Cek duplikasi
-  const existing = await prisma.referralCode.findUnique({
+  // Cek duplikasi di ReferralCode
+  const existingReferral = await prisma.referralCode.findUnique({
     where: { code: finalCode },
   });
 
-  if (existing) {
+  // Cek duplikasi di Voucher — jaga-jaga agar tidak bentrok
+  const existingVoucher = await prisma.voucher.findUnique({
+    where: { code: finalCode },
+  });
+
+  if (existingReferral || existingVoucher) {
     return generateUniqueReferralCode(email); // regenerate
   }
 
@@ -140,12 +170,15 @@ export const registerUser = async (data: {
         const newCode = await generateUniqueReferralCode(email);
 
         await prisma.$transaction(async (tx) => {
-          // Auto-create AffiliatorProfile jika belum ada
+          let affiliatorProfileId: string;
+          let tierForSeason = "BRONZE";
+
           const existingProfile = await tx.affiliatorProfile.findUnique({
             where: { userId: existingUser.id },
           });
+
           if (!existingProfile) {
-            await tx.affiliatorProfile.create({
+            const newProfile = await tx.affiliatorProfile.create({
               data: {
                 userId: existingUser.id,
                 currentTier: "BRONZE",
@@ -153,14 +186,21 @@ export const registerUser = async (data: {
                 isActive: true,
               },
             });
+            affiliatorProfileId = newProfile.id;
+          } else {
+            affiliatorProfileId = existingProfile.id;
+            tierForSeason = existingProfile.currentTier;
           }
 
           await tx.referralCode.create({
-            data: {
-              ownerId: existingUser.id,
-              code: newCode,
-            },
+            data: { ownerId: existingUser.id, code: newCode },
           });
+
+          await enrollAffiliatorToActiveSeason(
+            tx,
+            affiliatorProfileId,
+            tierForSeason,
+          );
         });
       }
     }
@@ -249,7 +289,7 @@ export const registerUser = async (data: {
     const newCode = await generateUniqueReferralCode(email);
 
     await prisma.$transaction(async (tx) => {
-      await tx.affiliatorProfile.create({
+      const newProfile = await tx.affiliatorProfile.create({
         data: {
           userId: user.id,
           currentTier: "BRONZE",
@@ -259,11 +299,10 @@ export const registerUser = async (data: {
       });
 
       await tx.referralCode.create({
-        data: {
-          ownerId: user.id,
-          code: newCode,
-        },
+        data: { ownerId: user.id, code: newCode },
       });
+
+      await enrollAffiliatorToActiveSeason(tx, newProfile.id, "BRONZE");
     });
   }
 
@@ -590,6 +629,7 @@ interface GoogleLoginInput {
   fullName: string;
   googleId: string;
   picture?: string;
+  role?: string; // ← tambah ini
 }
 
 export const googleLogin = async ({
@@ -597,6 +637,7 @@ export const googleLogin = async ({
   fullName,
   googleId,
   picture,
+  role = "mentee", // ← tambah default
 }: GoogleLoginInput) => {
   let user = await prisma.user.findUnique({
     where: { email },
@@ -612,16 +653,102 @@ export const googleLogin = async ({
     },
   });
 
+  // ── User sudah ada ─────────────────────────────────────────────
   if (user) {
-    return user;
+    // Cek apakah user sudah punya role yang diminta
+    const hasRequestedRole = user.userRoles.some(
+      (ur) => ur.role.roleName === role,
+    );
+
+    if (!hasRequestedRole) {
+      const roleData = await prisma.role.findUnique({
+        where: { roleName: role },
+      });
+
+      if (roleData) {
+        await prisma.userRole.create({
+          data: {
+            id: `${role}-${nanoid(10)}`,
+            userId: user.id,
+            roleId: roleData.id,
+          },
+        });
+
+        // Jika affiliator → buat AffiliatorProfile + ReferralCode
+        if (role === "affiliator") {
+          const existingReferral = await prisma.referralCode.findFirst({
+            where: { ownerId: user.id },
+          });
+
+          if (!existingReferral) {
+            const newCode = await generateUniqueReferralCode(email);
+
+            await prisma.$transaction(async (tx) => {
+              let affiliatorProfileId: string;
+              let tierForSeason = "BRONZE";
+
+              const existingProfile = await tx.affiliatorProfile.findUnique({
+                where: { userId: user!.id },
+              });
+
+              if (!existingProfile) {
+                const newProfile = await tx.affiliatorProfile.create({
+                  data: {
+                    userId: user!.id,
+                    currentTier: "BRONZE",
+                    totalPoints: 0,
+                    isActive: true,
+                  },
+                });
+                affiliatorProfileId = newProfile.id;
+              } else {
+                affiliatorProfileId = existingProfile.id;
+                tierForSeason = existingProfile.currentTier;
+              }
+
+              await tx.referralCode.create({
+                data: { ownerId: user!.id, code: newCode },
+              });
+
+              await enrollAffiliatorToActiveSeason(
+                tx,
+                affiliatorProfileId,
+                tierForSeason,
+              );
+            });
+          }
+        }
+
+        // Re-fetch agar roles ter-update
+        user = await prisma.user.findUnique({
+          where: { email },
+          include: {
+            userRoles: { include: { role: true } },
+            mentorProfile: { select: { id: true } },
+          },
+        });
+      }
+    }
+
+    return user!;
   }
 
-  const role = await prisma.role.findUnique({
-    where: { roleName: "mentee" },
+  // ── User baru ──────────────────────────────────────────────────
+  // Untuk Google OAuth user baru, selalu assign role "mentee" dulu
+  // kecuali role yang diminta bukan mentee
+  const assignRole = role !== "mentee" ? role : "mentee";
+
+  const roleData = await prisma.role.findUnique({
+    where: { roleName: assignRole },
   });
 
-  if (!role) {
-    throw new Error("Role mentee tidak ditemukan");
+  // Fallback ke mentee jika role tidak ditemukan
+  const finalRole =
+    roleData ??
+    (await prisma.role.findUnique({ where: { roleName: "mentee" } }));
+
+  if (!finalRole) {
+    throw new Error("Role tidak ditemukan");
   }
 
   const MAX_RETRY = 5;
@@ -631,7 +758,7 @@ export const googleLogin = async ({
       const result = await prisma.$transaction(async (tx) => {
         const userId = await generateUserId(tx);
 
-        return await tx.user.create({
+        const newUser = await tx.user.create({
           data: {
             id: userId,
             email,
@@ -641,8 +768,8 @@ export const googleLogin = async ({
             isEmailVerified: true,
             userRoles: {
               create: {
-                id: `mentee-${nanoid(10)}`,
-                roleId: role.id,
+                id: `${finalRole.roleName}-${nanoid(10)}`,
+                roleId: finalRole.id,
               },
             },
           },
@@ -657,6 +784,28 @@ export const googleLogin = async ({
             },
           },
         });
+
+        // Jika role affiliator → buat AffiliatorProfile + ReferralCode
+        if (finalRole.roleName === "affiliator") {
+          const newCode = await generateUniqueReferralCode(email);
+
+          const newProfile = await tx.affiliatorProfile.create({
+            data: {
+              userId: newUser.id,
+              currentTier: "BRONZE",
+              totalPoints: 0,
+              isActive: true,
+            },
+          });
+
+          await tx.referralCode.create({
+            data: { ownerId: newUser.id, code: newCode },
+          });
+
+          await enrollAffiliatorToActiveSeason(tx, newProfile.id, "BRONZE");
+        }
+
+        return newUser;
       });
 
       return result;
@@ -665,10 +814,8 @@ export const googleLogin = async ({
         if (attempt === MAX_RETRY - 1) {
           throw new Error("Gagal membuat user setelah beberapa percobaan");
         }
-
         continue;
       }
-
       throw error;
     }
   }

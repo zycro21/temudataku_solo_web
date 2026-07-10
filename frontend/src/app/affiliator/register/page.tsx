@@ -305,53 +305,33 @@ export default function AffiliatorRegisterPage() {
                   <GoogleLogin
                     onSuccess={async (credentialResponse) => {
                       try {
-                        await axios.post(
+                        // Satu call saja — backend langsung handle add role affiliator
+                        const googleRes = await axios.post(
                           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/google`,
-                          { token: credentialResponse.credential },
+                          {
+                            token: credentialResponse.credential,
+                            role: "affiliator",
+                          },
                           { withCredentials: true },
                         );
 
-                        // Ambil data user
-                        const me = await axios.get(
-                          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/me`,
-                          { withCredentials: true },
-                        );
-
-                        const user = me.data?.data;
+                        const user = googleRes.data?.user;
                         if (!user) throw new Error("Gagal mengambil user");
 
                         const roles: string[] = (user?.userRoles || []).map(
                           (r: any) => r?.role?.roleName?.toLowerCase(),
                         );
 
-                        const allowedRoles = ["affiliator", "admin"];
-
-                        if (
-                          !roles.some((role) => allowedRoles.includes(role))
-                        ) {
-                          // Tambahkan role affiliator via endpoint register
-                          const formData = new FormData();
-                          formData.append("email", user.email);
-                          formData.append("password", "google-oauth");
-                          formData.append(
-                            "fullName",
-                            user.fullName || "Affiliator",
+                        if (roles.includes("affiliator")) {
+                          toast.success(
+                            "Daftar dengan Google berhasil! Silakan login.",
                           );
-                          formData.append("role", "affiliator");
-
-                          await axios.post(
-                            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/register`,
-                            formData,
-                            {
-                              headers: {
-                                "Content-Type": "multipart/form-data",
-                              },
-                            },
+                          router.push("/affiliator/login");
+                        } else {
+                          toast.error(
+                            "Gagal menambahkan role affiliator. Hubungi admin.",
                           );
                         }
-
-                        toast.success("Daftar dengan Google berhasil!");
-                        router.push("/affiliator/login");
                       } catch (err) {
                         console.error(err);
                         toast.error("Daftar dengan Google gagal");

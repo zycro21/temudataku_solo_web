@@ -248,19 +248,14 @@ export default function AffiliatorLoginPage() {
                   <GoogleLogin
                     onSuccess={async (credentialResponse) => {
                       try {
-                        await axios.post(
+                        // Tidak kirim role — login hanya untuk yang sudah punya role affiliator
+                        const googleRes = await axios.post(
                           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/google`,
                           { token: credentialResponse.credential },
                           { withCredentials: true },
                         );
 
-                        // Ambil data user
-                        const me = await axios.get(
-                          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/me`,
-                          { withCredentials: true },
-                        );
-
-                        const user = me.data?.data;
+                        const user = googleRes.data?.user;
                         if (!user) throw new Error("Gagal mengambil data user");
 
                         const roles: string[] = (user?.userRoles || []).map(
@@ -269,7 +264,6 @@ export default function AffiliatorLoginPage() {
 
                         const allowedRoles = ["affiliator", "admin"];
 
-                        // cek role
                         if (
                           !roles.some((role) => allowedRoles.includes(role))
                         ) {

@@ -5,150 +5,94 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { formatDistanceToNow } from "date-fns";
 import { id } from "date-fns/locale";
+import { useAffiliatorProfile } from "@/hooks/useAffiliatorProfile";
 
-interface ReferralData {
+interface CommissionItem {
   id: string;
-  userName: string;
-  email: string;
-  usedAt: string;
   amount: number;
+  productType: string | null;
+  pointsAwarded: number | null;
+  created_at: string;
 }
 
+const PRODUCT_LABELS: Record<string, string> = {
+  ELEARNING_1M: "E-Learning 1 Bln",
+  ELEARNING_3M: "E-Learning 3 Bln",
+  ELEARNING_6M: "E-Learning 6 Bln",
+  MENTORING_BOOTCAMP: "Bootcamp",
+  MENTORING_ONE_ON_ONE: "1-on-1",
+  MENTORING_GROUP: "Grup",
+  AYCL: "AYCL",
+};
+
 export default function AffRecentReferrals() {
-  const [referrals, setReferrals] = useState<ReferralData[]>([]);
+  const { data: profileData, loading: profileLoading } = useAffiliatorProfile();
+  const [commissions, setCommissions] = useState<CommissionItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let isMounted = true; // cegah update state setelah unmount
+    if (profileLoading || !profileData) return;
 
-    const fetchReferrals = async () => {
-      try {
-        // 1. Ambil referral codes affiliator
-        const codesRes = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/referral/affiliator/referral-codes`,
-          { withCredentials: true }
-        );
+    const codes = profileData.referralCodes;
+    if (!codes || codes.length === 0) {
+      setLoading(false);
+      return;
+    }
 
-        const codes = codesRes.data.data.referralCodes;
-        if (!codes || codes.length === 0) {
-          if (isMounted) {
-            setReferrals([]);
-            setLoading(false);
-          }
-          return;
-        }
+    // Ambil komisi dari kode referral aktif pertama
+    const activeCode = codes.find((c) => c.isActive) ?? codes[0];
 
-        const referralCodeId = codes[0].id; // contoh pakai kode pertama
+    axios
+      .get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/referral/affiliator/referral-codes-commissions/${activeCode.id}`,
+        { withCredentials: true, params: { page: 1, limit: 10 } },
+      )
+      .then((res) => {
+        setCommissions(res.data.data?.commissions ?? []);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [profileData, profileLoading]);
 
-        // 2. Ambil usages (user + waktu pakai)
-        const usagesRes = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/referral/affiliator/referral-codes-usages/${referralCodeId}`,
-          { withCredentials: true }
-        );
-        const usages = usagesRes.data.data.usages || [];
-
-        // 3. Ambil commissions (amount)
-        const commissionsRes = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/referral/affiliator/referral-codes-commissions/${referralCodeId}`,
-          { withCredentials: true }
-        );
-        const commissions = commissionsRes.data.data.commissions || [];
-
-        // 4. Merge berdasarkan bookingId / practicePurchaseId
-        const merged: ReferralData[] = usages.map((usage: any) => {
-          let commission = null;
-
-          if (usage.booking) {
-            commission = commissions.find(
-              (c: any) => c.payment?.bookingId === usage.booking.id
-            );
-          } else if (usage.practicePurchase) {
-            commission = commissions.find(
-              (c: any) =>
-                c.payment?.practicePurchaseId === usage.practicePurchase.id
-            );
-          }
-
-          return {
-            id: usage.id,
-            userName: usage.user?.fullName || "Unknown User",
-            email: usage.user?.email || "-",
-            usedAt: usage.usedAt,
-            amount: commission?.amount || 0,
-          };
-        });
-
-        // 5. Urutkan & batasi 10 referral terbaru
-        const limited = merged
-          .sort(
-            (a, b) =>
-              new Date(b.usedAt).getTime() - new Date(a.usedAt).getTime()
-          )
-          .slice(0, 10);
-
-        if (isMounted) {
-          setReferrals(limited);
-        }
-      } catch (err) {
-        console.error("Error fetching referrals", err);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-
-    fetchReferrals();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  const isLoading = profileLoading || loading;
 
   return (
     <Card className="p-6 rounded-2xl shadow-sm border border-gray-200 bg-white">
-      <h3 className="text-2xl font-bold text-gray-800 mb-1">
-        Referral Terbaru
-      </h3>
+      <h3 className="text-2xl font-bold text-gray-800 mb-4">Komisi Terbaru</h3>
 
-      <div className="divide-y divide-gray-200 max-h-80 overflow-y-auto scroll-thin pr-4">
-        {loading ? (
-          <p className="text-gray-500 text-sm py-3">Memuat data...</p>
-        ) : referrals.length === 0 ? (
-          <p className="text-gray-800 font-semibold text-sm py-2">
-            Belum ada referral terbaru.
+      <div className="divide-y divide-gray-100 max-h-80 overflow-y-auto pr-1">
+        {isLoading ? (
+          <div className="space-y-3 py-2">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-12 bg-gray-100 animate-pulse rounded-lg"
+              />
+            ))}
+          </div>
+        ) : commissions.length === 0 ? (
+          <p className="text-gray-400 text-sm py-4 text-center">
+            Belum ada transaksi komisi
           </p>
         ) : (
-          referrals.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center justify-between py-3"
-            >
-              {/* Avatar inisial */}
-              <div className="flex items-center space-x-3">
-                <div className="h-10 w-10 flex items-center justify-center rounded-full bg-purple-100 text-purple-600 font-bold text-sm">
-                  {item.userName
-                    ? item.userName
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")
-                        .slice(0, 2)
-                    : "?"}
-                </div>
-                <div>
-                  <p className="text-base font-medium text-gray-800 mb-1">
-                    {item.userName}
-                  </p>
-                  <p className="text-sm text-gray-400">
-                    {formatDistanceToNow(new Date(item.usedAt), {
-                      addSuffix: true,
-                      locale: id,
-                    })}
-                  </p>
-                </div>
+          commissions.map((c) => (
+            <div key={c.id} className="flex items-center justify-between py-3">
+              <div>
+                <p className="text-sm font-medium text-gray-800">
+                  {PRODUCT_LABELS[c.productType ?? ""] ??
+                    c.productType ??
+                    "Produk"}
+                </p>
+                <p className="text-xs text-gray-400">
+                  {formatDistanceToNow(new Date(c.created_at), {
+                    addSuffix: true,
+                    locale: id,
+                  })}
+                  {c.pointsAwarded ? ` · +${c.pointsAwarded} poin` : ""}
+                </p>
               </div>
-
-              {/* Amount dari API */}
               <p className="text-base font-semibold text-emerald-600">
-                +Rp{item.amount.toLocaleString("id-ID")}
+                +Rp{Number(c.amount).toLocaleString("id-ID")}
               </p>
             </div>
           ))

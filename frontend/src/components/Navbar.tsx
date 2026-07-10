@@ -8,6 +8,7 @@ import {
   MdSupervisorAccount,
   MdAssignment,
   MdMenuBook,
+  MdCastForEducation
 } from "react-icons/md";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext"; // pakai AuthContext
@@ -215,15 +216,15 @@ export default function Navbar() {
                 </Link>
               </li> */}
 
-              {/* <li>
+              <li>
                 <Link
                   href="/elearning"
                  className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 text-sm"
                 >
-                  <MdMenuBook className="text-gray-500 text-sm" />
+                  <MdCastForEducation className="text-gray-500 text-sm" />
                   E-Learning
                 </Link>
-              </li> */}
+              </li>
               <li className="relative">
                 {ayclList.length === 0 ? (
                   // 🔥 fallback (tidak ada active)

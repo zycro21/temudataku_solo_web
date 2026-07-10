@@ -41,7 +41,7 @@ export const resolveElearningProductType = (durationDay: number): string => {
 export const resolveMentoringProductType = (serviceType: string): string => {
   const map: Record<string, string> = {
     bootcamp: "MENTORING_BOOTCAMP",
-    one_on_one: "MENTORING_ONE_ON_ONE",
+    "one-on-one": "MENTORING_ONE_ON_ONE",  // ← hyphen, bukan underscore
     group: "MENTORING_GROUP",
   };
   const result = map[serviceType.toLowerCase()];
@@ -165,11 +165,41 @@ export const recordReferralCommission = async (
       });
     }
 
-    // Update totalPoints lifetime — hanya jika poin benar-benar dicatat
-    await tx.affiliatorProfile.update({
+    // Update totalPoints lifetime + auto-upgrade tier jika melewati ambang batas
+    const updatedProfile = await tx.affiliatorProfile.update({
       where: { id: affiliatorProfileId },
-      data: { totalPoints: { increment: pointsAwarded } },
+      data: {
+        totalPoints: { increment: pointsAwarded },
+        updatedAt: new Date(),
+      },
+      select: { totalPoints: true, currentTier: true },
     });
+
+    const newTotalPoints = updatedProfile.totalPoints;
+    const currentTier = updatedProfile.currentTier;
+
+    // Hitung tier baru berdasarkan totalPoints terbaru
+    let newTier: string;
+    if (newTotalPoints >= 120) {
+      newTier = "GOLD";
+    } else if (newTotalPoints >= 40) {
+      newTier = "SILVER";
+    } else {
+      newTier = "BRONZE";
+    }
+
+    // Update tier hanya jika berubah — hindari write yang tidak perlu
+    if (newTier !== currentTier) {
+      await tx.affiliatorProfile.update({
+        where: { id: affiliatorProfileId },
+        data: { currentTier: newTier, updatedAt: new Date() },
+      });
+
+      console.log(
+        `[recordReferralCommission] TIER UPGRADE | affiliatorProfileId: ${affiliatorProfileId} | ` +
+          `${currentTier} → ${newTier} | totalPoints: ${newTotalPoints}`,
+      );
+    }
   }
 
   return commission;

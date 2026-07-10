@@ -160,10 +160,15 @@ export default function AffProfileInfo() {
     return <div>Loading...</div>;
   }
 
+  const isExternalUrl = (url: string) =>
+    url.startsWith("http://") || url.startsWith("https://");
+
   const avatarSrc =
     user?.profilePicture && user.profilePicture !== "default.jpg"
-      ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${user.profilePicture}`
-      : "/assets/dashboard/user/avatar.png";
+      ? isExternalUrl(user.profilePicture)
+        ? user.profilePicture
+        : `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${user.profilePicture}`
+      : "/assets/dashboard/user/default-avatar.svg";
 
   const displayName = user?.fullName || "Affiliator User";
 
