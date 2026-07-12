@@ -1,7 +1,6 @@
 "use client";
 
-import { Card } from "@/components/ui/card";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, Link2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useAffiliatorProfile } from "@/hooks/useAffiliatorProfile";
@@ -20,60 +19,89 @@ export default function AffReferralCode() {
   };
 
   return (
-    <Card className="p-6 rounded-2xl shadow-sm border border-gray-200 bg-white">
-      <h2 className="text-2xl font-bold text-gray-800 mb-4">
-        Kode Referral Anda
-      </h2>
+    <div className="rounded-xl overflow-hidden shadow-sm border border-emerald-100">
+      {/* Header strip */}
+      <div className="bg-gradient-to-r from-emerald-600 to-green-500 px-5 py-3 flex items-center gap-2">
+        <Link2 size={14} className="text-white/80" />
+        <h2 className="text-sm font-bold text-white">Kode Referral Anda</h2>
+        <span className="ml-auto text-[10px] text-white/60 font-medium">
+          Bagikan & dapatkan komisi
+        </span>
+      </div>
 
-      {loading ? (
-        <div className="space-y-3">
-          {[1, 2].map((i) => (
-            <div
-              key={i}
-              className="h-16 bg-gray-100 animate-pulse rounded-xl"
-            />
-          ))}
-        </div>
-      ) : codes.length === 0 ? (
-        <p className="text-gray-400 text-sm text-center py-4">
-          Belum ada kode referral
-        </p>
-      ) : (
-        <div className="space-y-3">
-          {codes.map((rc) => (
-            <div
-              key={rc.id}
-              className={`flex items-center justify-between px-5 py-4 rounded-xl ${
-                rc.isActive ? "bg-emerald-500" : "bg-gray-300"
-              }`}
-            >
-              <div>
-                <p className="text-xs font-medium text-white/70 mb-0.5">
-                  {rc.isActive ? "Kode Referral Aktif" : "Tidak Aktif"}
-                </p>
-                <p className="text-2xl font-extrabold tracking-wide text-white">
-                  {rc.code}
-                </p>
-              </div>
-              <button
-                onClick={() => handleCopy(rc.code)}
-                disabled={!rc.isActive}
-                className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+      {/* Body */}
+      <div className="bg-white px-4 py-3">
+        {loading ? (
+          <div className="space-y-2">
+            {[1, 2].map((i) => (
+              <div
+                key={i}
+                className="h-14 bg-gray-100 animate-pulse rounded-xl"
+              />
+            ))}
+          </div>
+        ) : codes.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-6 text-gray-400">
+            <Link2 size={24} className="mb-2 opacity-30" />
+            <p className="text-xs">Belum ada kode referral</p>
+          </div>
+        ) : (
+          <div className="space-y-2.5">
+            {codes.map((rc) => (
+              <div
+                key={rc.id}
+                className={`relative rounded-xl overflow-hidden ${
+                  rc.isActive
+                    ? "bg-gradient-to-r from-emerald-500 to-green-400"
+                    : "bg-gray-200"
+                }`}
               >
-                {copied === rc.code ? (
+                {/* Dekorasi lingkaran */}
+                {rc.isActive && (
                   <>
-                    <Check size={14} /> Tersalin
-                  </>
-                ) : (
-                  <>
-                    <Copy size={14} /> Salin
+                    <div className="absolute -right-4 -top-4 w-16 h-16 rounded-full bg-white/10 pointer-events-none" />
+                    <div className="absolute right-12 top-3 w-8 h-8 rounded-full bg-white/10 pointer-events-none" />
                   </>
                 )}
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-    </Card>
+
+                <div className="relative flex items-center justify-between px-4 py-3">
+                  <div>
+                    <p
+                      className={`text-xl font-black tracking-[0.15em] ${
+                        rc.isActive ? "text-white" : "text-gray-500"
+                      }`}
+                    >
+                      {rc.code}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => handleCopy(rc.code)}
+                    disabled={!rc.isActive}
+                    className={`flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg transition-all ${
+                      rc.isActive
+                        ? copied === rc.code
+                          ? "bg-white text-emerald-600 scale-95"
+                          : "bg-white/20 hover:bg-white/30 text-white border border-white/30"
+                        : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    }`}
+                  >
+                    {copied === rc.code ? (
+                      <>
+                        <Check size={12} /> Tersalin
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={12} /> Salin
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

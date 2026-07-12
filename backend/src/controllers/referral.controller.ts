@@ -588,16 +588,19 @@ export const requestCommissionPaymentController = async (
     }
 
     // Type assertion untuk memastikan validatedBody memiliki referralCodeId dan amount
-    const { referralCodeId, amount } = req.validatedBody as {
-      referralCodeId: string;
-      amount: number;
-    };
+    const { referralCodeId, amount, withdrawalMethodId } =
+      req.validatedBody as {
+        referralCodeId: string;
+        amount: number;
+        withdrawalMethodId: string;
+      };
     const ownerId = req.user.userId;
 
     const paymentRequest = await ReferralService.requestCommissionPayment({
       referralCodeId,
       ownerId,
       amount,
+      withdrawalMethodId,
     });
 
     res.status(201).json({

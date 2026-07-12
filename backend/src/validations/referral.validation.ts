@@ -203,6 +203,7 @@ export const requestCommissionPaymentSchema = z.object({
   body: z.object({
     referralCodeId: z.string().min(1, "Referral code ID is required"),
     amount: z.number().positive("Amount must be a positive number"),
+    withdrawalMethodId: z.string().min(1, "Withdrawal method ID is required"),
   }),
 });
 

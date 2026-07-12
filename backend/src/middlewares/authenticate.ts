@@ -408,6 +408,7 @@ export interface AuthenticatedRequestReferralCode extends Request {
     | {
         referralCodeId: string;
         amount: number;
+        withdrawalMethodId: string;
       }
     | {
         commissionAmount?: number;

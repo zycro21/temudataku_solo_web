@@ -157,7 +157,7 @@ export default function AffProfileInfo() {
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div style={{ fontSize: "13px" }}>Loading...</div>;
   }
 
   const isExternalUrl = (url: string) =>
@@ -181,16 +181,16 @@ export default function AffProfileInfo() {
     : "-";
 
   return (
-    <Card className="p-8 shadow-sm border border-gray-200 bg-gray-50 text-center">
-      {/* Avatar */}
+    <Card className="p-6 shadow-sm border border-gray-200 bg-gray-50 text-center">
+      {/* Avatar — dibuat sedikit lebih besar dari elemen lain */}
       <div className="flex flex-col items-center">
         <div className="relative">
-          <div className="h-20 w-20 rounded-full border-1 border-green-600 overflow-hidden">
+          <div className="h-24 w-24 rounded-full border-1 border-green-600 overflow-hidden">
             <Image
               src={avatarSrc}
               alt="Avatar"
-              width={80}
-              height={80}
+              width={96}
+              height={96}
               className="h-full w-full object-cover"
               priority
               unoptimized
@@ -209,7 +209,8 @@ export default function AffProfileInfo() {
           {/* Tombol Edit */}
           <button
             disabled={uploadLoading}
-            className="absolute -bottom-7 left-1/2 transform -translate-x-1/2 text-xs text-emerald-600 flex items-center space-x-1 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+            className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-emerald-600 flex items-center space-x-1 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ fontSize: "11px" }}
             onClick={() => fileInputRef.current?.click()}
           >
             <Pencil className="w-3 h-3" />
@@ -218,17 +219,26 @@ export default function AffProfileInfo() {
         </div>
 
         {/* Nama & Affiliate ID */}
-        <h2 className="mt-12 text-2xl font-bold text-gray-900">
+        <h2
+          className="mt-9 font-bold text-gray-900"
+          style={{ fontSize: "18px" }}
+        >
           {displayName}
         </h2>
-        <p className="text-sm text-gray-500">Affiliate ID: {user?.id}</p>
+        <p className="text-gray-500" style={{ fontSize: "12px" }}>
+          Affiliate ID: {user?.id}
+        </p>
 
         {/* Tombol Verifikasi */}
         <Button
-          className="p-3 mt-4 w-full bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded-sm text-md font-medium"
+          className="mt-3 w-full bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded-sm font-medium"
           disabled={user?.isEmailVerified}
           onClick={handleVerify}
-          style={{ cursor: user?.isEmailVerified ? "not-allowed" : "pointer" }}
+          style={{
+            cursor: user?.isEmailVerified ? "not-allowed" : "pointer",
+            fontSize: "13px",
+            padding: "10px 12px",
+          }}
         >
           {user?.isEmailVerified
             ? "Akun telah terverifikasi"
@@ -237,20 +247,20 @@ export default function AffProfileInfo() {
       </div>
 
       {/* Info Tambahan */}
-      <div className="mt-1 space-y-3 text-sm text-left">
-        <div className="flex justify-between">
+      <div className="mt-1 space-y-2.5 text-left">
+        <div className="flex justify-between" style={{ fontSize: "12.5px" }}>
           <span className="text-gray-500">Total Pendapatan</span>
           <span className="font-medium text-gray-800">
             Rp{totalPendapatan.toLocaleString("id-ID")}
           </span>
         </div>
-        <div className="flex justify-between">
+        <div className="flex justify-between" style={{ fontSize: "12.5px" }}>
           <span className="text-gray-500">Pengguna Kode</span>
           <span className="font-medium text-gray-800">
             {totalPenggunaKode} orang
           </span>
         </div>
-        <div className="flex justify-between">
+        <div className="flex justify-between" style={{ fontSize: "12.5px" }}>
           <span className="text-gray-500">Member Sejak</span>
           <span className="font-medium text-gray-800">{memberSince}</span>
         </div>

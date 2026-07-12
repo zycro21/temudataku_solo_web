@@ -35,7 +35,7 @@ export default function AffSecuritySettings() {
         {
           withCredentials: true,
           headers: { "Content-Type": "multipart/form-data" },
-        }
+        },
       );
 
       toast.success("Profil berhasil diperbarui, Refresh website anda");
@@ -51,49 +51,64 @@ export default function AffSecuritySettings() {
   };
 
   return (
-    <Card className="p-8 shadow-sm border border-gray-200 bg-gray-50">
-      <h2 className="text-2xl font-bold text-gray-800 mb-1">
+    <Card className="p-6 shadow-sm border border-gray-200 bg-gray-50">
+      <h2 className="font-bold text-gray-800 mb-1" style={{ fontSize: "18px" }}>
         Akun Sosial Media
       </h2>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {/* Instagram */}
-        <div className="space-y-2">
-          <Label htmlFor="instagram" className="text-sm text-gray-700">
+        <div className="space-y-1.5">
+          <Label
+            htmlFor="instagram"
+            className="text-gray-700"
+            style={{ fontSize: "12.5px" }}
+          >
             Instagram
           </Label>
           <Input
             id="instagram"
             placeholder="Masukkan ID Instagram Kamu"
             className="bg-gray-50"
+            style={{ fontSize: "13px" }}
             value={form.instagram}
             onChange={handleChange}
           />
         </div>
 
         {/* TikTok */}
-        <div className="space-y-2">
-          <Label htmlFor="tiktok" className="text-sm text-gray-700">
+        <div className="space-y-1.5">
+          <Label
+            htmlFor="tiktok"
+            className="text-gray-700"
+            style={{ fontSize: "12.5px" }}
+          >
             TikTok
           </Label>
           <Input
             id="tiktok"
             placeholder="Masukkan ID Tiktok Kamu"
             className="bg-gray-50"
+            style={{ fontSize: "13px" }}
             value={form.tiktok}
             onChange={handleChange}
           />
         </div>
 
         {/* Youtube */}
-        <div className="space-y-2">
-          <Label htmlFor="youtube" className="text-sm text-gray-700">
+        <div className="space-y-1.5">
+          <Label
+            htmlFor="youtube"
+            className="text-gray-700"
+            style={{ fontSize: "12.5px" }}
+          >
             Youtube
           </Label>
           <Input
             id="youtube"
             placeholder="Masukkan Nama Channel Youtube Kamu"
             className="bg-gray-50"
+            style={{ fontSize: "13px" }}
             value={form.youtube}
             onChange={handleChange}
           />
@@ -103,7 +118,8 @@ export default function AffSecuritySettings() {
         <Button
           type="submit"
           disabled={loading}
-          className="w-full bg-emerald-500 text-white hover:bg-emerald-600 rounded-lg py-4 font-medium"
+          className="w-full bg-emerald-500 text-white hover:bg-emerald-600 rounded-lg font-medium"
+          style={{ fontSize: "13px", padding: "11px 16px" }}
         >
           {loading ? "Menyimpan..." : "Perbarui Informasi"}
         </Button>

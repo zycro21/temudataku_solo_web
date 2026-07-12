@@ -52,13 +52,13 @@ export default function PenarikanSaldo() {
     try {
       const comRes = await axios.get(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/referral/affiliator/referral-codes-commissions/${rc.id}`,
-        { withCredentials: true }
+        { withCredentials: true },
       );
       if (comRes.data.success) {
         const commissions = comRes.data.data.commissions || [];
         totalKomisi = commissions.reduce(
           (sum: number, c: any) => sum + (c.amount || 0),
-          0
+          0,
         );
       }
     } catch (err) {
@@ -78,14 +78,14 @@ export default function PenarikanSaldo() {
           {
             params: { status: "paid", page, limit: 50 },
             withCredentials: true,
-          }
+          },
         );
 
         if (payRes.data.success) {
           const { data, totalPages } = payRes.data.data;
           totalPaid += data.reduce(
             (sum: number, p: any) => sum + (p.amount || 0),
-            0
+            0,
           );
           page++;
           hasMore = totalPages ? page <= totalPages : false;
@@ -108,7 +108,7 @@ export default function PenarikanSaldo() {
         // Ambil withdrawal methods affiliator
         const wmRes = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/withdrawals`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
         if (wmRes.data.success) {
           setMethods(wmRes.data.data || []);
@@ -117,7 +117,7 @@ export default function PenarikanSaldo() {
         // Ambil referral codes affiliator
         const refRes = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/referral/affiliator/referral-codes`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
         const codes = refRes.data.data.referralCodes;
         if (!codes || codes.length === 0) {
@@ -162,7 +162,7 @@ export default function PenarikanSaldo() {
           amount: amountValue,
           withdrawalMethodId: method,
         },
-        { withCredentials: true }
+        { withCredentials: true },
       );
 
       if (res.data.success) {
@@ -183,26 +183,33 @@ export default function PenarikanSaldo() {
 
   return (
     <>
-      <Card className="p-8 shadow-sm border border-gray-200 bg-white">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+      <Card className="p-6 shadow-sm border border-gray-200 bg-white">
+        <h2
+          className="font-bold text-gray-900 mb-2"
+          style={{ fontSize: "18px" }}
+        >
           Penarikan Saldo
         </h2>
 
         {!referralCode ? (
-          <p className="text-red-500 text-sm">
+          <p className="text-red-500" style={{ fontSize: "13px" }}>
             Tidak ada referral code. Anda tidak bisa melakukan penarikan saldo.
           </p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Pilih metode */}
             <div className="flex flex-col">
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
+              <label
+                className="block font-semibold text-gray-900 mb-1.5"
+                style={{ fontSize: "12.5px" }}
+              >
                 Metode Penarikan Saldo
               </label>
               <select
                 value={method}
                 onChange={(e) => setMethod(e.target.value)}
                 className="w-full border border-gray-300 rounded-lg p-2 focus:ring-emerald-500 focus:border-emerald-500"
+                style={{ fontSize: "13px" }}
               >
                 <option value="">Pilih metode</option>
                 {methods.map((m) => (
@@ -215,7 +222,10 @@ export default function PenarikanSaldo() {
 
             {/* Input jumlah */}
             <div className="flex flex-col">
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
+              <label
+                className="block font-semibold text-gray-900 mb-1.5"
+                style={{ fontSize: "12.5px" }}
+              >
                 Jumlah
               </label>
               <input
@@ -224,8 +234,9 @@ export default function PenarikanSaldo() {
                 value={amountDisplay}
                 onChange={handleAmountChange}
                 className="w-full border border-gray-300 rounded-lg p-2 focus:ring-emerald-500 focus:border-emerald-500"
+                style={{ fontSize: "13px" }}
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-gray-500 mt-1" style={{ fontSize: "11px" }}>
                 Saldo Tersedia:{" "}
                 {loading
                   ? "Loading..."
@@ -238,7 +249,8 @@ export default function PenarikanSaldo() {
         {/* Tombol */}
         <div className="mt-0">
           <Button
-            className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg px-6 py-2"
+            className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg"
+            style={{ fontSize: "13px", padding: "9px 20px" }}
             onClick={handleWithdraw}
             disabled={!method || amountValue <= 0 || loading || !referralCode}
           >

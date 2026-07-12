@@ -14,6 +14,7 @@ import {
   resolveMentoringProductType,
   resolveElearningProductType,
 } from "../utils/referral.helper.js";
+import { sendCommissionWithdrawalRequestEmail } from "../utils/commissionWithdrawalRequestEmail.js";
 
 const prisma = new PrismaClient();
 
@@ -1355,21 +1356,19 @@ export const requestCommissionPayment = async (input: {
   referralCodeId: string;
   ownerId: string;
   amount: number;
+  withdrawalMethodId: string;
 }) => {
-  const { referralCodeId, ownerId, amount } = input;
+  const { referralCodeId, ownerId, amount, withdrawalMethodId } = input;
 
-  // Cek referral code milik affiliator
   const referralCode = await prisma.referralCode.findFirst({
     where: { id: referralCodeId, ownerId },
     include: {
       owner: {
         select: {
+          fullName: true,
+          email: true,
           affiliatorProfile: {
-            select: {
-              id: true,
-              currentTier: true,
-              isActive: true,
-            },
+            select: { id: true, currentTier: true, isActive: true },
           },
         },
       },
@@ -1387,25 +1386,29 @@ export const requestCommissionPayment = async (input: {
     throw { status: 403, message: "Affiliator profile tidak aktif." };
   }
 
+  // ⭐ BARU — pastikan withdrawal method beneran milik user ini
+  const withdrawalMethod = await prisma.withdrawalMethod.findFirst({
+    where: { id: withdrawalMethodId, userId: ownerId, isActive: true },
+  });
+
+  if (!withdrawalMethod) {
+    throw {
+      status: 404,
+      message: "Metode penarikan tidak ditemukan atau tidak aktif.",
+    };
+  }
+
   // H+3: hanya komisi yang dicatat lebih dari 3 hari lalu yang bisa ditarik
   const threeDaysAgo = new Date();
   threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 
-  // Total komisi yang eligible ditarik (sudah lewat H+3)
   const totalEligible = await prisma.referralCommisions.aggregate({
-    where: {
-      referralCodeId,
-      created_at: { lte: threeDaysAgo },
-    },
+    where: { referralCodeId, created_at: { lte: threeDaysAgo } },
     _sum: { amount: true },
   });
 
-  // Total yang sudah diminta/dibayar (pending atau paid)
   const totalPaid = await prisma.commissionPayments.aggregate({
-    where: {
-      referralCodeId,
-      status: { in: ["pending", "paid"] },
-    },
+    where: { referralCodeId, status: { in: ["pending", "paid"] } },
     _sum: { amount: true },
   });
 
@@ -1424,6 +1427,7 @@ export const requestCommissionPayment = async (input: {
     data: {
       referralCodeId,
       amount,
+      withdrawalMethodId, // ⭐ BARU — disimpan buat audit & referensi admin
       status: "pending",
       created_at: new Date(),
     },
@@ -1442,10 +1446,7 @@ export const requestCommissionPayment = async (input: {
               fullName: true,
               email: true,
               affiliatorProfile: {
-                select: {
-                  currentTier: true,
-                  isActive: true,
-                },
+                select: { currentTier: true, isActive: true },
               },
             },
           },
@@ -1453,6 +1454,25 @@ export const requestCommissionPayment = async (input: {
       },
     },
   });
+
+  // ⭐ BARU — kirim notifikasi email ke admin (gak menggagalkan request kalau gagal kirim)
+  sendCommissionWithdrawalRequestEmail({
+    affiliatorName: referralCode.owner.fullName,
+    affiliatorEmail: referralCode.owner.email,
+    referralCode: referralCode.code,
+    amount,
+    requestId: paymentRequest.id,
+    requestDate: paymentRequest.created_at,
+    withdrawalMethod: {
+      type: withdrawalMethod.type as "bank" | "eWallet",
+      providerName: withdrawalMethod.providerName,
+      accountNumber: withdrawalMethod.accountNumber,
+      accountName: withdrawalMethod.accountName ?? "-",
+    },
+    remainingBalance: availableBalance - amount, // ⭐ BARU — sisa saldo affiliator setelah request ini diproses
+  }).catch((err) =>
+    console.error("[requestCommissionPayment] Gagal kirim email admin:", err),
+  );
 
   return paymentRequest;
 };

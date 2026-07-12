@@ -12,7 +12,7 @@ export default function MainDashboardAffProfilePage() {
     <div className="flex mb-8">
       <AffSidebar />
       {/* Konten sebelah kanan */}
-      <div className="flex-1 flex flex-col ml-72">
+      <div className="flex-1 flex flex-col ml-56">
         <DashboardAffHeader />
         {/* Main content */}
         <main className="flex-1 p-6 pl-7 bg-gray-50 overflow-x-hidden">

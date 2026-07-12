@@ -324,7 +324,10 @@ model CommissionPayments {
   notes           String?      // catatan tambahan atau alasan penolakan/gagal bayar
   created_at      DateTime     @default(now())
 
+  withdrawalMethodId String?      @map("withdrawal_method_id")
+
   referralCode    ReferralCode @relation(fields: [referralCodeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  withdrawalMethod   WithdrawalMethod? @relation(fields: [withdrawalMethodId], references: [id], onDelete: SetNull)
 
   @@map("commission_payments")
 }
@@ -2016,6 +2019,7 @@ model WithdrawalMethod {
   updatedAt     DateTime @updatedAt
 
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  commissionPayments CommissionPayments[]
 
   @@map("withdrawal_methods")
 }

@@ -73,22 +73,24 @@ export default function MetodeSaldo() {
   const isAtLimit = methods.length >= MAX_METHODS;
 
   return (
-    <Card className="p-8 shadow-sm border border-gray-200 bg-gray-50">
-      <h2 className="text-2xl font-bold text-gray-800 mb-1">
+    <Card className="p-6 shadow-sm border border-gray-200 bg-gray-50">
+      <h2 className="font-bold text-gray-800 mb-1" style={{ fontSize: "18px" }}>
         Metode Penarikan Saldo
       </h2>
-      <p className="text-lg text-gray-800 mb-0">
+      <p className="text-gray-800 mb-0" style={{ fontSize: "13px" }}>
         Maksimal {MAX_METHODS} metode penarikan.
       </p>
 
-      <div className="space-y-4 mt-2">
+      <div className="space-y-3 mt-2">
         {loading ? (
-          <p className="text-gray-500 text-sm">Memuat metode...</p>
+          <p className="text-gray-500" style={{ fontSize: "13px" }}>
+            Memuat metode...
+          </p>
         ) : methods.length > 0 ? (
           methods.map((m) => (
             <div
               key={m.id}
-              className="flex items-center justify-between p-4 border rounded-lg bg-white"
+              className="flex items-center justify-between p-3 border rounded-lg bg-white"
             >
               <div className="flex items-center space-x-3">
                 <Image
@@ -100,18 +102,26 @@ export default function MetodeSaldo() {
                   height={m.type === "bank" ? 14 : 20}
                 />
                 <div>
-                  <p className="font-medium text-gray-800">{m.providerName}</p>
-                  <p className="text-sm text-gray-500">{m.accountNumber}</p>
+                  <p
+                    className="font-medium text-gray-800"
+                    style={{ fontSize: "13px" }}
+                  >
+                    {m.providerName}
+                  </p>
+                  <p className="text-gray-500" style={{ fontSize: "12px" }}>
+                    {m.accountNumber}
+                  </p>
                 </div>
               </div>
               <button
                 onClick={() => handleToggleActive(m)}
                 disabled={togglingId === m.id}
-                className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition ${
+                className={`font-semibold px-2.5 py-1 rounded-full border transition ${
                   m.isActive
                     ? "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100"
                     : "bg-red-50 text-red-500 border-red-200 hover:bg-red-100"
                 } disabled:opacity-50`}
+                style={{ fontSize: "11px" }}
               >
                 {togglingId === m.id
                   ? "..."
@@ -122,14 +132,14 @@ export default function MetodeSaldo() {
             </div>
           ))
         ) : (
-          <p className="text-gray-500 text-sm font-bold">
+          <p className="text-gray-500 font-bold" style={{ fontSize: "13px" }}>
             Belum ada metode penarikan
           </p>
         )}
       </div>
 
       {/* Keterangan tidak bisa edit */}
-      <p className="text-xs text-gray-400 mt-4">
+      <p className="text-gray-400 mt-3" style={{ fontSize: "11px" }}>
         Untuk mengubah atau menghapus data metode penarikan, hubungi kami di{" "}
         <a
           href={`mailto:${CONTACT_EMAIL}`}
@@ -148,7 +158,8 @@ export default function MetodeSaldo() {
           setIsModalOpen(true);
         }}
         disabled={isAtLimit}
-        className="w-full mt-4 bg-emerald-500 text-white hover:bg-emerald-600 rounded-lg py-4 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full mt-3 bg-emerald-500 text-white hover:bg-emerald-600 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        style={{ fontSize: "13px", padding: "11px 16px" }}
       >
         {isAtLimit
           ? `Batas maksimal (${MAX_METHODS}) tercapai`
@@ -156,7 +167,10 @@ export default function MetodeSaldo() {
       </Button>
 
       {isAtLimit && (
-        <p className="text-xs text-center text-gray-400 mt-2">
+        <p
+          className="text-center text-gray-400 mt-2"
+          style={{ fontSize: "11px" }}
+        >
           Nonaktifkan salah satu metode atau hubungi{" "}
           <a
             href={`mailto:${CONTACT_EMAIL}`}

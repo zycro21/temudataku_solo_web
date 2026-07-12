@@ -17,7 +17,6 @@ function formatRupiah(n: number) {
 
 export default function AffStatCards() {
   const { data, loading } = useAffiliatorProfile();
-
   const summary = data?.commissionSummary;
 
   const stats = [
@@ -39,34 +38,32 @@ export default function AffStatCards() {
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-2">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-1">
       {stats.map((item, idx) => (
         <Card
           key={idx}
-          className="max-w-[360px] w-full flex flex-col justify-between px-0 py-2
-                     hover:shadow-md hover:-translate-y-1 transform transition-all duration-200"
+          className="w-full flex flex-col justify-between px-0 py-1.5
+                     hover:shadow-md hover:-translate-y-0.5 transform transition-all duration-200"
         >
-          <CardHeader className="flex items-center justify-between px-6 pt-2 pb-0">
-            <div className="flex items-center gap-2">
+          <CardHeader className="flex items-center justify-between px-4 pt-2 pb-0">
+            <div className="flex items-center gap-1.5">
               <Image
                 src={item.image}
                 alt={item.title}
-                width={16}
-                height={16}
-                className="w-4 h-4 object-contain opacity-80"
+                width={13}
+                height={13}
+                className="object-contain opacity-80"
               />
-              <CardTitle className="text-sm font-medium text-gray-700">
+              <CardTitle className="text-xs font-medium text-gray-500">
                 {item.title}
               </CardTitle>
             </div>
-            <CardAction className="text-gray-700">
-              <ChevronRight className="h-4 w-4" />
+            <CardAction className="text-gray-400">
+              <ChevronRight className="h-3.5 w-3.5" />
             </CardAction>
           </CardHeader>
-          <CardContent className="px-6 pt-0 pb-2">
-            <h3 className="text-3xl font-semibold text-gray-900">
-              {item.value}
-            </h3>
+          <CardContent className="px-4 pt-1 pb-3">
+            <h3 className="text-xl font-bold text-gray-900">{item.value}</h3>
           </CardContent>
         </Card>
       ))}

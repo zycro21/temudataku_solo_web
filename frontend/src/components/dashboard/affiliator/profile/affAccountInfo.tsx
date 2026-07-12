@@ -32,7 +32,7 @@ export default function AffAccountInfo() {
           headers: {
             "Content-Type": "multipart/form-data",
           },
-        }
+        },
       );
 
       if (res.data.success) {
@@ -50,15 +50,19 @@ export default function AffAccountInfo() {
   };
 
   return (
-    <Card className="p-8 shadow-sm border border-gray-200 bg-gray-50">
-      <h2 className="text-2xl font-bold text-gray-800 mb-1">
+    <Card className="p-6 shadow-sm border border-gray-200 bg-gray-50">
+      <h2 className="font-bold text-gray-800 mb-1" style={{ fontSize: "18px" }}>
         Informasi Pribadi
       </h2>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {/* Nama Lengkap */}
-        <div className="space-y-2">
-          <Label htmlFor="fullName" className="text-sm text-gray-700">
+        <div className="space-y-1.5">
+          <Label
+            htmlFor="fullName"
+            className="text-gray-700"
+            style={{ fontSize: "12.5px" }}
+          >
             Nama Lengkap
           </Label>
           <Input
@@ -67,12 +71,17 @@ export default function AffAccountInfo() {
             onChange={(e) => setFullName(e.target.value)}
             placeholder="Masukkan Nama Lengkap Kamu"
             className="bg-gray-50"
+            style={{ fontSize: "13px" }}
           />
         </div>
 
         {/* Nomor Telepon */}
-        <div className="space-y-2">
-          <Label htmlFor="phone" className="text-sm text-gray-700">
+        <div className="space-y-1.5">
+          <Label
+            htmlFor="phone"
+            className="text-gray-700"
+            style={{ fontSize: "12.5px" }}
+          >
             Nomor Telepon
           </Label>
           <Input
@@ -81,12 +90,17 @@ export default function AffAccountInfo() {
             onChange={(e) => setPhoneNumber(e.target.value)}
             placeholder="Masukkan No HP Kamu (Ex: 08xxxxxxxxx)"
             className="bg-gray-50"
+            style={{ fontSize: "13px" }}
           />
         </div>
 
         {/* Domisili */}
-        <div className="space-y-2">
-          <Label htmlFor="domicile" className="text-sm text-gray-700">
+        <div className="space-y-1.5">
+          <Label
+            htmlFor="domicile"
+            className="text-gray-700"
+            style={{ fontSize: "12.5px" }}
+          >
             Domisili
           </Label>
           <Input
@@ -95,6 +109,7 @@ export default function AffAccountInfo() {
             onChange={(e) => setCity(e.target.value)}
             placeholder="Masukkan Domisili Kamu"
             className="bg-gray-50"
+            style={{ fontSize: "13px" }}
           />
         </div>
 
@@ -102,7 +117,8 @@ export default function AffAccountInfo() {
         <Button
           type="submit"
           disabled={loading}
-          className="w-full bg-emerald-500 text-white hover:bg-emerald-600 rounded-lg py-4 font-medium"
+          className="w-full bg-emerald-500 text-white hover:bg-emerald-600 rounded-lg font-medium"
+          style={{ fontSize: "13px", padding: "11px 16px" }}
         >
           {loading ? "Menyimpan..." : "Perbarui Informasi"}
         </Button>

@@ -39,7 +39,6 @@ export default function AffRecentReferrals() {
       return;
     }
 
-    // Ambil komisi dari kode referral aktif pertama
     const activeCode = codes.find((c) => c.isActive) ?? codes[0];
 
     axios
@@ -57,33 +56,36 @@ export default function AffRecentReferrals() {
   const isLoading = profileLoading || loading;
 
   return (
-    <Card className="p-6 rounded-2xl shadow-sm border border-gray-200 bg-white">
-      <h3 className="text-2xl font-bold text-gray-800 mb-4">Komisi Terbaru</h3>
+    <Card className="p-4 rounded-xl shadow-sm border border-gray-200 bg-white">
+      <h3 className="text-sm font-bold text-gray-700 mb-3">Komisi Terbaru</h3>
 
-      <div className="divide-y divide-gray-100 max-h-80 overflow-y-auto pr-1">
+      <div className="divide-y divide-gray-100 max-h-64 overflow-y-auto pr-1">
         {isLoading ? (
-          <div className="space-y-3 py-2">
+          <div className="space-y-2 py-1">
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-12 bg-gray-100 animate-pulse rounded-lg"
+                className="h-10 bg-gray-100 animate-pulse rounded-lg"
               />
             ))}
           </div>
         ) : commissions.length === 0 ? (
-          <p className="text-gray-400 text-sm py-4 text-center">
+          <p className="text-gray-400 text-xs py-3 text-center">
             Belum ada transaksi komisi
           </p>
         ) : (
           commissions.map((c) => (
-            <div key={c.id} className="flex items-center justify-between py-3">
+            <div
+              key={c.id}
+              className="flex items-center justify-between py-2.5"
+            >
               <div>
-                <p className="text-sm font-medium text-gray-800">
+                <p className="text-xs font-medium text-gray-800">
                   {PRODUCT_LABELS[c.productType ?? ""] ??
                     c.productType ??
                     "Produk"}
                 </p>
-                <p className="text-xs text-gray-400">
+                <p className="text-[10px] text-gray-400">
                   {formatDistanceToNow(new Date(c.created_at), {
                     addSuffix: true,
                     locale: id,
@@ -91,7 +93,7 @@ export default function AffRecentReferrals() {
                   {c.pointsAwarded ? ` · +${c.pointsAwarded} poin` : ""}
                 </p>
               </div>
-              <p className="text-base font-semibold text-emerald-600">
+              <p className="text-xs font-semibold text-emerald-600">
                 +Rp{Number(c.amount).toLocaleString("id-ID")}
               </p>
             </div>
