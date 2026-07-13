@@ -35,9 +35,17 @@ export const ELearningSubChapterService = {
     }
 
     // =========================
+    // ROLE: FULL ACCESS (skip semua restriction di bawah)
+    // =========================
+    const hasFullAccess = user.roles.some((r) =>
+      ["admin", "cm", "curdev"].includes(r),
+    );
+
+    // =========================
     // ROLE: MENTOR
     // =========================
     if (
+      !hasFullAccess &&
       user.roles.includes("mentor") &&
       course.mentorId !== user.mentorProfileId
     ) {
@@ -49,7 +57,7 @@ export const ELearningSubChapterService = {
     // =========================
     // ROLE: MENTEE (SUBSCRIPTION CHECK)
     // =========================
-    if (user.roles.includes("mentee")) {
+    if (!hasFullAccess && user.roles.includes("mentee")) {
       const now = new Date();
 
       const activeSubscription = await prisma.eLearningSubscription.findFirst({
