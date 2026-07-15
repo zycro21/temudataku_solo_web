@@ -7,6 +7,7 @@ import ClientTrackerWrapper from "@/components/ClientTrackerWrapper";
 import MaintenanceGuard from "@/components/MaintenanceGuardFix";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import Script from "next/script";
+import CookieConsent from "@/components/CookieConsent";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -77,6 +78,7 @@ export default function RootLayout({
             <MaintenanceGuard />
             {children}
             <Toaster position="top-right" richColors />
+            <CookieConsent />
           </AuthProvider>
         </GoogleOAuthProvider>
       </body>

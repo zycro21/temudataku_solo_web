@@ -72,16 +72,16 @@ export default function SubChapterSection({ practice }: Props) {
   };
 
   return (
-    <section className="py-16 px-4 md:px-6 lg:px-10">
+    <section className="py-10 px-3 md:px-5 lg:px-6">
       <div className="max-w-screen-2xl mx-auto">
         {/* Header */}
-        <div className="mb-8 flex flex-col gap-4">
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+        <div className="mb-6 flex flex-col gap-3">
+          <h2 className="text-lg md:text-xl font-bold text-gray-900">
             Apa yang Akan Kamu Pelajari
           </h2>
 
-          <div className="flex items-center gap-3">
-            <div className="relative w-12 h-12">
+          <div className="flex items-center gap-2.5">
+            <div className="relative w-10 h-10">
               <svg
                 className="w-full h-full rotate-[-90deg]"
                 viewBox="0 0 40 40"
@@ -109,12 +109,12 @@ export default function SubChapterSection({ practice }: Props) {
               </svg>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-base font-semibold text-gray-900">
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-semibold text-gray-900">
                 Progress: {progressPercent}%
               </span>
-              <Circle className="w-2 h-2 fill-gray-400 text-gray-400" />
-              <span className="text-sm text-gray-500">
+              <Circle className="w-1.5 h-1.5 fill-gray-400 text-gray-400" />
+              <span className="text-xs text-gray-500">
                 ({completed} / {total} kelas)
               </span>
             </div>
@@ -122,7 +122,7 @@ export default function SubChapterSection({ practice }: Props) {
         </div>
 
         {/* Grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {displayedSubChapters.map((chapter) => {
             const totalMinutes = chapter.modules.reduce(
               (acc, m) => acc + m.estimatedMinutes,
@@ -150,24 +150,24 @@ export default function SubChapterSection({ practice }: Props) {
                       alt={chapter.title}
                       width={300}
                       height={200}
-                      className="w-full h-[200px] object-cover"
+                      className="w-full h-[160px] object-cover"
                     />
 
                     <span
                       className="
-                        absolute top-3 right-3
-                        flex items-center gap-2
+                        absolute top-2 right-2
+                        flex items-center gap-1.5
                         bg-[#243A77] text-white
-                        text-xs font-medium
-                        px-4 py-2
+                        text-[11px] font-medium
+                        px-3 py-1.5
                         rounded-full
                       "
                     >
                       <Image
                         src="/assets/elearning/jam.svg"
                         alt="durasi"
-                        width={14}
-                        height={14}
+                        width={12}
+                        height={12}
                       />
                       {formatDuration(totalMinutes)}
                     </span>
@@ -175,47 +175,47 @@ export default function SubChapterSection({ practice }: Props) {
                 </div>
 
                 {/* Content */}
-                <div className="p-4">
-                  <h3 className="text-xl font-bold text-gray-900 mb-1 line-clamp-1 group-hover:text-emerald-600 transition-colors">
+                <div className="p-3">
+                  <h3 className="text-base font-bold text-gray-900 mb-1 line-clamp-1 group-hover:text-emerald-600 transition-colors">
                     {chapter.title}
                   </h3>
 
-                  <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                  <p className="text-xs text-gray-600 mb-3 line-clamp-2">
                     {chapter.description}
                   </p>
 
-                  <div className="flex items-center gap-3 text-xs text-gray-600 mb-4">
-                    <span className="flex items-center gap-1.5 bg-gray-100 px-3 py-1 rounded-lg">
+                  <div className="flex items-center gap-2 text-[11px] text-gray-600 mb-3">
+                    <span className="flex items-center gap-1.5 bg-gray-100 px-2.5 py-1 rounded-lg">
                       <Image
                         src="/assets/elearning/modulsubchapter.svg"
                         alt="modul"
-                        width={14}
-                        height={14}
+                        width={12}
+                        height={12}
                       />
                       {chapter.modules.length} modul
                     </span>
 
-                    <span className="flex items-center gap-1.5 bg-gray-100 px-3 py-1 rounded-lg capitalize">
+                    <span className="flex items-center gap-1.5 bg-gray-100 px-2.5 py-1 rounded-lg capitalize">
                       <Image
                         src="/assets/elearning/quizprojecsubchapter.svg"
                         alt="quiz"
-                        width={14}
-                        height={14}
+                        width={12}
+                        height={12}
                       />
                       {getTaskLabel(chapter.taskType)}
                     </span>
                   </div>
 
                   {/* Progress / Action */}
-                  <div className="flex items-center justify-between gap-4 mt-2">
-                    <div className="flex-1 text-xs text-gray-600 min-h-[40px] flex items-center">
+                  <div className="flex items-center justify-between gap-3 mt-2">
+                    <div className="flex-1 text-[11px] text-gray-600 min-h-[36px] flex items-center">
                       {isCompleted && (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
                           <Image
                             src="/assets/elearning/icon-park-solid_check-one.svg"
                             alt="selesai"
-                            width={14}
-                            height={14}
+                            width={12}
+                            height={12}
                           />
                           <span className="text-emerald-600 font-medium">
                             Selesai
@@ -227,7 +227,7 @@ export default function SubChapterSection({ practice }: Props) {
 
                       {isInProgress && (
                         <div className="w-full">
-                          <div className="flex items-center gap-2 mb-1">
+                          <div className="flex items-center gap-1.5 mb-1">
                             <span className="font-medium text-gray-800">
                               Progress: {chapter.progressPercent}%
                             </span>
@@ -245,7 +245,7 @@ export default function SubChapterSection({ practice }: Props) {
                       )}
 
                       {!isCompleted && !isInProgress && (
-                        <span className="text-sm font-medium text-gray-500">
+                        <span className="text-xs font-medium text-gray-500">
                           Belum Dimulai
                         </span>
                       )}
@@ -257,7 +257,7 @@ export default function SubChapterSection({ practice }: Props) {
                           <Button
                             size="sm"
                             className="
-          w-full py-2.5 px-4
+          w-full py-2 px-3 text-xs
           bg-red-600 text-white
           border border-red-600
           hover:bg-emerald-700
@@ -271,7 +271,7 @@ export default function SubChapterSection({ practice }: Props) {
                           <Button
                             size="sm"
                             className="
-          w-full py-2.5 px-4
+          w-full py-2 px-3 text-xs
           bg-yellow-600 text-white
           border border-yellow-400
           hover:bg-emerald-700
@@ -285,7 +285,7 @@ export default function SubChapterSection({ practice }: Props) {
                           <Button
                             size="sm"
                             className="
-          bg-emerald-600 w-full py-2.5 px-4
+          bg-emerald-600 w-full py-2 px-3 text-xs
           text-white
           hover:bg-emerald-700
         "
@@ -304,16 +304,16 @@ export default function SubChapterSection({ practice }: Props) {
 
         {/* TOGGLE BUTTON */}
         {practice.subChapters.length > MAX_VISIBLE && (
-          <div className="mt-10 flex justify-center">
+          <div className="mt-6 flex justify-center">
             <Button
               variant="outline"
               onClick={() => setShowAll(!showAll)}
               className="
-        group flex items-center gap-2
+        group flex items-center gap-1.5
         border-emerald-600 text-emerald-600
         hover:bg-emerald-50 hover:text-emerald-700
         transition-all duration-300
-        px-8 py-3
+        px-5 py-2 text-sm
       "
             >
               <span className="font-medium">

@@ -248,10 +248,17 @@ export default function AffiliatorLoginPage() {
                   <GoogleLogin
                     onSuccess={async (credentialResponse) => {
                       try {
-                        // Tidak kirim role — login hanya untuk yang sudah punya role affiliator
+                        // Selalu kirim role "affiliator" — kalau user belum
+                        // pernah jadi affiliator, backend akan otomatis
+                        // register-kan sebagai affiliator (bukan mentee) dan
+                        // langsung login. Kalau sudah affiliator, ya tinggal
+                        // login seperti biasa.
                         const googleRes = await axios.post(
                           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/google`,
-                          { token: credentialResponse.credential },
+                          {
+                            token: credentialResponse.credential,
+                            role: "affiliator",
+                          },
                           { withCredentials: true },
                         );
 
@@ -273,7 +280,7 @@ export default function AffiliatorLoginPage() {
                           return;
                         }
 
-                        toast.success("Login Google berhasil");
+                        toast.success("Login dengan Google berhasil");
                         router.push("/dashboard/affiliator");
                       } catch (err) {
                         console.error(err);

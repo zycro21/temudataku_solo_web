@@ -60,15 +60,15 @@ export default function AlumniSays() {
   }, [api]);
 
   return (
-    <section className="py-12 md:py-20 w-full overflow-hidden bg-white">
+    <section className="py-8 md:py-12 w-full overflow-hidden bg-white">
       {/* ===== HEADER ===== */}
-      <div className="max-w-[1100px] mx-auto px-4 mb-0 md:mb-14">
-        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-          <h2 className="text-2xl md:text-4xl font-bold text-gray-900 max-w-md leading-snug">
+      <div className="max-w-[1100px] mx-auto px-4 mb-0 md:mb-8">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+          <h2 className="text-lg md:text-xl font-bold text-gray-900 max-w-md leading-snug">
             Apa kata Pengguna E-Learning di TemuDataku?
           </h2>
 
-          <p className="text-base md:text-lg text-gray-800 leading-relaxed lg:flex-1 lg:text-right">
+          <p className="text-sm md:text-base text-gray-800 leading-relaxed lg:flex-1 lg:text-right">
             E-learning ini bikin kamu nggak cuma ngerti konsep, tapi juga pede
             nunjukin hasil kerjamu ke dunia. Skill naik, karier mantap, masa
             depan terbuka. Latihan hari ini, peluang besok.
@@ -86,7 +86,7 @@ export default function AlumniSays() {
             loop: false,
           }}
         >
-          <CarouselContent className="gap-6">
+          <CarouselContent className="gap-4">
             {alumni.map((person) => (
               <CarouselItem
                 key={person.id}
@@ -94,7 +94,7 @@ export default function AlumniSays() {
               >
                 <div className="bg-white rounded-xl border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-lg">
                   {/* IMAGE */}
-                  <div className="relative h-72">
+                  <div className="relative h-56">
                     <Image
                       src={person.image}
                       alt={person.name}
@@ -104,23 +104,23 @@ export default function AlumniSays() {
                   </div>
 
                   {/* INFO */}
-                  <div className="p-4 flex items-center gap-3 bg-gray-50">
+                  <div className="p-3 flex items-center gap-2.5 bg-gray-50">
                     <Image
                       src={person.image}
                       alt={person.name}
-                      width={40}
-                      height={40}
+                      width={32}
+                      height={32}
                       className="rounded-full object-cover"
                     />
 
                     <div className="min-w-0">
-                      <h3 className="text-sm font-bold text-gray-900 truncate">
+                      <h3 className="text-xs font-bold text-gray-900 truncate">
                         {person.name}
                       </h3>
-                      <p className="text-xs text-gray-600 truncate">
+                      <p className="text-[11px] text-gray-600 truncate">
                         {person.role}
                       </p>
-                      <p className="text-xs text-gray-500 truncate mt-1">
+                      <p className="text-[11px] text-gray-500 truncate mt-0.5">
                         {person.status}
                       </p>
                     </div>
@@ -131,17 +131,17 @@ export default function AlumniSays() {
           </CarouselContent>
 
           {/* ARROWS */}
-          <CarouselPrevious className="hidden md:flex -left-14 scale-110 border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 transition-all" />
-          <CarouselNext className="hidden md:flex -right-14 scale-110 border border-emerald-500 bg-white text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all" />
+          <CarouselPrevious className="hidden md:flex -left-10 border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 transition-all" />
+          <CarouselNext className="hidden md:flex -right-10 border border-emerald-500 bg-white text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all" />
         </Carousel>
 
         {/* DOTS */}
-        <div className="flex justify-center mt-6 gap-2">
+        <div className="flex justify-center mt-4 gap-1.5">
           {alumni.map((_, index) => (
             <button
               key={index}
               onClick={() => api?.scrollTo(index)}
-              className={`w-2.5 h-2.5 rounded-full transition-colors ${
+              className={`w-2 h-2 rounded-full transition-colors ${
                 current === index
                   ? "bg-emerald-500"
                   : "bg-gray-300 hover:bg-gray-400"

@@ -393,27 +393,27 @@ export default function ElearningSelection() {
   };
 
   return (
-    <section className="py-16 px-4 md:px-6 lg:px-8">
+    <section className="py-10 px-3 md:px-5 lg:px-6">
       <div className="max-w-7xl mx-auto">
         {/* Section Header */}
-        <div className="text-center mb-12">
-          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+        <div className="text-center mb-8">
+          <h2 className="text-lg md:text-xl lg:text-2xl font-bold text-gray-900 mb-2">
             Kuasai Skill dengan E-Learning Praktis
           </h2>
-          <p className="text-lg text-gray-600 max-w-4xl mx-auto">
+          <p className="text-sm md:text-base text-gray-600 max-w-2xl mx-auto">
             Dari nol sampai expert, e-learning ini siap temenin langkah
             belajarmu. Tinggal pilih modul, terus jalanin!
           </p>
         </div>
 
         {/* Search and Filter */}
-        <div className="mb-8 space-y-6">
+        <div className="mb-6 space-y-4">
           {/* Search Bar and Level Filter */}
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col md:flex-row gap-3">
             {/* Search Bar - Full width */}
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
                   type="text"
                   value={searchQuery}
@@ -422,13 +422,13 @@ export default function ElearningSelection() {
                     setVisibleCount(INITIAL_COUNT); // reset pagination
                   }}
                   placeholder="Cari E-learning-mu di sini"
-                  className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-700"
+                  className="w-full pl-10 pr-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-700"
                 />
               </div>
             </div>
 
             {/* Level Filter Dropdown */}
-            <div className="md:w-48">
+            <div className="md:w-44">
               <Select
                 value={selectedLevel}
                 onValueChange={(value) => {
@@ -436,7 +436,7 @@ export default function ElearningSelection() {
                   setVisibleCount(INITIAL_COUNT); // reset pagination
                 }}
               >
-                <SelectTrigger className="w-full !h-full px-4 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-700 bg-white">
+                <SelectTrigger className="w-full !h-full px-3 text-sm border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-700 bg-white">
                   <SelectValue placeholder="Pilih Level" />
                 </SelectTrigger>
 
@@ -461,7 +461,7 @@ export default function ElearningSelection() {
                   key={category}
                   onClick={() => handleCategoryChange(category)}
                   variant={isActive ? "default" : "outline"}
-                  className={`px-6 py-2 rounded-md ${
+                  className={`px-4 py-1.5 text-sm rounded-md ${
                     isActive
                       ? "bg-emerald-600 hover:bg-emerald-700 text-white"
                       : "border-gray-300 text-gray-600 hover:bg-gray-50"
@@ -476,22 +476,22 @@ export default function ElearningSelection() {
 
         {/* Practice Cards Grid / Empty State */}
         {totalPractices === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="flex flex-col items-center justify-center py-16 text-center">
             {/* Icon */}
-            <SearchX className="w-16 h-16 text-gray-400 mb-4" />
+            <SearchX className="w-12 h-12 text-gray-400 mb-3" />
 
             {/* Text */}
-            <h3 className="text-lg font-semibold text-gray-700">
+            <h3 className="text-base font-semibold text-gray-700">
               Data tidak ditemukan
             </h3>
 
-            <p className="text-sm text-gray-500 mt-1 max-w-sm">
+            <p className="text-xs text-gray-500 mt-1 max-w-sm">
               Coba ubah kata pencarian atau filter level dan kategori yang kamu
               pilih
             </p>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {visiblePractices.map((practice) => (
               <Link
                 key={practice.id}
@@ -507,36 +507,36 @@ export default function ElearningSelection() {
                         alt={practice.title}
                         width={381}
                         height={285}
-                        className="w-full h-[240px] object-cover"
+                        className="w-full h-[190px] object-cover"
                       />
 
                       {/* Level Badge */}
-                      <div className="absolute top-3 right-3 bg-indigo-600 text-white text-xs font-medium px-3 py-1 rounded-full">
+                      <div className="absolute top-2 right-2 bg-indigo-600 text-white text-xs font-medium px-2.5 py-0.5 rounded-full">
                         {practice.level}
                       </div>
                     </div>
                   </div>
 
-                  <CardContent className="p-5 pt-0">
+                  <CardContent className="p-4 pt-0">
                     {/* Title */}
-                    <h3 className="text-[1.375rem] leading-snug font-bold text-gray-900 mb-2 line-clamp-1 transition-colors group-hover:text-emerald-600">
+                    <h3 className="text-base leading-snug font-bold text-gray-900 mb-1.5 line-clamp-1 transition-colors group-hover:text-emerald-600">
                       {practice.title}
                     </h3>
 
                     {/* Description */}
-                    <p className="text-sm text-gray-700 mb-5 line-clamp-2">
+                    <p className="text-xs text-gray-700 mb-3 line-clamp-2">
                       {practice.deskripsi}
                     </p>
 
                     {/* Class & Module Info */}
-                    <div className="flex flex-wrap items-center gap-4 text-sm mb-6">
+                    <div className="flex flex-wrap items-center gap-2 text-xs mb-4">
                       {/* Kelas */}
-                      <div className="flex items-center gap-2 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg">
+                      <div className="flex items-center gap-1.5 bg-gray-100 text-gray-700 px-2.5 py-1 rounded-lg">
                         <Image
                           src="/assets/elearning/class.svg"
                           alt="Kelas"
-                          width={12}
-                          height={12}
+                          width={10}
+                          height={10}
                         />
                         <span className="font-medium">
                           {practice.jumlahSubChapter} Kelas
@@ -544,28 +544,28 @@ export default function ElearningSelection() {
                       </div>
 
                       {/* Modul */}
-                      <div className="flex items-center gap-2 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg">
+                      <div className="flex items-center gap-1.5 bg-gray-100 text-gray-700 px-2.5 py-1 rounded-lg">
                         <Image
                           src="/assets/elearning/module.svg"
                           alt="Modul"
-                          width={12}
-                          height={12}
+                          width={10}
+                          height={10}
                         />
                         <span className="font-medium">
                           {practice.jumlahModul} Modul
                         </span>
 
                         {/* Estimasi waktu */}
-                        <span className="ml-2 text-xs text-gray-700 bg-gray-200 px-2 py-0.5 rounded-full">
+                        <span className="ml-1.5 text-[10px] text-gray-700 bg-gray-200 px-1.5 py-0.5 rounded-full">
                           ~ {estimateDuration(practice.jumlahModul)}
                         </span>
                       </div>
                     </div>
 
                     {/* Footer */}
-                    <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center justify-between text-xs">
                       {/* Rating */}
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         <div className="flex items-center gap-0.5">
                           {renderStars(practice.rating)}
                         </div>
@@ -580,12 +580,12 @@ export default function ElearningSelection() {
                       </div>
 
                       {/* Students */}
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <div className="flex items-center gap-1.5 text-xs text-gray-600">
                         <Image
                           src="/assets/elearning/peserta.svg"
                           alt="Peserta"
-                          width={14}
-                          height={14}
+                          width={12}
+                          height={12}
                         />
                         <span className="font-medium text-gray-400">
                           {practice.jumlahPembeli}
@@ -601,18 +601,18 @@ export default function ElearningSelection() {
 
         {/* Action Buttons */}
         {canExpand && (
-          <div className="flex justify-center mt-10 gap-4 flex-wrap">
+          <div className="flex justify-center mt-6 gap-3 flex-wrap">
             {/* Toggle Less / More */}
             {!isExpanded && (
               <Button
                 variant="outline"
-                className="px-6 py-2 rounded-xl border-emerald-500 text-emerald-600 hover:bg-emerald-50 flex items-center gap-2"
+                className="px-4 py-1.5 text-sm rounded-xl border-emerald-500 text-emerald-600 hover:bg-emerald-50 flex items-center gap-1.5"
                 onClick={() =>
                   setVisibleCount(Math.min(EXPANDED_COUNT, totalPractices))
                 }
               >
                 Lihat Lebih Banyak
-                <ChevronDown className="w-4 h-4 transition-all duration-200" />
+                <ChevronDown className="w-3.5 h-3.5 transition-all duration-200" />
               </Button>
             )}
 
@@ -620,17 +620,18 @@ export default function ElearningSelection() {
               <Button
                 variant="ghost"
                 className="
-      px-6 py-2
+      px-4 py-1.5
+      text-sm
       bg-gray-100 hover:bg-gray-200
       text-gray-700 hover:text-gray-900
       border border-gray-200
       rounded-xl
-      flex items-center gap-2
+      flex items-center gap-1.5
       transition-all
     "
                 onClick={() => setVisibleCount(INITIAL_COUNT)}
               >
-                <ChevronUp className="w-4 h-4 transition-transform duration-200 group-hover:-translate-y-0.5" />
+                <ChevronUp className="w-3.5 h-3.5 transition-transform duration-200 group-hover:-translate-y-0.5" />
                 Tampilkan Lebih Sedikit
               </Button>
             )}
@@ -638,7 +639,7 @@ export default function ElearningSelection() {
             {/* Full Page */}
             {canShowFull && (
               <Link href="/elearningfull">
-                <Button className="px-6 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white">
+                <Button className="px-4 py-1.5 text-sm rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white">
                   Lihat Lebih Lengkap
                 </Button>
               </Link>

@@ -305,7 +305,11 @@ export default function AffiliatorRegisterPage() {
                   <GoogleLogin
                     onSuccess={async (credentialResponse) => {
                       try {
-                        // Satu call saja — backend langsung handle add role affiliator
+                        // Selalu kirim role "affiliator". Backend akan
+                        // otomatis register kalau user belum ada / belum
+                        // punya role affiliator, atau langsung login kalau
+                        // sudah ada — jadi tombol ini boleh dipencet baik
+                        // untuk daftar baru maupun masuk lagi.
                         const googleRes = await axios.post(
                           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/google`,
                           {
@@ -322,16 +326,18 @@ export default function AffiliatorRegisterPage() {
                           (r: any) => r?.role?.roleName?.toLowerCase(),
                         );
 
-                        if (roles.includes("affiliator")) {
-                          toast.success(
-                            "Daftar dengan Google berhasil! Silakan login.",
-                          );
-                          router.push("/affiliator/login");
-                        } else {
+                        if (!roles.includes("affiliator")) {
                           toast.error(
                             "Gagal menambahkan role affiliator. Hubungi admin.",
                           );
+                          return;
                         }
+
+                        // Cookie auth sudah di-set backend sejak endpoint
+                        // /api/auth/google dipanggil, jadi langsung lempar
+                        // ke dashboard tanpa perlu login manual lagi.
+                        toast.success("Berhasil masuk dengan Google");
+                        router.push("/dashboard/affiliator");
                       } catch (err) {
                         console.error(err);
                         toast.error("Daftar dengan Google gagal");

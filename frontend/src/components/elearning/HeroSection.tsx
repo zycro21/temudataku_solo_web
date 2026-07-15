@@ -37,7 +37,7 @@ export default function HeroSection() {
     },
   ];
   return (
-    <section className="bg-gradient-to-br py-12 px-4 md:px-6 lg:px-8 relative overflow-hidden">
+    <section className="bg-gradient-to-br py-8 px-3 md:px-5 lg:px-6 relative overflow-hidden">
       <Image
         src="/assets/mentoringPage/vectorHeroSection.svg"
         alt="vector background"
@@ -46,53 +46,54 @@ export default function HeroSection() {
         priority
       />
       <div className="max-w-7xl mx-auto relative z-10">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-10 items-center">
           {/* Left side - Illustration */}
           <div className="relative flex items-center justify-center">
             <Image
               src="/assets/practicePage/practiceGroup.svg"
               alt="ilustration"
-              width={600}
-              height={400}
-              className="w-full h-full"
+              width={480}
+              height={320}
+              className="w-full h-auto max-w-[420px] mx-auto"
             />
           </div>
 
           {/* Right side - Content */}
-          <div className="space-y-6 order-1 lg:order-2">
+          <div className="space-y-4 order-1 lg:order-2">
             {/* Main Heading */}
             <div className="space-y-2">
-              <h1 className="text-xl md:text-2xl lg:text-4xl font-extrabold text-gray-900 leading-tight">
+              <h1 className="text-lg md:text-xl lg:text-3xl font-extrabold text-gray-900 leading-snug">
                 Upgrade Pengetahuan Anda,
                 <br /> Kapan Saja, Dimana Saja.
               </h1>
 
-              <p className="text-xl font-semibold leading-relaxed max-w-2xl">
+              <p className="text-base md:text-lg font-semibold leading-relaxed max-w-xl">
                 #LangkahKecilHasilBesar
               </p>
 
               {/* Description */}
-              <p className="max-sm:text-sm text-md text-gray-600 leading-relaxed max-w-2xl">
+              <p className="text-sm md:text-base text-gray-600 leading-relaxed max-w-xl">
                 Skill itu tumbuh kalau dipraktikkan. Yuk, tonton video
                 pembelajaran dan coba sendiri langkah-langkahnya!
               </p>
             </div>
 
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-6 mt-8">
+            <div className="flex flex-col sm:flex-row gap-3 mt-4">
               <Button
                 size="lg"
                 className="
       bg-emerald-600 
       hover:bg-emerald-700 
       text-white 
-      px-6 py-6 
-      text-base 
-      font-semibold 
-      shadow-lg 
+      px-4 py-3 
+      h-[38px]
+      text-sm 
+      font-medium 
+      shadow-md 
       transition-all duration-300 
       hover:scale-105 
-      hover:shadow-2xl
+      hover:shadow-xl
       hover:cursor-pointer
     "
               >
@@ -106,8 +107,9 @@ export default function HeroSection() {
       border-emerald-600 
       text-emerald-600 
       hover:bg-emerald-50 
-      px-6 py-6 
-      text-base 
+      px-4 py-3 
+      h-[38px]
+      text-sm 
       font-medium 
       transition-all duration-300
       hover:cursor-pointer
@@ -118,14 +120,14 @@ export default function HeroSection() {
             </div>
 
             {/* Mentor Avatars and Stats */}
-            <div className="space-y-4">
-              <div className="flex items-center space-x-4">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 {/* Avatar Stack */}
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex gap-1.5 flex-wrap">
                   {mentors.map((mentor, index) => (
-                    <Avatar key={mentor.id} className="w-12 h-12 shadow-md">
+                    <Avatar key={mentor.id} className="w-9 h-9 shadow-sm">
                       <AvatarImage src={mentor.image} alt={mentor.name} />
-                      <AvatarFallback className="bg-emerald-200 text-emerald-700 font-medium">
+                      <AvatarFallback className="bg-emerald-200 text-emerald-700 font-medium text-xs">
                         M{index + 1}
                       </AvatarFallback>
                     </Avatar>
@@ -133,22 +135,23 @@ export default function HeroSection() {
                 </div>
 
                 {/* Count */}
-                <div className="text-gray-500 font-medium transition-all duration-300 hover:text-gray-700">
+                <div className="text-xs md:text-sm text-gray-500 font-medium transition-all duration-300 hover:text-gray-700">
                   + 112 mentee telah mendaftar
                 </div>
               </div>
 
               {/* Testimonial Link */}
-              <div className="pt-2">
+              <div className="pt-1">
                 <button
                   className="
+      text-sm
       text-gray-500 
       font-medium 
       underline 
-      underline-offset-4 
+      underline-offset-2 
       transition-all duration-300
       hover:text-gray-700
-      hover:underline-offset-8
+      hover:underline-offset-4
     "
                 >
                   Apa yang mereka katakan?

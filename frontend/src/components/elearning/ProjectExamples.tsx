@@ -110,14 +110,14 @@ export default function ProjectExamples() {
   }, [api]);
 
   return (
-    <section className="py-12 md:py-20 bg-white w-full overflow-hidden">
+    <section className="py-8 md:py-12 bg-white w-full overflow-hidden">
       {/* ===== HEADER ===== */}
       <div className="max-w-[1200px] mx-auto px-4">
-        <div className="text-center mb-10 md:mb-16">
-          <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
+        <div className="text-center mb-6 md:mb-8">
+          <h2 className="text-lg md:text-xl lg:text-2xl font-bold text-gray-900 mb-2">
             Proyek Sejauh Ini, Keren Nggak Sih?
           </h2>
-          <p className="text-base md:text-lg text-gray-700 max-w-6xl mx-auto leading-relaxed">
+          <p className="text-sm md:text-base text-gray-700 max-w-3xl mx-auto leading-relaxed">
             Bukan sekadar latihan, ini hasil nyata dari mereka yang udah serius
             ngejalanin challenge di TemuDataku. Dari analisis data sampai
             visualisasi yang insight-driven, semua proyek ini nunjukin gimana
@@ -133,7 +133,7 @@ export default function ProjectExamples() {
           className="w-full"
           opts={{ align: "start", loop: true }}
         >
-          <CarouselContent className="gap-6">
+          <CarouselContent className="gap-4">
             {projects.map((project) => (
               <CarouselItem
                 key={project.id}
@@ -141,7 +141,7 @@ export default function ProjectExamples() {
               >
                 <div className="bg-white rounded-xl overflow-hidden shadow-md h-full flex flex-col transition-all duration-300 hover:scale-[1.02] hover:shadow-xl">
                   {/* IMAGE */}
-                  <div className="relative h-64 md:h-80">
+                  <div className="relative h-48 md:h-56">
                     <Image
                       src={project.image}
                       alt={project.title}
@@ -152,29 +152,29 @@ export default function ProjectExamples() {
                   </div>
 
                   {/* CONTENT */}
-                  <div className="p-6 flex flex-col flex-1">
-                    <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-3 line-clamp-2">
+                  <div className="p-4 flex flex-col flex-1">
+                    <h3 className="text-base md:text-lg font-bold text-gray-900 mb-1.5 line-clamp-2">
                       {project.title}
                     </h3>
 
-                    <p className="text-sm md:text-base text-gray-600 mb-5 line-clamp-3 flex-1">
+                    <p className="text-xs md:text-sm text-gray-600 mb-3 line-clamp-3 flex-1">
                       {project.description}
                     </p>
 
                     {/* AUTHORS */}
-                    <div className="flex items-center gap-2 text-sm text-gray-700 mb-5">
+                    <div className="flex items-center gap-1.5 text-xs text-gray-700 mb-3">
                       <Image
                         src="/assets/elearning/solar.svg"
                         alt="Author"
-                        width={16}
-                        height={16}
+                        width={14}
+                        height={14}
                       />
                       <span className="line-clamp-1">
                         {project.authors.join(", ")}
                       </span>
                     </div>
 
-                    <Button className="w-fit bg-emerald-500 hover:bg-emerald-600 text-white">
+                    <Button className="w-fit bg-emerald-500 hover:bg-emerald-600 text-white text-sm px-4 py-2 h-auto">
                       Jelajahi Proyek
                     </Button>
                   </div>
@@ -184,17 +184,17 @@ export default function ProjectExamples() {
           </CarouselContent>
 
           {/* ARROWS */}
-          <CarouselPrevious className="hidden md:flex -left-12 bg-white border border-emerald-500 text-emerald-500 hover:bg-emerald-500 hover:text-white shadow-md transition-colors" />
-          <CarouselNext className="hidden md:flex -right-12 bg-white border border-emerald-500 text-emerald-500 hover:bg-emerald-500 hover:text-white shadow-md transition-colors" />
+          <CarouselPrevious className="hidden md:flex -left-10 bg-white border border-emerald-500 text-emerald-500 hover:bg-emerald-500 hover:text-white shadow-md transition-colors" />
+          <CarouselNext className="hidden md:flex -right-10 bg-white border border-emerald-500 text-emerald-500 hover:bg-emerald-500 hover:text-white shadow-md transition-colors" />
         </Carousel>
 
         {/* DOTS */}
-        <div className="flex justify-center mt-6 gap-2">
+        <div className="flex justify-center mt-4 gap-1.5">
           {Array.from({ length: count }).map((_, i) => (
             <button
               key={i}
               onClick={() => api?.scrollTo(i)}
-              className={`w-3 h-3 rounded-full transition-colors ${
+              className={`w-2.5 h-2.5 rounded-full transition-colors ${
                 current === i + 1
                   ? "bg-emerald-500"
                   : "bg-gray-300 hover:bg-gray-400"
