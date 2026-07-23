@@ -325,12 +325,22 @@ function ImageBody({
   const dragStartX = useRef(0);
   const dragStartWidth = useRef(100);
 
+  // 🔥 BUGFIX: File asli dari <input type="file"> disimpan di ref ini, bukan
+  // cuma dikirim sekali lewat onChangeData. onChangeData mengganti seluruh
+  // data elemen (bukan merge), jadi kalau resize (drag / tombol 25-50-75-100%)
+  // dipanggil TANPA menyertakan _file lagi, referensi File-nya hilang dari
+  // state — akibatnya saat save, gambar itu tidak dianggap "upload baru" DAN
+  // tidak punya url (karena masih blob:), jadi tidak pernah ke-include di
+  // payload sama sekali. Makanya harus selalu ikut disertakan di setiap
+  // pemanggilan onChangeData selama gambar itu masih berupa upload baru.
+  const fileRef = useRef<File | undefined>(undefined);
+
   const setAndSave = (url: string | null, w?: number) => {
     setImageUrl(url);
     onChangeData?.({
       src: url ?? undefined,
+      _file: fileRef.current,
       width: w ?? width,
-      _file: undefined,
     });
   };
 
@@ -342,6 +352,7 @@ function ImageBody({
       return;
     }
     const blobUrl = URL.createObjectURL(file);
+    fileRef.current = file;
     setImageUrl(blobUrl);
     onChangeData?.({ src: blobUrl, _file: file, width });
   };
@@ -377,7 +388,11 @@ function ImageBody({
         Math.max(10, Math.round((newWidthPx / containerW) * 100)),
       );
       setWidth(newWidthPct);
-      onChangeData?.({ src: imageUrl ?? undefined, width: newWidthPct });
+      onChangeData?.({
+        src: imageUrl ?? undefined,
+        _file: fileRef.current,
+        width: newWidthPct,
+      });
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
     };
@@ -419,9 +434,14 @@ function ImageBody({
             <button
               onClick={(e) => {
                 e.stopPropagation();
+                fileRef.current = undefined;
                 setImageUrl(null);
                 setWidth(100);
-                onChangeData?.({ src: undefined, width: 100 });
+                onChangeData?.({
+                  src: undefined,
+                  _file: undefined,
+                  width: 100,
+                });
               }}
               className="absolute top-2 right-2 p-1.5 rounded-md bg-white shadow hover:bg-red-50 transition"
             >
@@ -455,7 +475,11 @@ function ImageBody({
                 onClick={(e) => {
                   e.stopPropagation();
                   setWidth(pct);
-                  onChangeData?.({ src: imageUrl ?? undefined, width: pct });
+                  onChangeData?.({
+                    src: imageUrl ?? undefined,
+                    _file: fileRef.current,
+                    width: pct,
+                  });
                 }}
                 className={`text-[10px] px-2 py-0.5 rounded border transition ${
                   width === pct
