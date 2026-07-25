@@ -764,7 +764,7 @@ export const googleLogin = async ({
             email,
             fullName,
             googleId,
-            profilePicture: picture,
+            profilePicture: "default.jpg", // 🔥 samain dengan fallback di register manual
             isEmailVerified: true,
             userRoles: {
               create: {
