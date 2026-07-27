@@ -124,6 +124,18 @@ export function markdownToHTML(md: string): string {
     },
   );
 
+  // Blockquote (indent di teks biasa): {quote:40}text{/quote} — margin-nya
+  // ikut direkonstruksi, DAN border:none;padding:0 disetel eksplisit persis
+  // seperti yang dihasilkan browser native execCommand("indent"). Kalau
+  // nggak, blockquote polos bakal kena CSS class default di RichTextEditor
+  // ([&_blockquote]:border-l-4 border-gray-300) — muncul garis abu-abu di
+  // kiri yang nggak ada sebelum disave.
+  html = html.replace(
+    /\{quote:(\d+)\}([\s\S]*?)\{\/quote\}/g,
+    (_, marginPx, text) =>
+      `<blockquote style="margin:0 0 0 ${marginPx}px;border:none;padding:0">${text}</blockquote>`,
+  );
+
   // Unordered list: {ul:disc}item1|item2{/ul}
   html = html.replace(
     /\{ul:([^}]+)\}([\s\S]*?)\{\/ul\}/g,
@@ -212,25 +224,50 @@ export function htmlToMarkdown(html: string): string {
     (_, align, text) => `{align:${align}}${htmlToMarkdown(text)}{/align}`,
   );
 
-  // Unordered list
+  // Blockquote (hasil Indent di teks biasa, bukan di dalam list) — TIDAK
+  // support nesting/multi-level bertingkat lewat blockquote di dalam
+  // blockquote, tapi margin-left-nya disimpan (biasanya 40px per level)
+  // supaya bisa direkonstruksi persis kayak aslinya pas di-decode nanti —
+  // browser native execCommand("indent") itu bikin
+  // <blockquote style="margin:0 0 0 40px;border:none;padding:0">, BUKAN
+  // blockquote polos. Kalau style itu dibuang, hasil decode jatuh ke CSS
+  // class default blockquote (border-l-4 abu-abu) yang beda tampilannya.
   md = md.replace(
-    /<ul[^>]*style="[^"]*list-style-type:\s*([^;}"]+)[^"]*"[^>]*>([\s\S]*?)<\/ul>/gi,
+    /<blockquote[^>]*style="[^"]*margin(?:-left)?:\s*(?:0\s+0\s+0\s+)?(\d+)px[^"]*"[^>]*>([\s\S]*?)<\/blockquote>/gi,
+    (_, marginPx, text) => `{quote:${marginPx}}${htmlToMarkdown(text)}{/quote}`,
+  );
+  // Fallback: blockquote tanpa style margin ke-deteksi (mis. dari sumber
+  // lain) — default 40px, satu level indent standar.
+  md = md.replace(
+    /<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi,
+    (_, text) => `{quote:40}${htmlToMarkdown(text)}{/quote}`,
+  );
+
+  // Unordered list — style attribute OPSIONAL. List yang baru dibikin lewat
+  // tombol bullet biasa (execCommand insertUnorderedList) belum punya inline
+  // style list-style-type sama sekali (baru ke-set kalau user eksplisit
+  // pilih varian bullet dari toolbar). Sebelumnya regex ini WAJIB ada style
+  // attribute, jadi list default seperti itu gagal match dan jatuh ke
+  // "strip semua tag sisa" di bawah — isinya keremuk tanpa struktur/separator
+  // sama sekali. Sekarang style-nya opsional, default "disc" kalau nggak ada.
+  md = md.replace(
+    /<ul[^>]*(?:style="[^"]*list-style-type:\s*([^;}"]+)[^"]*")?[^>]*>([\s\S]*?)<\/ul>/gi,
     (_, style, content) => {
-      const items = [...content.matchAll(/<li>([\s\S]*?)<\/li>/gi)]
+      const items = [...content.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)]
         .map((m) => m[1])
         .join("|");
-      return `{ul:${style.trim()}}${items}{/ul}`;
+      return `{ul:${(style ?? "disc").trim()}}${items}{/ul}`;
     },
   );
 
-  // Ordered list
+  // Ordered list — sama, style attribute opsional, default "decimal".
   md = md.replace(
-    /<ol[^>]*style="[^"]*list-style-type:\s*([^;}"]+)[^"]*"[^>]*>([\s\S]*?)<\/ol>/gi,
+    /<ol[^>]*(?:style="[^"]*list-style-type:\s*([^;}"]+)[^"]*")?[^>]*>([\s\S]*?)<\/ol>/gi,
     (_, style, content) => {
-      const items = [...content.matchAll(/<li>([\s\S]*?)<\/li>/gi)]
+      const items = [...content.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)]
         .map((m) => m[1])
         .join("|");
-      return `{ol:${style.trim()}}${items}{/ol}`;
+      return `{ol:${(style ?? "decimal").trim()}}${items}{/ol}`;
     },
   );
 

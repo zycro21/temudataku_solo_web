@@ -215,6 +215,88 @@ const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>(
             return;
           }
 
+          // ── Indent/Outdent kustom ──────────────────────────────────────
+          // Native document.execCommand("indent") SELALU membungkus lagi
+          // dengan <blockquote> baru di dalam blockquote yang sudah ada
+          // kalau ditekan berkali-kali di selection yang sama — jadinya
+          // nested blockquote (3x indent = 3 lapis bersarang). Format
+          // penyimpanan di backend cuma bisa merepresentasikan SATU lapis
+          // margin, dan nested tag semacam ini juga nggak bisa dihitung
+          // benar lewat regex biasa (regex nggak bisa ngitung kedalaman
+          // nesting arbitrary). Makanya di sini kita cegat: kalau selection
+          // udah ada di dalam sebuah blockquote, tinggal NAIKKAN/TURUNKAN
+          // margin-left elemen blockquote yang SAMA — bukan bikin
+          // <blockquote> baru — supaya cuma ada satu lapis, berapa pun kali
+          // ditekan.
+          if (cmd === "indent" || cmd === "outdent") {
+            el.focus();
+            requestAnimationFrame(() => {
+              const sel = window.getSelection();
+              if (!sel || sel.rangeCount === 0) return;
+
+              let node: Node | null = sel.anchorNode;
+              let bq: HTMLElement | null = null;
+              while (node && node !== el) {
+                if (
+                  node instanceof HTMLElement &&
+                  node.tagName === "BLOCKQUOTE"
+                ) {
+                  bq = node;
+                  break;
+                }
+                node = node.parentNode;
+              }
+
+              const STEP = 40;
+
+              if (bq) {
+                const current =
+                  parseInt(bq.style.marginLeft || "", 10) || STEP;
+                const next =
+                  cmd === "indent" ? current + STEP : current - STEP;
+
+                if (next <= 0) {
+                  // Outdent sampai 0 → lepas blockquote-nya, kembalikan isinya
+                  const parent = bq.parentNode;
+                  while (bq.firstChild) {
+                    parent?.insertBefore(bq.firstChild, bq);
+                  }
+                  parent?.removeChild(bq);
+                } else {
+                  bq.setAttribute(
+                    "style",
+                    `margin:0 0 0 ${next}px;border:none;padding:0`,
+                  );
+                }
+              } else if (cmd === "indent") {
+                // Belum ada blockquote sama sekali → baru bikin satu lapis
+                // lewat native execCommand, lalu paksa style-nya konsisten
+                // (border:none;padding:0) biar nggak kena CSS class default.
+                document.execCommand("indent", false, undefined);
+
+                const newSel = window.getSelection();
+                let n: Node | null = newSel?.anchorNode ?? null;
+                while (n && n !== el) {
+                  if (n instanceof HTMLElement && n.tagName === "BLOCKQUOTE") {
+                    n.setAttribute(
+                      "style",
+                      `margin:0 0 0 ${STEP}px;border:none;padding:0`,
+                    );
+                    break;
+                  }
+                  n = n.parentNode;
+                }
+              }
+              // outdent tanpa blockquote sama sekali → tidak ada apa-apa
+              // yang perlu dilakukan (sudah di level paling luar).
+
+              document.dispatchEvent(new Event("selectionchange"));
+              fireSelectionChange();
+              onChangeRef.current?.(el.innerHTML || "");
+            });
+            return;
+          }
+
           el.focus();
 
           const sel = window.getSelection();
