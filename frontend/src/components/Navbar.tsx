@@ -249,7 +249,7 @@ export default function Navbar() {
                 </Link>
               </li> */}
 
-              <li>
+              {/* <li>
                 <Link
                   href="/elearning"
                   className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 text-sm"
@@ -257,7 +257,7 @@ export default function Navbar() {
                   <MdCastForEducation className="text-gray-500 text-sm" />
                   E-Learning
                 </Link>
-              </li>
+              </li> */}
               <li className="relative">
                 {ayclList.length === 0 ? (
                   // 🔥 fallback (tidak ada active)
