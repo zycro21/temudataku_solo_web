@@ -22,6 +22,7 @@ interface QuizQuestion {
   questionText: string;
   questionType: QuestionType;
   options: QuizOption[];
+  explanation: string;
 }
 
 interface QuizData {
@@ -41,6 +42,7 @@ function makeQuestion(idx: number): QuizQuestion {
     questionText: "",
     questionType: "single",
     options: [makeOption(0), makeOption(1), makeOption(2), makeOption(3)],
+    explanation: "",
   };
 }
 
@@ -347,6 +349,25 @@ function QuestionEditor({
           >
             <Plus size={11} /> Add option
           </button>
+        </div>
+
+        {/* Explanation — ditampilkan di preview saat jawaban benar */}
+        <div>
+          <p className="text-[12px] font-bold text-gray-700 mb-1.5">
+            Explanation{" "}
+            <span className="font-normal text-gray-400">(opsional)</span>
+          </p>
+          <textarea
+            value={question.explanation}
+            onChange={(e) => updateField("explanation", e.target.value)}
+            placeholder="Penjelasan yang muncul saat learner menjawab benar..."
+            rows={2}
+            maxLength={500}
+            className="w-full text-[11px] text-gray-700 placeholder-gray-300 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-emerald-400 resize-none"
+          />
+          <p className="text-[10px] text-gray-400 mt-0.5">
+            {question.explanation.length}/500
+          </p>
         </div>
       </div>
     </div>
@@ -732,7 +753,8 @@ function QuizPreview({ data, onEdit }: { data: QuizData; onEdit: () => void }) {
                     </p>
                     <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">
                       {correct
-                        ? `Jawaban yang benar adalah: ${
+                        ? q.explanation ||
+                          `Jawaban yang benar adalah: ${
                             q.options
                               .filter((o) => o.value === "true")
                               .map((o) => o.text)

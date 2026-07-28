@@ -864,7 +864,15 @@ export const ELearningSubBabService = {
     const course = subBab.subChapter.course;
 
     /* ===== 2. ROLE-BASED ACCESS (sama seperti getSubBabById) ===== */
-    if (user.roles.includes("mentor")) {
+    const isPrivileged =
+      user.roles.includes("admin") ||
+      user.roles.includes("cm") ||
+      user.roles.includes("curdev");
+
+    if (isPrivileged) {
+      // admin/cm/curdev selalu full access, walaupun dia juga punya role
+      // mentor/mentee sekaligus (double role) -> skip semua pengecekan di bawah
+    } else if (user.roles.includes("mentor")) {
       if (user.mentorProfileId !== course.mentorId) {
         throw new Error(
           "Mentor hanya bisa melihat riwayat sub-bab dari course yang dia ampu",
@@ -894,11 +902,7 @@ export const ELearningSubBabService = {
           "Akses ditolak. Anda tidak memiliki subscription aktif.",
         );
       }
-    } else if (
-      !user.roles.includes("admin") &&
-      !user.roles.includes("cm") &&
-      !user.roles.includes("curdev")
-    ) {
+    } else {
       throw new Error("Akses ditolak: role tidak valid");
     }
 

@@ -2047,34 +2047,32 @@ export class ELearningTextService {
       user.roles.includes(role),
     );
 
-    if (!isAdminLike) {
-      if (
-        user.roles.includes("mentor") &&
-        user.mentorProfileId !== course.mentorId
-      ) {
+    if (isAdminLike) {
+      // admin/cm/curdev selalu full access
+    } else if (user.roles.includes("mentor")) {
+      if (user.mentorProfileId !== course.mentorId) {
         throw new Error("Akses ditolak: Anda bukan mentor dari course ini");
       }
+      // mentor yang sah untuk course ini -> lolos, walau dia juga punya role mentee
+    } else if (user.roles.includes("mentee")) {
+      const now = new Date();
+      const activeSubscription = await prisma.eLearningSubscription.findFirst({
+        where: {
+          userId: user.userId,
+          status: { in: ["active", "confirmed", "completed"] },
+          startAt: { lte: now },
+          endAt: { gt: now },
+        },
+        orderBy: { endAt: "desc" },
+      });
 
-      if (user.roles.includes("mentee")) {
-        const now = new Date();
-        const activeSubscription = await prisma.eLearningSubscription.findFirst(
-          {
-            where: {
-              userId: user.userId,
-              status: { in: ["active", "confirmed", "completed"] },
-              startAt: { lte: now },
-              endAt: { gt: now },
-            },
-            orderBy: { endAt: "desc" },
-          },
+      if (!activeSubscription) {
+        throw new Error(
+          "Akses ditolak: Anda tidak memiliki subscription aktif",
         );
-
-        if (!activeSubscription) {
-          throw new Error(
-            "Akses ditolak: Anda tidak memiliki subscription aktif",
-          );
-        }
       }
+    } else {
+      throw new Error("Akses ditolak: role tidak valid");
     }
 
     /* ===== 3. AMBIL AUDIT LOG ===== */

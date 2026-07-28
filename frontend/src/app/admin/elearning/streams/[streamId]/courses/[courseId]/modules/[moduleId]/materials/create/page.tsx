@@ -820,6 +820,7 @@ function mapMaterialToCanvasItems(material: any): CanvasItem[] {
                 ? "multiple"
                 : "single",
             options,
+            explanation: q.explanation ?? "",
           };
         }),
       },
@@ -1650,7 +1651,7 @@ export default function CreateMaterialPage() {
           questionText: q.questionText ?? "",
           options,
           correctAnswers,
-          explanation: undefined,
+          explanation: q.explanation || undefined,
           orderNumber: idx + 1,
         };
       }),

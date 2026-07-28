@@ -1304,7 +1304,13 @@ function QuizModalPreview({ data }: { data: any }) {
                       </p>
                       <p className="text-sm text-gray-600 mt-0.5 leading-relaxed break-words">
                         {correct
-                          ? "Tujuan utama data science adalah mengolah data agar menghasilkan insight yang berguna."
+                          ? q.explanation ||
+                            `Jawaban yang benar: ${
+                              (q.options ?? [])
+                                .filter((o: any) => o.value === "true")
+                                .map((o: any) => o.text)
+                                .join(", ") || "—"
+                            }`
                           : `Jawaban yang benar: ${
                               (q.options ?? [])
                                 .filter((o: any) => o.value === "true")
