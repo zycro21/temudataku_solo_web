@@ -863,8 +863,7 @@ function mapMaterialToCanvasItems(material: any): CanvasItem[] {
             format: (f.format ?? "FILE").replace(".", "").toUpperCase(),
           };
         }),
-        deadlineDate: "",
-        deadlineTime: "",
+        dueDays: backendAssignment.dueDays ?? null,
       },
     });
   }
@@ -1698,10 +1697,13 @@ export default function CreateMaterialPage() {
       }
     });
 
+    const dueDays: number | undefined =
+      typeof d.dueDays === "number" && d.dueDays > 0 ? d.dueDays : undefined;
+
     const assignment = {
       title: d.title || "Project",
       description,
-      dueDays: undefined as number | undefined,
+      dueDays,
       instructions,
       supportingFiles,
     };

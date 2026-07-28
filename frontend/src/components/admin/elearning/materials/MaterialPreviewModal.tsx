@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Monitor,
+  Calendar,
 } from "lucide-react";
 import type { CanvasItem } from "./CanvasCard";
 import {
@@ -1123,7 +1124,7 @@ function QuizModalPreview({ data }: { data: any }) {
         {/* ── Navigation pills ── */}
         <div className="px-6 pt-5 pb-4 border-b border-gray-100">
           <p className="text-sm text-gray-500 mb-3">
-            Semua pertanyaan dijawab dengan benar
+            Jawab Semua Pertanyaan dengan Benar
           </p>
           <div className="flex flex-wrap gap-2">
             {questions.map((q: any, idx: number) => {
@@ -1181,7 +1182,7 @@ function QuizModalPreview({ data }: { data: any }) {
                 />
                 {q.questionType === "multiple" && (
                   <p className="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wide">
-                    Pilih pernyataan yang BENAR.
+                    Pilih semua jawaban yang sesuai.
                   </p>
                 )}
 
@@ -1370,6 +1371,8 @@ function QuizModalPreview({ data }: { data: any }) {
 function ProjectModalPreview({ data }: { data: any }) {
   const question: string = data?.question || "";
   const attachments: any[] = data?.attachments ?? [];
+  const dueDays: number | null =
+    typeof data?.dueDays === "number" && data.dueDays > 0 ? data.dueDays : null;
 
   const [submitted, setSubmitted] = useState(false);
   const [submittedFiles, setSubmittedFiles] = useState<File[]>([]);
@@ -1393,7 +1396,7 @@ function ProjectModalPreview({ data }: { data: any }) {
     FILE: "bg-gray-100 text-gray-500",
   };
 
-  if (!question && attachments.length === 0) {
+  if (!question && attachments.length === 0 && !dueDays) {
     return (
       <div className="w-full text-center text-gray-400 text-sm py-6">
         No project instructions added
@@ -1407,6 +1410,14 @@ function ProjectModalPreview({ data }: { data: any }) {
         <div className="flex divide-x divide-gray-100">
           {/* ── LEFT col: deskripsi, instruksi, dokumen ── */}
           <div className="flex-1 min-w-0 px-7 py-6">
+            {dueDays && (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 mb-5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700">
+                <Calendar size={13} className="shrink-0" />
+                <span className="text-[12px] font-semibold">
+                  Deadline: {dueDays} hari setelah project dibuka
+                </span>
+              </div>
+            )}
             {/* Description — render HTML dari RichTextEditor */}
             {question && (
               <div className="mb-5">

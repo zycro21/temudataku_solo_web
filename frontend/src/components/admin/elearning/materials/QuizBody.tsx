@@ -550,7 +550,7 @@ function QuizPreview({ data, onEdit }: { data: QuizData; onEdit: () => void }) {
       <div className="px-5 pt-5 pb-4 border-b border-gray-100">
         {/* Question counter pill row */}
         <p className="text-[11px] text-gray-400 mb-2">
-          Semua pertanyaan dijawab dengan benar
+          Jawab Semua Pertanyaan dengan benar
         </p>
         <div className="flex flex-wrap gap-1.5">
           {questions.map((q, idx) => {
@@ -605,7 +605,7 @@ function QuizPreview({ data, onEdit }: { data: QuizData; onEdit: () => void }) {
               />
               {q.questionType === "multiple" && (
                 <p className="text-[10px] font-semibold text-gray-400 mb-3 uppercase tracking-wide">
-                  Pilih pernyataan yang BENAR.
+                  Pilih semua yang sesuai.
                 </p>
               )}
 

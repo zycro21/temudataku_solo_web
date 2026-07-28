@@ -1,15 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import {
-  Eye,
-  Pencil,
-  Upload,
-  X,
-  FileText,
-  Calendar,
-  Clock,
-} from "lucide-react";
+import { Eye, Pencil, Upload, X, FileText, Calendar } from "lucide-react";
 import RichTextEditor, { type RichTextEditorRef } from "./RichTextEditor";
 import {
   normalizeEditorHTML,
@@ -28,8 +20,7 @@ interface AttachedFile {
 interface ProjectData {
   question: string;
   attachments: AttachedFile[];
-  deadlineDate: string; // DD/MM/YYYY
-  deadlineTime: string; // HH:MM
+  dueDays: number | null; // batas waktu pengerjaan (dalam hari)
 }
 
 // ─── Supported formats ────────────────────────────────────────────────────────
@@ -140,7 +131,9 @@ function ProjectCanvas({
 
       {/* ── Question ────────────────────────────────────────────────────────── */}
       <div className="mb-4">
-        <p className="text-[12px] font-bold text-gray-700 mb-1.5">Question</p>
+        <p className="text-[12px] font-bold text-gray-700 mb-1.5">
+          Deskripsi Proyek atau Question
+        </p>
         <div
           className={`rounded-lg border px-3 py-2.5 transition ${
             questionFocused
@@ -261,40 +254,31 @@ function ProjectCanvas({
       {/* ── Deadline ────────────────────────────────────────────────────────── */}
       <div className="mb-4">
         <p className="text-[12px] font-bold text-gray-700 mb-1.5">Deadline</p>
-        <div className="flex items-center gap-2">
-          {/* Date */}
-          <div className="relative flex-1">
-            <input
-              type="text"
-              value={data.deadlineDate}
-              onChange={(e) =>
-                onChange({ ...data, deadlineDate: e.target.value })
-              }
-              placeholder="DD / MM / YYYY"
-              className="w-full text-[11px] text-gray-500 placeholder-gray-300 border border-gray-200 rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:ring-1 focus:ring-emerald-400"
-            />
-            <Calendar
-              size={13}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-            />
-          </div>
-          {/* Time */}
-          <div className="relative flex-1">
-            <input
-              type="text"
-              value={data.deadlineTime}
-              onChange={(e) =>
-                onChange({ ...data, deadlineTime: e.target.value })
-              }
-              placeholder="HH : MM"
-              className="w-full text-[11px] text-gray-500 placeholder-gray-300 border border-gray-200 rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:ring-1 focus:ring-emerald-400"
-            />
-            <Clock
-              size={13}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-            />
-          </div>
+        <div className="relative w-40">
+          <input
+            type="number"
+            min={1}
+            step={1}
+            value={data.dueDays ?? ""}
+            onChange={(e) => {
+              const raw = e.target.value;
+              onChange({
+                ...data,
+                dueDays:
+                  raw === "" ? null : Math.max(1, parseInt(raw, 10) || 1),
+              });
+            }}
+            placeholder="Jumlah hari"
+            className="w-full text-[11px] text-gray-500 placeholder-gray-300 border border-gray-200 rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+          />
+          <Calendar
+            size={13}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+          />
         </div>
+        <p className="text-[10px] text-gray-400 mt-1">
+          Batas waktu pengerjaan dalam hari, dihitung sejak project dibuka.
+        </p>
       </div>
 
       {/* ── Create button ────────────────────────────────────────────────────── */}
@@ -351,6 +335,14 @@ function ProjectPreview({
       <div className="flex gap-0 divide-x divide-gray-100">
         {/* ── LEFT: Deskripsi & Instruksi ── */}
         <div className="flex-1 min-w-0 px-5 py-5">
+          {typeof data.dueDays === "number" && data.dueDays > 0 && (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 mb-4 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700">
+              <Calendar size={12} className="shrink-0" />
+              <span className="text-[11px] font-semibold">
+                Deadline: {data.dueDays} hari setelah project dibuka
+              </span>
+            </div>
+          )}
           <div className="mb-4">
             <p className="text-[12px] font-bold text-gray-700 mb-1.5">
               Deskripsi Proyek
@@ -605,8 +597,7 @@ export function ProjectBody({
   const [data, setData] = useState<ProjectData>({
     question: "",
     attachments: [],
-    deadlineDate: "",
-    deadlineTime: "",
+    dueDays: null,
   });
 
   useEffect(() => {
@@ -614,8 +605,7 @@ export function ProjectBody({
       setData({
         question: initialData.question ?? "",
         attachments: initialData.attachments ?? [],
-        deadlineDate: initialData.deadlineDate ?? "",
-        deadlineTime: initialData.deadlineTime ?? "",
+        dueDays: initialData.dueDays ?? null,
       });
       setMode("preview");
     }

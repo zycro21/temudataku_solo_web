@@ -1590,6 +1590,7 @@ export class ELearningTextService {
         newValue.quiz = {
           title: quiz.title,
           totalQuestions: quiz.questions.length,
+          description: quiz.description,
         };
       }
 
@@ -1600,7 +1601,10 @@ export class ELearningTextService {
           ? "memperbarui Assignment"
           : "menambahkan Assignment";
         oldValue.assignment = hadAssignmentBefore ? "ada" : null;
-        newValue.assignment = { title: assignment.title };
+        newValue.assignment = {
+          title: assignment.title,
+          description: assignment.description,
+        };
       }
 
       // ── Susun description dinamis ──────────────────────────────────────
