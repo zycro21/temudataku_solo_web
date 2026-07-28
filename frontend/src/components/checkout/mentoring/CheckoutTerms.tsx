@@ -121,6 +121,17 @@ export default function CheckoutTerms({
         </div>
       </div>
 
+      {isVoucherApplied && (
+        <div className="rounded-lg border border-emerald-200 bg-white px-3 py-2 flex items-start gap-2">
+          <span className="text-sm leading-none">✅</span>
+          <p className="text-xs text-emerald-700 leading-relaxed">
+            Kode voucher/referral berhasil diterapkan!{" "}
+            <span className="font-bold">Jangan refresh halaman ini</span> -- kode
+            yang sudah dipakai tidak bisa digunakan ulang.
+          </p>
+        </div>
+      )}
+
       {/* Terms Scroll Box */}
       <div className="border rounded-md p-5 h-96 overflow-y-auto text-sm space-y-4 scroll-thin leading-relaxed">
         <p className="font-bold text-xl md:text-2xl tracking-tight">

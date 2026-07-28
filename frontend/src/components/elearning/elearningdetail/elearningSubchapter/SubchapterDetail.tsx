@@ -1,159 +1,215 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { practices } from "@/data/practice";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import SubchapterNavbar from "./SubchapterNavbar";
 import SubchapterSidebar from "./SubchapterSidebar";
 import SubchapterHeroNavigation from "./SubchapterHeroNavigation";
 import SubchapterContent from "./SubchapterContent";
 import SubchapterFooter from "./SubchapterFooter";
+import { useElearningSubChapterDetail } from "@/hooks/Useelearningsubchapterdetail";
+import { useElearningTextDetail } from "@/hooks/Useelearningtextdetail";
+import { useElearningCourseProgress } from "@/hooks/useElearningCourseProgress";
+import { Loader2, SearchX } from "lucide-react";
+
+// ─── Font ──────────────────────────────────────────────────────────────────
+// Samain dengan halaman admin create/edit material — Plus Jakarta Sans,
+// di-scope lokal ke halaman belajar ini aja (bukan global lewat layout),
+// biar konsisten kelihatannya sama tapi tidak mempengaruhi halaman lain.
+const jakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
+  display: "swap",
+});
 
 interface Props {
-  practiceId: string;
+  practiceId: string; // courseId
   subChapterId: string;
 }
+
+// 🔥 Adaptasi bentuk quiz dari API asli (questionText) ke bentuk yang
+// dipakai QuizRenderer di SubchapterContent (textQuestion) — dibuat di
+// sini biar SubchapterContent tidak perlu diubah sama sekali.
+function adaptQuizForRenderer(quiz: any) {
+  if (!quiz) return null;
+  return {
+    ...quiz,
+    questions: (quiz.questions ?? []).map((q: any) => ({
+      ...q,
+      textQuestion: q.questionText,
+    })),
+  };
+}
+
+// 🔥 Adaptasi bentuk assignment dari API asli (instructions: {instruction,
+// orderNumber}[]) ke bentuk yang dipakai AssignmentRenderer (instruction:
+// string[]).
+function adaptAssignmentForRenderer(assignment: any) {
+  if (!assignment) return null;
+  return {
+    ...assignment,
+    instruction: [...(assignment.instructions ?? [])]
+      .sort((a: any, b: any) => a.orderNumber - b.orderNumber)
+      .map((i: any) => i.instruction),
+  };
+}
+
+type ContentMode =
+  | { type: "submodule"; textId: string }
+  | { type: "quiz"; textId: string }
+  | { type: "assignment"; textId: string }
+  | null;
 
 export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const practice = practices.find((p) => String(p.id) === String(practiceId));
-  if (!practice)
-    return <div className="p-10 text-center">Practice tidak ditemukan</div>;
+  const { subChapter, loading, errorType } =
+    useElearningSubChapterDetail(subChapterId);
 
-  const subChapter = practice.subChapters.find(
-    (sc) => String(sc.id) === String(subChapterId),
+  // 🔥 Progress overall course — dipakai buat header progress bar di
+  // sidebar (progress per-SubBab/Text belum ada endpoint-nya).
+  const { progress } = useElearningCourseProgress(practiceId);
+  const courseProgressForThisSubChapter = progress?.subChapterProgress.find(
+    (sc) => sc.subChapterId === subChapterId,
   );
-  if (!subChapter)
-    return <div className="p-10 text-center">Subchapter tidak ditemukan</div>;
+
+  // 🔥 Daftar materi ("submodule") per SubBab — text yang TIDAK punya
+  // quiz/assignment dianggap materi biasa. Text yang punya quiz/assignment
+  // diperlakukan sebagai node "Penilaian" terpisah (lihat taskFlow di bawah).
+  const allTexts = useMemo(() => {
+    if (!subChapter) return [];
+    return subChapter.subBabs.flatMap((subBab) =>
+      subBab.texts
+        .filter((t) => !t.quiz && !t.assignment)
+        .map((t) => ({
+          ...t,
+          subBabId: subBab.id,
+          subBabTitle: subBab.title,
+        })),
+    );
+  }, [subChapter]);
+
+  // 🔥 Task (quiz + assignment) diambil dari SubBab TERAKHIR di SubChapter
+  // ini — mengikuti pola lama (penilaian akhir kelas).
+  const taskFlow = useMemo(() => {
+    if (!subChapter || subChapter.subBabs.length === 0) return [];
+
+    const lastSubBab = subChapter.subBabs[subChapter.subBabs.length - 1];
+    const flow: {
+      type: "quiz" | "assignment";
+      textId: string;
+      title: string;
+    }[] = [];
+
+    const quizText = lastSubBab.texts.find((t) => t.quiz);
+    if (quizText?.quiz) {
+      flow.push({
+        type: "quiz",
+        textId: quizText.id,
+        title: quizText.quiz.title,
+      });
+    }
+
+    const assignmentText = lastSubBab.texts.find((t) => t.assignment);
+    if (assignmentText?.assignment) {
+      flow.push({
+        type: "assignment",
+        textId: assignmentText.id,
+        title: assignmentText.assignment.title,
+      });
+    }
+
+    return flow;
+  }, [subChapter]);
 
   const moduleParam = searchParams.get("module");
   const subModuleParam = searchParams.get("submodule");
   const taskParam = searchParams.get("task");
 
-  let initialSubModule = null;
-  let initialMode: any = null;
-
-  // === TASK MODE ===
-  if (taskParam === "quiz") {
-    const lastModule = subChapter.modules[subChapter.modules.length - 1];
-    if (lastModule?.quiz) {
-      initialMode = { type: "quiz", data: lastModule.quiz };
-    }
-  }
-
-  if (taskParam === "assignment") {
-    const lastModule = subChapter.modules[subChapter.modules.length - 1];
-    if (lastModule?.assignment) {
-      initialMode = { type: "assignment", data: lastModule.assignment };
-    }
-  }
-
-  // === SUBMODULE MODE ===
-  if (!initialMode && moduleParam && subModuleParam) {
-    const module = subChapter.modules[Number(moduleParam) - 1];
-    const subModule = module?.subModules?.[Number(subModuleParam) - 1];
-
-    if (subModule) {
-      initialSubModule = subModule;
-      initialMode = { type: "submodule", data: subModule };
-    }
-  }
-
-  // fallback
-  if (!initialMode) {
-    const first = subChapter.modules?.[0]?.subModules?.[0];
-    if (first) {
-      initialSubModule = first;
-      initialMode = { type: "submodule", data: first };
-    }
-  }
-
-  const [activeSubModule, setActiveSubModule] = useState(initialSubModule);
-
+  const [contentMode, setContentMode] = useState<ContentMode>(null);
   const [navigationSource, setNavigationSource] = useState<"manual" | "footer">(
     "manual",
   );
 
-  const [contentMode, setContentMode] = useState<
-    | { type: "submodule"; data: any }
-    | { type: "quiz"; data: any }
-    | { type: "assignment"; data: any }
-    | null
-  >(initialMode);
+  // 🔥 Set mode awal begitu struktur subChapter selesai di-load, mengikuti
+  // query param (?module=&submodule= / ?task=) atau fallback ke text
+  // pertama.
+  useEffect(() => {
+    if (!subChapter || contentMode) return;
+
+    if (taskParam === "quiz" || taskParam === "assignment") {
+      const task = taskFlow.find((t) => t.type === taskParam);
+      if (task) {
+        setContentMode({ type: task.type, textId: task.textId });
+        return;
+      }
+    }
+
+    if (moduleParam && subModuleParam) {
+      const subBab = subChapter.subBabs[Number(moduleParam) - 1];
+      const textsInSubBab = allTexts.filter((t) => t.subBabId === subBab?.id);
+      const text = textsInSubBab[Number(subModuleParam) - 1];
+      if (text) {
+        setContentMode({ type: "submodule", textId: text.id });
+        return;
+      }
+    }
+
+    if (allTexts[0]) {
+      setContentMode({ type: "submodule", textId: allTexts[0].id });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subChapter, allTexts, taskFlow]);
+
+  const activeTextId = contentMode?.textId ?? null;
+  const { text: fullText, loading: textLoading } =
+    useElearningTextDetail(activeTextId);
 
   const activeTaskType =
     contentMode?.type === "quiz" || contentMode?.type === "assignment"
       ? contentMode.type
       : null;
 
-  useEffect(() => {
-    // kalau sudah ada query, jangan ganggu
-    if (moduleParam || subModuleParam || taskParam) return;
-
-    // kalau mode submodule (default fallback)
-    if (initialSubModule) {
-      const moduleIndex = subChapter.modules.findIndex((m) =>
-        m.subModules?.some((s) => s.id === initialSubModule.id),
-      );
-
-      const subModuleIndex =
-        subChapter.modules[moduleIndex]?.subModules?.findIndex(
-          (s) => s.id === initialSubModule.id,
-        ) ?? 0;
-
-      router.replace(
-        `?module=${moduleIndex + 1}&submodule=${subModuleIndex + 1}`,
-        { scroll: false },
-      );
-    }
-  }, []);
-
-  const [quizScore, setQuizScore] = useState<number | null>(null);
-  const [isQuizSubmitted, setIsQuizSubmitted] = useState(false);
-  const [assignmentScore, setAssignmentScore] = useState<number | null>(null);
-
   /* ================= HERO META ================= */
   const heroMeta = useMemo(() => {
-    // ================= SUBMODULE MODE =================
-    if (contentMode?.type === "submodule" && activeSubModule) {
-      const moduleIndex = subChapter.modules.findIndex((m) =>
-        m.subModules?.some((sm) => sm.id === activeSubModule.id),
-      );
+    if (!subChapter || !contentMode) return null;
 
-      const module = subChapter.modules[moduleIndex];
-      if (!module || !module.subModules) return null;
+    if (contentMode.type === "submodule") {
+      const activeText = allTexts.find((t) => t.id === contentMode.textId);
+      if (!activeText) return null;
 
-      const subModuleIndex = module.subModules.findIndex(
-        (sm) => sm.id === activeSubModule.id,
+      const subBabIndex = subChapter.subBabs.findIndex(
+        (sb) => sb.id === activeText.subBabId,
       );
+      const textsInSubBab = allTexts.filter(
+        (t) => t.subBabId === activeText.subBabId,
+      );
+      const textIndex = textsInSubBab.findIndex((t) => t.id === activeText.id);
 
       return {
-        moduleNumber: moduleIndex + 1,
-        moduleTitle: module.title,
-        subModuleNumber: subModuleIndex + 1,
-        totalSubModules: module.subModules.length,
-        subModuleTitle: activeSubModule.title,
+        moduleNumber: subBabIndex + 1,
+        moduleTitle: activeText.subBabTitle,
+        subModuleNumber: textIndex + 1,
+        totalSubModules: textsInSubBab.length,
+        subModuleTitle: activeText.title ?? "",
       };
     }
 
-    // ================= QUIZ / ASSIGNMENT MODE =================
-    if (contentMode?.type === "quiz" || contentMode?.type === "assignment") {
-      const lastModule = subChapter.modules[subChapter.modules.length - 1];
-      if (!lastModule) return null;
+    // QUIZ / ASSIGNMENT
+    const lastSubBab = subChapter.subBabs[subChapter.subBabs.length - 1];
+    if (!lastSubBab) return null;
 
-      return {
-        moduleNumber: subChapter.modules.length,
-        moduleTitle: lastModule.title,
-        subModuleNumber: lastModule.subModules?.length ?? 0,
-        totalSubModules: lastModule.subModules?.length ?? 0,
-        subModuleTitle: lastModule.title,
-      };
-    }
-
-    return null;
-  }, [contentMode, activeSubModule, subChapter.modules]);
+    return {
+      moduleNumber: subChapter.subBabs.length,
+      moduleTitle: lastSubBab.title,
+      subModuleNumber: lastSubBab.texts.length,
+      totalSubModules: lastSubBab.texts.length,
+      subModuleTitle: lastSubBab.title,
+    };
+  }, [subChapter, contentMode, allTexts]);
 
   const heroOverrideMeta = useMemo(() => {
     if (!contentMode) return null;
@@ -177,134 +233,176 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
     return null;
   }, [contentMode]);
 
-  const allSubModules = useMemo(() => {
-    return subChapter.modules.flatMap((module) =>
-      (module.subModules ?? []).map((sm) => ({
-        ...sm,
-        moduleId: module.id,
-        moduleTitle: module.title,
-      })),
-    );
-  }, [subChapter.modules]);
+  const [quizScore, setQuizScore] = useState<number | null>(null);
+  const [isQuizSubmitted, setIsQuizSubmitted] = useState(false);
+  const [assignmentScore, setAssignmentScore] = useState<number | null>(null);
 
-  const taskFlow = useMemo(() => {
-    const lastModule = subChapter.modules[subChapter.modules.length - 1];
-    if (!lastModule) return [];
-
-    const flow: { type: "quiz" | "assignment"; data: any }[] = [];
-
-    if (lastModule.quiz) {
-      flow.push({ type: "quiz", data: lastModule.quiz });
-    }
-
-    if (lastModule.assignment) {
-      flow.push({ type: "assignment", data: lastModule.assignment });
-    }
-
-    return flow;
-  }, [subChapter.modules]);
-
+  /* ================= NAVIGATION (prev/next di footer) ================= */
   const navigationMeta = useMemo(() => {
-    // ================= SUBMODULE MODE =================
-    if (contentMode?.type === "submodule" && activeSubModule) {
-      const index = allSubModules.findIndex(
-        (sm) => sm.id === activeSubModule.id,
-      );
+    if (!contentMode) return { prev: null, next: null };
 
-      const isLastSubModule = index === allSubModules.length - 1;
+    if (contentMode.type === "submodule") {
+      const index = allTexts.findIndex((t) => t.id === contentMode.textId);
+      const isLast = index === allTexts.length - 1;
 
       return {
-        prev: index > 0 ? allSubModules[index - 1] : null,
-        next: !isLastSubModule
-          ? allSubModules[index + 1]
+        prev:
+          index > 0
+            ? {
+                id: allTexts[index - 1].id,
+                title: allTexts[index - 1].title ?? "",
+                moduleTitle: allTexts[index - 1].subBabTitle,
+              }
+            : null,
+        next: !isLast
+          ? {
+              id: allTexts[index + 1].id,
+              title: allTexts[index + 1].title ?? "",
+              moduleTitle: allTexts[index + 1].subBabTitle,
+            }
           : taskFlow.length > 0
             ? {
-                id: -1,
-                title: taskFlow[0].data.title,
+                id: taskFlow[0].textId,
+                title: taskFlow[0].title,
                 moduleTitle:
                   taskFlow[0].type === "quiz"
                     ? "Penilaian Quiz"
-                    : "Penilaian Assignment",
+                    : "Penilaian Proyek",
                 __task: taskFlow[0],
               }
             : null,
       };
     }
 
-    // ================= TASK MODE =================
-    if (contentMode?.type === "quiz" || contentMode?.type === "assignment") {
-      const taskIndex = taskFlow.findIndex((t) => t.type === contentMode.type);
+    // TASK MODE
+    const taskIndex = taskFlow.findIndex(
+      (t) => t.type === contentMode.type && t.textId === contentMode.textId,
+    );
 
-      return {
-        prev:
-          taskIndex > 0
+    return {
+      prev:
+        taskIndex > 0
+          ? {
+              id: taskFlow[taskIndex - 1].textId,
+              title: taskFlow[taskIndex - 1].title,
+              moduleTitle:
+                taskFlow[taskIndex - 1].type === "quiz"
+                  ? "Penilaian Quiz"
+                  : "Penilaian Proyek",
+              __task: taskFlow[taskIndex - 1],
+            }
+          : allTexts.length > 0
             ? {
-                id: -1,
-                title: taskFlow[taskIndex - 1].data.title,
-                moduleTitle:
-                  taskFlow[taskIndex - 1].type === "quiz"
-                    ? "Penilaian Quiz"
-                    : "Penilaian Assignment",
-                __task: taskFlow[taskIndex - 1],
-              }
-            : (allSubModules[allSubModules.length - 1] ?? null),
-
-        next:
-          taskIndex < taskFlow.length - 1
-            ? {
-                id: -1,
-                title: taskFlow[taskIndex + 1].data.title,
-                moduleTitle:
-                  taskFlow[taskIndex + 1].type === "quiz"
-                    ? "Penilaian Quiz"
-                    : "Penilaian Proyek",
-                __task: taskFlow[taskIndex + 1],
+                id: allTexts[allTexts.length - 1].id,
+                title: allTexts[allTexts.length - 1].title ?? "",
+                moduleTitle: allTexts[allTexts.length - 1].subBabTitle,
               }
             : null,
+      next:
+        taskIndex >= 0 && taskIndex < taskFlow.length - 1
+          ? {
+              id: taskFlow[taskIndex + 1].textId,
+              title: taskFlow[taskIndex + 1].title,
+              moduleTitle:
+                taskFlow[taskIndex + 1].type === "quiz"
+                  ? "Penilaian Quiz"
+                  : "Penilaian Proyek",
+              __task: taskFlow[taskIndex + 1],
+            }
+          : null,
+    };
+  }, [contentMode, allTexts, taskFlow]);
+
+  /* ================= MODE UNTUK SubchapterContent ================= */
+  const rendererMode = useMemo(() => {
+    if (!contentMode || !fullText) return null;
+
+    if (contentMode.type === "submodule") {
+      return { type: "submodule" as const, data: fullText };
+    }
+
+    if (contentMode.type === "quiz") {
+      return {
+        type: "quiz" as const,
+        data: adaptQuizForRenderer(fullText.quiz),
       };
     }
 
-    return { prev: null, next: null };
-  }, [contentMode, activeSubModule, allSubModules, taskFlow]);
+    return {
+      type: "assignment" as const,
+      data: adaptAssignmentForRenderer(fullText.assignment),
+    };
+  }, [contentMode, fullText]);
+
+  if (loading) {
+    return (
+      <div
+        className={`${jakartaSans.className} flex flex-col items-center justify-center min-h-screen gap-3`}
+      >
+        <Loader2 className="w-7 h-7 animate-spin text-emerald-600" />
+        <p className="text-sm text-gray-500">Memuat materi...</p>
+      </div>
+    );
+  }
+
+  if (!subChapter || errorType) {
+    return (
+      <div
+        className={`${jakartaSans.className} flex flex-col items-center justify-center min-h-screen gap-3 text-center px-6`}
+      >
+        <SearchX className="w-10 h-10 text-gray-300" />
+        <p className="text-sm text-gray-500">
+          Materi tidak ditemukan atau kamu belum punya akses ke sana.
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div
+      className={`${jakartaSans.className} min-h-screen flex flex-col bg-white`}
+    >
       <div className="flex flex-1">
         <SubchapterSidebar
-          practice={practice}
-          subChapterId={String(subChapter.id)}
-          activeSubModuleId={activeSubModule?.id}
+          subChapter={subChapter}
+          courseId={practiceId}
+          activeTextId={
+            contentMode?.type === "submodule" ? contentMode.textId : undefined
+          }
           navigationSource={navigationSource}
-          activeTaskType={activeTaskType} // ⬅️ INI
-          onSelectSubModule={(sm) => {
+          activeTaskType={activeTaskType}
+          progressPercent={
+            courseProgressForThisSubChapter?.progressPercent ?? 0
+          }
+          lastActivityAt={
+            courseProgressForThisSubChapter?.lastActivityAt ?? null
+          }
+          onSelectText={(text) => {
             setNavigationSource("manual");
-            setActiveSubModule(sm);
-            setContentMode({ type: "submodule", data: sm });
+            setQuizScore(null);
+            setIsQuizSubmitted(false);
+            setAssignmentScore(null);
+            setContentMode({ type: "submodule", textId: text.id });
 
-            const moduleIndex = subChapter.modules.findIndex((m) =>
-              m.subModules?.some((s) => s.id === sm.id),
+            const subBabIndex = subChapter.subBabs.findIndex(
+              (sb) => sb.id === text.subBabId,
             );
-
-            if (moduleIndex === -1) return;
-
-            const subModuleIndex =
-              subChapter.modules[moduleIndex]?.subModules?.findIndex(
-                (s) => s.id === sm.id,
-              ) ?? 0;
+            const textsInSubBab = allTexts.filter(
+              (t) => t.subBabId === text.subBabId,
+            );
+            const textIndex = textsInSubBab.findIndex((t) => t.id === text.id);
 
             router.push(
-              `?module=${moduleIndex + 1}&submodule=${subModuleIndex + 1}`,
+              `?module=${subBabIndex + 1}&submodule=${textIndex + 1}`,
               { scroll: false },
             );
           }}
           onSelectTask={(task) => {
-            setActiveSubModule(null);
+            setNavigationSource("manual");
             setQuizScore(null);
             setIsQuizSubmitted(false);
             setAssignmentScore(null);
-
-            setContentMode({ type: task.type, data: task.data });
-
+            setContentMode({ type: task.type, textId: task.textId });
             router.push(`?task=${task.type}`, { scroll: false });
           }}
         />
@@ -334,9 +432,14 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
 
           {/* CONTENT AREA */}
           <main className="flex-1 overflow-y-auto px-6 py-8 pb-24 bg-white">
-            {contentMode && (
+            {textLoading || !rendererMode ? (
+              <div className="flex items-center justify-center min-h-[40vh] gap-3">
+                <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+                <p className="text-sm text-gray-500">Memuat konten...</p>
+              </div>
+            ) : (
               <SubchapterContent
-                mode={contentMode}
+                mode={rendererMode}
                 onQuizSubmitScore={(score) => {
                   setQuizScore(score);
                   setIsQuizSubmitted(true);
@@ -359,45 +462,35 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
         next={navigationMeta?.next ?? null}
         onNavigate={(item) => {
           setNavigationSource("footer");
+          setQuizScore(null);
+          setIsQuizSubmitted(false);
+          setAssignmentScore(null);
 
           // ================= TASK =================
           if ((item as any).__task) {
             const task = (item as any).__task;
-
-            setActiveSubModule(null);
-            setQuizScore(null);
-            setIsQuizSubmitted(false);
-            setAssignmentScore(null);
-
-            setContentMode({
-              type: task.type,
-              data: task.data,
-            });
-
-            // TAMBAH INI
+            setContentMode({ type: task.type, textId: task.textId });
             router.push(`?task=${task.type}`, { scroll: false });
-
             return;
           }
 
-          // ================= SUBMODULE =================
-          setActiveSubModule(item);
-          setContentMode({ type: "submodule", data: item });
+          // ================= SUBMODULE (Text) =================
+          const text = allTexts.find((t) => t.id === item.id);
+          if (!text) return;
 
-          const moduleIndex = subChapter.modules.findIndex((m) =>
-            m.subModules?.some((s) => s.id === item.id),
+          setContentMode({ type: "submodule", textId: text.id });
+
+          const subBabIndex = subChapter.subBabs.findIndex(
+            (sb) => sb.id === text.subBabId,
           );
-
-          const subModuleIndex =
-            subChapter.modules[moduleIndex]?.subModules?.findIndex(
-              (s) => s.id === item.id,
-            ) ?? 0;
-
-          // TAMBAH INI
-          router.push(
-            `?module=${moduleIndex + 1}&submodule=${subModuleIndex + 1}`,
-            { scroll: false },
+          const textsInSubBab = allTexts.filter(
+            (t) => t.subBabId === text.subBabId,
           );
+          const textIndex = textsInSubBab.findIndex((t) => t.id === text.id);
+
+          router.push(`?module=${subBabIndex + 1}&submodule=${textIndex + 1}`, {
+            scroll: false,
+          });
         }}
       />
     </div>

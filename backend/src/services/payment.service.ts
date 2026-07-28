@@ -20,6 +20,7 @@ import {
   resolveElearningProductType,
   recordReferralCommission,
 } from "../utils/referral.helper.js";
+import { sendELearningSubscriptionPaymentSuccessEmail } from "../utils/sendELearningSubscriptionPaymentSuccessEmail.js"; // sesuaikan path
 
 const prisma = new PrismaClient();
 
@@ -385,6 +386,10 @@ export const processDuitkuCallback = async ({
                   },
                 },
               },
+              // 🔥 BARU — dibutuhkan untuk menampilkan detail diskon voucher
+              voucherUsage: {
+                include: { voucher: true },
+              },
             },
           },
           payments: true,
@@ -411,6 +416,10 @@ export const processDuitkuCallback = async ({
               },
             },
           },
+          // 🔥 BARU — dibutuhkan untuk menampilkan detail diskon voucher
+          voucherUsage: {
+            include: { voucher: true },
+          },
           user: true,
         },
       },
@@ -433,6 +442,10 @@ export const processDuitkuCallback = async ({
                 },
               },
             },
+          },
+          // 🔥 BARU — dibutuhkan untuk menampilkan detail diskon voucher
+          voucherUsage: {
+            include: { voucher: true },
           },
         },
       },
@@ -468,6 +481,9 @@ export const processDuitkuCallback = async ({
     | null = null;
   let ayclEmailPayload:
     | Parameters<typeof sendAyclPaymentSuccessEmail>[0]
+    | null = null;
+  let elearningEmailPayload:
+    | Parameters<typeof sendELearningSubscriptionPaymentSuccessEmail>[0]
     | null = null;
 
   /**
@@ -613,6 +629,53 @@ export const processDuitkuCallback = async ({
         orderBy: { installmentNumber: "asc" },
       });
 
+      // 🔥 BARU — rincian SEMUA cicilan (nominal bisa beda tiap termin),
+      // dipakai untuk tabel "Rincian Cicilan" di email
+      let installmentBreakdown:
+        | Parameters<
+            typeof sendBookingPaymentSuccessEmail
+          >[0]["installmentBreakdown"]
+        | undefined = undefined;
+
+      if (invoice.paymentType === "INSTALLMENT") {
+        const allInvoicePayments = await tx.payment.findMany({
+          where: { bookingInvoiceId: invoice.id },
+          orderBy: { installmentNumber: "asc" },
+        });
+
+        installmentBreakdown = allInvoicePayments
+          .filter((p) => p.installmentNumber != null)
+          .map((p) => ({
+            installmentNumber: p.installmentNumber!,
+            amount: p.amount.toNumber(),
+            status: p.status === "confirmed" ? "PAID" : "UPCOMING",
+            dueDate: p.dueDate ?? null,
+          }));
+      }
+
+      // 🔥 BARU — detail diskon voucher/referral.
+      // Voucher menyimpan nominal asli & diskon secara eksak, jadi
+      // diprioritaskan. Kalau yang dipakai referral, dihitung dari
+      // selisih harga normal servicenya vs total invoice (yang sudah
+      // didiskon saat booking dibuat).
+      let bookingOriginalPrice: number | null = null;
+      let bookingDiscountAmount: number | null = null;
+      let bookingDiscountCode: string | null = null;
+
+      if (booking.voucherUsage) {
+        bookingOriginalPrice = booking.voucherUsage.originalAmount.toNumber();
+        bookingDiscountAmount = booking.voucherUsage.discountAmount.toNumber();
+        bookingDiscountCode = booking.voucherUsage.voucher.code;
+      } else if (booking.referralUsage?.referralCode) {
+        const normalPrice = booking.mentoringService.price.toNumber();
+        const diff = normalPrice - totalAmount;
+        if (diff > 0) {
+          bookingOriginalPrice = normalPrice;
+          bookingDiscountAmount = diff;
+        }
+        bookingDiscountCode = booking.referralUsage.referralCode.code;
+      }
+
       bookingEmailPayload = {
         email: booking.mentee.email,
         fullName: booking.mentee.fullName,
@@ -631,6 +694,10 @@ export const processDuitkuCallback = async ({
         nextDueDate: nextPayment?.dueDate ?? null,
         installmentNumber: payment.installmentNumber,
         installmentCount: invoice.installmentCount,
+        originalPrice: bookingOriginalPrice,
+        discountAmount: bookingDiscountAmount,
+        discountCode: bookingDiscountCode,
+        installmentBreakdown,
       };
 
       const serviceType = booking.mentoringService.serviceType ?? "-";
@@ -746,6 +813,43 @@ export const processDuitkuCallback = async ({
         where: { eLearningSubscriptionId: subscription.id, status: "RESERVED" },
         data: { status: "USED" },
       });
+
+      // 🔥 Diskon voucher (nilai eksak) diprioritaskan, fallback ke
+      // selisih harga plan vs jumlah yang dibayar untuk referral.
+      const planPrice = subscription.plan.price.toNumber();
+      const paidAmount = payment.amount.toNumber();
+
+      let elearningOriginalPrice: number | null = null;
+      let elearningDiscountAmount: number | null = null;
+      let elearningDiscountCode: string | null = null;
+
+      if (subscription.voucherUsage) {
+        elearningOriginalPrice =
+          subscription.voucherUsage.originalAmount.toNumber();
+        elearningDiscountAmount =
+          subscription.voucherUsage.discountAmount.toNumber();
+        elearningDiscountCode = subscription.voucherUsage.voucher.code;
+      } else if (subscription.referralUsage?.referralCode) {
+        const diff = planPrice - paidAmount;
+        if (diff > 0) {
+          elearningOriginalPrice = planPrice;
+          elearningDiscountAmount = diff;
+        }
+        elearningDiscountCode = subscription.referralUsage.referralCode.code;
+      }
+
+      elearningEmailPayload = {
+        email: subscription.user.email,
+        fullName: subscription.user.fullName,
+        planName: subscription.plan.name,
+        merchantOrderId: payment.merchantOrderId ?? "-",
+        paymentMethod: payment.paymentMethod,
+        amount: paidAmount,
+        paymentDate: now,
+        originalPrice: elearningOriginalPrice,
+        discountAmount: elearningDiscountAmount,
+        discountCode: elearningDiscountCode,
+      };
     }
 
     // =====================================================
@@ -785,15 +889,40 @@ export const processDuitkuCallback = async ({
         data: { status: "USED" },
       });
 
+      // 🔥 Diskon voucher (nilai eksak) diprioritaskan, fallback ke
+      // selisih harga batch vs jumlah yang dibayar untuk referral.
+      const batchPrice = ayclBooking.batch.price.toNumber();
+      const paidAmount = payment.amount.toNumber();
+
+      let ayclOriginalPrice: number | null = null;
+      let ayclDiscountAmount: number | null = null;
+      let ayclDiscountCode: string | null = null;
+
+      if (ayclBooking.voucherUsage) {
+        ayclOriginalPrice = ayclBooking.voucherUsage.originalAmount.toNumber();
+        ayclDiscountAmount = ayclBooking.voucherUsage.discountAmount.toNumber();
+        ayclDiscountCode = ayclBooking.voucherUsage.voucher.code;
+      } else if (ayclBooking.referralUsage?.referralCode) {
+        const diff = batchPrice - paidAmount;
+        if (diff > 0) {
+          ayclOriginalPrice = batchPrice;
+          ayclDiscountAmount = diff;
+        }
+        ayclDiscountCode = ayclBooking.referralUsage.referralCode.code;
+      }
+
       ayclEmailPayload = {
         email: ayclBooking.user.email,
         fullName: ayclBooking.user.fullName,
         batchTitle: ayclBooking.batch.title,
         merchantOrderId: payment.merchantOrderId ?? "-",
         paymentMethod: payment.paymentMethod,
-        amount: payment.amount.toNumber(),
+        amount: paidAmount,
         paymentDate: now,
         whatsappGroupLink: ayclBooking.batch.whatsappGroupLink,
+        originalPrice: ayclOriginalPrice,
+        discountAmount: ayclDiscountAmount,
+        discountCode: ayclDiscountCode,
       };
     }
   });
@@ -818,6 +947,12 @@ export const processDuitkuCallback = async ({
 
   if (ayclEmailPayload) {
     emailJobs.push(sendAyclPaymentSuccessEmail(ayclEmailPayload));
+  }
+
+  if (elearningEmailPayload) {
+    emailJobs.push(
+      sendELearningSubscriptionPaymentSuccessEmail(elearningEmailPayload),
+    );
   }
 
   if (emailJobs.length > 0) {

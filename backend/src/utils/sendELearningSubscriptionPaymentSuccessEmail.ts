@@ -10,27 +10,25 @@ const PAYMENT_METHOD_MAP: Record<string, string> = {
   SP: "QRIS/Shopeepay",
 };
 
-export const sendAyclPaymentSuccessEmail = async ({
+export const sendELearningSubscriptionPaymentSuccessEmail = async ({
   email,
   fullName,
-  batchTitle,
+  planName,
   merchantOrderId,
   paymentMethod,
   amount,
   paymentDate,
-  whatsappGroupLink,
   originalPrice,
   discountAmount,
   discountCode,
 }: {
   email: string;
   fullName: string;
-  batchTitle: string;
+  planName: string;
   merchantOrderId: string;
   paymentMethod: string | null;
   amount: number;
   paymentDate: Date;
-  whatsappGroupLink: string | null;
   originalPrice?: number | null;
   discountAmount?: number | null;
   discountCode?: string | null;
@@ -59,7 +57,9 @@ export const sendAyclPaymentSuccessEmail = async ({
     ? (PAYMENT_METHOD_MAP[paymentMethod] ?? paymentMethod)
     : "-";
 
-  // 🔥 Voucher / Referral discount rows (opsional)
+  // 🔥 Nama produk selalu diawali "E-Learning Subscription"
+  const productName = `E-Learning Subscription - ${planName}`;
+
   const hasDiscount = !!discountAmount && discountAmount > 0;
 
   const discountSection = hasDiscount
@@ -74,42 +74,17 @@ export const sendAyclPaymentSuccessEmail = async ({
           </tr>`
     : "";
 
-  const whatsappSection = whatsappGroupLink
-    ? `
-      <div style="margin-top: 28px; background-color: #ecfdf5; border: 1px solid #6ee7b7; border-radius: 10px; padding: 20px;">
-        <p style="margin: 0 0 10px 0; font-size: 15px; font-weight: 600; color: #065f46;">
-          🟢 Bergabung ke Grup WhatsApp AYCL
-        </p>
-        <p style="margin: 0 0 14px 0; font-size: 14px; color: #374151; line-height: 1.6;">
-          Klik tombol di bawah untuk bergabung ke grup WhatsApp eksklusif peserta <strong>${batchTitle}</strong>. 
-          Di sini kamu akan mendapat info jadwal, materi, dan update terbaru dari Tim TemuDataku.
-        </p>
-        <a href="${whatsappGroupLink}"
-          style="display: inline-block; padding: 11px 28px; background-color: #25D366; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">
-          Gabung Grup WhatsApp
-        </a>
-        <p style="margin: 14px 0 6px 0; font-size: 12px; color: #6b7280;">
-          Jika tombol tidak berfungsi, salin link berikut:
-        </p>
-
-        <div style="word-break: break-all; background-color: #ffffff; border: 1px dashed #6ee7b7; padding: 10px; border-radius: 6px; font-size: 12px; color: #065f46;">
-          ${whatsappGroupLink}
-        </div>
-      </div>
-    `
-    : "";
-
   const mailOptions = {
     from: `"TemuDataku" <${process.env.EMAIL_USER}>`,
     to: email,
-    subject: `✅ Pembayaran Berhasil – ${batchTitle} | TemuDataku`,
+    subject: `✅ Pembayaran Berhasil – ${productName} | TemuDataku`,
     html: `
 <!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Konfirmasi Pembayaran AYCL</title>
+  <title>Konfirmasi Pembayaran E-Learning Subscription</title>
 </head>
 <body style="margin:0; padding:0; background-color:#f0fdf4; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
 
@@ -131,7 +106,7 @@ export const sendAyclPaymentSuccessEmail = async ({
         Pembayaran Berhasil!
       </h2>
       <p style="margin:8px 0 0 0; color:#047857; font-size:14px;">
-        Selamat, pendaftaran kamu telah dikonfirmasi.
+        Selamat, langganan E-Learning kamu telah aktif.
       </p>
     </div>
 
@@ -142,7 +117,7 @@ export const sendAyclPaymentSuccessEmail = async ({
         Halo <strong>${fullName}</strong>,
       </p>
       <p style="margin:0 0 24px 0; color:#374151; font-size:15px; line-height:1.7;">
-        Terima kasih telah melakukan pembayaran untuk program <strong>${batchTitle}</strong>. 
+        Terima kasih telah melakukan pembayaran untuk <strong>${productName}</strong>.
         Berikut adalah detail transaksi kamu:
       </p>
 
@@ -156,8 +131,8 @@ export const sendAyclPaymentSuccessEmail = async ({
 
         <table style="width:100%; border-collapse:collapse;">
           <tr style="border-bottom:1px solid #e5e7eb;">
-            <td style="padding:13px 18px; color:#6b7280; font-size:13px; width:45%;">Program</td>
-            <td style="padding:13px 18px; color:#111827; font-size:13px; font-weight:600;">${batchTitle}</td>
+            <td style="padding:13px 18px; color:#6b7280; font-size:13px; width:45%;">Produk</td>
+            <td style="padding:13px 18px; color:#111827; font-size:13px; font-weight:600;">${productName}</td>
           </tr>
           <tr style="border-bottom:1px solid #e5e7eb;">
             <td style="padding:13px 18px; color:#6b7280; font-size:13px;">No. Order</td>
@@ -178,7 +153,6 @@ export const sendAyclPaymentSuccessEmail = async ({
         </table>
       </div>
 
-
       <!-- STATUS BADGE -->
       <div style="text-align:center; margin-bottom:24px;">
         <span style="display:inline-block; background-color:#dcfce7; color:#166534; font-size:13px; font-weight:600; padding:7px 20px; border-radius:999px; border:1px solid #bbf7d0;">
@@ -186,15 +160,12 @@ export const sendAyclPaymentSuccessEmail = async ({
         </span>
       </div>
 
-      <!-- WHATSAPP SECTION (hanya untuk AYCL jika ada link) -->
-      ${whatsappSection}
-
       <!-- PENUTUP -->
       <p style="margin:28px 0 0 0; color:#374151; font-size:14px; line-height:1.7;">
         Jika ada pertanyaan, jangan ragu untuk menghubungi tim kami melalui WhatsApp (0822-3452-9895 / 0853-3619-6913) atau email resmi TemuDataku.
       </p>
       <p style="margin:10px 0 0 0; color:#374151; font-size:14px; line-height:1.7;">
-        Semangat belajar dan sampai jumpa di kelas! 🚀
+        Selamat belajar dan sampai jumpa di kelas! 🚀
       </p>
       <p style="margin:16px 0 0 0; color:#374151; font-size:14px;">
         Salam hangat,<br/>

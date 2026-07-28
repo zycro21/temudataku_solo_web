@@ -1004,3 +1004,57 @@ export const deleteSubscriptionByAdmin = async (subscriptionId: string) => {
     deletedAt: new Date(),
   };
 };
+
+export const getSubscriptionById = async (input: {
+  userId: string;
+  subscriptionId: string;
+}) => {
+  const { userId, subscriptionId } = input;
+
+  /* ===== 1. AMBIL SUBSCRIPTION + RELASI YANG DIBUTUHKAN CHECKOUT ===== */
+  const subscription = await prisma.eLearningSubscription.findUnique({
+    where: { id: subscriptionId },
+    include: {
+      plan: true,
+      payment: true,
+      user: {
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          phoneNumber: true,
+          city: true,
+          province: true,
+        },
+      },
+    },
+  });
+
+  if (!subscription) {
+    throw { status: 404, message: "Subscription tidak ditemukan." };
+  }
+
+  /* ===== 2. CEK KEPEMILIKAN ===== */
+  if (subscription.userId !== userId) {
+    throw {
+      status: 403,
+      message: "Tidak memiliki akses ke subscription ini.",
+    };
+  }
+
+  return subscription;
+};
+
+export const getPublicSubscriberCount = async () => {
+  const distinctSubscribers = await prisma.eLearningSubscription.findMany({
+    where: {
+      status: { in: ["confirmed", "active", "completed"] },
+    },
+    distinct: ["userId"],
+    select: { userId: true },
+  });
+
+  return {
+    totalSubscribers: distinctSubscribers.length,
+  };
+};

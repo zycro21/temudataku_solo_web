@@ -69,3 +69,9 @@ export const deleteELearningSubscriptionSchema = z.object({
     id: z.string().min(1, "Subscription ID is required"),
   }),
 });
+
+export const getELearningSubscriptionByIdSchema = z.object({
+  params: z.object({
+    id: z.string().min(1, "Subscription ID is required"),
+  }),
+});

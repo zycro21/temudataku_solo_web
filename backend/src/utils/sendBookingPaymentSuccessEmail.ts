@@ -10,6 +10,13 @@ const PAYMENT_METHOD_MAP: Record<string, string> = {
   SP: "QRIS/Shopeepay",
 };
 
+type InstallmentBreakdownItem = {
+  installmentNumber: number;
+  amount: number;
+  status: "PAID" | "UPCOMING";
+  dueDate: Date | null;
+};
+
 export const sendBookingPaymentSuccessEmail = async ({
   email,
   fullName,
@@ -30,6 +37,14 @@ export const sendBookingPaymentSuccessEmail = async ({
   nextDueDate,
   installmentNumber,
   installmentCount,
+
+  // NEW — voucher/referral discount
+  originalPrice,
+  discountAmount,
+  discountCode,
+
+  // NEW — rincian tiap cicilan
+  installmentBreakdown,
 }: {
   email: string;
   fullName: string;
@@ -52,6 +67,12 @@ export const sendBookingPaymentSuccessEmail = async ({
 
   installmentNumber?: number | null;
   installmentCount?: number | null;
+
+  originalPrice?: number | null;
+  discountAmount?: number | null;
+  discountCode?: string | null;
+
+  installmentBreakdown?: InstallmentBreakdownItem[];
 }) => {
   const transporter = nodemailer.createTransport({
     service: "gmail",
@@ -75,6 +96,21 @@ export const sendBookingPaymentSuccessEmail = async ({
   const paymentMethodLabel = paymentMethod
     ? (PAYMENT_METHOD_MAP[paymentMethod] ?? paymentMethod)
     : "-";
+
+  // 🔥 Voucher / Referral discount rows (opsional)
+  const hasDiscount = !!discountAmount && discountAmount > 0;
+
+  const discountSection = hasDiscount
+    ? `
+          <tr style="border-bottom:1px solid #e5e7eb;">
+            <td style="padding:13px 18px; color:#6b7280; font-size:13px;">Harga Awal</td>
+            <td style="padding:13px 18px; color:#9ca3af; font-size:13px; text-decoration:line-through;">${formatRupiah(originalPrice ?? amount)}</td>
+          </tr>
+          <tr style="border-bottom:1px solid #e5e7eb;">
+            <td style="padding:13px 18px; color:#6b7280; font-size:13px;">Diskon${discountCode ? ` (${discountCode})` : ""}</td>
+            <td style="padding:13px 18px; color:#dc2626; font-size:13px; font-weight:600;">- ${formatRupiah(discountAmount!)}</td>
+          </tr>`
+    : "";
 
   const whatsappSection = whatsappGroup
     ? `
@@ -114,6 +150,49 @@ export const sendBookingPaymentSuccessEmail = async ({
     </span>
   `;
 
+  // 🔥 Rincian tiap cicilan — nominal masing-masing bisa berbeda per termin
+  const installmentBreakdownRows =
+    installmentBreakdown && installmentBreakdown.length > 0
+      ? installmentBreakdown
+          .map((item) => {
+            const isPaid = item.status === "PAID";
+            return `
+          <tr style="border-bottom:1px solid #fde68a;">
+            <td style="padding:8px 10px; color:#92400e; font-size:12px;">Cicilan ${item.installmentNumber}</td>
+            <td style="padding:8px 10px; text-align:right; color:#111827; font-size:12px; font-weight:600;">${formatRupiah(item.amount)}</td>
+            <td style="padding:8px 10px; text-align:center; font-size:11px; font-weight:600; color:${isPaid ? "#166534" : "#b45309"};">
+              ${isPaid ? "✅ Lunas" : "⏳ Belum Dibayar"}
+            </td>
+            <td style="padding:8px 10px; text-align:right; color:#6b7280; font-size:11px;">
+              ${!isPaid && item.dueDate ? formatDate(item.dueDate) : "-"}
+            </td>
+          </tr>`;
+          })
+          .join("")
+      : "";
+
+  const installmentBreakdownTable = installmentBreakdownRows
+    ? `
+      <div style="margin-top:16px;">
+        <p style="margin:0 0 8px 0; font-size:13px; font-weight:700; color:#92400e;">
+          Rincian Cicilan
+        </p>
+        <table style="width:100%; border-collapse:collapse; background-color:#ffffff; border:1px solid #fde68a; border-radius:8px; overflow:hidden;">
+          <thead>
+            <tr style="background-color:#fef3c7;">
+              <th style="padding:8px 10px; text-align:left; font-size:11px; color:#92400e; text-transform:uppercase;">Cicilan</th>
+              <th style="padding:8px 10px; text-align:right; font-size:11px; color:#92400e; text-transform:uppercase;">Nominal</th>
+              <th style="padding:8px 10px; text-align:center; font-size:11px; color:#92400e; text-transform:uppercase;">Status</th>
+              <th style="padding:8px 10px; text-align:right; font-size:11px; color:#92400e; text-transform:uppercase;">Jatuh Tempo</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${installmentBreakdownRows}
+          </tbody>
+        </table>
+      </div>`
+    : "";
+
   const installmentInfoSection =
     paymentType === "INSTALLMENT" && !isFullyPaid
       ? `
@@ -125,7 +204,7 @@ export const sendBookingPaymentSuccessEmail = async ({
         <table style="width:100%; border-collapse:collapse;">
           <tr>
             <td style="padding:8px 0; color:#6b7280; font-size:13px;">
-              Cicilan
+              Cicilan Saat Ini
             </td>
 
             <td style="padding:8px 0; text-align:right; color:#111827; font-size:13px; font-weight:600;">
@@ -159,6 +238,8 @@ export const sendBookingPaymentSuccessEmail = async ({
               : ""
           }
         </table>
+
+        ${installmentBreakdownTable}
 
         <p style="margin:14px 0 0 0; font-size:12px; line-height:1.7; color:#92400e;">
           Pembayaran cicilan kamu berhasil diterima, namun program belum sepenuhnya lunas.
@@ -239,7 +320,7 @@ export const sendBookingPaymentSuccessEmail = async ({
           <tr style="border-bottom:1px solid #e5e7eb;">
             <td style="padding:13px 18px; color:#6b7280; font-size:13px;">Tanggal Pembayaran</td>
             <td style="padding:13px 18px; color:#111827; font-size:13px;">${formatDate(paymentDate)}</td>
-          </tr>
+          </tr>${discountSection}
           <tr>
             <td style="padding:13px 18px; color:#6b7280; font-size:13px;">Total Dibayar</td>
             <td style="padding:13px 18px; color:#10b981; font-size:15px; font-weight:700;">${formatRupiah(amount)}</td>

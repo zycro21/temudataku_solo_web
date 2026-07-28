@@ -1,8 +1,16 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import Image from "next/image";
 
 export default function HeroSection() {
+  const handleScrollToSubscription = () => {
+    document
+      .getElementById("pilihan-elearning")
+      ?.scrollIntoView({ behavior: "smooth" });
+  };
+
   // Sample mentor data - in real app this would come from props or API
   const mentors = [
     {
@@ -82,6 +90,7 @@ export default function HeroSection() {
             <div className="flex flex-col sm:flex-row gap-3 mt-4">
               <Button
                 size="lg"
+                onClick={handleScrollToSubscription}
                 className="
       bg-emerald-600 
       hover:bg-emerald-700 

@@ -11,6 +11,7 @@ import axios from "axios";
 export default function CheckoutSummary({
   booking,
   ayclBooking,
+  subscription,
   priceSummary,
   formData,
   isTermsChecked,
@@ -49,7 +50,9 @@ export default function CheckoutSummary({
   const basePrice =
     type === "aycl"
       ? Number(ayclBooking?.batch?.price ?? 0)
-      : Number(booking?.mentoringService?.price ?? 0);
+      : type === "subscription"
+        ? Number(subscription?.plan?.price ?? 0)
+        : Number(booking?.mentoringService?.price ?? 0);
 
   const originalPrice = Number(priceSummary?.originalPrice ?? basePrice);
   const finalPrice = Number(priceSummary?.finalPrice ?? originalPrice);
@@ -59,7 +62,9 @@ export default function CheckoutSummary({
   const serviceTitle =
     type === "aycl"
       ? (ayclBooking?.batch?.title ?? "All You Can Learn")
-      : (booking?.mentoringService?.serviceName ?? "Mentoring Session");
+      : type === "subscription"
+        ? `E-Learning Subscription ${subscription?.plan?.name ?? ""}`.trim()
+        : (booking?.mentoringService?.serviceName ?? "Mentoring Session");
 
   const installmentAvailable =
     type === "class" &&
@@ -378,7 +383,12 @@ export default function CheckoutSummary({
       // UPDATE USER (mentoring & aycl)
       // ==============================
       try {
-        const currentUser = type === "aycl" ? ayclBooking?.user : booking?.user;
+        const currentUser =
+          type === "aycl"
+            ? ayclBooking?.user
+            : type === "subscription"
+              ? subscription?.user
+              : booking?.user;
 
         if (
           formData.province !== currentUser?.province ||
@@ -495,12 +505,6 @@ export default function CheckoutSummary({
             <span>{formatRupiah(originalPrice)}</span>
           </div>
 
-          {priceSummary && (
-            <div className="text-[11px] text-green-600 font-medium">
-              Kode Voucher berhasil diterapkan!!
-            </div>
-          )}
-
           <div className="flex justify-between border-t pt-1.5">
             <span>Diskon</span>
             <span className={discount > 0 ? "text-green-600" : ""}>
@@ -512,6 +516,29 @@ export default function CheckoutSummary({
             <span>Total</span>
             <span>{formatRupiah(finalPrice)}</span>
           </div>
+
+          {priceSummary && (
+            <div className="rounded-xl bg-emerald-50 px-3 py-2.5 flex items-start gap-2.5 mt-1">
+              <span className="shrink-0 flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500 mt-0.5">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  className="w-3 h-3"
+                  stroke="white"
+                  strokeWidth={3}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+              </span>
+              <p className="text-[11px] text-emerald-800 leading-relaxed">
+                <span className="font-bold">Kode berhasil diterapkan.</span>{" "}
+                Jangan refresh halaman ini agar kode tidak hangus dan tidak bisa
+                digunakan ulang.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* PAYMENT TYPE — hanya untuk type="class" bootcamp dengan installment */}

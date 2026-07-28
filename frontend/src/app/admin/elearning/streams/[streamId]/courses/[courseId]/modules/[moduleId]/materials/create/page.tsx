@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams, useParams } from "next/navigation";
 import Image from "next/image";
 import { Plus_Jakarta_Sans } from "next/font/google";
@@ -42,6 +42,7 @@ import StylePanel, {
 import { type RichTextEditorRef } from "@/components/admin/elearning/materials/RichTextEditor";
 import PublishConfirmModal from "@/components/admin/elearning/materials/PublishConfirmModal";
 import PublishSuccessModal from "@/components/admin/elearning/materials/PublishSuccessModal";
+import UnsavedChangesModal from "@/components/admin/elearning/materials/UnsavedChangesModal";
 import MaterialPreviewModal from "@/components/admin/elearning/materials/MaterialPreviewModal";
 import axios from "axios";
 import { toast } from "sonner";
@@ -51,6 +52,18 @@ let _idCounter = 0;
 function genId(baseId: string): string {
   _idCounter += 1;
   return `${baseId}-${_idCounter}`;
+}
+
+// ─── Snapshot compare (untuk deteksi unsaved changes) ──────────────────────
+// JSON.stringify biasa, tapi File di-handle khusus karena default-nya
+// jadi "{}" doang (properti File ada di prototype, bukan own-enumerable).
+function stableStringify(value: unknown): string {
+  return JSON.stringify(value, (_key, val) => {
+    if (typeof File !== "undefined" && val instanceof File) {
+      return `File:${val.name}:${val.size}:${val.lastModified}`;
+    }
+    return val;
+  });
 }
 
 const DEFAULT_STYLE: StyleState = {
@@ -916,6 +929,14 @@ export default function CreateMaterialPage() {
             setHistory([mappedItems]);
             setHistoryIdx(0);
           }
+
+          // 🔥 baseline snapshot: data ini baru di-load dari server, jadi
+          // dianggap "belum ada perubahan" — bukan hasil edit user
+          updateSavedSnapshot({
+            title: data.title || "Untitled material",
+            status: data.status,
+            items: mappedItems.length > 0 ? mappedItems : [],
+          });
         } catch (err: any) {
           toast.error(
             err?.response?.data?.message ||
@@ -936,6 +957,25 @@ export default function CreateMaterialPage() {
   const [openConfirm, setOpenConfirm] = useState(false);
   const [openSuccess, setOpenSuccess] = useState(false);
 
+  // ── Unsaved-changes detection (untuk tombol "kembali") ───────────────────
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+
+  // Snapshot dari state terakhir yang berhasil di-save / di-load dari server.
+  const [savedSnapshot, setSavedSnapshot] = useState<string>(() =>
+    stableStringify({
+      title: "Untitled material",
+      status: "DRAFT",
+      items: [] as CanvasItem[],
+    }),
+  );
+
+  const updateSavedSnapshot = useCallback(
+    (snap: { title: string; status: string; items: CanvasItem[] }) => {
+      setSavedSnapshot(stableStringify(snap));
+    },
+    [],
+  );
+
   // ── Preview modal state ───────────────────────────────────────────────────
   const [openPreview, setOpenPreview] = useState(false);
 
@@ -948,6 +988,24 @@ export default function CreateMaterialPage() {
   const [status, setStatus] = useState<"DRAFT" | "PUBLISHED" | "ARCHIVED">(
     "DRAFT",
   );
+
+  // true kalau state sekarang berbeda dari snapshot terakhir yang tersimpan
+  const isDirty = useMemo(
+    () => stableStringify({ title, status, items }) !== savedSnapshot,
+    [title, status, items, savedSnapshot],
+  );
+
+  // Peringatkan browser (refresh/close tab) kalau ada perubahan belum disimpan
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isDirty]);
 
   const pushHistory = useCallback(
     (next: CanvasItem[]) => {
@@ -1648,8 +1706,12 @@ export default function CreateMaterialPage() {
     };
   }, []);
 
-  const handleSave = async () => {
-    if (isSaving) return;
+  const handleSave = async (
+    options: { redirectAfterCreate?: boolean } = {},
+  ): Promise<boolean> => {
+    const { redirectAfterCreate = true } = options;
+
+    if (isSaving) return false;
 
     try {
       setIsSaving(true);
@@ -1677,10 +1739,22 @@ export default function CreateMaterialPage() {
         triggerSavedBadge();
         console.log("✅ First save success:", data);
 
-        // 🔥 redirect ke mode edit
-        router.push(
-          `/admin/elearning/streams/${params.streamId}/courses/${params.courseId}/modules/${params.moduleId}/materials/create?mode=edit&materialId=${data.data.id}`,
-        );
+        // 🔥 tandai state ini sebagai baseline "sudah tersimpan"
+        updateSavedSnapshot({
+          title,
+          status: data.data.status,
+          items,
+        });
+
+        // 🔥 redirect ke mode edit — di-skip kalau lagi flow "Save & Leave"
+        // supaya user beneran keluar, bukan malah pindah ke ?mode=edit
+        if (redirectAfterCreate) {
+          router.push(
+            `/admin/elearning/streams/${params.streamId}/courses/${params.courseId}/modules/${params.moduleId}/materials/create?mode=edit&materialId=${data.data.id}`,
+          );
+        }
+
+        return true;
       } else {
         // 🔥 UPDATE — kirim blocks + quiz/assignment ke backend
         const nonAssesmentItems = items.filter(
@@ -1733,6 +1807,15 @@ export default function CreateMaterialPage() {
         toast.success("Material berhasil disimpan");
         triggerSavedBadge();
         console.log("✅ Update success:", data);
+
+        // 🔥 tandai state ini sebagai baseline "sudah tersimpan"
+        updateSavedSnapshot({
+          title,
+          status: data.data.status ?? status,
+          items,
+        });
+
+        return true;
       }
     } catch (err: any) {
       console.error("❌ Save error:", err);
@@ -1752,9 +1835,34 @@ export default function CreateMaterialPage() {
           ? details.map((d: any) => d.message || JSON.stringify(d)).join(", ")
           : message,
       });
+
+      return false;
     } finally {
       setIsSaving(false);
     }
+  };
+
+  // ── Handler untuk tombol "kembali" ───────────────────────────────────────
+  const handleBackClick = () => {
+    if (isDirty) {
+      setShowLeaveConfirm(true);
+    } else {
+      router.back();
+    }
+  };
+
+  const handleConfirmSaveAndLeave = async () => {
+    const ok = await handleSave({ redirectAfterCreate: false });
+    if (ok) {
+      setShowLeaveConfirm(false);
+      router.back();
+    }
+    // kalau gagal, modal tetap terbuka + toast error dari handleSave sudah muncul
+  };
+
+  const handleDiscardAndLeave = () => {
+    setShowLeaveConfirm(false);
+    router.back();
   };
 
   const handleTogglePublish = async () => {
@@ -1791,7 +1899,7 @@ export default function CreateMaterialPage() {
       <header className="flex items-center justify-between px-6 py-3 bg-white border-b border-gray-200 shrink-0 z-10">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => router.back()}
+            onClick={handleBackClick}
             className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 transition"
           >
             <ArrowLeft size={18} />
@@ -1853,7 +1961,7 @@ export default function CreateMaterialPage() {
           </button>
 
           <button
-            onClick={handleSave}
+            onClick={() => handleSave()}
             disabled={isSaving}
             className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-emerald-400 text-emerald-600 text-sm font-medium hover:bg-emerald-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -2116,6 +2224,14 @@ export default function CreateMaterialPage() {
       <PublishSuccessModal
         open={openSuccess}
         onClose={() => setOpenSuccess(false)}
+      />
+
+      <UnsavedChangesModal
+        open={showLeaveConfirm}
+        isSaving={isSaving}
+        onCancel={() => setShowLeaveConfirm(false)}
+        onDiscard={handleDiscardAndLeave}
+        onSave={handleConfirmSaveAndLeave}
       />
     </div>
   );

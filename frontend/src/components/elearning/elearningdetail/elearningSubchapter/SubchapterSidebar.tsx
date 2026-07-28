@@ -3,54 +3,66 @@
 import Image from "next/image";
 import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import type {
+  ElearningSubChapterDetailApiItem,
+  ElearningTextSummaryApiItem,
+} from "@/hooks/Useelearningsubchapterdetail";
+
+interface TextWithSubBab extends ElearningTextSummaryApiItem {
+  subBabId: string;
+  subBabTitle: string;
+}
 
 interface Props {
-  practice: any;
-  subChapterId: string;
-  activeModuleId?: string | number;
-  activeSubModuleId?: number;
+  subChapter: ElearningSubChapterDetailApiItem;
+  courseId: string;
+  activeTextId?: string;
   navigationSource?: "manual" | "footer";
 
-  activeTaskType?: "quiz" | "assignment" | null; // ⬅️ TAMBAH INI
+  activeTaskType?: "quiz" | "assignment" | null;
 
-  onSelectSubModule?: (sm: any) => void;
-  onSelectTask?: (task: { type: "quiz" | "assignment"; data: any }) => void;
+  // 🔥 Progress overall course untuk SubChapter ini — belum ada endpoint
+  // progress per-SubBab/Text, jadi checklist selesai/belum per item materi
+  // sengaja TIDAK ditampilkan dulu (daripada dipalsukan).
+  progressPercent?: number;
+  lastActivityAt?: string | null;
+
+  onSelectText?: (text: TextWithSubBab) => void;
+  onSelectTask?: (task: {
+    type: "quiz" | "assignment";
+    textId: string;
+    title: string;
+  }) => void;
 }
 
 export default function ModuleSidebar({
-  practice,
-  subChapterId,
-  activeModuleId,
-  activeSubModuleId,
+  subChapter,
+  courseId,
+  activeTextId,
   navigationSource,
   activeTaskType,
-  onSelectSubModule,
+  progressPercent = 0,
+  lastActivityAt,
+  onSelectText,
   onSelectTask,
 }: Props) {
   const router = useRouter();
   const [keyword, setKeyword] = useState("");
   const [openModules, setOpenModules] = useState<Record<string, boolean>>({});
 
-  const subChapter = practice?.subChapters?.find(
-    (sc: any) => String(sc.id) === String(subChapterId),
-  );
-
   useEffect(() => {
-    if (navigationSource !== "footer" || !activeSubModuleId || !subChapter)
-      return;
+    if (navigationSource !== "footer" || !activeTextId) return;
 
-    const activeModule = subChapter.modules.find((m: any) =>
-      m.subModules?.some((sm: any) => sm.id === activeSubModuleId),
+    const activeSubBab = subChapter.subBabs.find((sb) =>
+      sb.texts.some((t) => t.id === activeTextId),
     );
 
-    if (!activeModule) return;
+    if (!activeSubBab) return;
 
-    setOpenModules({
-      [activeModule.id]: true,
-    });
-  }, [activeSubModuleId, navigationSource, subChapter]);
+    setOpenModules({ [activeSubBab.id]: true });
+  }, [activeTextId, navigationSource, subChapter]);
 
-  const timeAgo = (dateString?: string) => {
+  const timeAgo = (dateString?: string | null) => {
     if (!dateString) return "-";
 
     const now = new Date();
@@ -67,51 +79,51 @@ export default function ModuleSidebar({
     return `${days} hari lalu`;
   };
 
-  if (!subChapter) return null;
+  const lastAccessed = timeAgo(lastActivityAt);
 
-  const progressPercent = subChapter.progressPercent ?? 0;
-  const lastAccessed = timeAgo(subChapter.lastActivityAt);
-  const isCertificateUnlocked =
-    progressPercent === 100 && !!subChapter.certificateTemplateLink;
-
-  const filteredModules = useMemo(() => {
-    if (!keyword) return subChapter.modules;
+  const filteredSubBabs = useMemo(() => {
+    if (!keyword) return subChapter.subBabs;
     const key = keyword.toLowerCase();
 
-    return subChapter.modules.filter(
-      (m: any) =>
-        m.title.toLowerCase().includes(key) ||
-        m.subModules.some((sm: any) => sm.title.toLowerCase().includes(key)),
+    return subChapter.subBabs.filter(
+      (sb) =>
+        sb.title.toLowerCase().includes(key) ||
+        sb.texts.some((t) => (t.title ?? "").toLowerCase().includes(key)),
     );
   }, [keyword, subChapter]);
 
-  /* ================= TASKS (QUIZ & ASSIGNMENT) ================= */
-
+  /* ================= TASKS (QUIZ & ASSIGNMENT) — dari SubBab terakhir ================= */
   const tasks = useMemo(() => {
-    if (!subChapter.modules?.length) return [];
+    if (!subChapter.subBabs.length) return [];
 
-    const lastModule = subChapter.modules[subChapter.modules.length - 1];
-    if (!lastModule) return [];
+    const lastSubBab = subChapter.subBabs[subChapter.subBabs.length - 1];
+    const result: {
+      type: "quiz" | "assignment";
+      label: string;
+      title: string;
+      icon: string;
+      textId: string;
+    }[] = [];
 
-    const result: any[] = [];
-
-    if (lastModule.quiz) {
+    const quizText = lastSubBab.texts.find((t) => t.quiz);
+    if (quizText?.quiz) {
       result.push({
         type: "quiz",
         label: "Penilaian Quiz",
-        title: lastModule.quiz.title,
+        title: quizText.quiz.title,
         icon: "/assets/elearning/penilaian.svg",
-        data: lastModule.quiz,
+        textId: quizText.id,
       });
     }
 
-    if (lastModule.assignment) {
+    const assignmentText = lastSubBab.texts.find((t) => t.assignment);
+    if (assignmentText?.assignment) {
       result.push({
         type: "assignment",
         label: "Penilaian Proyek",
-        title: lastModule.assignment.title,
+        title: assignmentText.assignment.title,
         icon: "/assets/elearning/penilaian.svg",
-        data: lastModule.assignment,
+        textId: assignmentText.id,
       });
     }
 
@@ -120,139 +132,130 @@ export default function ModuleSidebar({
 
   return (
     <aside
-      className="w-[270px] sticky top-0 bg-white border-r hidden lg:flex flex-col"
+      className="w-[240px] sticky top-0 bg-white border-r hidden lg:flex flex-col"
       style={{ height: "calc(100vh - 60px)" }}
     >
       {/* HEADER */}
-      <div className="p-5 border-b">
+      <div className="p-4 border-b">
         <button
-          onClick={() => router.push(`/elearning/${practice.id}`)}
-          className="flex items-center gap-2 text-xs text-gray-500 hover:text-gray-700 cursor-pointer transition-colors mb-6"
+          onClick={() => router.push(`/elearning/${courseId}`)}
+          className="flex items-center gap-2 text-[11px] text-gray-500 hover:text-gray-700 cursor-pointer transition-colors mb-4"
         >
           <Image
             src="/assets/elearning/arrowback.svg"
             alt="back"
-            width={8}
-            height={8}
+            width={7}
+            height={7}
           />
           Kembali
         </button>
 
-        <h2 className="text-[24px] font-bold text-gray-900 mb-5 text-left">
+        <h2 className="text-lg font-bold text-gray-900 mb-4 text-left">
           {subChapter.title}
         </h2>
 
-        <div className="space-y-2 mb-4">
-          <div className="flex justify-between text-xs font-bold text-gray-600">
-            <span>Progress: {progressPercent}%</span>
+        <div className="space-y-1.5 mb-3">
+          <div className="flex justify-between text-[11px] font-bold text-gray-600">
+            <span>Progress: {Math.round(progressPercent)}%</span>
             <span>Terakhir diakses: {lastAccessed}</span>
           </div>
 
-          <div className="h-2 w-full bg-gray-100 rounded-full">
+          <div className="h-1.5 w-full bg-gray-100 rounded-full">
             <div
-              className="h-2 bg-emerald-500 rounded-full"
+              className="h-1.5 bg-emerald-500 rounded-full"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
         </div>
 
-        <div className="relative mt-8">
+        <div className="relative mt-6">
           <Image
             src="/assets/elearning/search.svg"
             alt="search"
-            width={14}
-            height={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 opacity-60"
+            width={12}
+            height={12}
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 opacity-60"
           />
           <input
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             placeholder="Cari"
-            className="w-full pl-9 pr-3 py-2.5 text-sm bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="w-full pl-8 pr-3 py-2 text-xs bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
         </div>
       </div>
 
       {/* CONTENT */}
-      <div className="flex-1 overflow-y-auto px-5 py-6 space-y-6 text-sm pb-10">
-        {filteredModules.map((module: any) => {
-          const isOpen =
-            openModules[module.id] ??
-            String(module.id) === String(activeModuleId);
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 text-xs pb-8">
+        {filteredSubBabs.map((subBab) => {
+          const isOpen = openModules[subBab.id] ?? false;
 
-          const isModuleDone = module.subModules.every(
-            (sm: any) => sm.progress === 100,
+          // 🔥 "materi" biasa = text yang tidak punya quiz/assignment
+          const materiTexts = subBab.texts.filter(
+            (t) => !t.quiz && !t.assignment,
           );
 
           return (
-            <div key={module.id} className="space-y-2">
+            <div key={subBab.id} className="space-y-1.5">
               <button
                 onClick={() =>
                   setOpenModules((p) => ({
                     ...p,
-                    [module.id]: !isOpen,
+                    [subBab.id]: !isOpen,
                   }))
                 }
-                className="flex items-center justify-between w-full px-2 py-1 rounded-md text-left
+                className="flex items-center justify-between w-full px-1.5 py-1 rounded-md text-left
                 cursor-pointer transition hover:bg-gray-100"
               >
-                <div className="flex items-center gap-3 text-[12px] text-black">
+                <div className="flex items-center gap-2 text-[11px] text-black">
                   <Image
                     src="/assets/elearning/arrowup.svg"
                     alt="toggle"
-                    width={10}
-                    height={10}
+                    width={9}
+                    height={9}
                     className={`transition-transform ${
                       isOpen ? "rotate-180" : ""
                     }`}
                   />
-                  {module.title}
+                  {subBab.title}
                 </div>
-
-                {isModuleDone && (
-                  <Image
-                    src="/assets/elearning/ceklismodule.svg"
-                    alt="done"
-                    width={14}
-                    height={14}
-                  />
-                )}
               </button>
 
               {isOpen && (
-                <ul className="pl-6 space-y-2">
-                  {module.subModules.map((sm: any) => {
+                <ul className="pl-5 space-y-1.5">
+                  {materiTexts.map((text) => {
                     const isActive =
-                      !activeTaskType &&
-                      String(sm.id) === String(activeSubModuleId);
+                      !activeTaskType && text.id === activeTextId;
 
                     return (
                       <li
-                        key={sm.id}
-                        onClick={() => onSelectSubModule?.(sm)}
-                        className={`flex items-center gap-3 px-2 py-1 rounded-md cursor-pointer transition
+                        key={text.id}
+                        onClick={() =>
+                          onSelectText?.({
+                            ...text,
+                            subBabId: subBab.id,
+                            subBabTitle: subBab.title,
+                          })
+                        }
+                        className={`flex items-center gap-2 px-1.5 py-1 rounded-md cursor-pointer transition
 ${
   isActive
-    ? "bg-emerald-500 text-white font-bold py-2"
+    ? "bg-emerald-500 text-white font-bold py-1.5"
     : "text-gray-900 hover:text-gray-600 hover:bg-gray-100"
 }`}
                       >
-                        <div className="flex items-center justify-center w-[14px] h-[14px]">
+                        <div className="flex items-center justify-center w-3 h-3">
                           <Image
-                            src={
-                              sm.progress === 100
-                                ? "/assets/elearning/ceklismodule.svg"
-                                : "/assets/elearning/submodule-unfinished.svg"
-                            }
+                            src="/assets/elearning/submodule-unfinished.svg"
                             alt="status"
-                            width={10}
-                            height={10}
+                            width={9}
+                            height={9}
                             className={isActive ? "brightness-0 invert" : ""}
                           />
                         </div>
 
                         <span className="text-[10px] leading-relaxed text-left">
-                          {sm.title}
+                          {text.title}
                         </span>
                       </li>
                     );
@@ -273,10 +276,11 @@ ${
               onClick={() =>
                 onSelectTask?.({
                   type: task.type,
-                  data: task.data,
+                  textId: task.textId,
+                  title: task.title,
                 })
               }
-              className={`w-full text-left rounded-lg px-3 py-3 transition cursor-pointer
+              className={`w-full text-left rounded-lg px-2.5 py-2.5 transition cursor-pointer
         ${
           isTaskActive
             ? "bg-emerald-500 text-white"
@@ -285,70 +289,26 @@ ${
             >
               {/* LABEL */}
               <div
-                className={`flex items-center gap-2 text-[11px] font-semibold uppercase
+                className={`flex items-center gap-1.5 text-[10px] font-semibold uppercase
           ${isTaskActive ? "text-white" : "text-gray-500"}`}
               >
                 <Image
                   src={task.icon}
                   alt={task.type}
-                  width={14}
-                  height={14}
+                  width={12}
+                  height={12}
                   className={isTaskActive ? "brightness-0 invert" : ""}
                 />
                 <span>{task.label}</span>
               </div>
 
               {/* TITLE */}
-              <div className="pl-[22px] mt-1 text-sm font-semibold">
+              <div className="pl-[18px] mt-1 text-xs font-semibold">
                 {task.title}
               </div>
             </button>
           );
         })}
-
-        {/* CERTIFICATE */}
-        <div className="pt-4 mb-2">
-          <button
-            disabled={!isCertificateUnlocked}
-            onClick={() => {
-              if (!isCertificateUnlocked) return;
-
-              const linkUrl = subChapter.certificateTemplateLink!;
-
-              // ===== PILIH SALAH SATU MODE =====
-
-              // 🔹 MODE 1: BUKA LINK (redirect ke certificateTemplateLink)
-              window.open(linkUrl, "_blank");
-
-              // 🔹 MODE 2: DOWNLOAD LANGSUNG
-              // const link = document.createElement("a");
-              // link.href = linkUrl;
-              // link.download = `${subChapter.title}-certificate.pdf`;
-              // link.target = "_blank";
-              // link.click();
-            }}
-            className={`flex items-center gap-2 pl-2 text-sm font-medium transition
-      ${
-        isCertificateUnlocked
-          ? "cursor-pointer hover:text-emerald-600 hover:underline text-gray-800"
-          : "cursor-not-allowed text-gray-400"
-      }`}
-            title={
-              !isCertificateUnlocked
-                ? "Selesaikan semua materi untuk membuka sertifikat"
-                : "Unduh Sertifikat"
-            }
-          >
-            <Image
-              src="/assets/elearning/unduhsertifikat.svg"
-              alt="certificate"
-              width={14}
-              height={14}
-              className={!isCertificateUnlocked ? "opacity-40" : ""}
-            />
-            Unduh Sertifikat
-          </button>
-        </div>
       </div>
     </aside>
   );

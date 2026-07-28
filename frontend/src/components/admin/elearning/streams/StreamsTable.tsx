@@ -27,6 +27,8 @@ interface StreamFromAPI {
   description: string | null;
   level: string | null;
   status: string | null;
+  category: string | null;
+  tags: string[];
   thumbnailImages: string[];
   createdAt: string | null;
   coursesCount: number;
@@ -109,7 +111,12 @@ export default function StreamsTable({
     description: string;
     thumbnail: string;
     status: string;
+    category: string;
+    tags: string[];
   } | null>(null);
+
+  const [editTagInput, setEditTagInput] = useState("");
+  const MAX_TAGS = 10;
 
   const [editVisible, setEditVisible] = useState(false);
   const [editThumbnailFile, setEditThumbnailFile] = useState<File | null>(null);
@@ -482,6 +489,8 @@ export default function StreamsTable({
       description: stream.description ?? "",
       status: stream.status === "PUBLISHED" ? "Published" : "Archived",
       thumbnail: stream.thumbnailImages?.[0] ?? "",
+      category: stream.category ?? "",
+      tags: stream.tags ?? [],
     };
 
     setEditModal({
@@ -490,6 +499,8 @@ export default function StreamsTable({
       description: initialData.description,
       thumbnail: initialData.thumbnail,
       status: initialData.status,
+      category: initialData.category,
+      tags: initialData.tags,
     });
 
     // ✅ TAMBAHKAN DI SINI
@@ -497,7 +508,49 @@ export default function StreamsTable({
 
     setEditThumbnailFile(null);
     setEditThumbnailPreview(null);
+    setEditTagInput("");
     setTimeout(() => setEditVisible(true), 10);
+  };
+
+  const addEditTag = () => {
+    if (!editModal) return;
+    const value = editTagInput.trim();
+    if (!value) return;
+
+    if (editModal.tags.length >= MAX_TAGS) {
+      toast.warning(`Maksimal ${MAX_TAGS} tags`);
+      return;
+    }
+
+    if (editModal.tags.some((t) => t.toLowerCase() === value.toLowerCase())) {
+      setEditTagInput("");
+      return;
+    }
+
+    setEditModal({ ...editModal, tags: [...editModal.tags, value] });
+    setEditTagInput("");
+  };
+
+  const removeEditTag = (index: number) => {
+    if (!editModal) return;
+    setEditModal({
+      ...editModal,
+      tags: editModal.tags.filter((_, i) => i !== index),
+    });
+  };
+
+  const handleEditTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      addEditTag();
+    } else if (
+      e.key === "Backspace" &&
+      !editTagInput &&
+      editModal &&
+      editModal.tags.length > 0
+    ) {
+      removeEditTag(editModal.tags.length - 1);
+    }
   };
 
   const closeEditModal = () => {
@@ -526,6 +579,9 @@ export default function StreamsTable({
         initialEditData.name === editModal.name &&
         initialEditData.description === editModal.description &&
         initialEditData.status === editModal.status &&
+        initialEditData.category === editModal.category &&
+        JSON.stringify(initialEditData.tags) ===
+          JSON.stringify(editModal.tags) &&
         !editThumbnailFile; // penting
 
       if (isSame) {
@@ -539,6 +595,12 @@ export default function StreamsTable({
       formData.append("title", editModal.name);
       formData.append("description", editModal.description);
       formData.append("level", "beginner");
+      if (editModal.category) {
+        formData.append("category", editModal.category);
+      }
+      editModal.tags.forEach((tag) => {
+        formData.append("tags", tag);
+      });
 
       // Map nilai status dari display ke enum backend
       const statusMap: Record<string, string> = {
@@ -1226,6 +1288,87 @@ export default function StreamsTable({
                   rows={4}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 resize-none"
                 />
+              </div>
+
+              {/* Category */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Category
+                </label>
+                <div className="relative">
+                  <select
+                    value={editModal.category}
+                    onChange={(e) =>
+                      setEditModal({ ...editModal, category: e.target.value })
+                    }
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 appearance-none focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-white"
+                  >
+                    <option value="" disabled>
+                      Select category
+                    </option>
+                    <option value="Data Analyst">Data Analyst</option>
+                    <option value="Data Scientist">Data Scientist</option>
+                    <option value="Machine Learning">Machine Learning</option>
+                    <option value="Programming">Programming</option>
+                    <option value="Data Engineering">Data Engineering</option>
+                    <option value="Artificial Intelligence">
+                      Artificial Intelligence
+                    </option>
+                    <option value="Data Visualization">
+                      Data Visualization
+                    </option>
+                    <option value="Statistics & Probability">
+                      Statistics & Probability
+                    </option>
+                  </select>
+                  <ChevronDown
+                    size={16}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                  />
+                </div>
+              </div>
+
+              {/* Tags */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Tags{" "}
+                  <span className="text-gray-400 font-normal">
+                    ({editModal.tags.length}/{MAX_TAGS})
+                  </span>
+                </label>
+                <div className="w-full border border-gray-200 rounded-lg px-2.5 py-2 flex flex-wrap items-center gap-1.5 focus-within:ring-1 focus-within:ring-emerald-400">
+                  {editModal.tags.map((tag, index) => (
+                    <span
+                      key={`${tag}-${index}`}
+                      className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-xs font-medium pl-2.5 pr-1.5 py-1 rounded-md"
+                    >
+                      {tag}
+                      <button
+                        type="button"
+                        onClick={() => removeEditTag(index)}
+                        className="text-emerald-500 hover:text-emerald-800 transition"
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  ))}
+
+                  {editModal.tags.length < MAX_TAGS && (
+                    <input
+                      value={editTagInput}
+                      onChange={(e) => setEditTagInput(e.target.value)}
+                      onKeyDown={handleEditTagKeyDown}
+                      onBlur={addEditTag}
+                      type="text"
+                      placeholder={
+                        editModal.tags.length === 0
+                          ? "Ketik tag lalu tekan Enter"
+                          : ""
+                      }
+                      className="flex-1 min-w-[100px] text-sm text-gray-700 placeholder-gray-400 focus:outline-none py-1"
+                    />
+                  )}
+                </div>
               </div>
 
               {/* Thumbnail */}

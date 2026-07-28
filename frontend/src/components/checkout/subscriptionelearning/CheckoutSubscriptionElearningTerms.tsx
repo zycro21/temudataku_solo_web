@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 
-export default function CheckoutAyclTerms({
-  bookingId,
+export default function CheckoutSubscriptionElearningTerms({
+  subscriptionId,
   onReferralApplied,
   priceSummary,
   onTermsChange,
@@ -16,8 +16,8 @@ export default function CheckoutAyclTerms({
   const [isVoucherApplied, setIsVoucherApplied] = useState(false);
 
   const handleApplyCoupon = async () => {
-    if (!bookingId) {
-      toast.error("Booking tidak ditemukan.");
+    if (!subscriptionId) {
+      toast.error("Subscription tidak ditemukan.");
       return;
     }
 
@@ -29,8 +29,10 @@ export default function CheckoutAyclTerms({
     try {
       setLoading(true);
 
+      // Endpoint ini otomatis mendeteksi apakah kode adalah voucher atau
+      // referral affiliator (lihat VoucherController.applyCodeToELearning)
       const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/voucher/aycl/${bookingId}/apply-code`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/voucher/elearning-subscriptions/${subscriptionId}/apply-code`,
         { code: coupon },
         { withCredentials: true },
       );
@@ -38,7 +40,6 @@ export default function CheckoutAyclTerms({
       const data = res.data.data;
 
       // Normalize response: voucher pakai finalAmount, referral pakai finalPrice
-      // CheckoutSummary membaca priceSummary.finalPrice dan priceSummary.originalPrice
       const normalizedSummary = {
         originalPrice: data.originalPrice ?? data.originalAmount,
         finalPrice: data.finalPrice ?? data.finalAmount,
@@ -124,7 +125,7 @@ export default function CheckoutAyclTerms({
           <p className="text-[11px] text-emerald-700 leading-relaxed">
             Kode voucher/referral berhasil diterapkan!{" "}
             <span className="font-bold">Jangan refresh halaman ini</span> -- kode
-            yang sudah dipakai tidak bisa digunakan lagi.
+            yang sudah dipakai tidak bisa digunakan ulang.
           </p>
         </div>
       )}

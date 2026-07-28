@@ -8,7 +8,7 @@ import {
   MdSupervisorAccount,
   MdAssignment,
   MdMenuBook,
-  MdCastForEducation
+  MdCastForEducation,
 } from "react-icons/md";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext"; // pakai AuthContext
@@ -88,6 +88,39 @@ export default function Navbar() {
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  // 🔥 Komponen lain (mis. ElearningSelection/ElearningFul) yang butuh user
+  // login tapi tidak punya akses ke state modal ini bisa tembak event ini
+  // supaya LoginModal terbuka, tanpa perlu navigasi/redirect ke halaman lain.
+  useEffect(() => {
+    const handleOpenLogin = () => {
+      setIsRegisterModalOpen(false);
+      setIsLoginModalOpen(true);
+    };
+
+    window.addEventListener("auth:open-login", handleOpenLogin);
+
+    return () => {
+      window.removeEventListener("auth:open-login", handleOpenLogin);
+    };
+  }, []);
+
+  // 🔥 BARU — komponen lain (mis. ElearningSelection / ElearningFul) yang
+  // tidak punya akses ke state modal ini bisa "minta tolong" Navbar buka
+  // LoginModal, cukup dengan menembakkan event ini — tanpa perlu prop
+  // drilling atau restrukturisasi context.
+  useEffect(() => {
+    const handleOpenLoginModal = () => {
+      setIsRegisterModalOpen(false);
+      setIsLoginModalOpen(true);
+    };
+
+    window.addEventListener("open-login-modal", handleOpenLoginModal);
+
+    return () => {
+      window.removeEventListener("open-login-modal", handleOpenLoginModal);
+    };
   }, []);
 
   const profileImage = (() => {
@@ -219,7 +252,7 @@ export default function Navbar() {
               <li>
                 <Link
                   href="/elearning"
-                 className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 text-sm"
+                  className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 text-sm"
                 >
                   <MdCastForEducation className="text-gray-500 text-sm" />
                   E-Learning

@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 
 interface NavItem {
-  id: number;
+  id: string;
   title: string;
   moduleTitle: string;
 }
@@ -16,20 +16,20 @@ interface Props {
 
 export default function SubchapterFooter({ prev, next, onNavigate }: Props) {
   return (
-    <footer className="fixed bottom-0 left-0 right-0 h-20 bg-[#F8FAFC] border-t border-gray-200 z-50">
-      <div className="h-full flex items-center justify-between px-10">
+    <footer className="fixed bottom-0 left-0 right-0 h-16 bg-[#F8FAFC] border-t border-gray-200 z-50">
+      <div className="h-full flex items-center justify-between px-6">
         {/* PREV */}
         <Button
           variant="ghost"
           disabled={!prev}
           onClick={() => prev && onNavigate(prev)}
-          className="flex items-center gap-4 text-left disabled:opacity-40"
+          className="flex items-center gap-3 text-left disabled:opacity-40"
         >
           {/* ICON */}
-          <div className="w-9 h-9 flex items-center justify-center rounded-full border border-emerald-500">
+          <div className="w-8 h-8 flex items-center justify-center rounded-full border border-emerald-500">
             <svg
-              width="16"
-              height="16"
+              width="14"
+              height="14"
               viewBox="0 0 24 24"
               fill="none"
               stroke="#10B981"
@@ -43,8 +43,8 @@ export default function SubchapterFooter({ prev, next, onNavigate }: Props) {
 
           {/* TEXT */}
           <div className="leading-tight">
-            <p className="text-xs text-gray-500">{prev?.moduleTitle}</p>
-            <p className="text-sm font-semibold text-gray-800">{prev?.title}</p>
+            <p className="text-[11px] text-gray-500">{prev?.moduleTitle}</p>
+            <p className="text-xs font-semibold text-gray-800">{prev?.title}</p>
           </div>
         </Button>
 
@@ -53,19 +53,19 @@ export default function SubchapterFooter({ prev, next, onNavigate }: Props) {
           variant="ghost"
           disabled={!next}
           onClick={() => next && onNavigate(next)}
-          className="flex items-center gap-4 text-right disabled:opacity-40"
+          className="flex items-center gap-3 text-right disabled:opacity-40"
         >
           {/* TEXT */}
           <div className="leading-tight">
-            <p className="text-xs text-gray-500">{next?.moduleTitle}</p>
-            <p className="text-sm font-semibold text-gray-800">{next?.title}</p>
+            <p className="text-[11px] text-gray-500">{next?.moduleTitle}</p>
+            <p className="text-xs font-semibold text-gray-800">{next?.title}</p>
           </div>
 
           {/* ICON */}
-          <div className="w-9 h-9 flex items-center justify-center rounded-full border border-emerald-500">
+          <div className="w-8 h-8 flex items-center justify-center rounded-full border border-emerald-500">
             <svg
-              width="16"
-              height="16"
+              width="14"
+              height="14"
               viewBox="0 0 24 24"
               fill="none"
               stroke="#10B981"

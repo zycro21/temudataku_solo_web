@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import axios from "axios";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname, useParams } from "next/navigation";
+import { usePathname, useParams, useRouter } from "next/navigation";
 import { useLogout } from "@/hooks/useLogout";
 import { Search, Bell, ChevronDown, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -295,8 +295,17 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const logout = useLogout();
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
+
+  // 🔥 Guard: kalau proses cek auth awal sudah selesai tapi tidak ada
+  // currentUser (session/token habis atau belum login), lempar balik ke /
+  useEffect(() => {
+    if (!authLoading && !currentUser) {
+      router.replace("/");
+    }
+  }, [authLoading, currentUser, router]);
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -582,6 +591,12 @@ export default function AdminLayout({
 
   if (isFullscreenRoute(pathname)) {
     return <>{children}</>;
+  }
+
+  // Selama auth masih dicek atau user memang tidak login, jangan tampilkan
+  // isi dashboard admin (redirect ke / sudah dijalankan di useEffect di atas)
+  if (authLoading || !currentUser) {
+    return null;
   }
 
   return (

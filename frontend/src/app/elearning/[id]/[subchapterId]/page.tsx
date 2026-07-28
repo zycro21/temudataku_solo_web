@@ -1,4 +1,6 @@
 // /elearning/[id]/[subchapterId]/page.tsx
+
+import ElearningAccessGuard from "@/components/elearning/elearningdetail/ElearningAccessGuard";
 import SubChapterDetail from "@/components/elearning/elearningdetail/elearningSubchapter/SubchapterDetail";
 
 export default async function SubChapterPage({
@@ -8,5 +10,9 @@ export default async function SubChapterPage({
 }) {
   const { id, subchapterId } = await params;
 
-  return <SubChapterDetail practiceId={id} subChapterId={subchapterId} />;
+  return (
+    <ElearningAccessGuard>
+      <SubChapterDetail practiceId={id} subChapterId={subchapterId} />
+    </ElearningAccessGuard>
+  );
 }

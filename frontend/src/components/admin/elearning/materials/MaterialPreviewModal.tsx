@@ -78,8 +78,7 @@ function ParagraphPreview({ html }: { html: string }) {
         [&_li]:my-1
         [&_strong]:font-bold
         [&_u]:underline
-        [&_blockquote]:pl-4 [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:italic
-        [&>div]:mb-3 [&>p]:mb-3"
+        [&_blockquote]:pl-4 [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:italic"
       dangerouslySetInnerHTML={{ __html: normalizeEditorHTML(html) }}
     />
   );

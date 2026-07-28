@@ -163,7 +163,7 @@ export default function ChooseSubscriptionElearning() {
   );
 
   return (
-    <section className="py-20 px-0">
+    <section id="pilihan-elearning" className="py-20 px-0">
       <div className="max-w-[1200px] mx-auto">
         {/* HEADER (PUTIH) */}
         <div className="text-center mb-10">
@@ -264,7 +264,7 @@ export default function ChooseSubscriptionElearning() {
                       {months} Bulan
                     </h3>
                     <p className="text-xs opacity-90 mt-2 mb-6">
-                      PAKET VIDEO E-LEARNING
+                      PAKET PEMBELAJARAN E-LEARNING
                     </p>
 
                     {meta.discountAmount > 0 && (
@@ -314,16 +314,18 @@ export default function ChooseSubscriptionElearning() {
                       {isSubmitting ? "Memproses..." : "Mulai Berlangganan"}
                     </Button>
 
-                    {/* ===== STOCK / URGENCY BAR ===== */}
-                    <div className="mt-4">
-                      <p className="text-sm font-semibold text-red-500 mb-2">
-                        Segera Habis 🔥
-                      </p>
+                    {/* ===== STOCK / URGENCY BAR — cuma di card TERPOPULER ===== */}
+                    {isPopuler && (
+                      <div className="mt-4">
+                        <p className="text-sm font-semibold text-red-500 mb-2">
+                          Segera Habis 🔥
+                        </p>
 
-                      <div className="w-full h-2 rounded-full bg-sky-100 overflow-hidden">
-                        <div className="h-full w-[70%] rounded-full bg-teal-500"></div>
+                        <div className="w-full h-2 rounded-full bg-sky-100 overflow-hidden">
+                          <div className="h-full w-[70%] rounded-full bg-teal-500"></div>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               );

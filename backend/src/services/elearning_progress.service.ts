@@ -386,6 +386,23 @@ export const updateSubBabProgress = async ({
   });
 };
 
+// 🔥 GANTI ISI FUNGSI getCourseProgress DI SERVICE E-LEARNING PROGRESS KAMU
+// DENGAN VERSI INI. Route, validator (getCourseProgressSchema), dan
+// controller (getCourseProgressController) TIDAK PERLU DIUBAH — tetap
+// pakai yang sudah ada, karena sudah cocok dengan return value baru ini.
+//
+// Perubahan dari versi lama:
+// 1. Progress dihitung per SubChapter (unit "kelas" di frontend) lewat
+//    tabel ELearningSubChapterProgress, BUKAN agregasi SubBab — karena
+//    field isCompleted/timeSpent yang dipakai versi lama tidak ada di
+//    skema ELearningSubChapterProgress (cuma ada progressPercent &
+//    lastActivityAt).
+// 2. Sekalian balikin progress tiap subChapter (subChapterProgress[])
+//    supaya frontend bisa render semua kartu "kelas" dari SATU request,
+//    tidak perlu panggil endpoint per-kartu.
+// 3. Error "belum punya subscription aktif" sekarang set statusCode 403
+//    (sebelumnya generic Error tanpa statusCode, jatuhnya ke 500).
+
 export const getCourseProgress = async ({
   userId,
   courseId,
@@ -427,51 +444,81 @@ export const getCourseProgress = async ({
   });
 
   if (!activeSubscription) {
-    throw new Error("Anda belum memiliki subscription aktif");
+    const err = new Error("Anda belum memiliki subscription aktif");
+    (err as any).statusCode = 403;
+    throw err;
   }
 
   /**
-   * 3. Hitung total SubBab
+   * 3. Ambil semua SubChapter ("kelas") milik course ini
    */
-  const totalSubBab = await prisma.eLearningSubBab.count({
-    where: {
-      subChapter: { courseId },
-    },
+  const subChapters = await prisma.eLearningSubChapter.findMany({
+    where: { courseId },
+    select: { id: true },
+    orderBy: { orderNumber: "asc" },
+  });
+
+  const subChapterIds = subChapters.map((sc) => sc.id);
+
+  /**
+   * 4. Ambil progress user untuk subChapter-subChapter tersebut
+   *    (satu row per user per subChapter, dari ELearningSubChapterProgress)
+   */
+  const progresses = subChapterIds.length
+    ? await prisma.eLearningSubChapterProgress.findMany({
+        where: { userId, subChapterId: { in: subChapterIds } },
+      })
+    : [];
+
+  const progressMap = new Map(progresses.map((p) => [p.subChapterId, p]));
+
+  /**
+   * 5. Mapping progress per subChapter (buat render tiap kartu "kelas")
+   */
+  const subChapterProgress = subChapters.map((sc) => {
+    const progress = progressMap.get(sc.id);
+    const percent = progress ? Math.round(progress.progressPercent) : 0;
+
+    const status: "not_started" | "in_progress" | "completed" =
+      percent >= 100
+        ? "completed"
+        : percent > 0
+          ? "in_progress"
+          : "not_started";
+
+    return {
+      subChapterId: sc.id,
+      progressPercent: percent,
+      status,
+      lastActivityAt: progress?.lastActivityAt ?? null,
+    };
   });
 
   /**
-   * 4. Ambil semua progress user untuk course ini
+   * 6. Hitung ringkasan overall course
    */
-  const progresses = await prisma.eLearningProgress.findMany({
-    where: {
-      userId,
-      subBab: {
-        subChapter: { courseId },
-      },
-    },
-  });
+  const totalSubChapter = subChapters.length;
 
-  const completedSubBab = progresses.filter(
-    (p) => p.isCompleted === true,
+  const completedSubChapter = subChapterProgress.filter(
+    (sc) => sc.status === "completed",
   ).length;
 
-  const totalTimeSpent = progresses.reduce(
-    (sum, p) => sum + (p.timeSpent ?? 0),
-    0,
-  );
-
   const progressPercent =
-    totalSubBab === 0 ? 0 : Math.round((completedSubBab / totalSubBab) * 100);
+    totalSubChapter === 0
+      ? 0
+      : Math.round(
+          subChapterProgress.reduce((sum, sc) => sum + sc.progressPercent, 0) /
+            totalSubChapter,
+        );
 
   return {
     courseId,
-    totalSubBab,
-    completedSubBab,
-    remainingSubBab: Math.max(totalSubBab - completedSubBab, 0),
+    totalSubChapter,
+    completedSubChapter,
     progressPercent,
-    totalTimeSpent, // ⏱️ detik
-    hasStarted: progresses.length > 0,
-    isEligibleCertificate: totalSubBab > 0 && completedSubBab === totalSubBab,
+    isEligibleCertificate:
+      totalSubChapter > 0 && completedSubChapter === totalSubChapter,
+    subChapterProgress,
   };
 };
 

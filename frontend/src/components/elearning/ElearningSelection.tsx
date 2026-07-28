@@ -5,13 +5,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import Image from "next/image";
 import {
   Search,
@@ -20,8 +13,17 @@ import {
   ChevronDown,
   ChevronUp,
   SearchX,
+  Lock,
+  LogIn,
+  Star,
+  Users,
 } from "lucide-react";
-import { practices } from "@/data/practice";
+import { useElearningCourses } from "@/hooks/useElearningCourses";
+import {
+  useElearningSubscriberCount,
+  getDisplayedParticipantCount,
+} from "@/hooks/useElearningSubscriberCount";
+import SubscriptionStatusBanner from "./SubscriptionStatusBanner";
 
 // Practice utama
 export interface Practice {
@@ -291,36 +293,79 @@ export interface InteractiveCodeContent {
   expectedResult: string;
 }
 
+// 🔥 Beda dari profilePicture — thumbnailImages di DB SUDAH termasuk path
+// lengkapnya sendiri (mis. "/images/elearningThumbnail/thumbnail-....png"),
+// jadi tinggal ditempel ke base URL, TANPA tambahan "/images/" lagi.
+function resolveThumbnailImage(thumbnail: string | null | undefined) {
+  if (!thumbnail) return null;
+
+  if (thumbnail.startsWith("http")) {
+    return thumbnail;
+  }
+
+  return `${process.env.NEXT_PUBLIC_API_BASE_URL}${thumbnail}`;
+}
+
+// 🔥 Bintang bisa terisi sebagian (mis. rating 4.5 / 4.7), bukan cuma
+// penuh/kosong — pakai teknik overlay: lapisan bintang kuning di atas
+// bintang abu-abu, di-clip lebar-nya sesuai persentase rating.
+function StarRating({ rating }: { rating: number }) {
+  const percentage = (Math.max(0, Math.min(rating, 5)) / 5) * 100;
+
+  return (
+    <div className="relative inline-flex" style={{ width: 76, height: 14 }}>
+      <div className="absolute inset-0 flex gap-0.5">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Star
+            key={i}
+            className="w-3.5 h-3.5 text-gray-300 fill-gray-300 shrink-0"
+          />
+        ))}
+      </div>
+      <div
+        className="absolute inset-0 flex gap-0.5 overflow-hidden"
+        style={{ width: `${percentage}%` }}
+      >
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Star
+            key={i}
+            className="w-3.5 h-3.5 text-amber-400 fill-amber-400 shrink-0"
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function ElearningSelection() {
+  const { courses, loading, errorType } = useElearningCourses();
+  const totalSubscribers = useElearningSubscriberCount();
+
   const [selectedCategory, setSelectedCategory] = useState("Semua");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedLevel, setSelectedLevel] = useState("Semua");
 
-  const categories = ["Semua", "Data", "Machine Learning", "Programming"];
-  const categoryToTypeMap: Record<string, string | null> = {
-    Semua: null,
-    Data: "data",
-    "Machine Learning": "machine learning",
-    Programming: "programming",
-  };
-  const levels = ["Semua", "Pemula", "Menengah", "Lanjutan"];
+  // 🔥 Kategori diambil dinamis dari data yang benar-benar ada, bukan
+  // hardcode, karena `category` di backend adalah free text dari admin.
+  const categories = [
+    "Semua",
+    ...Array.from(
+      new Set(
+        courses
+          .map((c) => c.category)
+          .filter((c): c is string => !!c && c.trim().length > 0),
+      ),
+    ),
+  ];
 
-  const filteredPractices = practices.filter((practice) => {
-    // category
+  const filteredPractices = courses.filter((course) => {
     const matchCategory =
-      selectedCategory === "Semua" ||
-      practice.tipe === categoryToTypeMap[selectedCategory];
+      selectedCategory === "Semua" || course.category === selectedCategory;
 
-    // level
-    const matchLevel =
-      selectedLevel === "Semua" || practice.level === selectedLevel;
-
-    // search title
-    const matchSearch = practice.title
+    const matchSearch = course.title
       .toLowerCase()
       .includes(searchQuery.toLowerCase().trim());
 
-    return matchCategory && matchLevel && matchSearch;
+    return matchCategory && matchSearch;
   });
 
   const INITIAL_COUNT = 6;
@@ -341,17 +386,19 @@ export default function ElearningSelection() {
     setVisibleCount(INITIAL_COUNT);
   };
 
-  const estimateDuration = (totalModule: number) => {
-    if (totalModule <= 0) return "0 jam";
+  // 🔥 Format total menit belajar (hasil sum estimatedTime semua subChapter,
+  // dari backend) jadi "X jam Y menit", dibulatkan ke kelipatan 10 menit
+  // terdekat biar angkanya rapi (bukan detail sampai satuan menit ganjil).
+  const formatEstimatedDuration = (totalMinutes: number) => {
+    if (!totalMinutes || totalMinutes <= 0) return "Segera hadir";
 
-    const minHours = (totalModule * 15) / 60;
-    const maxHours = (totalModule * 20) / 60;
+    const rounded = Math.max(10, Math.round(totalMinutes / 10) * 10);
+    const hours = Math.floor(rounded / 60);
+    const minutes = rounded % 60;
 
-    const format = (val: number) => (val >= 1 ? val.toFixed(1) : "<1");
-
-    const cappedMax = Math.min(maxHours, 200);
-
-    return `${format(minHours)} – ${format(cappedMax)} jam`;
+    if (hours === 0) return `${minutes} menit`;
+    if (minutes === 0) return `${hours} jam`;
+    return `${hours} jam ${minutes} menit`;
   };
 
   const renderStars = (rating: number) => {
@@ -395,12 +442,14 @@ export default function ElearningSelection() {
   return (
     <section className="py-10 px-3 md:px-5 lg:px-6">
       <div className="max-w-7xl mx-auto">
+        <SubscriptionStatusBanner />
+
         {/* Section Header */}
         <div className="text-center mb-8">
           <h2 className="text-lg md:text-xl lg:text-2xl font-bold text-gray-900 mb-2">
             Kuasai Skill dengan E-Learning Praktis
           </h2>
-          <p className="text-sm md:text-base text-gray-600 max-w-2xl mx-auto">
+          <p className="text-sm md:text-base text-gray-600 max-w-4xl mx-auto">
             Dari nol sampai expert, e-learning ini siap temenin langkah
             belajarmu. Tinggal pilih modul, terus jalanin!
           </p>
@@ -408,7 +457,7 @@ export default function ElearningSelection() {
 
         {/* Search and Filter */}
         <div className="mb-6 space-y-4">
-          {/* Search Bar and Level Filter */}
+          {/* Search Bar */}
           <div className="flex flex-col md:flex-row gap-3">
             {/* Search Bar - Full width */}
             <div className="flex-1">
@@ -425,29 +474,6 @@ export default function ElearningSelection() {
                   className="w-full pl-10 pr-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-700"
                 />
               </div>
-            </div>
-
-            {/* Level Filter Dropdown */}
-            <div className="md:w-44">
-              <Select
-                value={selectedLevel}
-                onValueChange={(value) => {
-                  setSelectedLevel(value);
-                  setVisibleCount(INITIAL_COUNT); // reset pagination
-                }}
-              >
-                <SelectTrigger className="w-full !h-full px-3 text-sm border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-700 bg-white">
-                  <SelectValue placeholder="Pilih Level" />
-                </SelectTrigger>
-
-                <SelectContent>
-                  {levels.map((level) => (
-                    <SelectItem key={level} value={level}>
-                      {level}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
 
@@ -475,7 +501,59 @@ export default function ElearningSelection() {
         </div>
 
         {/* Practice Cards Grid / Empty State */}
-        {totalPractices === 0 ? (
+        {loading ? (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div
+                key={i}
+                className="rounded-xl border border-gray-200 overflow-hidden animate-pulse"
+              >
+                <div className="h-[190px] bg-gray-200 m-2 rounded-lg" />
+                <div className="p-4 pt-0 space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-3/4" />
+                  <div className="h-3 bg-gray-200 rounded w-full" />
+                  <div className="h-3 bg-gray-200 rounded w-2/3" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : errorType === "unauthenticated" ||
+          errorType === "no-subscription" ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center px-4">
+            <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center mb-4">
+              <Lock className="w-6 h-6 text-emerald-600" />
+            </div>
+            <h3 className="text-base font-semibold text-gray-900">
+              {errorType === "unauthenticated"
+                ? "Login dulu untuk lihat katalog E-Learning"
+                : "Kamu belum punya langganan aktif"}
+            </h3>
+            <p className="text-xs text-gray-500 mt-1 max-w-sm">
+              {errorType === "unauthenticated"
+                ? "Masuk ke akun kamu untuk menjelajahi seluruh course E-Learning yang tersedia."
+                : "Berlangganan sekarang untuk membuka akses ke seluruh course E-Learning."}
+            </p>
+            {errorType === "unauthenticated" ? (
+              <button
+                type="button"
+                onClick={() =>
+                  window.dispatchEvent(new Event("auth:open-login"))
+                }
+                className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-semibold px-5 py-2 transition-all"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                Masuk Sekarang
+              </button>
+            ) : (
+              <Link
+                href="/elearning"
+                className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-semibold px-5 py-2 transition-all"
+              >
+                Lihat Paket Langganan
+              </Link>
+            )}
+          </div>
+        ) : totalPractices === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             {/* Icon */}
             <SearchX className="w-12 h-12 text-gray-400 mb-3" />
@@ -492,10 +570,10 @@ export default function ElearningSelection() {
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {visiblePractices.map((practice) => (
+            {visiblePractices.map((course) => (
               <Link
-                key={practice.id}
-                href={`/elearning/${practice.id}`}
+                key={course.id}
+                href={`/elearning/${course.id}?from=elearning`}
                 className="block"
               >
                 <Card className="group rounded-xl border border-gray-200 hover:shadow-lg transition-all p-0 cursor-pointer hover:-translate-y-1 duration-300">
@@ -503,29 +581,28 @@ export default function ElearningSelection() {
                   <div className="relative px-2 pt-2">
                     <div className="relative bg-gray-100 rounded-lg overflow-hidden">
                       <Image
-                        src={practice.image}
-                        alt={practice.title}
+                        src={
+                          resolveThumbnailImage(course.thumbnailImages?.[0]) ||
+                          "/assets/elearning/placeholder.png"
+                        }
+                        alt={course.title}
                         width={381}
                         height={285}
-                        className="w-full h-[190px] object-cover"
+                        unoptimized
+                        className="w-full h-[190px] object-contain"
                       />
-
-                      {/* Level Badge */}
-                      <div className="absolute top-2 right-2 bg-indigo-600 text-white text-xs font-medium px-2.5 py-0.5 rounded-full">
-                        {practice.level}
-                      </div>
                     </div>
                   </div>
 
                   <CardContent className="p-4 pt-0">
                     {/* Title */}
                     <h3 className="text-base leading-snug font-bold text-gray-900 mb-1.5 line-clamp-1 transition-colors group-hover:text-emerald-600">
-                      {practice.title}
+                      {course.title}
                     </h3>
 
                     {/* Description */}
                     <p className="text-xs text-gray-700 mb-3 line-clamp-2">
-                      {practice.deskripsi}
+                      {course.description}
                     </p>
 
                     {/* Class & Module Info */}
@@ -539,7 +616,7 @@ export default function ElearningSelection() {
                           height={10}
                         />
                         <span className="font-medium">
-                          {practice.jumlahSubChapter} Kelas
+                          {course.coursesCount} Kelas
                         </span>
                       </div>
 
@@ -552,43 +629,39 @@ export default function ElearningSelection() {
                           height={10}
                         />
                         <span className="font-medium">
-                          {practice.jumlahModul} Modul
+                          {course.modulesCount} Modul
                         </span>
 
                         {/* Estimasi waktu */}
                         <span className="ml-1.5 text-[10px] text-gray-700 bg-gray-200 px-1.5 py-0.5 rounded-full">
-                          ~ {estimateDuration(practice.jumlahModul)}
+                          ~{" "}
+                          {formatEstimatedDuration(
+                            course.totalEstimatedMinutes,
+                          )}
                         </span>
                       </div>
                     </div>
 
-                    {/* Footer */}
-                    <div className="flex items-center justify-between text-xs">
-                      {/* Rating */}
+                    {/* Footer — rating & jumlah peserta */}
+                    <div className="flex items-center justify-between text-xs pt-3 border-t border-gray-100">
                       <div className="flex items-center gap-1.5">
-                        <div className="flex items-center gap-0.5">
-                          {renderStars(practice.rating)}
-                        </div>
-
+                        <StarRating rating={course.averageRating ?? 0} />
                         <span className="text-gray-700 font-medium">
-                          {practice.rating.toFixed(1)}
+                          {(course.averageRating ?? 0).toFixed(1)}
                         </span>
-
                         <span className="text-gray-500">
-                          ({practice.JumlahPerating})
+                          ({course.reviewCount ?? 0} ulasan)
                         </span>
                       </div>
 
-                      {/* Students */}
-                      <div className="flex items-center gap-1.5 text-xs text-gray-600">
-                        <Image
-                          src="/assets/elearning/peserta.svg"
-                          alt="Peserta"
-                          width={12}
-                          height={12}
-                        />
-                        <span className="font-medium text-gray-400">
-                          {practice.jumlahPembeli}
+                      <div className="flex items-center gap-1 text-gray-500">
+                        <Users className="w-3.5 h-3.5" />
+                        <span className="font-medium">
+                          {getDisplayedParticipantCount(
+                            course.id,
+                            totalSubscribers,
+                          )}{" "}
+                          peserta
                         </span>
                       </div>
                     </div>

@@ -10,7 +10,7 @@ import { logActivity } from "../utils/logActivtiy.js";
 export const createSubscription = async (
   req: AuthenticatedRequestELearningSubscription,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const userId = req.user?.userId!;
@@ -35,14 +35,13 @@ export const createSubscription = async (
 export const getMyActiveSubscription = async (
   req: AuthenticatedRequestELearningSubscription,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const userId = req.user?.userId!;
 
-    const result = await ElearningSubscriptionService.getMyActiveSubscription(
-      userId
-    );
+    const result =
+      await ElearningSubscriptionService.getMyActiveSubscription(userId);
 
     res.status(200).json({
       success: true,
@@ -56,7 +55,7 @@ export const getMyActiveSubscription = async (
 export const getMySubscriptionHistory = async (
   req: AuthenticatedRequestELearningSubscription,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const userId = req.user?.userId!;
@@ -82,7 +81,7 @@ export const getMySubscriptionHistory = async (
 export const cancelSubscription = async (
   req: AuthenticatedRequestELearningSubscription,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const userId = req.user?.userId!;
@@ -106,14 +105,13 @@ export const cancelSubscription = async (
 export const getAllSubscriptions = async (
   req: AuthenticatedRequestELearningSubscription,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const query = req.validatedQuery;
 
-    const result = await ElearningSubscriptionService.getAllSubscriptions(
-      query
-    );
+    const result =
+      await ElearningSubscriptionService.getAllSubscriptions(query);
 
     res.status(200).json({
       success: true,
@@ -128,7 +126,7 @@ export const getAllSubscriptions = async (
 export const getSubscriptionDetail = async (
   req: AuthenticatedRequestELearningSubscription,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { id } = req.params;
@@ -148,18 +146,17 @@ export const getSubscriptionDetail = async (
 export const updateStatus = async (
   req: AuthenticatedRequestELearningSubscription,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { id } = req.params;
     const { status, reason } = req.validatedBody;
 
-    const result =
-      await ElearningSubscriptionService.updateSubscriptionStatus({
-        subscriptionId: id,
-        newStatus: status,
-        reason,
-      });
+    const result = await ElearningSubscriptionService.updateSubscriptionStatus({
+      subscriptionId: id,
+      newStatus: status,
+      reason,
+    });
 
     res.status(200).json({
       success: true,
@@ -174,7 +171,7 @@ export const updateStatus = async (
 export const exportSubscriptions = async (
   req: AuthenticatedRequestELearningSubscription,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -207,7 +204,7 @@ export const exportSubscriptions = async (
 export const deleteSubscription = async (
   req: AuthenticatedRequestELearningSubscription,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -232,6 +229,48 @@ export const deleteSubscription = async (
     res.status(200).json({
       success: true,
       message: "E-Learning subscription berhasil dihapus",
+      data: result,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getSubscriptionById = async (
+  req: AuthenticatedRequestELearningSubscription,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const userId = req.user?.userId!;
+    const subscriptionId = req.validatedParams.id;
+
+    const result = await ElearningSubscriptionService.getSubscriptionById({
+      userId,
+      subscriptionId,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Subscription detail retrieved successfully",
+      data: result,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getPublicSubscriberCount = async (
+  req: AuthenticatedRequestELearningSubscription,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const result =
+      await ElearningSubscriptionService.getPublicSubscriberCount();
+
+    res.status(200).json({
+      success: true,
       data: result,
     });
   } catch (err) {

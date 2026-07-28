@@ -160,6 +160,17 @@ export default function CheckoutClassTerms({
               menggunakan kode voucher atau referral.
             </p>
           )}
+
+          {isVoucherApplied && (
+            <div className="rounded-lg border border-emerald-200 bg-white px-3 py-2 flex items-start gap-2 mt-2 md:ml-2">
+              <span className="text-sm leading-none">✅</span>
+              <p className="text-[11px] md:text-xs text-emerald-700 leading-relaxed">
+                Kode voucher/referral berhasil diterapkan!{" "}
+                <span className="font-bold">Jangan refresh halaman ini</span> --
+                kode yang sudah dipakai tidak bisa digunakan ulang.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

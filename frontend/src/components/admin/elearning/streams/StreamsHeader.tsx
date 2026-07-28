@@ -31,7 +31,46 @@ export default function StreamsHeader({
     title: "",
     description: "",
     status: "",
+    category: "",
+    tags: [] as string[],
   });
+
+  const [tagInput, setTagInput] = useState("");
+
+  const MAX_TAGS = 10;
+
+  const addTag = () => {
+    const value = tagInput.trim();
+    if (!value) return;
+
+    if (form.tags.length >= MAX_TAGS) {
+      toast.warning(`Maksimal ${MAX_TAGS} tags`);
+      return;
+    }
+
+    // hindari duplikat (case-insensitive)
+    if (form.tags.some((t) => t.toLowerCase() === value.toLowerCase())) {
+      setTagInput("");
+      return;
+    }
+
+    setForm({ ...form, tags: [...form.tags, value] });
+    setTagInput("");
+  };
+
+  const removeTag = (index: number) => {
+    setForm({ ...form, tags: form.tags.filter((_, i) => i !== index) });
+  };
+
+  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      addTag();
+    } else if (e.key === "Backspace" && !tagInput && form.tags.length > 0) {
+      // hapus tag terakhir kalau input kosong dan backspace ditekan
+      removeTag(form.tags.length - 1);
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -59,7 +98,10 @@ export default function StreamsHeader({
         title: "",
         description: "",
         status: "",
+        category: "",
+        tags: [],
       });
+      setTagInput("");
     }, 250);
   };
 
@@ -87,6 +129,12 @@ export default function StreamsHeader({
       formData.append("title", form.title);
       formData.append("description", form.description);
       formData.append("level", "beginner");
+      if (form.category) {
+        formData.append("category", form.category);
+      }
+      form.tags.forEach((tag) => {
+        formData.append("tags", tag);
+      });
       formData.append(
         "status",
         form.status === "published" ? "PUBLISHED" : "ARCHIVED",
@@ -120,7 +168,10 @@ export default function StreamsHeader({
           title: "",
           description: "",
           status: "",
+          category: "",
+          tags: [],
         });
+        setTagInput("");
 
         setShowSuccessModal(true);
         setTimeout(() => setSuccessVisible(true), 10);
@@ -241,6 +292,112 @@ export default function StreamsHeader({
                     rows={4}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 resize-none"
                   />
+                </div>
+
+                {/* Category */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2.5">
+                    Category
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={form.category}
+                      onChange={(e) =>
+                        setForm({ ...form, category: e.target.value })
+                      }
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-400 appearance-none focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-white"
+                    >
+                      <option value="" disabled>
+                        Select category
+                      </option>
+                      <option value="Data Analyst" className="text-gray-700">
+                        Data Analyst
+                      </option>
+                      <option value="Data Scientist" className="text-gray-700">
+                        Data Scientist
+                      </option>
+                      <option
+                        value="Machine Learning"
+                        className="text-gray-700"
+                      >
+                        Machine Learning
+                      </option>
+                      <option value="Programming" className="text-gray-700">
+                        Programming
+                      </option>
+                      <option
+                        value="Data Engineering"
+                        className="text-gray-700"
+                      >
+                        Data Engineering
+                      </option>
+                      <option
+                        value="Artificial Intelligence"
+                        className="text-gray-700"
+                      >
+                        Artificial Intelligence
+                      </option>
+                      <option
+                        value="Data Visualization"
+                        className="text-gray-700"
+                      >
+                        Data Visualization
+                      </option>
+                      <option
+                        value="Statistics & Probability"
+                        className="text-gray-700"
+                      >
+                        Statistics & Probability
+                      </option>
+                    </select>
+                    <ChevronDown
+                      size={16}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Tags */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2.5">
+                    Tags{" "}
+                    <span className="text-gray-400 font-normal">
+                      ({form.tags.length}/{MAX_TAGS})
+                    </span>
+                  </label>
+                  <div className="w-full border border-gray-200 rounded-lg px-2.5 py-2 flex flex-wrap items-center gap-1.5 focus-within:ring-1 focus-within:ring-emerald-400">
+                    {form.tags.map((tag, index) => (
+                      <span
+                        key={`${tag}-${index}`}
+                        className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-xs font-medium pl-2.5 pr-1.5 py-1 rounded-md"
+                      >
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() => removeTag(index)}
+                          className="text-emerald-500 hover:text-emerald-800 transition"
+                        >
+                          <X size={12} />
+                        </button>
+                      </span>
+                    ))}
+
+                    {form.tags.length < MAX_TAGS && (
+                      <input
+                        value={tagInput}
+                        onChange={(e) => setTagInput(e.target.value)}
+                        onKeyDown={handleTagKeyDown}
+                        onBlur={addTag}
+                        type="text"
+                        placeholder={
+                          form.tags.length === 0
+                            ? "Ketik tag lalu tekan Enter"
+                            : ""
+                        }
+                        className="flex-1 min-w-[100px] text-sm text-gray-700 placeholder-gray-400 focus:outline-none py-1"
+                      />
+                    )}
+                  </div>
                 </div>
 
                 {/* Thumbnail */}

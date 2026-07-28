@@ -3,17 +3,32 @@
  *
  * Utility untuk menangani HTML yang dihasilkan oleh RichTextEditor (contentEditable).
  *
- * MASALAH:
+ * RIWAYAT MASALAH (sudah diperbaiki, ditinggal sebagai catatan):
  *   Browser menghasilkan <div> atau <p> saat user tekan Enter di contentEditable.
  *   Blank line (Enter dua kali) menghasilkan <div><br></div> atau <p><br></p>.
- *   Ketika di-render ulang via dangerouslySetInnerHTML tanpa CSS yang tepat,
- *   spacing antar paragraf hilang karena <div> dan <p> tidak punya margin default
- *   di dalam Tailwind (Tailwind me-reset semua margin).
+ *   Dulu normalizeEditorHTML() menambahkan inline style margin-bottom: 0.75em
+ *   ke setiap blank line supaya "kelihatan" di preview.
  *
- * SOLUSI:
- *   normalizeEditorHTML() menambahkan inline style margin-bottom ke setiap
- *   <div> dan <p> yang merupakan direct block dari editor, sehingga blank line
- *   tetap terlihat di semua tempat preview tanpa perlu ubah CSS global.
+ *   TERNYATA itu nggak perlu dan malah jadi BUG BARU: container preview
+ *   (MaterialPreviewModal, CanvasCard mode preview) semuanya sudah pakai
+ *   class `leading-relaxed` yang SAMA dengan editor (RichTextEditor). Jadi
+ *   blank line itu SUDAH otomatis punya tinggi 1 baris dari line-height,
+ *   identik dengan yang terlihat di canvas saat mengetik — tanpa perlu
+ *   margin tambahan apa pun.
+ *
+ *   Begitu margin-bottom 0.75em ditambahkan DI ATAS line-height yang sudah
+ *   ada itu, jaraknya numpuk: line-height (≈1 baris, sama seperti di
+ *   editor) + margin 0.75em ekstra → totalnya jadi keliatan kayak 2 baris
+ *   kosong padahal user cuma Enter 2x sekali. Makanya preview keliatan
+ *   lebih renggang dibanding canvas edit.
+ *
+ * SOLUSI SEKARANG:
+ *   normalizeEditorHTML() dibiarkan sebagai no-op (return HTML apa adanya).
+ *   Fungsi ini tetap dipertahankan (pemanggilannya di semua komponen tidak
+ *   perlu dihapus) supaya kalau suatu saat butuh normalisasi HTML lain
+ *   (misal sanitasi), tinggal isi lagi di sini — TAPI jangan tambahkan
+ *   margin manual ke blank line lagi, karena leading-relaxed di container
+ *   preview sudah cukup dan sudah konsisten dengan editor.
  *
  * PENGGUNAAN:
  *   import { normalizeEditorHTML } from "@/lib/editorHTMLUtils";
@@ -21,39 +36,15 @@
  */
 
 /**
- * Normalize HTML dari RichTextEditor supaya blank line (Enter ganda)
- * tetap terlihat saat di-render di preview / modal.
- *
- * Yang dilakukan:
- * 1. Setiap <div> dan <p> block diberi margin-bottom: 0.75em (setara leading-relaxed).
- * 2. <div><br></div> dan <p><br></p> (blank line) tetap di-preserve — tidak dihapus.
- * 3. Tidak mengubah inline style yang sudah ada (merge, bukan replace).
+ * Saat ini fungsi ini sengaja dibuat no-op (return HTML apa adanya).
+ * Blank line (Enter ganda) sudah otomatis kelihatan benar hanya dari
+ * line-height container (`leading-relaxed`), yang sudah sama antara
+ * canvas edit dan semua tempat preview. Jangan tambahkan margin-bottom
+ * manual lagi ke sini — itu sumber bug jarak dobel yang pernah terjadi.
  */
 export function normalizeEditorHTML(html: string | undefined | null): string {
   if (!html) return "";
-
-  // Pakai DOMParser hanya jika di browser; di SSR kembalikan as-is
-  if (typeof window === "undefined") return html;
-
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(
-    `<div id="__root">${html}</div>`,
-    "text/html",
-  );
-  const root = doc.getElementById("__root");
-  if (!root) return html;
-
-  // Tambah margin-bottom ke semua direct block children
-  const blocks = root.querySelectorAll<HTMLElement>(":scope > div, :scope > p");
-
-  blocks.forEach((el) => {
-    // Jangan override margin yang sudah di-set
-    if (!el.style.marginBottom) {
-      el.style.marginBottom = "0.75em";
-    }
-  });
-
-  return root.innerHTML;
+  return html;
 }
 
 /**
@@ -78,7 +69,12 @@ export const richTextDisplayClass = [
   "[&_blockquote]:border-l-4",
   "[&_blockquote]:border-gray-300",
   "[&_blockquote]:italic",
-  // Blank line preservation: div dan p tanpa margin di Tailwind
-  "[&>div]:mb-3",
-  "[&>p]:mb-3",
+  // 🔥 Catatan: dulu ada "[&>div]:mb-3" / "[&>p]:mb-3" di sini buat jaga
+  // blank line (Enter 2x) tetap keliatan spasinya. TAPI itu nempel ke SEMUA
+  // div/p langsung tanpa pandang bulu — baris teks biasa (Enter 1x) ikut
+  // kena margin juga, jadi keliatan kayak ada spasi tambahan yang nggak ada
+  // pas ngetik. Blank-line spacing sekarang ditangani lebih presisi lewat
+  // inline style di normalizeEditorHTML() (cuma nempel ke blok yang
+  // beneran kosong), jadi class blanket ini dihapus supaya nggak dobel
+  // nge-margin dan bikin bug yang sama lewat jalur lain.
 ].join(" ");

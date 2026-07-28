@@ -31,9 +31,21 @@ export default function RegisterModal({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const returnUrl = `${pathname}${
-    searchParams.toString() ? `?${searchParams.toString()}` : ""
-  }`;
+  // 🔥 Samakan dengan logic returnUrl di LoginModal — hanya halaman-halaman
+  // ini yang dilempar balik setelah sign in berhasil (baik lewat Google
+  // maupun manual). Halaman detail /elearning/[id] dan /elearningfull
+  // selalu dilempar balik ke /elearning (list), bukan ke halaman itu
+  // sendiri.
+  const isElearningPage =
+    pathname === "/elearning" ||
+    pathname.startsWith("/elearning/") ||
+    pathname === "/elearningfull";
+
+  const returnUrl = isElearningPage
+    ? "/elearning"
+    : pathname === "/aycl" || pathname.startsWith("/programs/")
+      ? `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`
+      : null;
 
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -260,6 +272,8 @@ export default function RegisterModal({
                       try {
                         if (returnUrl) {
                           localStorage.setItem("returnUrl", returnUrl);
+                        } else {
+                          localStorage.removeItem("returnUrl");
                         }
 
                         await axios.post(
@@ -290,6 +304,12 @@ export default function RegisterModal({
 
                         setIsOpen(false);
                         toast.success("Login Google berhasil");
+
+                        // 🔥 Sama seperti di LoginModal — kasih tahu
+                        // SubscriptionStatusBanner untuk fetch ulang.
+                        window.dispatchEvent(
+                          new Event("elearning-subscription:refresh"),
+                        );
 
                         const savedReturnUrl =
                           localStorage.getItem("returnUrl");

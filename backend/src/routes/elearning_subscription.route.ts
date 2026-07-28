@@ -9,6 +9,7 @@ import {
   updateSubscriptionStatusSchema,
   exportElearningSubscriptionQuerySchema,
   deleteELearningSubscriptionSchema,
+  getELearningSubscriptionByIdSchema,
 } from "../validations/elearning_subscription.validation.js";
 import { validate } from "../middlewares/validate.js";
 import { authenticate } from "../middlewares/authenticate.js";
@@ -148,7 +149,7 @@ router.post(
 router.get(
   "/elearning/subscriptions/me/active",
   authenticate,
-  authorizeRoles("mentee"),
+  authorizeRoles("mentee", "admin"),
   ElearningSubscriptionController.getMyActiveSubscription
 );
 
@@ -297,7 +298,7 @@ router.patch(
 router.get(
   "/admin/elearning/subscriptions",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "mentee"),
   validate(getAllELearningSubscriptionsSchema),
   ElearningSubscriptionController.getAllSubscriptions
 );
@@ -476,6 +477,81 @@ router.delete(
   authorizeRoles("admin"),
   validate(deleteELearningSubscriptionSchema),
   ElearningSubscriptionController.deleteSubscription
+);
+
+/**
+ * @swagger
+ * /api/elearningSubscription/subscriptions/{id}:
+ *   get:
+ *     summary: Get detail E-Learning Subscription by ID (Mentee)
+ *     description: >
+ *       Endpoint untuk mengambil detail 1 subscription e-learning milik user,
+ *       termasuk plan, payment, dan data user. Dipakai di halaman checkout
+ *       untuk menampilkan ringkasan pesanan sebelum pembayaran.
+ *     tags:
+ *       - E-Learning Subscriptions
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID subscription
+ *     responses:
+ *       200:
+ *         description: Subscription detail retrieved successfully
+ *       403:
+ *         description: Tidak memiliki akses ke subscription ini
+ *       404:
+ *         description: Subscription tidak ditemukan
+ *       500:
+ *         description: Internal server error
+ */
+router.get(
+  "/subscriptions/:id",
+  authenticate,
+  // authorizeRoles("mentee"),
+  validate(getELearningSubscriptionByIdSchema),
+  ElearningSubscriptionController.getSubscriptionById
+);
+
+/**
+ * @swagger
+ * /api/elearningSubscription/elearning/subscriptions/public-count:
+ *   get:
+ *     summary: Get total number of E-Learning subscribers (public, count only)
+ *     description: >
+ *       Endpoint publik yang HANYA mengembalikan jumlah total user yang
+ *       pernah melakukan subscription E-Learning — tanpa data pribadi
+ *       apa pun (beda dengan /admin/elearning/subscriptions yang expose
+ *       email, fullName, payment, dll).
+ *     tags:
+ *       - E-Learning Subscriptions
+ *     responses:
+ *       200:
+ *         description: Total subscriber count
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalSubscribers:
+ *                       type: integer
+ *                       example: 842
+ *       500:
+ *         description: Internal server error
+ */
+router.get(
+  "/elearning/subscriptions/public-count",
+  ElearningSubscriptionController.getPublicSubscriberCount,
 );
 
 export default router;

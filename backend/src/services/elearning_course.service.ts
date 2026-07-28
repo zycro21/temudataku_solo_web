@@ -128,6 +128,10 @@ export const ELearningCourseService = {
               },
             },
           },
+          reviews: {
+            where: { isPublic: true },
+            select: { rating: true },
+          },
         },
         skip,
         take: limit,
@@ -153,18 +157,42 @@ export const ELearningCourseService = {
           ),
         0,
       );
-      // =====================================================================
-      // CATATAN:
-      // - coursesCount  = jumlah ELearningSubChapter milik course
-      // - modulesCount  = jumlah semua ELearningSubBab di bawah subChapters tsb
-      // - materialsCount = jumlah semua ELearningText di bawah subBabs tsb
-      // =====================================================================
+
+      // 🔥 TAMBAHAN BARU — total estimasi waktu belajar (menit), dijumlahkan
+      // dari estimatedTime tiap subChapter ("kelas"). estimatedTime disimpan
+      // sebagai string di DB, jadi di-parse dulu; kalau kosong/invalid
+      // dianggap 0. Tidak perlu query tambahan karena course.subChapters
+      // sudah di-include lengkap di atas (termasuk field estimatedTime).
+      const totalEstimatedMinutes = course.subChapters.reduce(
+        (acc, subChapter) => {
+          const minutes = subChapter.estimatedTime
+            ? parseInt(subChapter.estimatedTime, 10)
+            : 0;
+          return acc + (Number.isNaN(minutes) ? 0 : minutes);
+        },
+        0,
+      );
+
+      // 🔥 TAMBAHAN — rating rata-rata & jumlah ulasan
+      const reviewCount = course.reviews.length;
+      const averageRating =
+        reviewCount > 0
+          ? Number(
+              (
+                course.reviews.reduce((sum, r) => sum + Number(r.rating), 0) /
+                reviewCount
+              ).toFixed(1),
+            )
+          : 0;
 
       return {
         ...course,
         coursesCount,
         modulesCount,
         materialsCount,
+        totalEstimatedMinutes,
+        averageRating,
+        reviewCount,
       };
     });
 

@@ -30,8 +30,17 @@ export default function LoginModal({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const returnUrl =
-    pathname === "/aycl" || pathname.startsWith("/programs/")
+  // 🔥 Halaman detail /elearning/[id] dan /elearningfull selalu dilempar
+  // balik ke /elearning (bukan ke halaman itu sendiri), sedangkan
+  // /elearning (list) tetap balik ke dirinya sendiri.
+  const isElearningPage =
+    pathname === "/elearning" ||
+    pathname.startsWith("/elearning/") ||
+    pathname === "/elearningfull";
+
+  const returnUrl = isElearningPage
+    ? "/elearning"
+    : pathname === "/aycl" || pathname.startsWith("/programs/")
       ? `${pathname}${searchParams.toString() ? `?${searchParams}` : ""}`
       : null;
 
@@ -77,6 +86,11 @@ export default function LoginModal({
       setCurrentUser(user);
       setIsOpen(false);
       toast.success("Login berhasil, selamat datang kembali!");
+
+      // 🔥 Kasih tahu komponen lain (mis. SubscriptionStatusBanner) untuk
+      // fetch ulang, karena kalau redirect-nya ke path yang sama komponen
+      // tidak akan remount otomatis.
+      window.dispatchEvent(new Event("elearning-subscription:refresh"));
 
       setTimeout(() => {
         if (roles.some((r) => adminRoles.includes(r))) {
@@ -263,6 +277,13 @@ export default function LoginModal({
 
                         setIsOpen(false);
                         toast.success("Login Google berhasil");
+
+                        // 🔥 Sama seperti login manual — kasih tahu
+                        // SubscriptionStatusBanner (dan komponen lain yang
+                        // relevan) untuk fetch ulang.
+                        window.dispatchEvent(
+                          new Event("elearning-subscription:refresh"),
+                        );
 
                         if (roles.some((r) => adminRoles.includes(r))) {
                           router.push("/admin");
