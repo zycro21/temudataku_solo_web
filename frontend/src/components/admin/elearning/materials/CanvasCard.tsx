@@ -222,6 +222,9 @@ function ParagraphBody({
   const textStyle = getFontStyle(fontType, fontSize);
 
   if (mode === "preview") {
+    console.log("RAW value:", JSON.stringify(value));
+    console.log("NORMALIZED:", JSON.stringify(normalizeEditorHTML(value)));
+    
     return (
       <div className="relative border-2 border-dashed border-gray-300 rounded-xl px-3 py-2.5 bg-white group/preview">
         <button

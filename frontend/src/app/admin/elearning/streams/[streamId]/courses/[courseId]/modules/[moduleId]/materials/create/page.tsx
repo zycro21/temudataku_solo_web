@@ -284,11 +284,37 @@ export function htmlToMarkdown(html: string): string {
     },
   );
 
+  // 🔥 FIX: <div>/<p> polos hasil Enter di contentEditable HARUS ikut jadi
+  // separator baris (\n), bukan cuma <br>. Sebelum fix ini, div/p generik
+  // yang tersisa di sini langsung kena "Strip remaining tags" di bawah
+  // TANPA diganti \n sama sekali — jadi 2 baris teks yang harusnya terpisah
+  // malah nempel jadi satu string pas disimpan ke backend, dan blank line
+  // (Enter 2x) kehilangan satu level jaraknya. Urutannya penting:
+  //
+  // 1. Blank-line block dulu: <div><br></div> atau <p><br></p> (isinya
+  //    CUMA <br>, placeholder browser biar div kosong tetap punya tinggi)
+  //    dianggap SATU baris kosong → diganti SATU "\n" saja. Kalau tidak
+  //    ditangani terpisah dulu, nanti <br> di dalamnya + pembungkusnya
+  //    bakal dihitung dua kali (double newline) dan blank line jadi
+  //    kelihatan lebih lebar dari aslinya waktu di-reload.
+  md = md.replace(/<(div|p)[^>]*>\s*<br\s*\/?>\s*<\/\1>/gi, "\n");
+
+  // 2. Sisa <div>/<p> generik (baris teks biasa hasil Enter 1x): tag
+  //    pembuka jadi penanda "baris baru dimulai di sini" → diganti "\n",
+  //    tag penutup dibuang tanpa sisa (kontennya sudah ikut ke baris itu).
+  md = md.replace(/<(?:div|p)[^>]*>/gi, "\n");
+  md = md.replace(/<\/(?:div|p)>/gi, "");
+
   // br → newline
   md = md.replace(/<br\s*\/?>/gi, "\n");
 
   // Strip remaining tags
   md = md.replace(/<[^>]+>/g, "");
+
+  // Buang \n nyasar di paling depan/belakang (misal karena seluruh
+  // konten dibungkus satu <div>/<p> tunggal, bukan berarti user benar-benar
+  // ngetik Enter di awal/akhir).
+  md = md.replace(/^\n+/, "").replace(/\n+$/, "");
 
   // Decode HTML entities
   md = md
