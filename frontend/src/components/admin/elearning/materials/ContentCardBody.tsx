@@ -68,7 +68,12 @@ function ContentCardCanvas({
   const [activeEditorId, setActiveEditorId] = useState<string | null>(null);
 
   const textStyle = getFontStyle(fontType, fontSize);
+  // Card title/content/expanded SENGAJA tidak ikut fontType/fontSize milik
+  // title & description block — supaya ganti font di title/description gak
+  // ikut ngubah ukuran/tampilan isi tiap card.
+  const cardStyle = getFontStyle(DEFAULT_FONT_TYPE);
 
+  const titleRef = useRef<RichTextEditorRef>(null);
   const descRef = useRef<RichTextEditorRef>(null);
   const cardTitleRefs = useRef<Map<string, RichTextEditorRef>>(new Map());
   const cardContentRefs = useRef<Map<string, RichTextEditorRef>>(new Map());
@@ -92,16 +97,21 @@ function ContentCardCanvas({
 
       {/* Title */}
       <div className="mb-3 space-y-1">
-        <input
+        <RichTextEditor
+          ref={titleRef}
           value={title}
-          onChange={(e) => onTitleChange(e.target.value)}
-          onFocus={() => setActiveEditorId(null)}
+          onChange={onTitleChange}
           placeholder="Enter card title ..."
-          className="w-full text-lg font-semibold text-gray-700 outline-none placeholder-gray-300 bg-transparent"
-          style={{
-            fontSize: textStyle.fontSize,
-            fontWeight: textStyle.fontWeight,
-          }} // ← tambah
+          className="text-lg font-semibold text-gray-700 min-h-[1.5em]"
+          style={textStyle}
+          onFocus={() => {
+            setActiveEditorId("title");
+            if (titleRef.current) onEditorFocus?.(titleRef.current);
+          }}
+          onBlur={() => setActiveEditorId(null)}
+          onSelectionChange={
+            activeEditorId === "title" ? onSelectionChange : undefined
+          }
         />
 
         {/* Description */}
@@ -195,7 +205,7 @@ function ContentCardCanvas({
                     onChange={(val) => onCardChange(card.id, "title", val)}
                     placeholder="Card title"
                     className="text-sm text-gray-700 min-h-[1.5em]"
-                    style={textStyle}
+                    style={cardStyle}
                     onFocus={() => {
                       const editorId = `card-title-${card.id}`;
                       setActiveEditorId(editorId);
@@ -226,7 +236,7 @@ function ContentCardCanvas({
                       onChange={(val) => onCardChange(card.id, "content", val)}
                       placeholder="Add content for this card"
                       className="text-sm text-gray-700 min-h-[3em]"
-                      style={textStyle}
+                      style={cardStyle}
                       onFocus={() => {
                         const editorId = `card-content-${card.id}`;
                         setActiveEditorId(editorId);
@@ -257,7 +267,7 @@ function ContentCardCanvas({
                         }
                         placeholder="Add additional details here"
                         className="text-sm text-gray-700 min-h-[3em]"
-                        style={textStyle}
+                        style={cardStyle}
                         onFocus={() => {
                           const editorId = `card-expanded-${card.id}`;
                           setActiveEditorId(editorId);
@@ -333,8 +343,12 @@ function ContentCardPreview({
     });
   };
 
-  // Apply font styling to card content areas
-  const contentStyle = getFontStyle(fontType, fontSize);
+  // Title & description ikut fontType/fontSize dari block ini.
+  const textStyle = getFontStyle(fontType, fontSize);
+  // Card title/content/expanded SENGAJA dikunci ke style default, gak ikut
+  // fontType/fontSize milik title/description — biar gak ikut berubah kalau
+  // title/description-nya di-styling.
+  const cardStyle = getFontStyle(DEFAULT_FONT_TYPE);
 
   return (
     <div className="relative border-2 border-dashed border-gray-300 rounded-xl p-4 bg-white group/preview">
@@ -356,11 +370,13 @@ function ContentCardPreview({
         <div>
           <div
             className="text-sm font-bold text-gray-800"
+            style={textStyle}
             dangerouslySetInnerHTML={{ __html: title || "Content Card" }}
           />
           {description && (
             <div
               className="text-sm text-gray-500 leading-relaxed mt-0.5"
+              style={textStyle}
               dangerouslySetInnerHTML={{ __html: description }}
             />
           )}
@@ -399,13 +415,14 @@ function ContentCardPreview({
                 </div>
                 <div
                   className="text-xs font-semibold text-gray-700 leading-snug mb-1"
+                  style={cardStyle}
                   dangerouslySetInnerHTML={{
                     __html: card.title || "Card Title",
                   }}
                 />
                 <div
                   className="text-[11px] text-gray-500 leading-relaxed"
-                  style={contentStyle}
+                  style={cardStyle}
                   dangerouslySetInnerHTML={{ __html: card.content || "—" }}
                 />
               </div>
@@ -423,13 +440,14 @@ function ContentCardPreview({
                 </div>
                 <div
                   className="text-xs font-semibold text-gray-700 leading-snug mb-1"
+                  style={cardStyle}
                   dangerouslySetInnerHTML={{
                     __html: card.title || "Card Title",
                   }}
                 />
                 <div
                   className="text-[11px] text-gray-500 leading-relaxed"
-                  style={contentStyle}
+                  style={cardStyle}
                   dangerouslySetInnerHTML={{ __html: card.content || "—" }}
                 />
               </div>
@@ -438,7 +456,7 @@ function ContentCardPreview({
                 <div className="px-3 pb-3 border-t border-gray-100">
                   <div
                     className="text-[11px] text-gray-500 leading-relaxed pt-2"
-                    style={contentStyle}
+                    style={cardStyle}
                     dangerouslySetInnerHTML={{ __html: card.expandedContent }}
                   />
                 </div>

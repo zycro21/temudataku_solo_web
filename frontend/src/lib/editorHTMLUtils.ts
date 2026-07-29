@@ -32,6 +32,25 @@
  * PENGGUNAAN:
  *   import { normalizeEditorHTML } from "@/lib/editorHTMLUtils";
  *   <div dangerouslySetInnerHTML={{ __html: normalizeEditorHTML(html) }} />
+ *
+ * ADDENDUM: alignment (dan formatting block-level lain) hilang di preview
+ * -----------------------------------------------------------------------
+ * Bug terpisah dari yang di atas: heading/paragraph (dan komponen lain yang
+ * dangerouslySetInnerHTML pakai fungsi ini) sudah BENAR pas diedit tapi
+ * balik ke "left" / formatting-nya ilang begitu masuk mode preview.
+ *
+ * Penyebabnya BUKAN soal newline lagi (itu udah kepegang lewat fix di
+ * atas) — tapi di logic fallback "flatten div/p" di bawah ini: dulu cuma
+ * `el.innerHTML` (ISI di dalam div) yang diambil, sedangkan div-nya SENDIRI
+ * dibuang. Masalahnya, document.execCommand("justifyCenter"/"justifyRight"/
+ * "justifyFull") itu nulis `style="text-align:..."` ke DIV PEMBUNGKUSNYA,
+ * bukan ke isinya. Jadi begitu div-nya dibuang, alignment ikut hilang.
+ *
+ * Fix: sekarang div/p dipertahankan APA ADANYA (pakai outerHTML, bukan
+ * innerHTML), jadi style apa pun yang nempel di situ (text-align, dst) ikut
+ * kebawa ke preview. List (ul/ol) dan indent (blockquote) sebelumnya sudah
+ * aman karena keduanya nggak match kondisi flatten ini (yang cuma nyasar
+ * ke tag DIV/P).
  */
 export function normalizeEditorHTML(html: string | undefined | null): string {
   if (!html) return "";
@@ -75,7 +94,12 @@ export function normalizeEditorHTML(html: string | undefined | null): string {
   let buffer = "";
 
   const flush = () => {
-    if (buffer.length > 0) blocks.push(buffer);
+    if (buffer.length > 0) {
+      // Bungkus text/inline yang belum ada wrapper block-nya (mis. baris
+      // pertama sebelum Enter pertama) jadi <div> polos, biar tetap "satu
+      // baris sendiri" pas nanti digabung sama block lain di bawah.
+      blocks.push(`<div>${buffer}</div>`);
+    }
     buffer = "";
   };
 
@@ -90,12 +114,16 @@ export function normalizeEditorHTML(html: string | undefined | null): string {
       // sebagai bloknya sendiri.
       flush();
       const el = node as HTMLElement;
-      const inner = el.innerHTML;
-      const isBlank = inner.trim() === "" || /^<br\s*\/?>$/i.test(inner.trim());
-      // Blank line (cuma <br> doang, placeholder browser) → baris kosong
-      // murni, BUKAN ikut nambah <br> ekstra (itu udah otomatis muncul
-      // dari proses join di bawah).
-      blocks.push(isBlank ? "" : inner);
+      // 🔥 FIX (bug alignment/formatting hilang di preview): SEBELUMNYA di
+      // sini cuma diambil `el.innerHTML` (isi di DALAM div), jadi attribute
+      // si div itu SENDIRI — termasuk `style="text-align:center"` dkk yang
+      // dihasilkan document.execCommand("justifyCenter"/"justifyRight"/
+      // "justifyFull") — ikut KEBUANG. Itu sebabnya alignment (dan potensi
+      // formatting block-level lain yang nempel di wrapper-nya) tampil
+      // benar saat diedit (masih DOM asli) tapi hilang di preview (sudah
+      // lewat fungsi ini). Fix: pertahankan elemen APA ADANYA (outerHTML),
+      // jangan cuma isinya.
+      blocks.push(el.outerHTML);
     } else if (node.nodeType === Node.ELEMENT_NODE) {
       // Elemen inline (strong, em, span, dst) di luar div/p (misal baris
       // pertama sebelum Enter pertama, yang browser nggak bungkus tag apa
@@ -107,7 +135,11 @@ export function normalizeEditorHTML(html: string | undefined | null): string {
   });
   flush();
 
-  return blocks.join("<br>");
+  // Blok-blok di atas sekarang berupa elemen block-level (div/p) yang utuh
+  // dengan style/attribute-nya masing-masing, jadi otomatis tampil baris
+  // per baris tanpa perlu disambung pakai "<br>" lagi (beda dari sebelumnya
+  // yang cuma nyimpen teks polos lalu digabung manual pakai "<br>").
+  return blocks.join("");
 }
 
 /**

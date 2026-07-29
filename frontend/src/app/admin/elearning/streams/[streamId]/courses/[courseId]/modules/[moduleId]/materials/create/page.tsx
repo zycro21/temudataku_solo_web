@@ -40,6 +40,7 @@ import StylePanel, {
   type StyleState,
 } from "@/components/admin/elearning/materials/StylePanel";
 import { type RichTextEditorRef } from "@/components/admin/elearning/materials/RichTextEditor";
+import { normalizeEditorHTML } from "@/lib/editorHTMLUtils";
 import PublishConfirmModal from "@/components/admin/elearning/materials/PublishConfirmModal";
 import PublishSuccessModal from "@/components/admin/elearning/materials/PublishSuccessModal";
 import UnsavedChangesModal from "@/components/admin/elearning/materials/UnsavedChangesModal";
@@ -1339,7 +1340,9 @@ export default function CreateMaterialPage() {
           contents.push({
             type: "heading",
             level: 1,
-            text: encodeFontStyleToken(d) + htmlToMarkdown(d.value ?? ""),
+            text:
+              encodeFontStyleToken(d) +
+              htmlToMarkdown(normalizeEditorHTML(d.value ?? "")),
             orderNumber: globalOrder++,
           });
           break;
@@ -1347,7 +1350,9 @@ export default function CreateMaterialPage() {
         case "paragraph":
           contents.push({
             type: "paragraph",
-            text: encodeFontStyleToken(d) + htmlToMarkdown(d.value ?? ""),
+            text:
+              encodeFontStyleToken(d) +
+              htmlToMarkdown(normalizeEditorHTML(d.value ?? "")),
             orderNumber: globalOrder++,
           });
           break;

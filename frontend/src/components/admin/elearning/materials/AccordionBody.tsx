@@ -11,7 +11,7 @@ import {
   Eye,
 } from "lucide-react";
 import RichTextEditor, { type RichTextEditorRef } from "./RichTextEditor";
-import { getFontStyle } from "./fontStyles";
+import { getFontStyle, DEFAULT_FONT_TYPE } from "./fontStyles";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface AccordionItem {
@@ -51,6 +51,10 @@ function AccordionPreview({
     () => new Set(items.slice(0, 2).map((i) => i.id)),
   );
   const textStyle = getFontStyle(fontType, fontSize);
+  // Item title/content SENGAJA tidak ikut fontType/fontSize milik title &
+  // description — supaya ganti font di title/description gak ikut ngubah
+  // ukuran/tampilan isi item accordion.
+  const itemStyle = getFontStyle(DEFAULT_FONT_TYPE);
 
   const toggle = (id: string) => {
     setOpenIds((prev) => {
@@ -125,7 +129,7 @@ function AccordionPreview({
                 ) : (
                   <div
                     className="font-semibold text-gray-700 text-left"
-                    style={textStyle}
+                    style={itemStyle}
                     dangerouslySetInnerHTML={{ __html: item.titleHTML }}
                   />
                 )}
@@ -142,7 +146,7 @@ function AccordionPreview({
                   ) : (
                     <div
                       className="text-gray-600 leading-relaxed"
-                      style={textStyle}
+                      style={itemStyle}
                       dangerouslySetInnerHTML={{ __html: item.contentHTML }}
                     />
                   )}
@@ -196,6 +200,9 @@ function AccordionCanvas({
 }) {
   const [activeEditorId, setActiveEditorId] = useState<string | null>(null);
   const textStyle = getFontStyle(fontType, fontSize);
+  // Sama seperti di preview: item title/content pakai style default sendiri,
+  // gak ikut fontType/fontSize milik title/description.
+  const itemStyle = getFontStyle(DEFAULT_FONT_TYPE);
 
   const titleRef = useRef<RichTextEditorRef>(null);
   const descRef = useRef<RichTextEditorRef>(null);
@@ -281,7 +288,7 @@ function AccordionCanvas({
                   onChange={(val) => onItemChange(item.id, "titleHTML", val)}
                   placeholder="Accordion item title"
                   className="text-gray-700 w-full"
-                  style={textStyle}
+                  style={itemStyle}
                   onFocus={() => {
                     const editorId = `${item.id}-title`;
                     setActiveEditorId(editorId);
@@ -319,7 +326,7 @@ function AccordionCanvas({
                   onChange={(val) => onItemChange(item.id, "contentHTML", val)}
                   placeholder="Add content for this section"
                   className="text-gray-700 w-full min-h-[5em]"
-                  style={textStyle}
+                  style={itemStyle}
                   onFocus={() => {
                     const editorId = `${item.id}-content`;
                     setActiveEditorId(editorId);

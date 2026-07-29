@@ -14,6 +14,7 @@ import {
   normalizeEditorHTML,
   richTextDisplayClass,
 } from "@/lib/editorHTMLUtils";
+import { getFontStyle } from "@/components/admin/elearning/materials/fontStyles";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 interface MaterialPreviewModalProps {
@@ -451,6 +452,7 @@ function CarouselPreview({ data }: { data: any }) {
   }
 
   const translatePct = (100 / cardsPerSlide) * currentIndex;
+  const textStyle = getFontStyle(data?.fontType, data?.fontSize);
 
   return (
     <div className={`w-full ${richTextDisplayClass}`}>
@@ -458,12 +460,14 @@ function CarouselPreview({ data }: { data: any }) {
       {data?.title && (
         <div
           className={`text-lg font-semibold text-gray-700 mb-1 break-words ${richTextDisplayClass}`}
+          style={textStyle}
           dangerouslySetInnerHTML={{ __html: normalizeEditorHTML(data.title) }}
         />
       )}
       {data?.description && (
         <div
           className={`text-sm text-gray-500 mb-4 leading-relaxed break-words ${richTextDisplayClass}`}
+          style={textStyle}
           dangerouslySetInnerHTML={{
             __html: normalizeEditorHTML(data.description),
           }}

@@ -15,6 +15,10 @@ import RichTextEditor, {
   type RichTextEditorRef,
 } from "@/components/admin/elearning/materials/RichTextEditor";
 import { getFontStyle } from "@/components/admin/elearning/materials/fontStyles";
+import {
+  normalizeEditorHTML,
+  richTextDisplayClass,
+} from "@/lib/editorHTMLUtils";
 
 interface CarouselItem {
   id: string;
@@ -67,6 +71,7 @@ function CarouselCanvas({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const textStyle = getFontStyle(fontType, fontSize);
 
+  const titleRef = useRef<RichTextEditorRef>(null);
   const descRef = useRef<RichTextEditorRef>(null);
   const itemLabelRefs = useRef<Map<string, RichTextEditorRef>>(new Map());
   const itemContentRefs = useRef<Map<string, RichTextEditorRef>>(new Map());
@@ -101,13 +106,21 @@ function CarouselCanvas({
       </button>
       {/* Title */}
       <div className="mb-4 space-y-1">
-        <input
+        <RichTextEditor
+          ref={titleRef}
           value={title}
-          onChange={(e) => onTitleChange(e.target.value)}
-          onFocus={() => setActiveEditorId(null)}
+          onChange={onTitleChange}
           placeholder="Enter carousel title ..."
-          className="w-full font-semibold text-gray-700 outline-none placeholder-gray-300 bg-transparent"
+          className="font-semibold text-gray-700 min-h-[1.5em]"
           style={textStyle}
+          onFocus={() => {
+            setActiveEditorId("title");
+            if (titleRef.current) onEditorFocus?.(titleRef.current);
+          }}
+          onBlur={() => setActiveEditorId(null)}
+          onSelectionChange={
+            activeEditorId === "title" ? onSelectionChange : undefined
+          }
         />
 
         {/* Description */}
@@ -323,16 +336,20 @@ function CarouselPreview({
         <span className="text-emerald-500">
           <Pencil size={15} />
         </span>
-        <span className="font-bold text-gray-800" style={textStyle}>
-          {title || "Carousel"}
-        </span>
+        <span
+          className={`font-bold text-gray-800 ${richTextDisplayClass}`}
+          style={textStyle}
+          dangerouslySetInnerHTML={{
+            __html: normalizeEditorHTML(title) || "Carousel",
+          }}
+        />
       </div>
 
       {description && (
         <div
-          className="text-gray-700 leading-relaxed mb-3"
+          className={`text-gray-700 leading-relaxed mb-3 ${richTextDisplayClass}`}
           style={textStyle}
-          dangerouslySetInnerHTML={{ __html: description }}
+          dangerouslySetInnerHTML={{ __html: normalizeEditorHTML(description) }}
         />
       )}
 
