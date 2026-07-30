@@ -6,6 +6,22 @@ import RichTextEditor, {
   type RichTextEditorRef,
 } from "@/components/admin/elearning/materials/RichTextEditor";
 import { getFontStyle, DEFAULT_FONT_TYPE, FONT_PRESETS } from "./fontStyles";
+import {
+  normalizeEditorHTML,
+  richTextDisplayClass,
+} from "@/lib/editorHTMLUtils";
+
+// Hitung panjang teks POLOS (tanpa tag HTML) dari value RichTextEditor —
+// dipakai buat enforce limit karakter di tab label, karena `value.length`
+// mentah bakal ikut ngitung tag <strong>/<br>/dst yang nggak seharusnya
+// dianggap karakter oleh user.
+function getPlainTextLength(html: string): number {
+  if (!html) return 0;
+  if (typeof window === "undefined") return html.length;
+  const div = document.createElement("div");
+  div.innerHTML = html;
+  return (div.textContent ?? "").length;
+}
 
 interface TabItem {
   id: string;
@@ -44,6 +60,8 @@ function TabNavigationCanvas({
   onSelectionChange?: Parameters<typeof RichTextEditor>[0]["onSelectionChange"];
 }) {
   const descRef = useRef<RichTextEditorRef>(null);
+  const titleRef = useRef<RichTextEditorRef>(null); // 👈 tambahan
+  const tabLabelRefs = useRef<Map<string, RichTextEditorRef>>(new Map());
   const tabContentRefs = useRef<Map<string, RichTextEditorRef>>(new Map());
   const [activeEditorId, setActiveEditorId] = useState<string | null>(null);
 
@@ -64,13 +82,20 @@ function TabNavigationCanvas({
       </button>
 
       <div className="mb-4 space-y-1">
-        <input
+        <RichTextEditor
+          ref={titleRef}
           value={title}
-          onClick={(e) => e.stopPropagation()}
-          onChange={(e) => onTitleChange(e.target.value)}
-          onFocus={() => setActiveEditorId(null)}
+          onChange={onTitleChange}
           placeholder="Enter tabs title ..."
-          className="w-full text-lg font-semibold text-gray-700 outline-none placeholder-gray-300 bg-transparent"
+          className="text-lg font-semibold text-gray-700 min-h-[1.5em]"
+          onFocus={() => {
+            setActiveEditorId("title");
+            if (titleRef.current) onEditorFocus?.(titleRef.current);
+          }}
+          onBlur={() => setActiveEditorId(null)}
+          onSelectionChange={
+            activeEditorId === "title" ? onSelectionChange : undefined
+          }
         />
 
         <div className="border-b border-dashed border-gray-200 pb-2">
@@ -106,17 +131,30 @@ function TabNavigationCanvas({
                 <p className="text-[11px] font-semibold text-gray-500 mb-1">
                   Tab Label
                 </p>
-                <input
+                <RichTextEditor
+                  ref={(ref) => {
+                    if (ref) tabLabelRefs.current.set(tab.id, ref);
+                    else tabLabelRefs.current.delete(tab.id);
+                  }}
                   value={tab.label}
-                  onClick={(e) => e.stopPropagation()}
-                  onChange={(e) => onTabLabelChange(tab.id, e.target.value)}
-                  onFocus={() => setActiveEditorId(null)}
-                  maxLength={30}
+                  onChange={(val) => onTabLabelChange(tab.id, val)}
                   placeholder="Tab name"
-                  className="w-full text-sm text-gray-700 outline-none placeholder-gray-300 bg-transparent"
+                  className="text-sm text-gray-700 min-h-[1.5em]"
+                  onFocus={() => {
+                    const editorId = `tab-label-${tab.id}`;
+                    setActiveEditorId(editorId);
+                    const ref = tabLabelRefs.current.get(tab.id);
+                    if (ref) onEditorFocus?.(ref);
+                  }}
+                  onBlur={() => setActiveEditorId(null)}
+                  onSelectionChange={
+                    activeEditorId === `tab-label-${tab.id}`
+                      ? onSelectionChange
+                      : undefined
+                  }
                 />
                 <p className="text-[10px] text-gray-300 mt-1.5">
-                  {tab.label.length}/30
+                  {getPlainTextLength(tab.label)}/30
                 </p>
               </div>
 
@@ -222,8 +260,8 @@ function TabNavigationPreview({
 
       {description && (
         <div
-          className="text-sm text-gray-500 mb-3 leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: description }}
+          className={`text-sm text-gray-500 mb-3 leading-relaxed ${richTextDisplayClass}`}
+          dangerouslySetInnerHTML={{ __html: normalizeEditorHTML(description) }}
         />
       )}
 
@@ -260,9 +298,11 @@ function TabNavigationPreview({
 
       <div className="border border-t-0 border-gray-200 rounded-b-lg px-4 py-4">
         <div
-          className="text-sm text-gray-600 leading-relaxed"
+          className={`text-sm text-gray-600 leading-relaxed ${richTextDisplayClass}`}
           style={contentStyle}
-          dangerouslySetInnerHTML={{ __html: activeTab?.content || "—" }}
+          dangerouslySetInnerHTML={{
+            __html: normalizeEditorHTML(activeTab?.content || "—"),
+          }}
         />
       </div>
     </div>
@@ -332,10 +372,16 @@ export function TabNavigationBody({
   const handleRemoveTab = (id: string) =>
     setTabs((prev) => prev.filter((t) => t.id !== id));
 
-  const handleTabLabelChange = (id: string, value: string) =>
+  const handleTabLabelChange = (id: string, value: string) => {
+    // Tolak perubahan kalau teks POLOS-nya (tanpa tag HTML) udah lewat 30
+    // karakter — biar konsisten sama batasan lama (maxLength={30} di
+    // <input>). Bukan truncate, tapi reject: karena motong string HTML
+    // begitu aja di tengah bisa misah tag jadi rusak (mis. "<stro" doang).
+    if (getPlainTextLength(value) > 30) return;
     setTabs((prev) =>
       prev.map((t) => (t.id === id ? { ...t, label: value } : t)),
     );
+  };
 
   const handleTabContentChange = (id: string, value: string) =>
     setTabs((prev) =>

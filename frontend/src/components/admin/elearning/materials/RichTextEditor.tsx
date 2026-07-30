@@ -250,10 +250,8 @@ const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>(
               const STEP = 40;
 
               if (bq) {
-                const current =
-                  parseInt(bq.style.marginLeft || "", 10) || STEP;
-                const next =
-                  cmd === "indent" ? current + STEP : current - STEP;
+                const current = parseInt(bq.style.marginLeft || "", 10) || STEP;
+                const next = cmd === "indent" ? current + STEP : current - STEP;
 
                 if (next <= 0) {
                   // Outdent sampai 0 → lepas blockquote-nya, kembalikan isinya
@@ -309,6 +307,18 @@ const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>(
           }
 
           document.execCommand(cmd, false, val ?? undefined);
+
+          // 🔥 Cleanup: execCommand("justify*") kadang nyisain <div> kosong total
+          // (tanpa <br>, tanpa teks) sebagai artifact internal Chrome pas
+          // mem-block-ifikasi selection yang tadinya teks polos + "\n". Div yang
+          // BENERAN kosong (childNodes.length === 0) nggak pernah punya arti,
+          // beda sama <div><br></div> yang memang representasi blank-line valid.
+          if (cmd.startsWith("justify")) {
+            el.querySelectorAll("div").forEach((div) => {
+              if (div.childNodes.length === 0) div.remove();
+            });
+          }
+
           document.dispatchEvent(new Event("selectionchange"));
           fireSelectionChange();
           onChangeRef.current?.(el.innerHTML || "");

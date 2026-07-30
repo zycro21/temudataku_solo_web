@@ -235,7 +235,7 @@ export function htmlToMarkdown(html: string): string {
   // Alignment div
   md = md.replace(
     /<div[^>]*style="[^"]*text-align:\s*(left|center|right|justify)[^"]*"[^>]*>([\s\S]*?)<\/div>/gi,
-    (_, align, text) => `{align:${align}}${htmlToMarkdown(text)}{/align}`,
+    (_, align, text) => `{align:${align}}${htmlToMarkdown(text)}{/align}`, // 👈 hapus lagi "\n" di depan
   );
 
   // Blockquote (hasil Indent di teks biasa, bukan di dalam list) — TIDAK
@@ -312,10 +312,12 @@ export function htmlToMarkdown(html: string): string {
   // Strip remaining tags
   md = md.replace(/<[^>]+>/g, "");
 
-  // Buang \n nyasar di paling depan/belakang (misal karena seluruh
-  // konten dibungkus satu <div>/<p> tunggal, bukan berarti user benar-benar
-  // ngetik Enter di awal/akhir).
-  md = md.replace(/^\n+/, "").replace(/\n+$/, "");
+  // SESUDAH
+  const trimmed = md.replace(/^\n+/, "").replace(/\n+$/, "");
+  // Kalau hasil trim jadi string kosong padahal aslinya nggak kosong
+  // (kasus: rekursi align/quote yang isinya CUMA "\n" — itu blank-line
+  // valid, bukan "\n nyasar" yang perlu dibuang), pertahankan minimal 1 "\n".
+  md = trimmed.length > 0 ? trimmed : md;
 
   // Decode HTML entities
   md = md
