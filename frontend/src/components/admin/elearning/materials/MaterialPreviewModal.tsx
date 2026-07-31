@@ -1980,12 +1980,25 @@ export default function MaterialPreviewModal({
             )}
 
             {/* Items */}
-            <article className="space-y-10">
-              {items.map((item) => (
-                <div key={item.instanceId}>
-                  <PreviewItem item={item} />
-                </div>
-              ))}
+            <article>
+              {items.map((item, index) => {
+                const nextItem = items[index + 1];
+                const isLast = index === items.length - 1;
+                // Heading langsung diikuti paragraph → jaraknya dirapatkan
+                // (mb-3) supaya kelihatan "menyatu" sebagai judul + isi.
+                // Pasangan item lain tetap pakai jarak default (mb-10)
+                // seperti sebelumnya.
+                const spacingClass = isLast
+                  ? ""
+                  : item.id === "heading" && nextItem?.id === "paragraph"
+                    ? "mb-3"
+                    : "mb-10";
+                return (
+                  <div key={item.instanceId} className={spacingClass}>
+                    <PreviewItem item={item} />
+                  </div>
+                );
+              })}
             </article>
 
             {/* Improvement: footer materi — memberikan kesan halaman lengkap */}
