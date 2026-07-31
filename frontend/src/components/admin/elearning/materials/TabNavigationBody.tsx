@@ -195,20 +195,25 @@ function TabNavigationCanvas({
         ))}
       </div>
 
-      <div className="flex items-center justify-center gap-3">
-        <button
-          onClick={onAddTab}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-emerald-500 text-emerald-600 text-sm font-semibold hover:bg-emerald-50 transition"
-        >
-          <Plus size={14} />
-          Add Tab
-        </button>
-        <button
-          onClick={onCreate}
-          className="flex items-center gap-1.5 px-5 py-2 rounded-full bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition shadow-sm"
-        >
-          Create Tabs
-        </button>
+      <div className="flex flex-col items-center justify-center gap-2">
+        <div className="flex items-center justify-center gap-3">
+          <button
+            onClick={onAddTab}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-emerald-500 text-emerald-600 text-sm font-semibold hover:bg-emerald-50 transition"
+          >
+            <Plus size={14} />
+            Add Tab
+          </button>
+          <button
+            onClick={onCreate}
+            className="flex items-center gap-1.5 px-5 py-2 rounded-full bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition shadow-sm"
+          >
+            Create / Save Tabs
+          </button>
+        </div>
+        <p className="text-xs font-bold text-red-500 animate-pulse text-center">
+          ⚠️ Jangan lupa klik Create / Save Tabs Jika Ingin Tersimpan!
+        </p>
       </div>
     </div>
   );
@@ -253,9 +258,12 @@ function TabNavigationPreview({
         <span className="text-emerald-500">
           <Table size={15} />
         </span>
-        <span className="text-sm font-bold text-gray-700">
-          {title || "Tab Navigation"}
-        </span>
+        <span
+          className={`text-sm font-bold text-gray-700 break-words ${richTextDisplayClass}`}
+          dangerouslySetInnerHTML={{
+            __html: normalizeEditorHTML(title) || "Tab Navigation",
+          }}
+        />
       </div>
 
       {description && (
@@ -289,14 +297,15 @@ function TabNavigationPreview({
                   ? "bg-emerald-500 text-white border border-b-white border-emerald-500"
                   : "text-gray-500 hover:text-gray-700 border border-transparent"
               }`}
-            >
-              {tab.label || "Tab"}
-            </button>
+              dangerouslySetInnerHTML={{
+                __html: normalizeEditorHTML(tab.label) || "Tab",
+              }}
+            />
           );
         })}
       </div>
 
-      <div className="border border-t-0 border-gray-200 rounded-b-lg px-4 py-4">
+      <div className="border border-t-0 border-gray-200 rounded-b-lg px-4 py-2">
         <div
           className={`text-sm text-gray-600 leading-relaxed ${richTextDisplayClass}`}
           style={contentStyle}

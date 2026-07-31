@@ -276,13 +276,16 @@ function TabNavigationPreview({ data }: { data: any }) {
               ${index === 0 ? "rounded-tl-2xl" : ""}
               ${index === tabs.length - 1 ? "rounded-tr-2xl" : ""}
             `}
-          >
-            {tab.title || tab.label || `Tab ${index + 1}`}
-          </button>
+            dangerouslySetInnerHTML={{
+              __html:
+                normalizeEditorHTML(tab.title || tab.label) ||
+                `Tab ${index + 1}`,
+            }}
+          />
         ))}
       </div>
       <div
-        className="bg-white rounded-b-2xl p-8 text-base text-black leading-relaxed shadow-sm break-words
+        className="bg-white rounded-b-2xl px-8 pt-2 pb-8  text-base text-black leading-relaxed shadow-sm break-words
           [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1"
         dangerouslySetInnerHTML={{
           __html: normalizeEditorHTML(tabs[activeTab]?.content) || "",
@@ -443,6 +446,41 @@ function CarouselPreview({ data }: { data: any }) {
   const cardsPerSlide = data?.cardsPerSlide ?? 2;
   const maxIndex = Math.max(items.length - cardsPerSlide, 0);
 
+  // ── Swipe / drag gesture support ───────────────────────────────────────
+  // Lets users drag/swipe the slide track directly, in addition to the
+  // arrow buttons. The track follows the pointer live while dragging, then
+  // snaps to the nearest slide (or back) on release.
+  const trackContainerRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffsetPct, setDragOffsetPct] = useState(0);
+  const dragStartXRef = useRef(0);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    setIsDragging(true);
+    dragStartXRef.current = e.clientX;
+    setDragOffsetPct(0);
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+  };
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+    const width = trackContainerRef.current?.offsetWidth || 1;
+    const deltaPx = e.clientX - dragStartXRef.current;
+    setDragOffsetPct((deltaPx / width) * 100);
+  };
+  const endDrag = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    const width = trackContainerRef.current?.offsetWidth || 1;
+    const deltaPx = e.clientX - dragStartXRef.current;
+    const thresholdPx = width * 0.15; // drag past 15% of visible width to change slide
+    if (deltaPx <= -thresholdPx) {
+      setCurrentIndex((i) => Math.min(i + 1, maxIndex));
+    } else if (deltaPx >= thresholdPx) {
+      setCurrentIndex((i) => Math.max(i - 1, 0));
+    }
+    setDragOffsetPct(0);
+  };
+
   if (items.length === 0) {
     return (
       <div className="w-full text-center text-gray-400 text-sm py-6">
@@ -451,7 +489,7 @@ function CarouselPreview({ data }: { data: any }) {
     );
   }
 
-  const translatePct = (100 / cardsPerSlide) * currentIndex;
+  const translatePct = (100 / cardsPerSlide) * currentIndex - dragOffsetPct;
   const textStyle = getFontStyle(data?.fontType, data?.fontSize);
 
   return (
@@ -489,10 +527,18 @@ function CarouselPreview({ data }: { data: any }) {
         >
           ›
         </button>
-        <div className="overflow-hidden mx-2">
+        <div className="overflow-hidden mx-2" ref={trackContainerRef}>
           <div
-            className="flex items-stretch transition-transform duration-500 ease-in-out"
-            style={{ transform: `translateX(-${translatePct}%)` }}
+            className={`flex items-stretch select-none cursor-grab active:cursor-grabbing ${isDragging ? "" : "transition-transform duration-500 ease-in-out"}`}
+            style={{
+              transform: `translateX(-${translatePct}%)`,
+              touchAction: "pan-y",
+            }}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={endDrag}
+            onPointerCancel={endDrag}
+            onPointerLeave={isDragging ? endDrag : undefined}
           >
             {items.map((item: any, index: number) => (
               <div
@@ -501,7 +547,7 @@ function CarouselPreview({ data }: { data: any }) {
                 style={{ width: `${100 / cardsPerSlide}%` }}
               >
                 <div
-                  className={`group flex flex-col h-full w-full rounded-xl overflow-hidden border border-gray-200 shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-2 hover:border-emerald-300 ${richTextDisplayClass}`}
+                  className={`flex flex-col h-full w-full rounded-xl overflow-hidden border border-gray-200 shadow-sm ${richTextDisplayClass}`}
                 >
                   <div
                     className={`py-4 px-4 text-center bg-[#F8FAFC] ${richTextDisplayClass}`}

@@ -291,25 +291,30 @@ function ContentCardCanvas({
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between">
-        <p className="text-[11px] text-gray-400">
-          You can add up to 3 cards only.
-        </p>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onAddCard}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-emerald-500 text-emerald-600 text-sm font-semibold hover:bg-emerald-50 transition"
-          >
-            <Plus size={14} />
-            Add Card
-          </button>
-          <button
-            onClick={onCreate}
-            className="flex items-center gap-1.5 px-5 py-2 rounded-full bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition shadow-sm"
-          >
-            Create Cards
-          </button>
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <p className="text-[11px] text-gray-400">
+            You can add up to 3 cards only.
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onAddCard}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-emerald-500 text-emerald-600 text-sm font-semibold hover:bg-emerald-50 transition"
+            >
+              <Plus size={14} />
+              Add Card
+            </button>
+            <button
+              onClick={onCreate}
+              className="flex items-center gap-1.5 px-5 py-2 rounded-full bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition shadow-sm"
+            >
+              Create / Save Cards
+            </button>
+          </div>
         </div>
+        <p className="text-xs font-bold text-red-500 animate-pulse text-center">
+          ⚠️ Jangan lupa klik Create / Save Cards Jika Ingin Tersimpan!
+        </p>
       </div>
     </div>
   );

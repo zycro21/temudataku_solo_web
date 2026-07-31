@@ -228,13 +228,16 @@ function CodingCanvas({
         </p>
       </div>
 
-      <div className="flex items-center justify-center">
+      <div className="flex flex-col items-center justify-center gap-2">
         <button
           onClick={onCreate}
           className="flex items-center gap-1.5 px-6 py-2 rounded-full bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition shadow-sm"
         >
-          Create Coding
+          Create & Save Coding
         </button>
+        <p className="text-xs font-bold text-red-500 animate-pulse text-center">
+          ⚠️ Jangan lupa klik Create & Save Coding Jika Ingin Tersimpan!
+        </p>
       </div>
     </div>
   );

@@ -265,20 +265,25 @@ function CarouselCanvas({
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-center gap-3">
-        <button
-          onClick={onAddItem}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-emerald-500 text-emerald-600 text-sm font-semibold hover:bg-emerald-50 transition"
-        >
-          <Plus size={14} />
-          Add Item
-        </button>
-        <button
-          onClick={onCreate}
-          className="flex items-center gap-1.5 px-5 py-2 rounded-full bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition shadow-sm"
-        >
-          Create Carousel
-        </button>
+      <div className="flex flex-col items-center justify-center gap-2">
+        <div className="flex items-center justify-center gap-3">
+          <button
+            onClick={onAddItem}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-emerald-500 text-emerald-600 text-sm font-semibold hover:bg-emerald-50 transition"
+          >
+            <Plus size={14} />
+            Add Item
+          </button>
+          <button
+            onClick={onCreate}
+            className="flex items-center gap-1.5 px-5 py-2 rounded-full bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition shadow-sm"
+          >
+            Create / Save Carousel
+          </button>
+        </div>
+        <p className="text-xs font-bold text-red-500 animate-pulse text-center">
+          ⚠️ Jangan lupa klik Create / Save Carousel Jika Ingin Tersimpan!
+        </p>
       </div>
     </div>
   );
@@ -317,6 +322,38 @@ function CarouselPreview({
   const next = (e: React.MouseEvent) => {
     e.stopPropagation();
     setPage((p) => Math.min(totalPages - 1, p + 1));
+  };
+
+  // ── Swipe / drag gesture support ───────────────────────────────────────
+  // Lets users change page by dragging or swiping the cards area, in
+  // addition to the arrow buttons. The card grid follows the pointer live
+  // while dragging (translateX), then snaps back to center — or to the
+  // next/prev page — once released, so the drag is actually visible.
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragDeltaPx, setDragDeltaPx] = useState(0);
+  const dragStartXRef = useRef(0);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    setIsDragging(true);
+    dragStartXRef.current = e.clientX;
+    setDragDeltaPx(0);
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+  };
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+    setDragDeltaPx(e.clientX - dragStartXRef.current);
+  };
+  const endDrag = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    const delta = e.clientX - dragStartXRef.current;
+    const threshold = 40;
+    if (delta <= -threshold) {
+      setPage((p) => Math.min(totalPages - 1, p + 1));
+    } else if (delta >= threshold) {
+      setPage((p) => Math.max(0, p - 1));
+    }
+    setDragDeltaPx(0);
   };
 
   return (
@@ -362,39 +399,51 @@ function CarouselPreview({
           <ChevronLeft size={14} className="text-gray-500" />
         </button>
 
-        <div
-          className="flex-1 grid gap-3"
-          style={{ gridTemplateColumns: `repeat(${cardsPerSlide}, 1fr)` }}
-        >
-          {visibleItems.map((item) => (
-            <div
-              key={item.id}
-              className="rounded-lg border border-gray-200 bg-white overflow-hidden flex flex-col"
-            >
-              <div className="h-1.5 bg-emerald-500 w-full" />
-              <div className="p-3 flex flex-col items-center text-center flex-1">
-                <div
-                  className="text-xs font-bold text-emerald-600 mb-2 leading-snug"
-                  dangerouslySetInnerHTML={{
-                    __html: item.label || "Item Label",
-                  }}
-                />
-                <div
-                  className="text-[11px] text-gray-600 leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: item.content || "—" }}
-                />
+        <div className="flex-1 overflow-hidden">
+          <div
+            className="grid gap-3 select-none cursor-grab active:cursor-grabbing"
+            style={{
+              gridTemplateColumns: `repeat(${cardsPerSlide}, 1fr)`,
+              touchAction: "pan-y",
+              transform: `translateX(${dragDeltaPx}px)`,
+              transition: isDragging ? "none" : "transform 200ms ease-out",
+            }}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={endDrag}
+            onPointerCancel={endDrag}
+            onPointerLeave={isDragging ? endDrag : undefined}
+          >
+            {visibleItems.map((item) => (
+              <div
+                key={item.id}
+                className="rounded-lg border border-gray-200 bg-white overflow-hidden flex flex-col"
+              >
+                <div className="h-1.5 bg-emerald-500 w-full" />
+                <div className="p-3 flex flex-col items-center text-center flex-1">
+                  <div
+                    className="text-xs font-bold text-emerald-600 mb-2 leading-snug"
+                    dangerouslySetInnerHTML={{
+                      __html: item.label || "Item Label",
+                    }}
+                  />
+                  <div
+                    className="text-[11px] text-gray-600 leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: item.content || "—" }}
+                  />
+                </div>
               </div>
-            </div>
-          ))}
-          {visibleItems.length < cardsPerSlide &&
-            Array.from({ length: cardsPerSlide - visibleItems.length }).map(
-              (_, i) => (
-                <div
-                  key={`empty-${i}`}
-                  className="rounded-lg border border-dashed border-gray-200 bg-gray-50"
-                />
-              ),
-            )}
+            ))}
+            {visibleItems.length < cardsPerSlide &&
+              Array.from({ length: cardsPerSlide - visibleItems.length }).map(
+                (_, i) => (
+                  <div
+                    key={`empty-${i}`}
+                    className="rounded-lg border border-dashed border-gray-200 bg-gray-50"
+                  />
+                ),
+              )}
+          </div>
         </div>
 
         <button

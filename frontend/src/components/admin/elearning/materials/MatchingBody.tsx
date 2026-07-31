@@ -174,20 +174,25 @@ function MatchingCanvas({
         ))}
       </div>
 
-      <div className="flex items-center justify-center gap-3">
-        <button
-          onClick={onAddPair}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-emerald-500 text-emerald-600 text-sm font-semibold hover:bg-emerald-50 transition"
-        >
-          <Plus size={14} />
-          Add Pair
-        </button>
-        <button
-          onClick={onCreate}
-          className="flex items-center gap-1.5 px-5 py-2 rounded-full bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition shadow-sm"
-        >
-          Create Quiz
-        </button>
+      <div className="flex flex-col items-center justify-center gap-2">
+        <div className="flex items-center justify-center gap-3">
+          <button
+            onClick={onAddPair}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-emerald-500 text-emerald-600 text-sm font-semibold hover:bg-emerald-50 transition"
+          >
+            <Plus size={14} />
+            Add Pair
+          </button>
+          <button
+            onClick={onCreate}
+            className="flex items-center gap-1.5 px-5 py-2 rounded-full bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition shadow-sm"
+          >
+            Create & Save Quiz
+          </button>
+        </div>
+        <p className="text-xs font-bold text-red-500 animate-pulse text-center">
+          ⚠️ Jangan lupa klik Create & Save Quiz Jika Ingin Tersimpan!
+        </p>
       </div>
     </div>
   );
