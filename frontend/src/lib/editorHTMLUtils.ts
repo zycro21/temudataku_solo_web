@@ -70,6 +70,25 @@ export function normalizeEditorHTML(html: string | undefined | null): string {
   // di project ini malah nggak pernah pakai <div>/<p> sama sekali.
   let normalized = html.replace(/\r\n|\r|\n/g, "<br>");
 
+  // 🔥 FIX BARU: spasi berturut-turut (indentasi manual pakai spacebar,
+  // bukan Tab) juga collapse di preview dengan alasan PERSIS SAMA kayak
+  // newline di atas — RichTextEditor.tsx punya white-space:pre-wrap jadi
+  // pas diedit spasi dobel/menjorok kelihatan benar, tapi container
+  // PREVIEW (dangerouslySetInnerHTML di sini) default-nya white-space:
+  // normal, dan spec HTML SELALU nge-collapse spasi biasa (" ") yang
+  // berturut-turut jadi cuma satu spasi, apa pun isi HTML-nya.
+  // (Tab yang baru — lihat RichTextEditor.tsx — udah aman duluan karena
+  // insert nbsp langsung, bukan spasi biasa. Fix di sini buat nutup kasus
+  // lain: user ngetik spasi manual berkali-kali pakai spacebar.)
+  // Trik standar: dalam satu RUN spasi (2+ spasi beruntun), semua spasi
+  // KECUALI yang PALING TERAKHIR diubah jadi &nbsp; (non-breaking, nggak
+  // collapse). Spasi terakhir tiap run sengaja dibiarkan spasi biasa biar
+  // browser masih bisa word-wrap di situ kalau barisnya kepanjangan.
+  normalized = normalized.replace(
+    / {2,}/g,
+    (match) => "&nbsp;".repeat(match.length - 1) + " ",
+  );
+
   // Pakai DOMParser hanya kalau di browser; di SSR kembalikan hasil replace
   // newline di atas apa adanya (proses DOM murni buat client-side).
   if (typeof window === "undefined") return normalized;

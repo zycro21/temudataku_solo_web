@@ -1984,15 +1984,25 @@ export default function MaterialPreviewModal({
               {items.map((item, index) => {
                 const nextItem = items[index + 1];
                 const isLast = index === items.length - 1;
-                // Heading langsung diikuti paragraph → jaraknya dirapatkan
-                // (mb-3) supaya kelihatan "menyatu" sebagai judul + isi.
-                // Pasangan item lain tetap pakai jarak default (mb-10)
-                // seperti sebelumnya.
+                // Jarak dirapatkan (mb-3) untuk:
+                //  - heading langsung diikuti paragraph (sudah ada sebelumnya)
+                //  - heading atau paragraph langsung diikuti image/video
+                // supaya kelihatan "menyatu" sebagai satu kesatuan konten
+                // (judul/teks + media pendukungnya). Pasangan item lain
+                // (termasuk paragraph→paragraph) tetap pakai jarak default
+                // (mb-10) seperti sebelumnya.
+                const isHeadingToParagraph =
+                  item.id === "heading" && nextItem?.id === "paragraph";
+                const isTextToMedia =
+                  (item.id === "heading" || item.id === "paragraph") &&
+                  (nextItem?.id === "image" || nextItem?.id === "video");
                 const spacingClass = isLast
                   ? ""
-                  : item.id === "heading" && nextItem?.id === "paragraph"
+                  : isHeadingToParagraph
                     ? "mb-3"
-                    : "mb-10";
+                    : isTextToMedia
+                      ? "mb-6"
+                      : "mb-10";
                 return (
                   <div key={item.instanceId} className={spacingClass}>
                     <PreviewItem item={item} />

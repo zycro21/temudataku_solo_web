@@ -410,6 +410,30 @@ const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>(
             toggleStrikethrough();
             return;
           }
+          // ── Tab = indent (kayak di Word) ────────────────────────────────
+          // Sebelumnya Tab nggak di-handle sama sekali → browser default-nya
+          // pindahin focus ke elemen berikutnya (bukan nyisipin spasi).
+          // Fix: cegat Tab di sini, insert beberapa karakter NON-BREAKING
+          // SPACE (U+00A0, bukan spasi biasa " ") langsung ke posisi kursor.
+          // Sengaja pakai nbsp (bukan spasi biasa) karena nbsp itu TIDAK
+          // PERNAH di-collapse browser apa pun kondisi white-space
+          // container-nya (beda sama spasi biasa yang collapse kalau
+          // container preview nggak punya white-space:pre-wrap) — jadi
+          // hasil Tab ini dijamin tetep keliatan menjorok baik pas ngedit
+          // MAUPUN di preview, tanpa gantung ke fix spasi-berturut di
+          // normalizeEditorHTML().
+          if (e.key === "Tab" && !e.shiftKey) {
+            e.preventDefault();
+            document.execCommand(
+              "insertText",
+              false,
+              "\u00A0\u00A0\u00A0\u00A0",
+            );
+            fireSelectionChange();
+            onChangeRef.current?.(editorRef.current?.innerHTML || "");
+            return;
+          }
+
           const isInUnordered = document.queryCommandState(
             "insertUnorderedList",
           );
