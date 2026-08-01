@@ -26,6 +26,8 @@ interface RichTextEditorProps {
   onBlur?: () => void;
   onMount?: (ref: RichTextEditorRef) => void;
   onUnmount?: () => void;
+  maxLength?: number; // ⬅️ baru
+  onMaxLengthReached?: () => void;
   onSelectionChange?: (state: {
     bold: boolean;
     italic: boolean;
@@ -50,6 +52,8 @@ const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>(
       onBlur,
       onMount,
       onUnmount,
+      maxLength,
+      onMaxLengthReached,
       onSelectionChange,
     },
     ref,
@@ -74,6 +78,18 @@ const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>(
     useEffect(() => {
       onUnmountRef.current = onUnmount;
     }, [onUnmount]);
+
+    const maxLengthRef = useRef(maxLength); // ⬅️ baru
+    useEffect(() => {
+      // ⬅️ baru
+      maxLengthRef.current = maxLength; // ⬅️ baru
+    }, [maxLength]); // ⬅️ baru
+
+    const onMaxLengthReachedRef = useRef(onMaxLengthReached); // ⬅️ baru
+    useEffect(() => {
+      // ⬅️ baru
+      onMaxLengthReachedRef.current = onMaxLengthReached; // ⬅️ baru
+    }, [onMaxLengthReached]);
 
     // ── Deteksi italic: pakai browser native queryCommandState
     // Ini bekerja dengan benar karena font (Plus Jakarta Sans) sudah punya
@@ -161,6 +177,42 @@ const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>(
       fireSelectionChange();
       onChangeRef.current?.(el.innerHTML || "");
     }, [fireSelectionChange]);
+
+    // ── Cegah input nambah karakter kalau udah kena maxLength ─────────────────
+    // Pakai onBeforeInput (bukan onKeyDown) karena ini juga nyegat paste,
+    // IME, dan drag-drop teks — bukan cuma keyboard biasa.
+    const handleBeforeInput = useCallback(
+      (e: React.FormEvent<HTMLDivElement>) => {
+        const max = maxLengthRef.current;
+        const el = editorRef.current;
+        if (!max || !el) return;
+
+        const nativeEvent = e.nativeEvent as InputEvent;
+        const inputType = nativeEvent.inputType || "";
+
+        if (inputType.startsWith("delete")) return;
+
+        const currentLength = (el.innerText || "").replace(/\n$/, "").length;
+        const sel = window.getSelection();
+        const selectedLength =
+          sel && !sel.isCollapsed ? sel.toString().length : 0;
+
+        let addedLength = (nativeEvent.data ?? "").length;
+        if (
+          !nativeEvent.data &&
+          (inputType === "insertParagraph" || inputType === "insertLineBreak")
+        ) {
+          addedLength = 1;
+        }
+
+        const projected = currentLength - selectedLength + addedLength;
+        if (projected > max) {
+          e.preventDefault();
+          onMaxLengthReachedRef.current?.();
+        }
+      },
+      [],
+    );
 
     // ── Build the imperative API object ──────────────────────────────────
     const buildAPI = useCallback(
@@ -388,6 +440,7 @@ const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>(
         ref={editorRef}
         contentEditable
         suppressContentEditableWarning
+        onBeforeInput={handleBeforeInput}
         onInput={() => {
           onChangeRef.current?.(editorRef.current?.innerHTML || "");
         }}

@@ -558,7 +558,7 @@ model ELearningHighlightContent {
   id        String @id @default(cuid())
   contentId String @unique
 
-  text      String @db.VarChar(120)
+  text      String @db.VarChar(1250)
 
   content   ELearningContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
 }

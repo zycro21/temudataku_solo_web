@@ -83,7 +83,7 @@ const paragraphContentSchema = z.object({
 
 const highlightContentSchema = z.object({
   type: z.literal("highlight"),
-  text: z.string().max(120),
+  text: z.string().max(1250),
   orderNumber: z.number().int().min(1).optional(),
 });
 

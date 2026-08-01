@@ -222,9 +222,9 @@ function ParagraphBody({
   const textStyle = getFontStyle(fontType, fontSize);
 
   if (mode === "preview") {
-    console.log("RAW value:", JSON.stringify(value));
-    console.log("NORMALIZED:", JSON.stringify(normalizeEditorHTML(value)));
-    
+    // console.log("RAW value:", JSON.stringify(value));
+    // console.log("NORMALIZED:", JSON.stringify(normalizeEditorHTML(value)));
+
     return (
       <div className="relative border-2 border-dashed border-gray-300 rounded-xl px-3 py-2.5 bg-white group/preview">
         <button
@@ -667,7 +667,23 @@ function HighlightBody({
 }) {
   const [mode, setMode] = useState<"canvas" | "preview">("canvas");
   const [focused, setFocused] = useState(false);
+  const [limitHit, setLimitHit] = useState(false);
+  const limitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const textStyle = getFontStyle(fontType, fontSize);
+
+  // ── Trigger blink merah di hint "Maksimal 1000 karakter" tiap kali user
+  // coba nambah karakter padahal udah kena limit di RichTextEditor.
+  const triggerLimitBlink = () => {
+    setLimitHit(true);
+    if (limitTimeoutRef.current) clearTimeout(limitTimeoutRef.current);
+    limitTimeoutRef.current = setTimeout(() => setLimitHit(false), 700);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (limitTimeoutRef.current) clearTimeout(limitTimeoutRef.current);
+    };
+  }, []);
 
   if (mode === "preview") {
     return (
@@ -716,6 +732,8 @@ function HighlightBody({
         placeholder="Add important note here ..."
         className="text-gray-700 min-h-[3em]"
         style={textStyle}
+        maxLength={1000}
+        onMaxLengthReached={triggerLimitBlink}
         onMount={(ref) => {
           onEditorReady?.(ref);
           setTimeout(() => {
@@ -733,6 +751,16 @@ function HighlightBody({
         onBlur={() => setFocused(false)}
         onSelectionChange={onSelectionChange}
       />
+      {/* Hint batas karakter — sekarang beneran di-enforce di
+          RichTextEditor (lewat maxLength), dan blink merah pas user
+          coba nambah karakter padahal udah mentok. */}
+      <p
+        className={`mt-1.5 text-[11px] transition-colors ${
+          limitHit ? "text-red-500 animate-pulse" : "text-gray-400"
+        }`}
+      >
+        Maksimal 1000 karakter
+      </p>
     </div>
   );
 }

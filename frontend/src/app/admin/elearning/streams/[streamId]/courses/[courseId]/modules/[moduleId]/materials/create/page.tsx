@@ -329,6 +329,79 @@ export function htmlToMarkdown(html: string): string {
   return md;
 }
 
+// ─── Truncate HTML aman berbasis panjang teks yang KELIATAN ──────────────────
+// Dipakai khusus buat komponen highlight, yang field `text`-nya dibatasi 1250
+// karakter sama backend (lihat pemakaian di buildBlocksPayload → case
+// "highlight").
+//
+// BUG SEBELUMNYA: truncation dilakuin dengan cara paling naif —
+//   htmlToMarkdown(d.value).slice(0, maxContentLength)
+// — motong STRING HASIL SERIALIZE (yang isinya udah berupa token markdown
+// semacam {align:justify}...{/align}, {hl:#rrggbb}...{/hl}, dst) di karakter
+// ke-N secara buta, tanpa peduli titik potongnya jatuh di tengah token atau
+// nggak. Kalau kepotong di tengah isi {align:justify}, closing tag
+// "{/align}"-nya ikut kebuang dan nggak pernah kebentuk. Efeknya PERSIS
+// yang dilaporin user:
+//   1. markdownToHTML() waktu load ulang nggak nemu closing tag yang cocok
+//      (regexnya `\{align:...\}([\s\S]*?)\{\/align\}` butuh keduanya ada),
+//      jadi SAMA SEKALI nggak match → token pembuka "{align:justify}" ikut
+//      tampil apa adanya sebagai teks literal (bukan di-parse jadi
+//      <div style="text-align:justify">).
+//   2. Isi teks di belakang titik potong ikut ilang beneran (karena memang
+//      dibuang sama slice), padahal user nulisnya lebih panjang dari itu.
+//
+// FIX: truncate di level HTML/DOM (BUKAN di string markdown hasil akhir),
+// berdasar panjang TEKS YANG KELIATAN (textContent), bukan panjang markup.
+// Karena yang dipotong adalah DOM tree yang valid (bukan string mentah),
+// tag yang masih "terbuka" di titik potong otomatis ketutup dengan benar
+// oleh browser sendiri — nggak ada lagi closing tag yang ilang. Hasil HTML
+// yang UTUH ini baru diserialize ke markdown lewat htmlToMarkdown() seperti
+// biasa di pemanggilnya.
+function truncateHTMLByVisibleLength(
+  html: string | undefined | null,
+  maxLen: number,
+): string {
+  if (!html || maxLen <= 0) return "";
+  if (typeof window === "undefined") return html;
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(
+    `<div id="__root">${html}</div>`,
+    "text/html",
+  );
+  const root = doc.getElementById("__root");
+  if (!root) return html;
+
+  let remaining = maxLen;
+
+  const walk = (node: Node) => {
+    // Snapshot dulu jadi array biasa: kita bakal insert/remove childNodes
+    // node-nya sendiri selagi loop, jadi nggak aman kalau langsung iterate
+    // live NodeList (childNodes asli root/elemen).
+    const children = Array.from(node.childNodes);
+    for (const child of children) {
+      if (remaining <= 0) {
+        node.removeChild(child);
+        continue;
+      }
+      if (child.nodeType === Node.TEXT_NODE) {
+        const text = child.textContent ?? "";
+        if (text.length > remaining) {
+          child.textContent = text.slice(0, remaining);
+          remaining = 0;
+        } else {
+          remaining -= text.length;
+        }
+      } else if (child.nodeType === Node.ELEMENT_NODE) {
+        walk(child);
+      }
+    }
+  };
+
+  walk(root);
+  return root.innerHTML;
+}
+
 // ─── Font style (fontType + fontSize) serialization ───────────────────────────
 // Karena tabel/skema backend belum punya kolom khusus untuk fontType & fontSize,
 // kita "titipkan" info ini sebagai token kecil di awal string `text` yang
@@ -1361,13 +1434,38 @@ export default function CreateMaterialPage() {
 
         case "highlight": {
           const fstyleToken = encodeFontStyleToken(d);
-          // total text (token + isi) tetap harus <= 120 karakter (limit backend)
-          const maxContentLength = Math.max(0, 120 - fstyleToken.length);
+          // total text (token + isi) tetap harus <= 1250 karakter (limit backend)
+          const maxContentLength = Math.max(0, 1250 - fstyleToken.length);
+
+          // 🔥 FIX: truncate berbasis TEKS YANG KELIATAN dulu di level HTML
+          // (lihat truncateHTMLByVisibleLength di atas — jaga formatting,
+          // alignment, list, dst tetap valid & closed), BARU diserialize ke
+          // markdown — bukan slice string markdown hasil akhir yang bisa
+          // motong di tengah token dan ninggalin closing tag ilang.
+          //
+          // Token markdown (mis. {align:justify}...{/align}) ikut makan
+          // sebagian dari budget 120 karakter, jadi kita coba beberapa kali
+          // dengan budget teks yang makin dikecilin sampai hasil akhirnya
+          // beneran muat di bawah maxContentLength.
+          let serialized = "";
+          let textBudget = maxContentLength;
+          for (let attempt = 0; attempt < 6 && textBudget >= 0; attempt++) {
+            const truncatedHTML = truncateHTMLByVisibleLength(
+              d.value ?? "",
+              textBudget,
+            );
+            serialized = htmlToMarkdown(truncatedHTML);
+            if (serialized.length <= maxContentLength) break;
+            // Overhead token bikin hasil masih kepanjangan → kecilin lagi
+            // budget teksnya sebesar kelebihannya, biar nggak perlu banyak
+            // iterasi buat konvergen.
+            const overshoot = serialized.length - maxContentLength;
+            textBudget = Math.max(0, textBudget - overshoot);
+          }
+
           contents.push({
             type: "highlight",
-            text:
-              fstyleToken +
-              htmlToMarkdown(d.value ?? "").slice(0, maxContentLength),
+            text: fstyleToken + serialized,
             orderNumber: globalOrder++,
           });
           break;

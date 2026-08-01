@@ -285,7 +285,7 @@ function TabNavigationPreview({ data }: { data: any }) {
         ))}
       </div>
       <div
-        className="bg-white rounded-b-2xl px-8 pt-2 pb-8  text-base text-black leading-relaxed shadow-sm break-words
+        className="bg-white rounded-b-2xl px-8 pt-4 pb-4 text-base text-black leading-relaxed shadow-sm break-words
           [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1"
         dangerouslySetInnerHTML={{
           __html: normalizeEditorHTML(tabs[activeTab]?.content) || "",
@@ -1996,13 +1996,28 @@ export default function MaterialPreviewModal({
                 const isTextToMedia =
                   (item.id === "heading" || item.id === "paragraph") &&
                   (nextItem?.id === "image" || nextItem?.id === "video");
+                // 🔥 BARU: carousel/accordion/tab-navigation/content-card yang
+                // langsung diikuti paragraph juga dirapatkan (mb-7) — nggak
+                // serapat heading→paragraph (mb-3), tapi jangan sampai
+                // sejarang default mb-10, karena komponen-komponen ini
+                // sendiri sudah punya "penutup" visual (border/card) yang
+                // bikin jarak default kelihatan kelewat lebar kalau
+                // dilanjut paragraph biasa persis di bawahnya.
+                const isBoxComponentToParagraph =
+                  (item.id === "carousel" ||
+                    item.id === "accordion" ||
+                    item.id === "tab-navigation" ||
+                    item.id === "content-card") &&
+                  nextItem?.id === "paragraph";
                 const spacingClass = isLast
                   ? ""
                   : isHeadingToParagraph
                     ? "mb-3"
                     : isTextToMedia
                       ? "mb-6"
-                      : "mb-10";
+                      : isBoxComponentToParagraph
+                        ? "mb-4"
+                        : "mb-10";
                 return (
                   <div key={item.instanceId} className={spacingClass}>
                     <PreviewItem item={item} />
