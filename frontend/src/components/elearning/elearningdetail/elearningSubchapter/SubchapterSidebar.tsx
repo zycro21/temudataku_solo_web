@@ -20,6 +20,7 @@ interface Props {
   navigationSource?: "manual" | "footer";
 
   activeTaskType?: "quiz" | "assignment" | null;
+  activeTaskTextId?: string | null;
 
   // 🔥 Progress overall course untuk SubChapter ini — belum ada endpoint
   // progress per-SubBab/Text, jadi checklist selesai/belum per item materi
@@ -41,6 +42,7 @@ export default function ModuleSidebar({
   activeTextId,
   navigationSource,
   activeTaskType,
+  activeTaskTextId,
   progressPercent = 0,
   lastActivityAt,
   onSelectText,
@@ -50,17 +52,28 @@ export default function ModuleSidebar({
   const [keyword, setKeyword] = useState("");
   const [openModules, setOpenModules] = useState<Record<string, boolean>>({});
 
+  // 🔥 BARU: dropdown "Penilaian" di bagian bawah sidebar (di luar/bawah
+  // semua modul) — cuma relevan kalau subchapter ini punya KEDUANYA (quiz
+  // DAN assignment), makanya butuh open-state sendiri, terpisah dari
+  // openModules per SubBab di atas.
+  const [assessmentOpen, setAssessmentOpen] = useState(false);
+
   useEffect(() => {
-    if (navigationSource !== "footer" || !activeTextId) return;
+    // 🔥 Quiz/assignment markernya sekarang ada DI DALAM dropdown SubBab
+    // masing-masing, jadi navigasi footer ke quiz/assignment juga perlu
+    // auto-expand SubBab pemiliknya (sebelumnya cuma ditangani buat
+    // submodule lewat activeTextId).
+    const targetTextId = activeTextId ?? activeTaskTextId;
+    if (navigationSource !== "footer" || !targetTextId) return;
 
     const activeSubBab = subChapter.subBabs.find((sb) =>
-      sb.texts.some((t) => t.id === activeTextId),
+      sb.texts.some((t) => t.id === targetTextId),
     );
 
     if (!activeSubBab) return;
 
     setOpenModules({ [activeSubBab.id]: true });
-  }, [activeTextId, navigationSource, subChapter]);
+  }, [activeTextId, activeTaskTextId, navigationSource, subChapter]);
 
   const timeAgo = (dateString?: string | null) => {
     if (!dateString) return "-";
@@ -92,47 +105,67 @@ export default function ModuleSidebar({
     );
   }, [keyword, subChapter]);
 
-  /* ================= TASKS (QUIZ & ASSIGNMENT) — dari SubBab terakhir ================= */
-  const tasks = useMemo(() => {
-    if (!subChapter.subBabs.length) return [];
+  // 🔥 BARU: ringkasan "Penilaian apa aja yang ada di subchapter ini" —
+  // SAMA PERSIS logic-nya kayak admin (CoursesTable.tsx, kolom
+  // "Assessment": hasQuiz/hasProject dihitung dengan `.some()` ke SEMUA
+  // SubBab, bukan per-SubBab kayak marker quiz/assignment di dalam
+  // dropdown module masing-masing di atas). Bedanya di sini, selain
+  // sekadar tau ADA/NGGAK-nya, kita juga butuh Text konkret-nya (buat tau
+  // textId & title yang bakal dituju pas diklik) — makanya pakai `.find()`
+  // yang nyari ke SEMUA subBab (bukan cuma yang lolos filter search),
+  // supaya ringkasan ini tetap konsisten muncul walau user lagi ngetik di
+  // kolom "Cari" dan modul yang punya quiz/assignment-nya kefilter keluar.
+  const { overallQuizText, overallAssignmentText } = useMemo(() => {
+    let quizText: TextWithSubBab | undefined;
+    let assignmentText: TextWithSubBab | undefined;
 
-    const lastSubBab = subChapter.subBabs[subChapter.subBabs.length - 1];
-    const result: {
-      type: "quiz" | "assignment";
-      label: string;
-      title: string;
-      icon: string;
-      textId: string;
-    }[] = [];
-
-    const quizText = lastSubBab.texts.find((t) => t.quiz);
-    if (quizText?.quiz) {
-      result.push({
-        type: "quiz",
-        label: "Penilaian Quiz",
-        title: quizText.quiz.title,
-        icon: "/assets/elearning/penilaian.svg",
-        textId: quizText.id,
-      });
+    for (const sb of subChapter.subBabs) {
+      for (const t of sb.texts) {
+        if (!quizText && t.quiz) {
+          quizText = { ...t, subBabId: sb.id, subBabTitle: sb.title };
+        }
+        if (!assignmentText && t.assignment) {
+          assignmentText = { ...t, subBabId: sb.id, subBabTitle: sb.title };
+        }
+      }
     }
 
-    const assignmentText = lastSubBab.texts.find((t) => t.assignment);
-    if (assignmentText?.assignment) {
-      result.push({
-        type: "assignment",
-        label: "Penilaian Proyek",
-        title: assignmentText.assignment.title,
-        icon: "/assets/elearning/penilaian.svg",
-        textId: assignmentText.id,
-      });
-    }
-
-    return result;
+    return { overallQuizText: quizText, overallAssignmentText: assignmentText };
   }, [subChapter]);
+
+  const hasBothAssessments = !!overallQuizText && !!overallAssignmentText;
+
+  // 🔥 FIX: dulu quiz/assignment cuma diambil dari SubBab TERAKHIR
+  // (`subChapter.subBabs[subChapter.subBabs.length - 1]`), lalu dirender
+  // sebagai SATU seksi "PENILAIAN" global di paling bawah sidebar — di luar
+  // dropdown modul mana pun. Tapi sesuai skema Prisma, quiz/assignment itu
+  // nempel ke ELearningText (`text.quiz` / `text.assignment`), dan Text
+  // itu bisa ada di SubBab (modul) MANA SAJA, bukan cuma yang terakhir.
+  // Kalau quiz/assignment-nya ada di SubBab lain, dulu dia nggak pernah
+  // muncul sama sekali (Text-nya difilter keluar dari materiTexts karena
+  // punya quiz/assignment, tapi juga nggak match "lastSubBab" check) —
+  // makanya pas modul itu di-drop, isinya kosong.
+  //
+  // Fix: quiz/assignment sekarang dihitung PER SubBab (lihat quizText /
+  // assignmentText di dalam filteredSubBabs.map di bawah) dan dirender
+  // sebagai poin/marker di DALAM dropdown modul yang benar-benar
+  // memilikinya — bukan lagi satu seksi global di bawah.
 
   return (
     <aside
-      className="w-[240px] sticky top-0 bg-white border-r hidden lg:flex flex-col"
+      // 🔥 FIX: dulu nggak ada `shrink-0`, jadi meskipun width-nya
+      // "dipatok" 240px lewat `w-[240px]`, sebagai flex item di dalam
+      // `<div className="flex flex-1">` (SubchapterDetail.tsx) dia tetap
+      // punya flex-shrink default (1) — artinya kalau konten sebelah kanan
+      // (HeroNavigation, terutama judul materi yang panjang) butuh ruang
+      // lebih dari yang tersedia, browser bakal ambil ruang itu dengan
+      // NYUSUTIN sidebar ini duluan, bukan bikin konten kanan yang
+      // menyesuaikan/wrap. `shrink-0` di sini mengunci sidebar supaya
+      // selalu tetap 240px apa pun yang terjadi di kanan — pasangannya ada
+      // di SubchapterHeroNavigation.tsx (`min-w-0` + `break-words` di
+      // wrapper judul) supaya judul panjang itu sendiri yang turun ke
+      // baris baru, bukan memaksa elemen lain menyempit.
+      className="w-[240px] shrink-0 sticky top-0 bg-white border-r hidden lg:flex flex-col"
       style={{ height: "calc(100vh - 60px)" }}
     >
       {/* HEADER */}
@@ -194,6 +227,12 @@ export default function ModuleSidebar({
           const materiTexts = subBab.texts.filter(
             (t) => !t.quiz && !t.assignment,
           );
+
+          // 🔥 Quiz/assignment MILIK SubBab ini sendiri (bisa ada di
+          // SubBab mana pun, bukan cuma yang terakhir) — dirender sebagai
+          // penanda di dalam dropdown SubBab ini.
+          const quizText = subBab.texts.find((t) => t.quiz);
+          const assignmentText = subBab.texts.find((t) => t.assignment);
 
           return (
             <div key={subBab.id} className="space-y-1.5">
@@ -260,56 +299,288 @@ ${
                       </li>
                     );
                   })}
+
+                  {/* 🔥 PENANDA quiz/assignment MILIK SubBab ini — cuma
+                      penanda bahwa SubBab ini ada penilaiannya, bukan lagi
+                      satu seksi global terpisah di bawah semua modul. */}
+                  {quizText?.quiz && (
+                    <li
+                      onClick={() =>
+                        onSelectTask?.({
+                          type: "quiz",
+                          textId: quizText.id,
+                          title: quizText.quiz!.title,
+                        })
+                      }
+                      className={`flex items-center gap-2 px-1.5 py-1 rounded-md cursor-pointer transition
+${
+  activeTaskType === "quiz" && activeTaskTextId === quizText.id
+    ? "bg-emerald-500 text-white font-bold py-1.5"
+    : "text-gray-900 hover:text-gray-600 hover:bg-gray-100"
+}`}
+                    >
+                      <div className="flex items-center justify-center w-3 h-3">
+                        <Image
+                          src="/assets/elearning/penilaian.svg"
+                          alt="quiz"
+                          width={9}
+                          height={9}
+                          className={
+                            activeTaskType === "quiz" &&
+                            activeTaskTextId === quizText.id
+                              ? "brightness-0 invert"
+                              : ""
+                          }
+                        />
+                      </div>
+
+                      <span className="text-[10px] leading-relaxed text-left">
+                        Penilaian Quiz — {quizText.quiz.title}
+                      </span>
+                    </li>
+                  )}
+
+                  {assignmentText?.assignment && (
+                    <li
+                      onClick={() =>
+                        onSelectTask?.({
+                          type: "assignment",
+                          textId: assignmentText.id,
+                          title: assignmentText.assignment!.title,
+                        })
+                      }
+                      className={`flex items-center gap-2 px-1.5 py-1 rounded-md cursor-pointer transition
+${
+  activeTaskType === "assignment" && activeTaskTextId === assignmentText.id
+    ? "bg-emerald-500 text-white font-bold py-1.5"
+    : "text-gray-900 hover:text-gray-600 hover:bg-gray-100"
+}`}
+                    >
+                      <div className="flex items-center justify-center w-3 h-3">
+                        <Image
+                          src="/assets/elearning/penilaian.svg"
+                          alt="assignment"
+                          width={9}
+                          height={9}
+                          className={
+                            activeTaskType === "assignment" &&
+                            activeTaskTextId === assignmentText.id
+                              ? "brightness-0 invert"
+                              : ""
+                          }
+                        />
+                      </div>
+
+                      <span className="text-[10px] leading-relaxed text-left">
+                        Penilaian Proyek — {assignmentText.assignment.title}
+                      </span>
+                    </li>
+                  )}
                 </ul>
               )}
             </div>
           );
         })}
-
-        {/* PENILAIAN */}
-        {tasks.map((task) => {
-          const isTaskActive = activeTaskType === task.type;
-
-          return (
-            <button
-              key={task.type}
-              onClick={() =>
-                onSelectTask?.({
-                  type: task.type,
-                  textId: task.textId,
-                  title: task.title,
-                })
-              }
-              className={`w-full text-left rounded-lg px-2.5 py-2.5 transition cursor-pointer
-        ${
-          isTaskActive
-            ? "bg-emerald-500 text-white"
-            : "hover:bg-gray-100 text-gray-800"
-        }`}
-            >
-              {/* LABEL */}
-              <div
-                className={`flex items-center gap-1.5 text-[10px] font-semibold uppercase
-          ${isTaskActive ? "text-white" : "text-gray-500"}`}
-              >
-                <Image
-                  src={task.icon}
-                  alt={task.type}
-                  width={12}
-                  height={12}
-                  className={isTaskActive ? "brightness-0 invert" : ""}
-                />
-                <span>{task.label}</span>
-              </div>
-
-              {/* TITLE */}
-              <div className="pl-[18px] mt-1 text-xs font-semibold">
-                {task.title}
-              </div>
-            </button>
-          );
-        })}
       </div>
+
+      {/* ================= ASSESSMENT SUMMARY (FOOTER) =================
+          🔥 BARU: ringkasan penilaian subchapter ini di luar/di bawah
+          semua modul, sengaja ditaruh DI LUAR div scrollable "CONTENT" di
+          atas (jadi selalu keliatan, nggak ikut ke-scroll) — mirip posisi
+          HEADER di atas. Tiga kondisi:
+          1) Nggak ada quiz maupun assignment sama sekali → nggak render
+             apa-apa (nggak ada gunanya nunjukin section kosong).
+          2) Ada KEDUANYA → tampil sebagai satu card dengan dropdown berisi
+             2 pilihan (Quiz & Tugas Proyek), masing-masing baris klik
+             sendiri-sendiri nuju assessment yang dimaksud.
+          3) Cuma ada SALAH SATU → tampil sebagai satu baris info langsung
+             (tanpa dropdown/chevron sama sekali), diklik langsung nuju ke
+             assessment itu. */}
+      {(overallQuizText || overallAssignmentText) && (
+        <div className="p-4 border-t bg-gray-50/70 shrink-0">
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-0.5">
+            Penilaian
+          </p>
+
+          {hasBothAssessments ? (
+            <div className="border border-emerald-100 rounded-lg bg-white shadow-sm overflow-hidden">
+              <button
+                onClick={() => setAssessmentOpen((v) => !v)}
+                className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left hover:bg-emerald-50/60 transition cursor-pointer"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex items-center justify-center w-7 h-7 rounded-full bg-emerald-50 shrink-0">
+                    <Image
+                      src="/assets/elearning/penilaian.svg"
+                      alt="assessment"
+                      width={11}
+                      height={11}
+                    />
+                  </div>
+                  <span className="text-[11px] font-bold text-gray-800 truncate">
+                    Quiz &amp; Tugas Proyek
+                  </span>
+                </div>
+
+                <Image
+                  src="/assets/elearning/arrowup.svg"
+                  alt="toggle"
+                  width={9}
+                  height={9}
+                  className={`shrink-0 transition-transform ${
+                    assessmentOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              {assessmentOpen && (
+                <div className="border-t divide-y">
+                  <button
+                    onClick={() =>
+                      onSelectTask?.({
+                        type: "quiz",
+                        textId: overallQuizText!.id,
+                        title: overallQuizText!.quiz!.title,
+                      })
+                    }
+                    className={`w-full flex items-center gap-2 px-3 py-2.5 text-left transition cursor-pointer
+${
+  activeTaskType === "quiz" && activeTaskTextId === overallQuizText!.id
+    ? "bg-emerald-500 text-white"
+    : "hover:bg-emerald-50/60 text-gray-800"
+}`}
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                        activeTaskType === "quiz" &&
+                        activeTaskTextId === overallQuizText!.id
+                          ? "bg-white"
+                          : "bg-emerald-500"
+                      }`}
+                    />
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold">Quiz</p>
+                      <p
+                        className={`text-[9px] truncate ${
+                          activeTaskType === "quiz" &&
+                          activeTaskTextId === overallQuizText!.id
+                            ? "text-white/80"
+                            : "text-gray-500"
+                        }`}
+                      >
+                        {overallQuizText!.quiz!.title}
+                      </p>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      onSelectTask?.({
+                        type: "assignment",
+                        textId: overallAssignmentText!.id,
+                        title: overallAssignmentText!.assignment!.title,
+                      })
+                    }
+                    className={`w-full flex items-center gap-2 px-3 py-2.5 text-left transition cursor-pointer
+${
+  activeTaskType === "assignment" &&
+  activeTaskTextId === overallAssignmentText!.id
+    ? "bg-emerald-500 text-white"
+    : "hover:bg-emerald-50/60 text-gray-800"
+}`}
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                        activeTaskType === "assignment" &&
+                        activeTaskTextId === overallAssignmentText!.id
+                          ? "bg-white"
+                          : "bg-emerald-500"
+                      }`}
+                    />
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold">Tugas Proyek</p>
+                      <p
+                        className={`text-[9px] truncate ${
+                          activeTaskType === "assignment" &&
+                          activeTaskTextId === overallAssignmentText!.id
+                            ? "text-white/80"
+                            : "text-gray-500"
+                        }`}
+                      >
+                        {overallAssignmentText!.assignment!.title}
+                      </p>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            (() => {
+              // Cuma salah satu yang ada — nggak butuh dropdown, langsung
+              // satu baris klik-able aja.
+              const single = overallQuizText
+                ? {
+                    type: "quiz" as const,
+                    textId: overallQuizText.id,
+                    title: overallQuizText.quiz!.title,
+                    label: "Quiz",
+                  }
+                : {
+                    type: "assignment" as const,
+                    textId: overallAssignmentText!.id,
+                    title: overallAssignmentText!.assignment!.title,
+                    label: "Tugas Proyek",
+                  };
+
+              const isActive =
+                activeTaskType === single.type &&
+                activeTaskTextId === single.textId;
+
+              return (
+                <button
+                  onClick={() =>
+                    onSelectTask?.({
+                      type: single.type,
+                      textId: single.textId,
+                      title: single.title,
+                    })
+                  }
+                  className={`w-full flex items-center gap-2 border rounded-lg shadow-sm px-3 py-2.5 text-left transition cursor-pointer
+${
+  isActive
+    ? "bg-emerald-500 border-emerald-500 text-white"
+    : "bg-white border-emerald-100 text-gray-800 hover:bg-emerald-50/60"
+}`}
+                >
+                  <div
+                    className={`flex items-center justify-center w-7 h-7 rounded-full shrink-0 ${
+                      isActive ? "bg-white/20" : "bg-emerald-50"
+                    }`}
+                  >
+                    <Image
+                      src="/assets/elearning/penilaian.svg"
+                      alt="assessment"
+                      width={11}
+                      height={11}
+                      className={isActive ? "brightness-0 invert" : ""}
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold">{single.label}</p>
+                    <p
+                      className={`text-[9px] truncate ${
+                        isActive ? "text-white/80" : "text-gray-500"
+                      }`}
+                    >
+                      {single.title}
+                    </p>
+                  </div>
+                </button>
+              );
+            })()
+          )}
+        </div>
+      )}
     </aside>
   );
 }

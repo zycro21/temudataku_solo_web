@@ -228,6 +228,9 @@ function AccordionCanvas({
 
       {/* Title */}
       <div className="mb-1">
+        <p className="text-[11px] font-semibold text-gray-500 mb-1">
+          Title <span className="text-red-500">*</span>
+        </p>
         <RichTextEditor
           ref={titleRef}
           value={titleHTML}
@@ -248,6 +251,9 @@ function AccordionCanvas({
 
       {/* Description */}
       <div className="mb-4">
+        <p className="text-[11px] font-semibold text-gray-500 mb-1">
+          Description <span className="text-red-500">*</span>
+        </p>
         <RichTextEditor
           ref={descRef}
           value={descriptionHTML}
@@ -277,7 +283,7 @@ function AccordionCanvas({
               {/* Left: Item Title */}
               <div className="px-3 py-2 border-r border-gray-200">
                 <p className="text-[11px] font-semibold text-gray-500 mb-1">
-                  Item Title
+                  Item Title <span className="text-red-500">*</span>
                 </p>
                 <RichTextEditor
                   ref={(ref) => {
@@ -308,7 +314,7 @@ function AccordionCanvas({
               <div className="px-3 py-2">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-[11px] font-semibold text-gray-500">
-                    Item Content
+                    Item Content <span className="text-red-500">*</span>
                   </p>
                   <button
                     onClick={() => onRemoveItem(item.id)}

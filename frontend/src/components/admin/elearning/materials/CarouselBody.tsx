@@ -106,6 +106,9 @@ function CarouselCanvas({
       </button>
       {/* Title */}
       <div className="mb-4 space-y-1">
+        <p className="text-[11px] font-semibold text-gray-500 mb-0.5">
+          Title <span className="text-red-500">*</span>
+        </p>
         <RichTextEditor
           ref={titleRef}
           value={title}
@@ -126,7 +129,7 @@ function CarouselCanvas({
         {/* Description */}
         <div className="border-b border-dashed border-gray-200 pb-2">
           <p className="text-[10px] font-semibold text-gray-400 mb-0.5">
-            Description
+            Description <span className="text-red-500">*</span>
           </p>
           <RichTextEditor
             ref={descRef}
@@ -148,15 +151,17 @@ function CarouselCanvas({
       </div>
 
       {/* Cards per slide selector */}
-      <div className="flex items-center gap-3 mb-4">
-        <span className="text-xs text-gray-500 shrink-0">Cards per slide</span>
+      <div className="flex items-center gap-3 mb-1">
+        <span className="text-xs font-semibold text-gray-500 shrink-0">
+          Cards per slide <span className="text-red-500">*</span>
+        </span>
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setDropdownOpen((v) => !v)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 hover:border-gray-300 transition min-w-[90px] justify-between"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-emerald-400 bg-emerald-50 text-sm text-emerald-700 font-semibold hover:border-emerald-500 transition min-w-[90px] justify-between"
           >
             <span>{cardsPerSlide} Card</span>
-            <ChevronDown size={13} className="text-gray-400" />
+            <ChevronDown size={13} className="text-emerald-500" />
           </button>
           {dropdownOpen && (
             <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-md z-20 min-w-[90px] overflow-hidden">
@@ -180,6 +185,9 @@ function CarouselCanvas({
           )}
         </div>
       </div>
+      <p className="text-[10px] font-semibold text-red-500 mb-4">
+        ⚠️ Jangan lupa pilih berapa cards per slide-nya!
+      </p>
 
       {/* Item rows */}
       <div className="space-y-3 mb-4">
@@ -196,7 +204,7 @@ function CarouselCanvas({
               {/* Item Label */}
               <div className="w-[38%] px-3 py-2 border-r border-gray-200">
                 <p className="text-[11px] font-semibold text-gray-500 mb-1">
-                  Item Label
+                  Item Label <span className="text-red-500">*</span>
                 </p>
                 <RichTextEditor
                   ref={(ref) => {
@@ -226,7 +234,7 @@ function CarouselCanvas({
               <div className="flex-1 px-3 py-2">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-[11px] font-semibold text-gray-500">
-                    Item Content
+                    Item Content <span className="text-red-500">*</span>
                   </p>
                   <button
                     onClick={() => onRemoveItem(item.id)}

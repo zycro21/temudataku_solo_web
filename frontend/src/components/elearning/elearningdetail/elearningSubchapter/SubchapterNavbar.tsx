@@ -37,10 +37,10 @@ export default function SubchapterNavbar({ practiceId }: Props) {
       {/* ========== RIGHT ========== */}
       <div className="flex items-center gap-4">
         {/* Notification */}
-        <button className="relative p-1.5 rounded-full hover:bg-gray-100">
+        {/* <button className="relative p-1.5 rounded-full hover:bg-gray-100">
           <Bell size={16} className="text-gray-600" />
           <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-red-500" />
-        </button>
+        </button> */}
 
         {/* Profile */}
         <div className="relative" ref={dropdownRef}>

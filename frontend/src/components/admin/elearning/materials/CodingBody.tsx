@@ -164,6 +164,9 @@ function CodingCanvas({
 
       {/* Title */}
       <div className="mb-1">
+        <p className="text-[10px] font-semibold text-gray-400 mb-0.5">
+          Title <span className="text-red-500">*</span>
+        </p>
         <input
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
@@ -176,7 +179,7 @@ function CodingCanvas({
       {/* Description */}
       <div className="mb-5">
         <p className="text-[10px] font-semibold text-gray-400 mb-0.5">
-          Description
+          Description <span className="text-red-500">*</span>
         </p>
         <RichTextEditor
           ref={descRef}
@@ -198,14 +201,16 @@ function CodingCanvas({
       {/* Language selector */}
       <div className="mb-4">
         <p className="text-[12px] font-semibold text-gray-600 mb-1.5">
-          Language
+          Language <span className="text-red-500">*</span>
         </p>
         <LanguageDropdown value={language} onChange={onLanguageChange} />
       </div>
 
       {/* Code input */}
       <div className="mb-4">
-        <p className="text-[12px] font-semibold text-gray-600 mb-1.5">Code</p>
+        <p className="text-[12px] font-semibold text-gray-600 mb-1.5">
+          Code <span className="text-red-500">*</span>
+        </p>
         <div className="border border-gray-200 rounded-lg px-3 py-2.5 focus-within:border-emerald-400 transition">
           <RichTextEditor
             ref={questionRef}

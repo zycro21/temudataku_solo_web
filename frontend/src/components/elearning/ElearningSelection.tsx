@@ -84,18 +84,18 @@ export interface Module {
 // }
 
 export interface Quiz {
-  id: number;
+  id: string;
   title: string;
   description?: string;
   totalQuestions: number;
-  timeLimitMinutes: number;
+  timeLimitMinutes?: number;
 
   questions: QuizQuestion[];
 }
 
 export interface QuizQuestion {
-  id: number;
-  textQuestion: string;
+  id: string;
+  questionText: string;
   options: string[];
   correctAnswers: string[];
   explanation?: string;
@@ -103,19 +103,25 @@ export interface QuizQuestion {
 }
 
 export interface Assignment {
-  id: number;
+  id: string;
   title: string;
   description?: string;
-  dueDays: number; // deadline dalam hari
+  dueDays?: number; // deadline dalam hari
 
-  instruction?: string[];
+  // 🔥 Backend kirim `instructions` (jamak) berupa array objek, BUKAN
+  // `instruction` array of string.
+  instructions: {
+    id: string;
+    instruction: string;
+    orderNumber: number;
+  }[];
   supportingFiles?: SupportingFile[];
 }
 
 export interface SupportingFile {
-  id: number;
+  id: string;
   name: string;
-  type: "dataset" | "template" | "reference";
+  type: "DATASET" | "TEMPLATE" | "REFERENCE";
   url: string;
   pageCount?: number; // jumlah halaman
   format?: string; // PDF, CSV, IPYNB
@@ -132,7 +138,9 @@ export interface SubModule {
 
 // Block utama (biasanya text / paragraf)
 export interface ContentBlock {
-  id: string;
+  // 🔥 Backend (getTextById) tidak mengirim id block sama sekali (cuma
+  // orderNumber). Opsional di sini, render pakai orderNumber sebagai key.
+  id?: string;
   contents: BlockContent[];
   orderNumber?: number;
   progress?: number; // 0 - 100
@@ -150,7 +158,9 @@ export type BlockContent =
   | SummaryContent;
 
 export interface BaseContent {
-  id: string;
+  // 🔥 Sama seperti ContentBlock.id di atas — backend tidak mengirim id
+  // untuk contentBlocks (heading/paragraph/dst), cuma orderNumber.
+  id?: string;
   orderNumber?: number;
 }
 
@@ -231,10 +241,14 @@ export type AdditionalContentType =
   | "interactive_code";
 
 export interface AdditionalContent {
-  id: string;
+  // 🔥 Backend (getTextById) belum mengirim id untuk additionalContents
+  // sama sekali — cuma orderNumber, type, position, content. Dibiarkan
+  // opsional di sini biar TS jujur soal itu; sisi render pakai fallback
+  // key (orderNumber + index) selama backend belum ditambah `id: ac.id`.
+  id?: string;
   type: AdditionalContentType;
   orderNumber?: number;
-  position?: "before" | "after" | "inline";
+  position?: "BEFORE" | "AFTER" | "INLINE";
 
   content:
     | ImageVideoContent
@@ -244,53 +258,61 @@ export interface AdditionalContent {
 }
 
 export interface ImageVideoContent {
-  id: string;
+  id?: string;
   url: string;
   caption?: string;
+  title?: string;
+  description?: string;
+  mediaType: "IMAGE" | "VIDEO";
+  thumbnailUrl?: string;
+  durationSeconds?: number;
+  widthPercent?: number;
 }
 
+// 🔥 Nama block-nya "multiple_choice" tapi UI admin (TrueFalseBody) &
+// bentuk datanya sebenarnya True/False per statement: tiap `options[i]`
+// adalah satu pernyataan, `isCorrect` nunjukin pernyataan itu true/false
+// secara objektif — BUKAN "pilih 1-banyak opsi yang benar" gaya MCQ biasa.
 export interface MultipleChoiceContent {
-  id: string;
+  id?: string;
   question: string;
   description?: string;
+  allowMultiple?: boolean;
+  explanation?: string;
 
   options: {
-    id: string;
-    text: string;
+    content: string;
+    isCorrect: boolean;
+    orderNumber: number;
   }[];
-
-  correctAnswers: string[]; // bisa 1 atau lebih
-  explanation?: string;
 }
 
+// 🔥 Backend TIDAK punya leftItems/rightItems/correctPairs terpisah.
+// Satu array `items[]` campur kiri-kanan, dibedain lewat `side`, dan
+// `matchWithId` nunjuk item pasangannya yang benar.
 export interface MatchingContent {
-  id: string;
-  question: string;
-  description?: string;
-
-  leftItems: {
-    id: string;
-    text: string;
-  }[];
-
-  rightItems: {
-    id: string;
-    text: string;
-  }[];
-
-  correctPairs: {
-    leftId: string;
-    rightId: string;
-  }[];
-
+  id?: string;
+  title?: string;
+  instruction?: string;
+  maxScore?: number;
   explanation?: string;
+
+  items: {
+    content: string;
+    side: "LEFT" | "RIGHT";
+    orderNumber: number;
+    matchWithId?: string;
+  }[];
 }
 
 export interface InteractiveCodeContent {
-  id: string;
-  language: string;
+  id?: string;
+  title?: string;
+  description?: string;
+  language: "PYTHON" | "JAVASCRIPT" | "CPP" | "SQL" | "R";
   initialCode: string;
-  expectedResult: string;
+  isEditable?: boolean;
+  expectedResult?: string;
 }
 
 // 🔥 Beda dari profilePicture — thumbnailImages di DB SUDAH termasuk path

@@ -132,7 +132,7 @@ function ProjectCanvas({
       {/* ── Question ────────────────────────────────────────────────────────── */}
       <div className="mb-4">
         <p className="text-[12px] font-bold text-gray-700 mb-1.5">
-          Deskripsi Proyek atau Question
+          Deskripsi Proyek atau Question <span className="text-red-500">*</span>
         </p>
         <div
           className={`rounded-lg border px-3 py-2.5 transition ${
@@ -157,7 +157,10 @@ function ProjectCanvas({
 
       {/* ── Attachment ──────────────────────────────────────────────────────── */}
       <div className="mb-4">
-        <p className="text-[12px] font-bold text-gray-700 mb-1.5">Attachment</p>
+        <p className="text-[12px] font-bold text-gray-700 mb-1.5">
+          Attachment{" "}
+          <span className="font-normal text-gray-400">(opsional)</span>
+        </p>
 
         {/* Drop zone */}
         <div
@@ -253,7 +256,9 @@ function ProjectCanvas({
 
       {/* ── Deadline ────────────────────────────────────────────────────────── */}
       <div className="mb-4">
-        <p className="text-[12px] font-bold text-gray-700 mb-1.5">Deadline</p>
+        <p className="text-[12px] font-bold text-gray-700 mb-1.5">
+          Deadline <span className="text-red-500">*</span>
+        </p>
         <div className="relative w-40">
           <input
             type="number"

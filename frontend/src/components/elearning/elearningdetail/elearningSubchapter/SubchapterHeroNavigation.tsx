@@ -380,9 +380,25 @@ export default function SubchapterHeroNavigation({
         <DecorVariant />
       </div>
 
-      {/* ================= CONTENT ================= */}
-      <div className="relative z-10 px-6 py-6 w-full flex items-center justify-between">
-        <div>
+      {/* ================= CONTENT =================
+          🔥 FIX: dulu row ini `flex items-center justify-between` tanpa
+          `min-w-0` di child kiri (div judul). Flex item defaultnya punya
+          `min-width: auto`, yaitu selebar konten terpanjangnya (di sini:
+          teks judul) — jadi kalau judul materi kepanjangan, div judul ini
+          "ngotot" minta lebar penuh dan MEMAKSA seluruh baris (termasuk
+          section <SubchapterHeroNavigation> ini, yang notabene sepersekian
+          dari flex row global bareng sidebar di SubchapterDetail.tsx) jadi
+          lebih lebar dari yang tersedia → browser kompensasi dengan
+          nyusutin flex item lain di baris ATAS (sidebar), padahal sidebar
+          itu sama sekali nggak related & seharusnya tetap 240px.
+          Fix-nya dua lapis:
+          1) `min-w-0` di wrapper judul → izinin dia menyusut di bawah
+             lebar teksnya sendiri, sehingga teks WRAP ke bawah (turun ke
+             baris baru) alih-alih maksa parent melebar horizontal.
+          2) `shrink-0` di badge skor (kanan) → badge nggak ikut kepenyet
+             kalau judul di kiri butuh ruang lebih banyak. */}
+      <div className="relative z-10 px-6 py-6 w-full flex items-center justify-between gap-4">
+        <div className="min-w-0 flex-1">
           <p className="text-xs md:text-sm text-white/90 font-medium mb-1.5 tracking-wide">
             {overrideDescription ?? (
               <>
@@ -395,14 +411,14 @@ export default function SubchapterHeroNavigation({
             )}
           </p>
 
-          <h1 className="text-xl md:text-3xl font-bold leading-tight">
+          <h1 className="text-xl md:text-3xl font-bold leading-tight break-words">
             {overrideTitle ?? subModuleTitle}
           </h1>
         </div>
 
         {/* SCORE BADGE */}
         {quizScore !== null && (
-          <div className="ml-auto pr-2 text-right">
+          <div className="ml-auto pr-2 text-right shrink-0">
             <p className="text-sm font-semibold text-white mb-0.5">
               Skor Anda:
             </p>

@@ -265,7 +265,7 @@ function QuestionEditor({
         {/* Question text */}
         <div>
           <p className="text-[12px] font-bold text-gray-700 mb-1.5">
-            Question Text
+            Question Text <span className="text-red-500">*</span>
           </p>
           <div
             className={`rounded-lg border px-3 py-2.5 transition ${
@@ -291,7 +291,7 @@ function QuestionEditor({
         {/* Question Type */}
         <div>
           <p className="text-[12px] font-bold text-gray-700 mb-1.5">
-            Question Type
+            Question Type <span className="text-red-500">*</span>
           </p>
           <QuestionTypeDropdown
             value={question.questionType}
@@ -305,10 +305,10 @@ function QuestionEditor({
             <div key={opt.id} className="mb-2">
               <div className="flex items-center gap-2 mb-1">
                 <p className="text-[12px] font-bold text-gray-700 flex-1">
-                  Option {oi + 1}
+                  Option {oi + 1} <span className="text-red-500">*</span>
                 </p>
                 <p className="text-[12px] font-bold text-gray-700 w-[120px]">
-                  Value
+                  Value <span className="text-red-500">*</span>
                 </p>
                 {question.options.length > 2 && <div className="w-4" />}
               </div>
@@ -422,16 +422,27 @@ function QuizCanvas({
 
       {/* Quiz title & description */}
       <div className="mb-4 border-b border-dashed border-gray-200 pb-3">
+        <p className="text-[10px] font-semibold text-gray-400 mb-0.5">
+          Title <span className="text-red-500">*</span>
+        </p>
         <input
           value={data.title}
           onChange={(e) => onChange({ ...data, title: e.target.value })}
           placeholder="Enter quiz title ..."
           className="w-full text-base font-semibold text-gray-700 outline-none placeholder-gray-300 bg-transparent mb-1"
         />
+        <p className="text-[10px] font-semibold text-gray-400 mb-0.5 mt-2">
+          Description{" "}
+          <span className="font-normal text-gray-400">(opsional)</span>
+          {" — "}
+          <span className="font-normal text-emerald-600">
+            sangat disarankan diisi sebagai instruksi
+          </span>
+        </p>
         <textarea
           value={data.description}
           onChange={(e) => onChange({ ...data, description: e.target.value })}
-          placeholder="Enter quiz description (optional) ..."
+          placeholder="Enter quiz description ..."
           rows={2}
           className="w-full text-[12px] text-gray-400 placeholder-gray-300 bg-transparent outline-none resize-none"
         />

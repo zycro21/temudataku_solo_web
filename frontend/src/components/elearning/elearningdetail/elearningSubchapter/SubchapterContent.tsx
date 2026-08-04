@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import type {
   ContentBlock,
@@ -11,6 +11,15 @@ import type {
   MatchingContent,
   InteractiveCodeContent,
 } from "@/components/elearning/ElearningSelection";
+import {
+  normalizeEditorHTML,
+  richTextDisplayClass,
+} from "@/lib/editorHTMLUtils";
+import {
+  markdownToHTML,
+  decodeFontStyleToken,
+  FSTYLE_TOKEN_REGEX,
+} from "@/lib/elearningMarkdown";
 import {
   ChevronUp,
   ChevronDown,
@@ -29,7 +38,270 @@ import {
   Layers,
   Check,
   X,
+  KeyRound,
+  Shield,
+  Lock,
+  Globe,
+  Server,
+  Cloud,
+  Network,
+  Code2,
+  Terminal,
+  Workflow,
+  Brain,
+  Sigma,
+  Boxes,
+  Binary,
+  GraduationCap,
+  BookOpen,
+  Lightbulb,
+  Target,
+  Users,
+  MessageSquare,
+  Search,
+  Settings,
+  Zap,
+  AlertCircle,
+  CheckCircle2,
+  Info,
+  HelpCircle,
+  Award,
+  DollarSign,
+  ShoppingCart,
+  Calculator,
+  Timer,
+  MapPin,
+  Puzzle,
+  Rocket,
+  Package,
+  Grid3x3,
+  RotateCcw,
+  PartyPopper,
+  XCircle,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+
+/* ================= KEYWORD → ICON PICKER (block-level title icon) =================
+ * 🔥 Dulu icon di kiri title Accordion/Tab Navigation/Content Card/Carousel
+ * statis (src="/assets/elearning/iconaccordion.svg" dkk). Sekarang diganti
+ * icon lucide-react yang dipilih berdasarkan keyword yang match di
+ * title/description/isi block (case-insensitive, tag HTML dibuang dulu
+ * sebelum dicocokkan).
+ *
+ * Kalau tidak ada keyword yang match, fallback ke pool icon lain yang
+ * dipilih SECARA STABIL per-konten (hash dari teksnya) — bukan
+ * Math.random() murni, supaya icon yang sama tidak "berkedip" ganti tiap
+ * kali komponen re-render / parent re-render.
+ */
+const ICON_KEYWORD_GROUPS: { keywords: string[]; icon: LucideIcon }[] = [
+  {
+    keywords: [
+      "jwt",
+      "token",
+      "auth",
+      "otentikasi",
+      "autentikasi",
+      "login",
+      "kredensial",
+      "session",
+    ],
+    icon: KeyRound,
+  },
+  {
+    keywords: [
+      "keamanan",
+      "security",
+      "enkripsi",
+      "encrypt",
+      "proteksi",
+      "firewall",
+    ],
+    icon: Shield,
+  },
+  { keywords: ["password", "sandi", "kunci rahasia"], icon: Lock },
+  {
+    keywords: [
+      "database",
+      "basis data",
+      "sql",
+      "query",
+      "tabel data",
+      "relasional",
+    ],
+    icon: Database,
+  },
+  { keywords: ["api", "endpoint", "request", "response", "http"], icon: Globe },
+  { keywords: ["server", "backend", "hosting", "deploy"], icon: Server },
+  { keywords: ["cloud", "awan", "aws", "gcp", "azure"], icon: Cloud },
+  { keywords: ["jaringan", "network", "koneksi", "protokol"], icon: Network },
+  { keywords: ["kode", "code", "program", "script", "syntax"], icon: Code2 },
+  { keywords: ["terminal", "command", "cli", "bash"], icon: Terminal },
+  {
+    keywords: ["algoritma", "algorithm", "alur", "flow", "workflow"],
+    icon: Workflow,
+  },
+  {
+    keywords: [
+      "machine learning",
+      "ml",
+      "model",
+      "prediksi",
+      "ai",
+      "kecerdasan buatan",
+      "neural",
+    ],
+    icon: Brain,
+  },
+  {
+    keywords: [
+      "statistik",
+      "statistic",
+      "probabilitas",
+      "distribusi",
+      "rumus",
+      "formula",
+    ],
+    icon: Sigma,
+  },
+  {
+    keywords: ["grafik", "chart", "visualisasi", "plot", "dashboard"],
+    icon: BarChart3,
+  },
+  {
+    keywords: ["tren", "trend", "pertumbuhan", "growth", "meningkat"],
+    icon: TrendingUp,
+  },
+  {
+    keywords: ["struktur", "arsitektur", "architecture", "komponen"],
+    icon: Boxes,
+  },
+  {
+    keywords: ["variabel", "struktur data", "array", "biner", "binary"],
+    icon: Binary,
+  },
+  {
+    keywords: ["dokumen", "artikel", "laporan", "report", "teks"],
+    icon: FileText,
+  },
+  {
+    keywords: ["proyek", "project", "kanban", "manajemen"],
+    icon: FolderKanban,
+  },
+  {
+    keywords: ["tugas", "task", "checklist", "daftar periksa"],
+    icon: ClipboardList,
+  },
+  {
+    keywords: [
+      "belajar",
+      "kursus",
+      "course",
+      "materi",
+      "edukasi",
+      "pembelajaran",
+      "mentoring",
+    ],
+    icon: GraduationCap,
+  },
+  { keywords: ["buku", "referensi", "bacaan", "modul"], icon: BookOpen },
+  { keywords: ["ide", "insight", "tips", "trik"], icon: Lightbulb },
+  { keywords: ["target", "tujuan", "goal", "objective"], icon: Target },
+  {
+    keywords: ["tim", "kolaborasi", "user", "pengguna", "komunitas"],
+    icon: Users,
+  },
+  { keywords: ["diskusi", "chat", "komentar", "pesan"], icon: MessageSquare },
+  { keywords: ["cari", "search", "filter", "pencarian"], icon: Search },
+  {
+    keywords: ["pengaturan", "setting", "konfigurasi", "config"],
+    icon: Settings,
+  },
+  { keywords: ["cepat", "performa", "optimasi", "kecepatan"], icon: Zap },
+  {
+    keywords: ["peringatan", "warning", "error", "bug", "gagal"],
+    icon: AlertCircle,
+  },
+  { keywords: ["benar", "sukses", "berhasil", "valid"], icon: CheckCircle2 },
+  { keywords: ["info", "informasi", "penjelasan"], icon: Info },
+  { keywords: ["pertanyaan", "faq", "bantuan"], icon: HelpCircle },
+  { keywords: ["penghargaan", "sertifikat", "achievement"], icon: Award },
+  {
+    keywords: ["harga", "biaya", "revenue", "penjualan", "bisnis"],
+    icon: DollarSign,
+  },
+  { keywords: ["belanja", "produk", "toko", "e-commerce"], icon: ShoppingCart },
+  { keywords: ["kalkulasi", "hitung", "matematika"], icon: Calculator },
+  { keywords: ["waktu", "jadwal", "timeline", "durasi"], icon: Timer },
+  { keywords: ["lokasi", "peta", "map"], icon: MapPin },
+];
+
+const ICON_FALLBACK_POOL: LucideIcon[] = [
+  Database,
+  BarChart3,
+  LineChart,
+  PieChart,
+  Activity,
+  FileText,
+  FolderKanban,
+  ClipboardList,
+  TrendingUp,
+  Layers,
+  Code2,
+  Boxes,
+  Puzzle,
+  Rocket,
+  Package,
+  Grid3x3,
+];
+
+function stripHtmlForKeywordMatch(value?: string): string {
+  return (value ?? "").replace(/<[^>]*>/g, " ").toLowerCase();
+}
+
+function hashTextForFallbackIcon(value: string): number {
+  let hash = 0;
+  for (let i = 0; i < value.length; i++) {
+    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+  }
+  return hash;
+}
+
+/* ================= MEDIA URL RESOLVER (image/video 404 fix) =================
+ * 🔥 Backend kadang nyimpen `url` media SUDAH lengkap dengan host
+ * (mis. "http://localhost:5001/uploads/elearningMediaContents/xxx.png" —
+ * jadi CDN/host lain di luar app Next.js ini), tapi kadang nyimpen path
+ * RELATIF aja (mis. "/uploads/elearningMediaContents/xxx.jpg"). Yang
+ * relatif ini kalau langsung dipakai sebagai <img src>/<video src> di
+ * halaman Next.js bakal di-resolve relatif ke ORIGIN Next.js-nya sendiri
+ * (mis. http://localhost:3000/uploads/...) — bukan ke server API-nya
+ * (http://localhost:5001) tempat file itu sebenarnya di-serve, makanya
+ * 404. Sama persis pola & fix-nya seperti restore additionalContents di
+ * admin (page.tsx): "rawUrl.startsWith('/') ? `${NEXT_PUBLIC_API_BASE_URL}${rawUrl}` : rawUrl".
+ *
+ * Autodetect: kalau url sudah absolute (ada "http://"/"https://" di
+ * depan), pakai apa adanya. Kalau nggak (path relatif), tempel
+ * NEXT_PUBLIC_API_BASE_URL di depannya.
+ */
+function resolveMediaUrl(url?: string | null): string {
+  if (!url) return "";
+  if (/^https?:\/\//i.test(url)) return url;
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+  return `${base}${url.startsWith("/") ? "" : "/"}${url}`;
+}
+
+function getContentIcon(...texts: (string | undefined)[]): LucideIcon {
+  const combined = texts.map(stripHtmlForKeywordMatch).join(" ").trim();
+
+  for (const group of ICON_KEYWORD_GROUPS) {
+    if (group.keywords.some((kw) => combined.includes(kw))) {
+      return group.icon;
+    }
+  }
+
+  const index =
+    hashTextForFallbackIcon(combined || "default") % ICON_FALLBACK_POOL.length;
+  return ICON_FALLBACK_POOL[index];
+}
 
 /* ================= TYPES ================= */
 
@@ -53,6 +325,19 @@ const QuizRenderer = ({
   onSubmitScore?: (score: number) => void;
   onReset?: () => void;
 }) => {
+  // 🔥 GUARD tambahan (di luar fix race di SubchapterDetail.tsx): kalau
+  // karena alasan apa pun `quiz` yang sampai ke sini masih null/undefined
+  // (mis. Text-nya kepilih sebagai "quiz" tapi relasi quiz-nya sendiri
+  // kosong di DB), tampilkan pesan yang jelas alih-alih crash saat
+  // destructure `quiz.questions`.
+  if (!quiz) {
+    return (
+      <div className="flex items-center justify-center min-h-[30vh] text-sm text-gray-400">
+        Quiz tidak ditemukan.
+      </div>
+    );
+  }
+
   const questions = [...quiz.questions].sort(
     (a: any, b: any) => a.orderNumber - b.orderNumber,
   );
@@ -180,9 +465,23 @@ const QuizRenderer = ({
                 {isStepMode && !submitted ? currentStep + 1 : index + 1}
               </p>
 
-              <p className="max-w-4xl text-base font-semibold text-black leading-relaxed">
-                {q.textQuestion}
-              </p>
+              {/* 🔥 FIX: `q.questionText` itu HTML mentah dari
+                  RichTextEditor admin (lihat MaterialPreviewModal.tsx:
+                  `dangerouslySetInnerHTML={{ __html: q.questionText }}`) —
+                  sebelumnya dirender sebagai teks JSX polos jadi tag
+                  mentahnya ikut kelihatan literal di layar. Sekarang
+                  di-parse juga, konsisten dengan admin. `options` TIDAK
+                  disentuh — itu memang plain text (schema `String[]`),
+                  admin sendiri render `opt.text` apa adanya tanpa
+                  dangerouslySetInnerHTML. */}
+              <div
+                className={`max-w-4xl text-base font-semibold text-black leading-relaxed break-words [&_ul]:pl-5 [&_ul]:list-disc [&_ol]:pl-5 [&_ol]:list-decimal [&_li]:my-0.5 ${richTextDisplayClass}`}
+                dangerouslySetInnerHTML={{
+                  __html: normalizeEditorHTML(
+                    markdownToHTML(q.questionText ?? ""),
+                  ),
+                }}
+              />
 
               {/* OPTIONS */}
               <div className="pl-8 space-y-4 pt-4">
@@ -507,6 +806,20 @@ function AssignmentRenderer({
     return null;
   };
 
+  // 🔥 GUARD tambahan (di luar fix race di SubchapterDetail.tsx): kalau
+  // karena alasan apa pun `a` yang sampai ke sini masih null/undefined
+  // (mis. Text-nya kepilih sebagai "assignment" tapi relasi assignment-nya
+  // sendiri kosong di DB), tampilkan pesan yang jelas alih-alih crash saat
+  // akses `a.description` dkk. Ditaruh SETELAH semua hooks di atas biar
+  // urutan hooks tetap konsisten di setiap render.
+  if (!a) {
+    return (
+      <div className="flex items-center justify-center min-h-[30vh] text-sm text-gray-400">
+        Proyek tidak ditemukan.
+      </div>
+    );
+  }
+
   return (
     <div className="w-full max-w-full h-[calc(100vh-270px)] overflow-hidden">
       {/* 300px = navbar + hero + footer space */}
@@ -516,20 +829,49 @@ function AssignmentRenderer({
         <section className="overflow-y-auto pr-6 space-y-10 pb-6 min-h-0">
           <div className="space-y-4">
             <h2 className="text-xl font-bold text-black">Deskripsi Proyek</h2>
-            <p className="text-base text-gray-800 leading-relaxed">
-              {a.description}
-            </p>
+            {/* 🔥 FIX: `a.description` itu HTML mentah dari RichTextEditor
+                admin (lihat komentar "question disimpan langsung sebagai
+                HTML di field description" di buildBlocksPayload/restore
+                page.tsx) — sebelumnya dirender sebagai teks JSX polos
+                (`{a.description}`) jadi tag mentahnya (`<p>`, `<strong>`,
+                dst) ikut kelihatan literal di layar. Sekarang di-parse
+                lewat dangerouslySetInnerHTML, sama seperti title/desc
+                block lain di file ini & sama seperti admin sendiri
+                nge-render `question` di MaterialPreviewModal.tsx. */}
+            <div
+              className={`text-base text-gray-800 leading-relaxed break-words [&_ul]:pl-5 [&_ul]:list-disc [&_ol]:pl-5 [&_ol]:list-decimal [&_li]:my-0.5 ${richTextDisplayClass}`}
+              dangerouslySetInnerHTML={{
+                __html: normalizeEditorHTML(
+                  markdownToHTML(a.description ?? ""),
+                ),
+              }}
+            />
           </div>
 
-          {a.instruction && (
+          {a.instructions && a.instructions.length > 0 && (
             <div className="space-y-4">
               <h2 className="text-xl font-bold text-black">
                 Instruksi Pengerjaan
               </h2>
               <ol className="list-decimal pl-6 space-y-3 text-base text-gray-800">
-                {a.instruction.map((i: string, idx: number) => (
-                  <li key={idx}>{i}</li>
-                ))}
+                {a.instructions.map(
+                  (i: { id: string; instruction: string }) => (
+                    // 🔥 FIX: sama seperti description di atas — tiap
+                    // `i.instruction` juga HTML mentah (lihat komentar
+                    // "instructions dijadikan ordered list HTML agar
+                    // kompatibel dengan RichTextEditor" di page.tsx), jadi
+                    // harus di-parse juga, bukan teks JSX polos.
+                    <li
+                      key={i.id}
+                      className={richTextDisplayClass}
+                      dangerouslySetInnerHTML={{
+                        __html: normalizeEditorHTML(
+                          markdownToHTML(i.instruction ?? ""),
+                        ),
+                      }}
+                    />
+                  ),
+                )}
               </ol>
             </div>
           )}
@@ -541,47 +883,59 @@ function AssignmentRenderer({
               </h2>
 
               <div className="space-y-3">
-                {a.supportingFiles.map((f: any) => (
-                  <a
-                    key={f.id}
-                    href={f.url}
-                    className="flex items-center justify-between border rounded-lg px-5 py-4 hover:bg-gray-50 transition"
-                  >
-                    <div className="flex items-center gap-4">
-                      <Image
-                        src="/assets/elearning/download-1.svg"
-                        alt="file"
-                        width={36}
-                        height={36}
-                      />
+                {a.supportingFiles.map((f: any) => {
+                  // 🔥 FIX 404 (sama seperti image/video di renderImageVideo):
+                  // f.url dari DB kadang absolute
+                  // ("http://localhost:5001/uploads/elearningAssignments/...")
+                  // kadang relatif ("/uploads/elearningAssignments/...").
+                  // Autodetect pakai resolveMediaUrl() yang sama.
+                  const resolvedFileUrl = resolveMediaUrl(f.url);
 
-                      <div>
-                        <p className="text-base font-semibold text-black mb-1">
-                          {f.name}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {f.pageCount ? `${f.pageCount} pages | ` : ""}
-                          {f.format.toUpperCase()} | {formatFileSize(f.sizeKB)}
-                        </p>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        window.open(f.url, "_blank");
-                      }}
-                      className="shrink-0 hover:scale-105 transition"
+                  return (
+                    <a
+                      key={f.id}
+                      href={resolvedFileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between border rounded-lg px-5 py-4 hover:bg-gray-50 transition"
                     >
-                      <Image
-                        src="/assets/elearning/download.svg"
-                        alt="download"
-                        width={20}
-                        height={20}
-                      />
-                    </button>
-                  </a>
-                ))}
+                      <div className="flex items-center gap-4">
+                        <Image
+                          src="/assets/elearning/download-1.svg"
+                          alt="file"
+                          width={36}
+                          height={36}
+                        />
+
+                        <div>
+                          <p className="text-base font-semibold text-black mb-1">
+                            {f.name}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {f.pageCount ? `${f.pageCount} pages | ` : ""}
+                            {f.format.toUpperCase()} |{" "}
+                            {formatFileSize(f.sizeKB)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          window.open(resolvedFileUrl, "_blank");
+                        }}
+                        className="shrink-0 hover:scale-105 transition"
+                      >
+                        <Image
+                          src="/assets/elearning/download.svg"
+                          alt="download"
+                          width={20}
+                          height={20}
+                        />
+                      </button>
+                    </a>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -903,13 +1257,36 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
 
   const sliderRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const dragStartX = useRef(0);
-  const isDragging = useRef(false);
+
+  // 🔥 Drag carousel yang "keliatan" — dulu drag cuma dideteksi di
+  // mousedown/mouseup (posisi awal vs akhir doang), track-nya nggak pernah
+  // ikut gerak selama jari/kursor masih ditahan, jadi user nggak ngerasa
+  // lagi "narik" apa-apa (padahal browser mouse event beneran kepencet).
+  // Sekarang dibikin match sama pola admin (CarouselPreview di
+  // MaterialPreviewModal.tsx): pakai Pointer Events + offset% yang di-track
+  // live selama drag (`dragOffsetPct`), jadi track ikut nempel kursor waktu
+  // ditarik, baru snap ke slide terdekat pas dilepas. `draggingKey` nyimpen
+  // contentKeyOf() carousel mana yang lagi di-drag (bukan boolean tunggal)
+  // biar carousel lain di halaman yang sama nggak ikut kepengaruh.
+  const [dragOffsetPct, setDragOffsetPct] = useState<Record<string, number>>(
+    {},
+  );
+  const [draggingKey, setDraggingKey] = useState<string | null>(null);
 
   const [expandedCards, setExpandedCards] = useState<Record<string, number[]>>(
     {},
   );
 
   const [activeTabs, setActiveTabs] = useState<Record<string, number>>({});
+
+  // 🔥 Backend (getTextById) tidak mengirim `id` untuk contentBlocks sama
+  // sekali (heading/paragraph/accordion/dst) — cuma `orderNumber`. Helper
+  // ini kasih fallback key stabil buat dipakai sebagai index state
+  // (accordion terbuka, slide carousel aktif, card yang di-expand, tab
+  // aktif), supaya TS nggak error "undefined cannot be used as index type"
+  // dan state-nya tetap konsisten antar render.
+  const contentKeyOf = (content: { id?: string; orderNumber?: number }) =>
+    content.id ?? `content-${content.orderNumber ?? 0}`;
 
   const formatContent = (text?: string) => {
     if (!text) return null;
@@ -983,53 +1360,117 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
   /* ================= RENDER CONTENT ================= */
   const renderContent = (content: BlockContent) => {
     switch (content.type) {
-      case "heading":
+      case "heading": {
+        const { rest: headingRest } = decodeFontStyleToken(content.text ?? "");
         return (
           <div
             key={content.id}
-            className={`${headingSizeMap[content.level]} font-bold text-black leading-snug`}
-          >
-            {content.text}
-          </div>
+            className={`${headingSizeMap[content.level]} font-bold text-black leading-snug break-words [&_*]:font-bold ${richTextDisplayClass}`}
+            dangerouslySetInnerHTML={{
+              __html: normalizeEditorHTML(markdownToHTML(headingRest)),
+            }}
+          />
+        );
+      }
+
+      case "paragraph": {
+        const { rest: paragraphRest } = decodeFontStyleToken(
+          content.text ?? "",
+        );
+        return (
+          <div
+            key={content.id}
+            className={`text-base text-gray-800 leading-relaxed break-words
+              [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-2
+              [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-2
+              [&_li]:my-1
+              [&_strong]:font-bold
+              [&_u]:underline
+              [&_blockquote]:pl-4 [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:italic ${richTextDisplayClass}`}
+            dangerouslySetInnerHTML={{
+              __html: normalizeEditorHTML(markdownToHTML(paragraphRest)),
+            }}
+          />
+        );
+      }
+
+      case "accordion": {
+        // 🔥 Sama seperti admin (mapMaterialToCanvasItems case "accordion"):
+        // cuma `description` yang di-decode token fstyle-nya (title block
+        // level cuma plain text, nggak pernah lewat RichTextEditor). Item
+        // title & content SELALU markdownToHTML tanpa decode token (admin
+        // juga nggak nyimpen fstyle per-item).
+        const { rest: accordionDescRest } = decodeFontStyleToken(
+          content.description ?? "",
         );
 
-      case "paragraph":
-        return <div key={content.id}>{formatContent(content.text)}</div>;
+        const AccordionTitleIcon = getContentIcon(
+          content.title,
+          content.description,
+          ...content.items.map((item) => item.title),
+        );
 
-      case "accordion":
         return (
           <div key={content.id} className="space-y-5">
-            {/* ================= TITLE & DESCRIPTION ================= */}
-            <div className="pl-0 space-y-2">
-              {/* TITLE ROW */}
-              <div className="flex items-center gap-3">
-                {/* ICON WRAPPER */}
-                <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-[#F8FAFC]">
-                  <Image
-                    src="/assets/elearning/iconaccordion.svg"
-                    alt="icon"
-                    width={18}
-                    height={18}
-                  />
-                </div>
-
-                <h5 className={`${headingSizeMap[4]} font-semibold text-black`}>
-                  {content.title}
-                </h5>
+            {/* ================= TITLE & DESCRIPTION =================
+                🔥 FIX: dulu icon cuma sejajar sama TITLE doang (title & icon
+                dalam satu row "flex items-center", description dirender di
+                BAWAHNYA sebagai elemen terpisah yang cuma di-indent pakai
+                `ml-[42px]` biar "kelihatan" sejajar sama teks title). Itu
+                bukan icon di samping title+description — itu icon di
+                samping title, sementara description numpang lewat margin
+                kiri yang kebetulan sama angkanya.
+                Sekarang icon & (title+description) beneran SATU baris flex
+                yang sama: icon di kiri, kolom teks (title lalu description,
+                kalau ada) di kanannya. Kalau description nggak ada, kolom
+                teks otomatis cuma berisi title — icon tetap sejajar cuma
+                sama title kayak sebelumnya, TANPA kode tambahan. Ukuran
+                icon juga dibesarkan dikit (h-11/18px → h-12/20px). */}
+            <div className="flex items-center gap-3">
+              {/* ICON WRAPPER */}
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[#F8FAFC]">
+                <AccordionTitleIcon size={20} className="text-emerald-600" />
               </div>
 
-              {/* DESCRIPTION */}
-              {content.description && (
-                <div className="ml-[42px]">
-                  {formatContent(content.description)}
-                </div>
-              )}
+              {/* KOLOM TEKS: title + description numpuk vertikal, ikut
+                  digeser bareng ke kanan icon (bukan lagi dua elemen
+                  terpisah yang "kebetulan" sejajar). */}
+              <div className="min-w-0 flex-1 space-y-1">
+                {/* 🔥 FIX: content.title itu HTML (bisa ada <b>, dst dari
+                    title editor admin) — sebelumnya dirender sebagai teks
+                    JSX polos (`{content.title}`) jadi tag mentahnya ikut
+                    kelihatan literal di layar. Sekarang di-parse lewat
+                    dangerouslySetInnerHTML sama seperti title item di
+                    bawahnya. Ukuran juga dibesarkan (dari headingSizeMap[4]
+                    / text-xl → text-2xl) supaya jelas beda sama deskripsi
+                    di bawahnya yang text-sm. */}
+                <h5
+                  className={`text-2xl font-bold text-black break-words ${richTextDisplayClass}`}
+                  dangerouslySetInnerHTML={{
+                    __html: normalizeEditorHTML(
+                      markdownToHTML(content.title ?? ""),
+                    ),
+                  }}
+                />
+
+                {/* DESCRIPTION */}
+                {content.description && (
+                  <div
+                    className={`text-sm text-gray-600 leading-relaxed break-words ${richTextDisplayClass}`}
+                    dangerouslySetInnerHTML={{
+                      __html: normalizeEditorHTML(
+                        markdownToHTML(accordionDescRest),
+                      ),
+                    }}
+                  />
+                )}
+              </div>
             </div>
 
             {/* ================= ACCORDION ITEMS (CENTER) ================= */}
             <div className="w-3/4 mx-auto space-y-4">
               {content.items.map((item, index) => {
-                const openIndexes = openAccordions[content.id] ?? [];
+                const openIndexes = openAccordions[contentKeyOf(content)] ?? [];
                 const isOpen = openIndexes.includes(index);
 
                 return (
@@ -1038,11 +1479,11 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
                     <button
                       onClick={() =>
                         setOpenAccordions((prev) => {
-                          const current = prev[content.id] ?? [];
+                          const current = prev[contentKeyOf(content)] ?? [];
 
                           return {
                             ...prev,
-                            [content.id]: isOpen
+                            [contentKeyOf(content)]: isOpen
                               ? current.filter((i) => i !== index)
                               : [...current, index],
                           };
@@ -1050,11 +1491,16 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
                       }
                       className="w-full flex justify-between items-center px-5 py-4 text-left bg-gray-100 hover:bg-gray-200 transition-colors duration-200 cursor-pointer"
                     >
-                      <span className="font-bold text-lg text-black">
-                        {item.title}
-                      </span>
+                      <span
+                        className={`font-bold text-lg text-black break-words ${richTextDisplayClass}`}
+                        dangerouslySetInnerHTML={{
+                          __html: normalizeEditorHTML(
+                            markdownToHTML(item.title ?? ""),
+                          ),
+                        }}
+                      />
 
-                      <div className="p-2 rounded-full border border-emerald-500">
+                      <div className="p-2 rounded-full border border-emerald-500 shrink-0">
                         <ChevronDown
                           size={18}
                           className={`text-emerald-500 transition-transform duration-300 ${
@@ -1066,9 +1512,15 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
 
                     {/* CONTENT */}
                     {isOpen && (
-                      <div className="px-5 py-5 text-base text-black leading-relaxed whitespace-pre-line bg-gray-50">
-                        {formatContent(item.content)}
-                      </div>
+                      <div
+                        className={`px-5 py-5 text-base text-black leading-relaxed bg-gray-50 break-words
+                          [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1 ${richTextDisplayClass}`}
+                        dangerouslySetInnerHTML={{
+                          __html: normalizeEditorHTML(
+                            markdownToHTML(item.content ?? ""),
+                          ),
+                        }}
+                      />
                     )}
                   </div>
                 );
@@ -1076,34 +1528,51 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
             </div>
           </div>
         );
+      }
 
-      case "highlight":
+      case "highlight": {
+        const { rest: highlightRest } = decodeFontStyleToken(
+          content.text ?? "",
+        );
         return (
-          <div key={content.id} className="w-full">
-            <div className="w-[75%] mx-auto rounded-md overflow-hidden flex bg-[#F8FAFC]">
+          <div key={content.id} className={`w-full ${richTextDisplayClass}`}>
+            <div
+              className={`w-[85%] mx-auto rounded-md overflow-hidden flex bg-[#F8FAFC] ${richTextDisplayClass}`}
+            >
               {/* Left Dark Strip */}
-              <div className="w-4 bg-[#D1D5DC]" />
+              <div
+                className={`w-4 bg-[#D1D5DC] shrink-0 ${richTextDisplayClass}`}
+              />
 
               {/* Content */}
-              <div className="px-6 py-6 text-md">
-                {formatContent(content.text)}
-              </div>
+              <div
+                className={`px-6 py-5 text-base text-gray-700 leading-relaxed flex-1 min-w-0 break-words ${richTextDisplayClass}`}
+                dangerouslySetInnerHTML={{
+                  __html: normalizeEditorHTML(markdownToHTML(highlightRest)),
+                }}
+              />
             </div>
           </div>
         );
+      }
 
       case "carousel": {
         const cardsPerSlide = content.cardsPerSlide ?? 2;
         const totalItems = content.items.length;
+        // 🔥 Sama seperti accordion: cuma description yang di-decode token
+        // fstyle-nya (title block-level tetap plain text).
+        const { rest: carouselDescRest } = decodeFontStyleToken(
+          content.description ?? "",
+        );
 
-        const currentIndex = carouselIndexes[content.id] ?? 0;
+        const currentIndex = carouselIndexes[contentKeyOf(content)] ?? 0;
         const maxIndex = Math.max(totalItems - cardsPerSlide, 0);
 
         const goNext = () => {
           if (currentIndex >= maxIndex) return;
           setCarouselIndexes((prev) => ({
             ...prev,
-            [content.id]: Math.min(currentIndex + 1, maxIndex),
+            [contentKeyOf(content)]: Math.min(currentIndex + 1, maxIndex),
           }));
         };
 
@@ -1111,69 +1580,105 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
           if (currentIndex <= 0) return;
           setCarouselIndexes((prev) => ({
             ...prev,
-            [content.id]: Math.max(currentIndex - 1, 0),
+            [contentKeyOf(content)]: Math.max(currentIndex - 1, 0),
           }));
         };
-
-        const translatePercentage = (100 / cardsPerSlide) * currentIndex;
 
         const isPrevDisabled = currentIndex === 0;
         const isNextDisabled = currentIndex === maxIndex;
 
-        const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
-          isDragging.current = true;
-          dragStartX.current =
-            "touches" in e ? e.touches[0].clientX : e.clientX;
+        // 🔥 Key stabil buat carousel ini — dipakai buat nyimpen offset
+        // drag & status "lagi di-drag atau nggak" secara terpisah per
+        // carousel (lihat komentar dragOffsetPct/draggingKey di atas).
+        const carouselKey = contentKeyOf(content);
+        const isThisDragging = draggingKey === carouselKey;
+        const thisDragOffsetPct = dragOffsetPct[carouselKey] ?? 0;
+
+        // Posisi track = posisi slide aktif, DIKURANGI offset drag yang
+        // lagi berjalan — jadi selama kursor/jari ditahan & ditarik, track
+        // ikut nempel & gerak live (bukan diam sampai dilepas).
+        const translatePercentage =
+          (100 / cardsPerSlide) * currentIndex - thisDragOffsetPct;
+
+        const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+          setDraggingKey(carouselKey);
+          dragStartX.current = e.clientX;
+          setDragOffsetPct((prev) => ({ ...prev, [carouselKey]: 0 }));
+          (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
         };
 
-        const handleDragEnd = (e: React.MouseEvent | React.TouchEvent) => {
-          if (!isDragging.current) return;
+        const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+          if (draggingKey !== carouselKey) return;
+          const width = sliderRefs.current[carouselKey]?.offsetWidth || 1;
+          const deltaPx = e.clientX - dragStartX.current;
+          setDragOffsetPct((prev) => ({
+            ...prev,
+            [carouselKey]: (deltaPx / width) * 100,
+          }));
+        };
 
-          const endX =
-            "changedTouches" in e
-              ? e.changedTouches[0].clientX
-              : (e as React.MouseEvent).clientX;
+        const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+          if (draggingKey !== carouselKey) return;
+          const width = sliderRefs.current[carouselKey]?.offsetWidth || 1;
+          const deltaPx = e.clientX - dragStartX.current;
+          const thresholdPx = width * 0.15; // geser minimal 15% lebar visible buat pindah slide
 
-          const diff = dragStartX.current - endX;
-
-          const threshold = 50; // minimal geser sebelum pindah slide
-
-          if (diff > threshold && currentIndex < maxIndex) {
+          if (deltaPx <= -thresholdPx && currentIndex < maxIndex) {
             goNext();
-          } else if (diff < -threshold && currentIndex > 0) {
+          } else if (deltaPx >= thresholdPx && currentIndex > 0) {
             goPrev();
           }
 
-          isDragging.current = false;
+          setDraggingKey(null);
+          setDragOffsetPct((prev) => ({ ...prev, [carouselKey]: 0 }));
         };
+
+        const CarouselTitleIcon = getContentIcon(
+          content.title,
+          content.description,
+          ...content.items.map(
+            (item) => `${item.title ?? ""} ${item.content ?? ""}`,
+          ),
+        );
 
         return (
           <div key={content.id} className="space-y-6">
-            {/* ================= TITLE & DESCRIPTION ================= */}
-            <div className="pl-0 space-y-2">
-              {/* TITLE ROW */}
-              <div className="flex items-center gap-3">
-                {/* ICON WRAPPER */}
-                <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-[#F8FAFC]">
-                  <Image
-                    src="/assets/elearning/iconaccordion.svg"
-                    alt="icon"
-                    width={18}
-                    height={18}
-                  />
-                </div>
-
-                <h5 className={`${headingSizeMap[4]} font-semibold text-black`}>
-                  {content.title}
-                </h5>
+            {/* ================= TITLE & DESCRIPTION =================
+                🔥 Sama kayak accordion: icon & kolom (title+description)
+                sekarang satu baris flex yang sama, bukan icon-sejajar-title
+                doang + description numpang lewat margin. Ikon dibesarkan
+                dikit juga (h-11/18px → h-12/20px). */}
+            <div className="flex items-center gap-3">
+              {/* ICON WRAPPER */}
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[#F8FAFC]">
+                <CarouselTitleIcon size={20} className="text-emerald-600" />
               </div>
 
-              {/* DESCRIPTION */}
-              {content.description && (
-                <div className="ml-[42px]">
-                  {formatContent(content.description)}
-                </div>
-              )}
+              <div className="min-w-0 flex-1 space-y-1">
+                {/* 🔥 FIX: sama seperti accordion — content.title adalah
+                    HTML, jadi harus di-parse (bukan teks JSX polos), dan
+                    ukurannya dibesarkan supaya beda jelas dari deskripsi. */}
+                <h5
+                  className={`text-2xl font-bold text-black break-words ${richTextDisplayClass}`}
+                  dangerouslySetInnerHTML={{
+                    __html: normalizeEditorHTML(
+                      markdownToHTML(content.title ?? ""),
+                    ),
+                  }}
+                />
+
+                {/* DESCRIPTION */}
+                {content.description && (
+                  <div
+                    className={`text-sm text-gray-600 leading-relaxed break-words ${richTextDisplayClass}`}
+                    dangerouslySetInnerHTML={{
+                      __html: normalizeEditorHTML(
+                        markdownToHTML(carouselDescRest),
+                      ),
+                    }}
+                  />
+                )}
+              </div>
             </div>
 
             {/* ================= CAROUSEL ================= */}
@@ -1222,18 +1727,26 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
 
               {/* SLIDER CONTAINER */}
               <div
-                className="overflow-hidden cursor-grab active:cursor-grabbing"
-                onMouseDown={handleDragStart}
-                onMouseUp={handleDragEnd}
-                onMouseLeave={handleDragEnd}
-                onTouchStart={handleDragStart}
-                onTouchEnd={handleDragEnd}
+                className="overflow-hidden"
+                ref={(el) => {
+                  sliderRefs.current[carouselKey] = el;
+                }}
               >
                 <div
-                  className="flex items-stretch transition-transform duration-500 ease-in-out"
+                  className={`flex items-stretch select-none cursor-grab active:cursor-grabbing ${
+                    isThisDragging
+                      ? ""
+                      : "transition-transform duration-500 ease-in-out"
+                  }`}
                   style={{
                     transform: `translateX(-${translatePercentage}%)`,
+                    touchAction: "pan-y",
                   }}
+                  onPointerDown={handlePointerDown}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={endDrag}
+                  onPointerCancel={endDrag}
+                  onPointerLeave={isThisDragging ? endDrag : undefined}
                 >
                   {content.items.map((item, index) => (
                     <div
@@ -1242,7 +1755,7 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
                       style={{ width: `${100 / cardsPerSlide}%` }}
                     >
                       <div
-                        className="
+                        className={`
     group
     flex flex-col
     h-full
@@ -1256,37 +1769,45 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
     hover:-translate-y-2
     hover:border-emerald-300
     hover:scale-[1.01]
-  "
+    ${richTextDisplayClass}
+  `}
                       >
                         {/* ===== TITLE HEADER ===== */}
                         <div
                           className="py-4 px-4 text-center"
                           style={{ backgroundColor: "#F8FAFC" }}
                         >
-                          <h6 className="text-xl font-bold text-emerald-600 transition-colors duration-300 group-hover:text-emerald-700">
-                            {item.title}
-                          </h6>
+                          <h6
+                            className={`text-xl font-bold text-emerald-600 transition-colors duration-300 group-hover:text-emerald-700 break-words ${richTextDisplayClass}`}
+                            dangerouslySetInnerHTML={{
+                              __html: normalizeEditorHTML(
+                                markdownToHTML(item.title ?? ""),
+                              ),
+                            }}
+                          />
                         </div>
 
-                        {/* ===== CONTENT AREA ===== */}
+                        {/* ===== CONTENT AREA =====
+                            🔥 item.image TIDAK dirender di sini — di admin
+                            (CarouselPreview di MaterialPreviewModal.tsx)
+                            field `image` juga tidak pernah ditampilkan sama
+                            sekali walau ada di skema backend, jadi biar
+                            match persis dengan admin, image card carousel
+                            di sini ikut disembunyikan. Kasih tahu saya kalau
+                            ternyata ini fitur yang memang mau dipakai. */}
                         <div
                           className="p-6 text-center border-t border-gray-200"
                           style={{ backgroundColor: "#FFFFFF" }}
                         >
-                          {item.image && (
-                            <div className="mb-4">
-                              <Image
-                                src={item.image}
-                                alt={item.title}
-                                width={500}
-                                height={300}
-                                className="w-full h-auto rounded-md object-cover"
-                              />
-                            </div>
-                          )}
-
                           {item.content && (
-                            <div>{formatContent(item.content)}</div>
+                            <div
+                              className={`break-words ${richTextDisplayClass}`}
+                              dangerouslySetInnerHTML={{
+                                __html: normalizeEditorHTML(
+                                  markdownToHTML(item.content ?? ""),
+                                ),
+                              }}
+                            />
                           )}
                         </div>
                       </div>
@@ -1294,6 +1815,36 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
                   ))}
                 </div>
               </div>
+
+              {/* ================= NAVIGATION DOTS =================
+                  "Lampu" navigasi di bawah carousel — nunjukin ada berapa
+                  slide/halaman total & yang mana yang lagi aktif, sekaligus
+                  jadi sinyal visual "masih bisa digeser lagi atau nggak"
+                  (titik paling kiri/kanan pas nyala = udah mentok). Cuma
+                  dimunculin kalau memang ada lebih dari 1 halaman slide. */}
+              {maxIndex > 0 && (
+                <div className="flex items-center justify-center gap-2 mt-5">
+                  {Array.from({ length: maxIndex + 1 }).map((_, dotIndex) => (
+                    <button
+                      key={dotIndex}
+                      type="button"
+                      onClick={() =>
+                        setCarouselIndexes((prev) => ({
+                          ...prev,
+                          [carouselKey]: dotIndex,
+                        }))
+                      }
+                      aria-label={`Ke slide ${dotIndex + 1}`}
+                      aria-current={dotIndex === currentIndex}
+                      className={`h-2 rounded-full transition-all duration-300 ${
+                        dotIndex === currentIndex
+                          ? "w-6 bg-emerald-500"
+                          : "w-2 bg-gray-300 hover:bg-gray-400"
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         );
@@ -1303,14 +1854,14 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
         const cardsPerSlide = 3;
         const totalItems = content.items.length;
 
-        const currentIndex = carouselIndexes[content.id] ?? 0;
+        const currentIndex = carouselIndexes[contentKeyOf(content)] ?? 0;
         const maxIndex = Math.max(totalItems - cardsPerSlide, 0);
 
         const goNext = () => {
           if (currentIndex >= maxIndex) return;
           setCarouselIndexes((prev) => ({
             ...prev,
-            [content.id]: Math.min(currentIndex + 1, maxIndex),
+            [contentKeyOf(content)]: Math.min(currentIndex + 1, maxIndex),
           }));
         };
 
@@ -1318,12 +1869,56 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
           if (currentIndex <= 0) return;
           setCarouselIndexes((prev) => ({
             ...prev,
-            [content.id]: Math.max(currentIndex - 1, 0),
+            [contentKeyOf(content)]: Math.max(currentIndex - 1, 0),
           }));
         };
 
-        const translatePercentage = (100 / cardsPerSlide) * currentIndex;
-        const expandedIndexes = expandedCards[content.id] ?? [];
+        // 🔥 Sama seperti carousel di atas: key stabil buat nyimpen offset
+        // drag & status dragging punya card carousel ini sendiri.
+        const cardCarouselKey = contentKeyOf(content);
+        const isThisCardDragging = draggingKey === cardCarouselKey;
+        const thisCardDragOffsetPct = dragOffsetPct[cardCarouselKey] ?? 0;
+
+        const translatePercentage =
+          (100 / cardsPerSlide) * currentIndex - thisCardDragOffsetPct;
+        const expandedIndexes = expandedCards[contentKeyOf(content)] ?? [];
+
+        const handleCardPointerDown = (
+          e: React.PointerEvent<HTMLDivElement>,
+        ) => {
+          setDraggingKey(cardCarouselKey);
+          dragStartX.current = e.clientX;
+          setDragOffsetPct((prev) => ({ ...prev, [cardCarouselKey]: 0 }));
+          (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+        };
+
+        const handleCardPointerMove = (
+          e: React.PointerEvent<HTMLDivElement>,
+        ) => {
+          if (draggingKey !== cardCarouselKey) return;
+          const width = sliderRefs.current[cardCarouselKey]?.offsetWidth || 1;
+          const deltaPx = e.clientX - dragStartX.current;
+          setDragOffsetPct((prev) => ({
+            ...prev,
+            [cardCarouselKey]: (deltaPx / width) * 100,
+          }));
+        };
+
+        const endCardDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+          if (draggingKey !== cardCarouselKey) return;
+          const width = sliderRefs.current[cardCarouselKey]?.offsetWidth || 1;
+          const deltaPx = e.clientX - dragStartX.current;
+          const thresholdPx = width * 0.15;
+
+          if (deltaPx <= -thresholdPx && currentIndex < maxIndex) {
+            goNext();
+          } else if (deltaPx >= thresholdPx && currentIndex > 0) {
+            goPrev();
+          }
+
+          setDraggingKey(null);
+          setDragOffsetPct((prev) => ({ ...prev, [cardCarouselKey]: 0 }));
+        };
 
         const isSimpleMode = content.disableExpandableContent === true;
 
@@ -1340,45 +1935,65 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
           Layers,
         ];
 
+        const ContentCardTitleIcon = getContentIcon(
+          content.title,
+          content.description,
+          ...content.items.map(
+            (item) => `${item.title ?? ""} ${item.content ?? ""}`,
+          ),
+        );
+
         return (
           <div key={content.id} className="space-y-8">
-            {/* ================= TITLE & DESCRIPTION ================= */}
-            <div className="pl-0 space-y-2">
-              <div className="flex items-center gap-3">
-                {/* Wrapper Icon - Disederhanakan karena isinya sama saja */}
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[#F8FAFC]">
-                  <Image
-                    src={
-                      isSimpleMode
-                        ? "/assets/elearning/iconcardcontent2.svg"
-                        : "/assets/elearning/iconcarousel.svg"
-                    }
-                    alt="icon"
-                    width={16}
-                    height={16}
-                    className="mt-1"
-                  />
-                </div>
-
-                {/* Heading dengan perbaikan backticks */}
-                <h5 className={`${headingSizeMap[4]} font-semibold text-black`}>
-                  {content.title}
-                </h5>
+            {/* ================= TITLE & DESCRIPTION =================
+                🔥 Sama kayak accordion/carousel: icon & kolom
+                (title+description+hint "arahkan kursor") sekarang satu
+                baris flex yang sama. Ikon dibesarkan dikit (h-10/16px →
+                h-11/18px). */}
+            <div className="flex items-center gap-3">
+              {/* Wrapper Icon */}
+              <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-[#F8FAFC]">
+                <ContentCardTitleIcon size={18} className="text-emerald-600" />
               </div>
 
-              {content.description && (
-                <>
-                  <div className="ml-[42px]">{content.description}</div>
+              <div className="min-w-0 flex-1 space-y-1">
+                {/* 🔥 FIX: content.title adalah HTML, jadi harus di-parse
+                    (bukan teks JSX polos), dan ukurannya dibesarkan supaya
+                    beda jelas dari deskripsi. */}
+                <h5
+                  className={`text-2xl font-bold text-black break-words ${richTextDisplayClass}`}
+                  dangerouslySetInnerHTML={{
+                    __html: normalizeEditorHTML(
+                      markdownToHTML(content.title ?? ""),
+                    ),
+                  }}
+                />
 
-                  {!isSimpleMode && (
-                    <p className="ml-[42px] text-sm text-gray-500 mt-1 tracking-wide">
-                      <span className="skew-x-[-8deg] inline-block">
-                        (Arahkan kursor untuk melihat detail)
-                      </span>
-                    </p>
-                  )}
-                </>
-              )}
+                {content.description && (
+                  <>
+                    {/* 🔥 Sama seperti admin (case "content_card" di
+                        mapMaterialToCanvasItems): description langsung
+                        markdownToHTML tanpa decodeFontStyleToken (beda dari
+                        accordion/carousel yang men-decode token dulu). */}
+                    <div
+                      className={`text-sm text-gray-600 leading-relaxed break-words ${richTextDisplayClass}`}
+                      dangerouslySetInnerHTML={{
+                        __html: normalizeEditorHTML(
+                          markdownToHTML(content.description ?? ""),
+                        ),
+                      }}
+                    />
+
+                    {!isSimpleMode && (
+                      <p className="text-sm text-gray-500 mt-1 tracking-wide">
+                        <span className="skew-x-[-8deg] inline-block">
+                          (Arahkan kursor untuk melihat detail)
+                        </span>
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
 
             {/* ================= CARD CONTAINER ================= */}
@@ -1439,14 +2054,27 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
                 </>
               )}
 
-              <div className="overflow-hidden">
+              <div
+                className="overflow-hidden"
+                ref={(el) => {
+                  sliderRefs.current[cardCarouselKey] = el;
+                }}
+              >
                 <div
-                  className="
-    flex transition-transform duration-500 ease-in-out
-  "
+                  className={`flex select-none cursor-grab active:cursor-grabbing ${
+                    isThisCardDragging
+                      ? ""
+                      : "transition-transform duration-500 ease-in-out"
+                  }`}
                   style={{
                     transform: `translateX(-${translatePercentage}%)`,
+                    touchAction: "pan-y",
                   }}
+                  onPointerDown={handleCardPointerDown}
+                  onPointerMove={handleCardPointerMove}
+                  onPointerUp={endCardDrag}
+                  onPointerCancel={endCardDrag}
+                  onPointerLeave={isThisCardDragging ? endCardDrag : undefined}
                 >
                   {content.items.map((item, index) => {
                     const isExpanded = expandedIndexes.includes(index);
@@ -1492,14 +2120,24 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
                             </div>
 
                             {/* TITLE */}
-                            <h6 className="text-2xl font-semibold text-black mb-4">
-                              {item.title}
-                            </h6>
+                            <h6
+                              className={`text-2xl font-semibold text-black mb-4 break-words ${richTextDisplayClass}`}
+                              dangerouslySetInnerHTML={{
+                                __html: normalizeEditorHTML(
+                                  markdownToHTML(item.title ?? ""),
+                                ),
+                              }}
+                            />
 
                             {/* DESCRIPTION */}
-                            <div className="flex-grow">
-                              {formatContent(item.content)}
-                            </div>
+                            <div
+                              className={`flex-grow break-words ${richTextDisplayClass}`}
+                              dangerouslySetInnerHTML={{
+                                __html: normalizeEditorHTML(
+                                  markdownToHTML(item.content ?? ""),
+                                ),
+                              }}
+                            />
                           </div>
                         ) : (
                           /* ================= EXPANDABLE MODE (FALSE) ================= */
@@ -1530,13 +2168,23 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
                                 })()}
                               </div>
 
-                              <h6 className="text-2xl font-semibold text-black mb-4">
-                                {item.title}
-                              </h6>
+                              <h6
+                                className={`text-2xl font-semibold text-black mb-4 break-words ${richTextDisplayClass}`}
+                                dangerouslySetInnerHTML={{
+                                  __html: normalizeEditorHTML(
+                                    markdownToHTML(item.title ?? ""),
+                                  ),
+                                }}
+                              />
 
-                              <div className="flex-grow">
-                                {formatContent(item.content)}
-                              </div>
+                              <div
+                                className={`flex-grow break-words ${richTextDisplayClass}`}
+                                dangerouslySetInnerHTML={{
+                                  __html: normalizeEditorHTML(
+                                    markdownToHTML(item.content ?? ""),
+                                  ),
+                                }}
+                              />
                             </div>
 
                             {/* BOTTOM GREY */}
@@ -1554,20 +2202,28 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
         `}
                                 >
                                   <div className="flex justify-center">
-                                    <div className="text-center">
-                                      {formatContent(item.expandableContent)}
-                                    </div>
+                                    <div
+                                      className={`text-center break-words ${richTextDisplayClass}`}
+                                      dangerouslySetInnerHTML={{
+                                        __html: normalizeEditorHTML(
+                                          markdownToHTML(
+                                            item.expandableContent ?? "",
+                                          ),
+                                        ),
+                                      }}
+                                    />
                                   </div>
                                 </div>
 
                                 <button
                                   onClick={() =>
                                     setExpandedCards((prev) => {
-                                      const current = prev[content.id] ?? [];
+                                      const current =
+                                        prev[contentKeyOf(content)] ?? [];
 
                                       return {
                                         ...prev,
-                                        [content.id]: isExpanded
+                                        [contentKeyOf(content)]: isExpanded
                                           ? current.filter((i) => i !== index)
                                           : [...current, index],
                                       };
@@ -1604,39 +2260,87 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
                   })}
                 </div>
               </div>
+
+              {/* ================= NAVIGATION DOTS ================= */}
+              {maxIndex > 0 && (
+                <div className="flex items-center justify-center gap-2 mt-5">
+                  {Array.from({ length: maxIndex + 1 }).map((_, dotIndex) => (
+                    <button
+                      key={dotIndex}
+                      type="button"
+                      onClick={() =>
+                        setCarouselIndexes((prev) => ({
+                          ...prev,
+                          [cardCarouselKey]: dotIndex,
+                        }))
+                      }
+                      aria-label={`Ke slide ${dotIndex + 1}`}
+                      aria-current={dotIndex === currentIndex}
+                      className={`h-2 rounded-full transition-all duration-300 ${
+                        dotIndex === currentIndex
+                          ? "w-6 bg-emerald-500"
+                          : "w-2 bg-gray-300 hover:bg-gray-400"
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         );
       }
 
       case "tab_navigation": {
-        const activeIndex = activeTabs[content.id] ?? 0;
+        const activeIndex = activeTabs[contentKeyOf(content)] ?? 0;
+
+        const TabNavigationTitleIcon = getContentIcon(
+          content.title,
+          content.description,
+          ...content.tabs.map(
+            (tab) => `${tab.title ?? ""} ${tab.content ?? ""}`,
+          ),
+        );
 
         return (
           <div key={content.id} className="space-y-6">
-            {/* ================= TITLE & DESCRIPTION ================= */}
-            <div className="pl-0 space-y-2">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[#F8FAFC]">
-                  <Image
-                    src="/assets/elearning/iconcarousel.svg"
-                    alt="icon"
-                    width={16}
-                    height={16}
-                    className="mt-1"
-                  />
-                </div>
-
-                <h5 className={`${headingSizeMap[4]} font-semibold text-black`}>
-                  {content.title}
-                </h5>
+            {/* ================= TITLE & DESCRIPTION =================
+                🔥 Sama kayak accordion/carousel/content_card: icon &
+                kolom (title+description) sekarang satu baris flex yang
+                sama. Ikon dibesarkan dikit (h-10/16px → h-11/18px). */}
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-[#F8FAFC]">
+                <TabNavigationTitleIcon
+                  size={18}
+                  className="text-emerald-600"
+                />
               </div>
 
-              {content.description && (
-                <div className="ml-[42px]">
-                  {formatContent(content.description)}
-                </div>
-              )}
+              <div className="min-w-0 flex-1 space-y-1">
+                {/* 🔥 FIX: content.title adalah HTML, jadi harus di-parse
+                    (bukan teks JSX polos), dan ukurannya dibesarkan supaya
+                    beda jelas dari deskripsi. */}
+                <h5
+                  className={`text-2xl font-bold text-black break-words ${richTextDisplayClass}`}
+                  dangerouslySetInnerHTML={{
+                    __html: normalizeEditorHTML(
+                      markdownToHTML(content.title ?? ""),
+                    ),
+                  }}
+                />
+
+                {content.description && (
+                  // 🔥 Sama seperti content_card: description langsung
+                  // markdownToHTML tanpa decodeFontStyleToken.
+                  <div
+                    className={`text-sm text-gray-600 leading-relaxed break-words ${richTextDisplayClass}`}
+                    dangerouslySetInnerHTML={{
+                      __html: normalizeEditorHTML(
+                        markdownToHTML(content.description ?? ""),
+                      ),
+                    }}
+                  />
+                )}
+              </div>
             </div>
 
             {/* ================= TAB WRAPPER (CENTER) ================= */}
@@ -1652,11 +2356,11 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
                       onClick={() =>
                         setActiveTabs((prev) => ({
                           ...prev,
-                          [content.id]: index,
+                          [contentKeyOf(content)]: index,
                         }))
                       }
                       className={`
-            flex-1 py-5 text-base font-semibold tracking-wide
+            flex-1 py-5 text-base font-semibold tracking-wide truncate
             transition-all duration-300 ease-in-out
             ${
               isActive
@@ -1668,16 +2372,20 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
             ${index === 0 ? "rounded-tl-2xl" : ""}
             ${index === content.tabs.length - 1 ? "rounded-tr-2xl" : ""}
           `}
-                    >
-                      {tab.title}
-                    </button>
+                      dangerouslySetInnerHTML={{
+                        __html:
+                          normalizeEditorHTML(
+                            markdownToHTML(tab.title ?? ""),
+                          ) || `Tab ${index + 1}`,
+                      }}
+                    />
                   );
                 })}
               </div>
 
               {/* ================= CONTENT AREA ================= */}
               <div
-                className="
+                className={`
       bg-white
       rounded-b-2xl
       p-8
@@ -1685,36 +2393,58 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
       text-black
       leading-relaxed
       shadow-sm
+      break-words
       transition-all duration-300 ease-in-out
       hover:shadow-md
       hover:ring-1 hover:ring-emerald-100
-    "
-              >
-                {formatContent(content.tabs[activeIndex]?.content)}
-              </div>
+      [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1
+      ${richTextDisplayClass}
+    `}
+                dangerouslySetInnerHTML={{
+                  __html: normalizeEditorHTML(
+                    markdownToHTML(content.tabs[activeIndex]?.content ?? ""),
+                  ),
+                }}
+              />
             </div>
           </div>
         );
       }
 
-      case "summary":
+      case "summary": {
+        let comments: string[] = Array.isArray(content.comments)
+          ? [...content.comments]
+          : [];
+        // Sama seperti admin: token {fstyle:...} (kalau ada) selalu
+        // "nempel" di comment PERTAMA, bukan komentar terpisah — jadi
+        // dilucuti dulu di sini biar nggak muncul sebagai teks literal.
+        if (comments.length > 0 && FSTYLE_TOKEN_REGEX.test(comments[0])) {
+          comments = comments.slice(1);
+        }
+        const summaryHTML = comments
+          .map((c) => `<p>${markdownToHTML(c)}</p>`)
+          .join("");
+
         return (
           <div key={content.id} className="w-full">
             <div className="w-[85%] mx-auto bg-[#F8FAFC] rounded-2xl p-10 shadow-sm">
               {/* TITLE */}
-              <h4 className="text-5xl font-bold mb-8">
-                <span className="text-emerald-600">Ringkasan</span>
+              <h4 className={`text-4xl font-bold mb-6 ${richTextDisplayClass}`}>
+                <span className={`text-emerald-600 ${richTextDisplayClass}`}>
+                  Ringkasan
+                </span>
               </h4>
 
-              {/* LIST COMMENTS */}
-              <ul className="space-y-4 text-lg text-black leading-relaxed list-disc pl-6">
-                {content.comments.map((comment, index) => (
-                  <li key={index}>{formatContent(comment)}</li>
-                ))}
-              </ul>
+              <div
+                className={`text-base text-gray-800 leading-relaxed break-words [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:my-1 ${richTextDisplayClass}`}
+                dangerouslySetInnerHTML={{
+                  __html: normalizeEditorHTML(summaryHTML),
+                }}
+              />
             </div>
           </div>
         );
+      }
 
       default:
         return null;
@@ -1726,137 +2456,273 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
     if (item.type !== "image_video") return null;
 
     const data = item.content as ImageVideoContent;
-    const url = data.url.toLowerCase();
-    const cleanUrl = url.split("?")[0];
+    // Sama seperti admin: `mediaType` sudah eksplisit dari backend
+    // ("IMAGE" | "VIDEO"), jadi nggak perlu nebak dari ekstensi/domain URL
+    // lagi (itu cara lama yang gampang meleset kalau ada CDN di luar
+    // daftar). Ini juga persis logic ImagePreview/VideoPreview di
+    // MaterialPreviewModal.tsx.
+    const isVideo = data.mediaType === "VIDEO";
+    // 🔥 FIX 404: url dari backend bisa relatif ("/uploads/...") atau
+    // sudah absolute ("http://host/uploads/..."). resolveMediaUrl()
+    // autodetect keduanya — lihat komentar di definisinya di atas.
+    const resolvedUrl = resolveMediaUrl(data.url);
 
-    /* ================= DETECTION LIST ================= */
-
-    const videoExtensions = [
-      ".mp4",
-      ".webm",
-      ".ogg",
-      ".mov",
-      ".m4v",
-      ".avi",
-      ".mkv",
-    ];
-
-    const imageExtensions = [
-      ".jpg",
-      ".jpeg",
-      ".png",
-      ".webp",
-      ".gif",
-      ".avif",
-      ".svg",
-    ];
-
-    const videoPlatforms = [
-      "youtube.com",
-      "youtu.be",
-      "vimeo.com",
-      "dailymotion.com",
-    ];
-
-    const imagePlatforms = [
-      "images.unsplash.com",
-      "unsplash.com",
-      "res.cloudinary.com",
-      "images.pexels.com",
-      "pexels.com",
-      "cdn.pixabay.com",
-      "pixabay.com",
-    ];
-
-    const isVideo =
-      videoExtensions.some((ext) => cleanUrl.endsWith(ext)) ||
-      videoPlatforms.some((platform) => url.includes(platform));
-
-    const isImage =
-      imageExtensions.some((ext) => cleanUrl.endsWith(ext)) ||
-      imagePlatforms.some((platform) => url.includes(platform));
-
-    /* ================= YOUTUBE EMBED FIX ================= */
-
-    const getYoutubeEmbedUrl = (url: string) => {
-      if (url.includes("youtu.be")) {
-        const videoId = url.split("youtu.be/")[1]?.split("?")[0];
-        return `https://www.youtube.com/embed/${videoId}`;
+    if (isVideo) {
+      if (!data.url) {
+        return (
+          <div className="w-full h-40 flex items-center justify-center bg-gray-100 rounded-xl text-gray-400 text-sm">
+            Video tidak tersedia
+          </div>
+        );
       }
 
-      if (url.includes("watch?v=")) {
-        const videoId = url.split("watch?v=")[1]?.split("&")[0];
-        return `https://www.youtube.com/embed/${videoId}`;
-      }
+      // Sama persis dengan VideoPreview admin.
+      const isYoutube =
+        data.url.includes("youtube.com") || data.url.includes("youtu.be");
+      const embedUrl = isYoutube
+        ? data.url.includes("youtu.be")
+          ? `https://www.youtube.com/embed/${data.url.split("youtu.be/")[1]?.split("?")[0]}`
+          : `https://www.youtube.com/embed/${new URL(data.url).searchParams.get("v")}`
+        : resolvedUrl;
 
-      return url;
-    };
+      return (
+        <div className="w-full flex justify-center">
+          <div className="w-full max-w-2xl aspect-video rounded-xl overflow-hidden shadow-md">
+            {isYoutube ? (
+              <iframe
+                src={embedUrl}
+                className="w-full h-full"
+                allowFullScreen
+              />
+            ) : (
+              <video
+                src={resolvedUrl}
+                controls
+                className="w-full h-full object-contain bg-black"
+              />
+            )}
+          </div>
+        </div>
+      );
+    }
 
-    /* ================= DYNAMIC WIDTH ================= */
-    const maxWidthClass = isVideo ? "max-w-2xl" : "max-w-xl";
+    // Sama persis dengan ImagePreview admin.
+    if (!data.url) {
+      return (
+        <div className="w-full h-40 flex items-center justify-center bg-gray-100 rounded-xl text-gray-400 text-sm">
+          Gambar tidak tersedia
+        </div>
+      );
+    }
 
     return (
       <div className="w-full flex justify-center">
-        <div className={`w-full ${maxWidthClass}`}>
-          {isVideo ? (
-            <div className="w-full aspect-video rounded-xl overflow-hidden shadow-md">
-              {videoExtensions.some((ext) => url.endsWith(ext)) ? (
-                <video
-                  src={data.url}
-                  controls
-                  className="w-full h-full object-contain bg-black"
-                />
-              ) : (
-                <iframe
-                  src={getYoutubeEmbedUrl(data.url)}
-                  className="w-full h-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              )}
-            </div>
-          ) : isImage ? (
-            <img
-              src={data.url}
-              alt="additional"
-              className="w-full max-h-[400px] object-contain rounded-xl shadow-md"
-            />
-          ) : (
-            <p className="text-center text-red-500">Unsupported media format</p>
-          )}
-
-          {data.caption && (
-            <p className="text-center text-base font-medium text-gray-600 mt-4">
-              {data.caption}
-            </p>
-          )}
-        </div>
+        <img
+          src={resolvedUrl}
+          alt="material"
+          style={{
+            width: data.widthPercent ? `${data.widthPercent}%` : "100%",
+          }}
+          className="object-contain rounded-xl shadow-md block"
+        />
       </div>
     );
   };
 
   const [mcAnswers, setMcAnswers] = useState<Record<string, string>>({});
   const [mcSubmitted, setMcSubmitted] = useState<Record<string, boolean>>({});
+  // 🔥 BARU: penghitung "percobaan ke berapa" per soal true/false, cuma
+  // buat bikin `key` unik di banner hasil (lihat renderAssessmentResultBanner
+  // di bawah) — increment tiap kali Submit ditekan. Gunanya: kalau user
+  // submit → salah → Coba Lagi → submit lagi → SALAH LAGI (hasil kategori-nya
+  // sama persis kayak sebelumnya, "wrong"), React biasanya nggak akan
+  // remount elemen bannernya (key dari kategori doang, "wrong", nggak
+  // berubah), jadi animasi CSS-nya nggak akan replay walau submit-nya beda
+  // kali. Dengan attempt counter ini ikut masuk ke `key`, tiap Submit
+  // dijamin bikin React BENERAN bikin elemen DOM baru → animasi selalu
+  // main ulang dari awal, sesuai attempt yang mana pun.
+  const [mcAttempt, setMcAttempt] = useState<Record<string, number>>({});
+
+  // 🔥 BARU: banner hasil submit (dipakai bareng-bareng sama true/false DAN
+  // matching, makanya didefinisikan sekali di sini, dipanggil dari kedua
+  // renderX di bawah). `isAllCorrect` nentuin pesan+warna+animasi yang mana
+  // yang tampil; `animKey` (biasanya "{soalKey}-{attemptKe}") mastiin
+  // elemen ini di-remount tiap kali Submit ditekan, apa pun hasilnya,
+  // supaya animasi selalu main dari awal — bukan cuma pas kategori
+  // benar/salahnya beda dari attempt sebelumnya.
+  const renderAssessmentResultBanner = (
+    isAllCorrect: boolean,
+    animKey: string,
+  ) => (
+    <div
+      key={animKey}
+      className={`assessment-result-banner mt-8 flex flex-col sm:flex-row items-center gap-4 rounded-xl border-2 px-6 py-5 ${
+        isAllCorrect
+          ? "border-emerald-300 bg-emerald-50"
+          : "border-red-300 bg-red-50"
+      }`}
+    >
+      <div
+        className={`assessment-result-icon flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full ${
+          isAllCorrect
+            ? "assessment-result-icon--success bg-emerald-500"
+            : "assessment-result-icon--error bg-red-500"
+        }`}
+      >
+        {isAllCorrect ? (
+          <PartyPopper size={24} className="text-white" />
+        ) : (
+          <XCircle size={24} className="text-white" />
+        )}
+      </div>
+
+      <p
+        className={`text-base md:text-lg font-bold text-center sm:text-left ${
+          isAllCorrect ? "text-emerald-700" : "text-red-700"
+        }`}
+      >
+        {isAllCorrect
+          ? "Selamat, Jawabanmu sudah benar"
+          : "Sayang Sekali, Jawabanmu masih salah, silahkan coba lagi"}
+      </p>
+
+      {/* 🔥 Keyframe murni pakai <style> polos (bukan `<style jsx>`) biar
+          animasinya jalan di mana pun tanpa bergantung ke ada/nggaknya
+          babel plugin styled-jsx aktif di project ini — cukup CSS standar
+          yang di-inject sebagai child JSX biasa. */}
+      <style>{`
+        .assessment-result-banner {
+          animation: assessmentBannerIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        }
+        .assessment-result-icon--success {
+          animation:
+            assessmentIconPop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both,
+            assessmentRingPulse 1.6s ease-out 0.65s infinite;
+        }
+        .assessment-result-icon--error {
+          animation: assessmentIconShake 0.55s ease-in-out 0.1s both;
+        }
+        @keyframes assessmentBannerIn {
+          from {
+            opacity: 0;
+            transform: translateY(16px) scale(0.96);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+        @keyframes assessmentIconPop {
+          0% {
+            transform: scale(0) rotate(-15deg);
+            opacity: 0;
+          }
+          60% {
+            transform: scale(1.2) rotate(5deg);
+            opacity: 1;
+          }
+          100% {
+            transform: scale(1) rotate(0deg);
+          }
+        }
+        @keyframes assessmentIconShake {
+          0%,
+          100% {
+            transform: translateX(0) scale(1);
+          }
+          20% {
+            transform: translateX(-6px) scale(1.05);
+          }
+          40% {
+            transform: translateX(6px) scale(1.05);
+          }
+          60% {
+            transform: translateX(-4px) scale(1.05);
+          }
+          80% {
+            transform: translateX(4px) scale(1.05);
+          }
+        }
+        @keyframes assessmentRingPulse {
+          0% {
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.45);
+          }
+          100% {
+            box-shadow: 0 0 0 14px rgba(16, 185, 129, 0);
+          }
+        }
+      `}</style>
+    </div>
+  );
+
+  // 🔥 BARU: tombol "Coba Lagi", dipakai bareng-bareng sama true/false DAN
+  // matching juga.
+  const renderTryAgainButton = (onReset: () => void) => (
+    <div className="flex justify-center mt-6">
+      <button
+        onClick={onReset}
+        className="inline-flex items-center gap-2 px-8 py-3 bg-white border-2 border-emerald-600 text-emerald-700 rounded-lg font-semibold hover:bg-emerald-50 active:scale-[0.98] transition"
+      >
+        <RotateCcw size={18} />
+        Coba Lagi
+      </button>
+    </div>
+  );
 
   const renderMultipleChoice = (item: AdditionalContent) => {
     if (item.type !== "multiple_choice") return null;
 
     const data = item.content as MultipleChoiceContent;
-    const isSubmitted = mcSubmitted[data.id] ?? false;
+    // 🔥 Backend belum kirim id sama sekali (baik di item maupun di
+    // content-nya) — orderNumber dipakai sebagai pengganti identitas unik
+    // per soal selama backend belum ditambah `id`.
+    const mcKey = String(item.id ?? item.orderNumber ?? "mc");
+    const isSubmitted = mcSubmitted[mcKey] ?? false;
 
-    const handleSelect = (optionId: string, value: "true" | "false") => {
+    // 🔥 BARU: semua pernyataan HARUS sudah dijawab DAN benar semua biar
+    // dianggap "isAllCorrect" — kalau ada yang belum dijawab (userValue
+    // undefined) otomatis kehitung salah/belum lengkap.
+    const isAllCorrect = data.options.every((option) => {
+      const userValue = mcAnswers[`${mcKey}-${option.orderNumber}`];
+      const correctValue = option.isCorrect ? "true" : "false";
+      return userValue === correctValue;
+    });
+
+    const handleSelect = (optionOrder: number, value: "true" | "false") => {
       if (isSubmitted) return;
 
       setMcAnswers((prev) => ({
         ...prev,
-        [`${data.id}-${optionId}`]: value,
+        [`${mcKey}-${optionOrder}`]: value,
       }));
     };
 
     const handleSubmit = () => {
       setMcSubmitted((prev) => ({
         ...prev,
-        [data.id]: true,
+        [mcKey]: true,
+      }));
+      setMcAttempt((prev) => ({
+        ...prev,
+        [mcKey]: (prev[mcKey] ?? 0) + 1,
+      }));
+    };
+
+    // 🔥 BARU: reset total balik ke kondisi awal — semua jawaban yang
+    // sudah dipilih untuk soal INI dihapus (bukan cuma "unsubmit"), biar
+    // "coba lagi" beneran dari nol, bukan cuma buka kunci submit doang
+    // dengan jawaban lama masih nempel.
+    const handleReset = () => {
+      setMcAnswers((prev) => {
+        const next = { ...prev };
+        data.options.forEach((option) => {
+          delete next[`${mcKey}-${option.orderNumber}`];
+        });
+        return next;
+      });
+      setMcSubmitted((prev) => ({
+        ...prev,
+        [mcKey]: false,
       }));
     };
 
@@ -1885,10 +2751,9 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
 
             <div className="divide-y">
               {data.options.map((option, index) => {
-                const userValue = mcAnswers[`${data.id}-${option.id}`];
+                const userValue = mcAnswers[`${mcKey}-${option.orderNumber}`];
 
-                const isCorrect = data.correctAnswers.includes(option.id);
-                const correctValue = isCorrect ? "true" : "false";
+                const correctValue = option.isCorrect ? "true" : "false";
 
                 const isWrong =
                   isSubmitted && userValue && userValue !== correctValue;
@@ -1897,7 +2762,7 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
 
                 return (
                   <div
-                    key={option.id}
+                    key={option.orderNumber ?? index}
                     className={`grid grid-cols-[60px_1fr_80px_80px] items-center py-4 text-center transition
                     ${isWrong ? "bg-red-50" : ""}
                     ${isRight ? "bg-emerald-50" : ""}
@@ -1912,16 +2777,18 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
                         isWrong ? "text-red-600 font-medium" : ""
                       }`}
                     >
-                      {option.text}
+                      {option.content}
                     </div>
 
                     {/* TRUE */}
                     <div>
                       <input
                         type="radio"
-                        name={`${data.id}-${option.id}`}
+                        name={`${mcKey}-${option.orderNumber}`}
                         checked={userValue === "true"}
-                        onChange={() => handleSelect(option.id, "true")}
+                        onChange={() =>
+                          handleSelect(option.orderNumber, "true")
+                        }
                         className="w-5 h-5 accent-emerald-600"
                       />
                     </div>
@@ -1930,9 +2797,11 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
                     <div>
                       <input
                         type="radio"
-                        name={`${data.id}-${option.id}`}
+                        name={`${mcKey}-${option.orderNumber}`}
                         checked={userValue === "false"}
-                        onChange={() => handleSelect(option.id, "false")}
+                        onChange={() =>
+                          handleSelect(option.orderNumber, "false")
+                        }
                         className="w-5 h-5 accent-emerald-600"
                       />
                     </div>
@@ -1972,22 +2841,40 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
             </div>
           )}
 
+          {/* 🔥 BARU: banner hasil (animasi) + tombol Coba Lagi — muncul
+              begitu sudah di-submit, baik semua jawabannya benar MAUPUN
+              masih ada yang salah/belum lengkap. */}
+          {isSubmitted &&
+            renderAssessmentResultBanner(
+              isAllCorrect,
+              `${mcKey}-${mcAttempt[mcKey] ?? 0}`,
+            )}
+
           {/* EXPLANATION */}
           {isSubmitted && data.explanation && (
             <div className="mt-4 bg-emerald-50 border border-emerald-200 p-6 rounded-lg">
               <h4 className="font-semibold mb-2 text-emerald-700">
                 Penjelasan:
               </h4>
-              <div>{formatContent(data.explanation)}</div>
+              <div
+                className={`break-words ${richTextDisplayClass}`}
+                dangerouslySetInnerHTML={{
+                  __html: normalizeEditorHTML(
+                    markdownToHTML(data.explanation ?? ""),
+                  ),
+                }}
+              />
             </div>
           )}
+
+          {isSubmitted && renderTryAgainButton(handleReset)}
         </div>
       </div>
     );
   };
 
   const [matchingAnswers, setMatchingAnswers] = useState<
-    Record<string, Record<string, string>>
+    Record<string, Record<number, number>>
   >({});
   // { [matchingId]: { [leftId]: rightId } }
 
@@ -1999,28 +2886,156 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
     Record<string, string | null>
   >({});
 
+  // 🔥 BARU: sama persis fungsinya kayak `mcAttempt` di true/false — cuma
+  // buat mastiin banner hasil (renderAssessmentResultBanner) remount &
+  // animasinya replay tiap kali Submit ditekan, walau kategori hasilnya
+  // (benar/salah) sama kayak attempt sebelumnya.
+  const [matchingAttempt, setMatchingAttempt] = useState<
+    Record<string, number>
+  >({});
+
+  // 🔥 BARU: auto-scroll pas drag pilihan jawaban matching ke soal yang
+  // posisinya di luar layar (kebawah/keatas). Sebelumnya kalau soalnya
+  // banyak (misal 10 pasang), area drop-nya jelas nggak muat 1 layar
+  // penuh — kalau mau drag pilihan jawaban paling atas ke soal paling
+  // bawah, user harus LEPAS drag-nya, scroll manual duluan pakai
+  // mouse/trackpad, baru drag ulang. Ribet & gak intuitive.
+  // `isMatchingDraggingRef` nandain lagi ada drag matching yang aktif
+  // (di-set true di onDragStart pill jawaban, false lagi di onDragEnd-nya
+  // — lihat renderMatching di bawah). Selama true, listener "dragover" di
+  // window bakal terus ngecek posisi kursor: kalau udah deket banget ke
+  // tepi atas/bawah viewport, container yang bisa di-scroll (ketemu
+  // dengan jalan naik dari elemen yang lagi dihover pakai
+  // document.elementFromPoint, biar otomatis nemu container yang BENERAN
+  // scroll — di project ini itu `<main className="... overflow-y-auto
+  // ...">` di SubchapterDetail.tsx, BUKAN window, karena window sendiri
+  // nggak scroll di layout ini) di-scroll dikit-dikit terus-menerus ke
+  // arah situ, SELAMA drag masih berlangsung — jadi user tinggal tahan
+  // drag-nya di deket tepi layar, sisanya otomatis, gak perlu
+  // lepas-scroll-drag-ulang lagi.
+  const isMatchingDraggingRef = useRef(false);
+
+  useEffect(() => {
+    const AUTO_SCROLL_EDGE_PX = 120; // seberapa deket ke tepi layar sebelum mulai auto-scroll
+    const AUTO_SCROLL_SPEED_PX = 18; // kecepatan scroll per event "dragover"
+
+    // Cari ancestor terdekat yang BENERAN scrollable (overflow-y auto/
+    // scroll DAN kontennya emang lebih panjang dari area yang keliatan).
+    // Fallback ke `document.scrollingElement` kalau nggak ketemu, buat
+    // jaga-jaga kalau suatu saat layout-nya berubah jadi window yang
+    // scroll (bukan `<main>` custom kayak sekarang).
+    const getScrollableAncestor = (
+      startEl: Element | null,
+    ): HTMLElement | null => {
+      let node = startEl as HTMLElement | null;
+      while (
+        node &&
+        node !== document.body &&
+        node !== document.documentElement
+      ) {
+        const style = window.getComputedStyle(node);
+        const canScrollY =
+          (style.overflowY === "auto" || style.overflowY === "scroll") &&
+          node.scrollHeight > node.clientHeight;
+        if (canScrollY) return node;
+        node = node.parentElement;
+      }
+      return (document.scrollingElement as HTMLElement | null) ?? null;
+    };
+
+    const handleWindowDragOver = (e: DragEvent) => {
+      if (!isMatchingDraggingRef.current) return;
+
+      const viewportHeight = window.innerHeight;
+      let direction = 0;
+      if (e.clientY < AUTO_SCROLL_EDGE_PX) {
+        direction = -1;
+      } else if (e.clientY > viewportHeight - AUTO_SCROLL_EDGE_PX) {
+        direction = 1;
+      }
+      if (direction === 0) return;
+
+      const hoveredEl = document.elementFromPoint(e.clientX, e.clientY);
+      const scrollEl = getScrollableAncestor(hoveredEl);
+      scrollEl?.scrollBy({
+        top: direction * AUTO_SCROLL_SPEED_PX,
+        behavior: "auto",
+      });
+    };
+
+    // Jaga-jaga: kalau drag dibatalkan di luar dugaan (drop di luar zona
+    // yang valid, dsb) tanpa sempat trigger onDragEnd elemen pill-nya
+    // dengan bersih, "dragend" SELALU fire di elemen sumber begitu operasi
+    // drag selesai — apa pun hasilnya — dan event ini bubble ke window,
+    // jadi paling reliable buat jaring pengaman reset flag-nya.
+    const handleWindowDragEnd = () => {
+      isMatchingDraggingRef.current = false;
+    };
+
+    window.addEventListener("dragover", handleWindowDragOver);
+    window.addEventListener("dragend", handleWindowDragEnd);
+    return () => {
+      window.removeEventListener("dragover", handleWindowDragOver);
+      window.removeEventListener("dragend", handleWindowDragEnd);
+    };
+  }, []);
+
   const renderMatching = (item: AdditionalContent) => {
     if (item.type !== "matching") return null;
 
     const data = item.content as MatchingContent;
-    const isSubmitted = matchingSubmitted[data.id] ?? false;
-    const answers = matchingAnswers[data.id] ?? {};
+    // 🔥 Backend belum kirim id sama sekali — orderNumber dipakai sebagai
+    // pengganti identitas unik per soal & per item (kiri/kanan) selama
+    // backend belum ditambah `id`.
+    const matchingKey = String(item.id ?? item.orderNumber ?? "matching");
+    const isSubmitted = matchingSubmitted[matchingKey] ?? false;
+    const answers = matchingAnswers[matchingKey] ?? {};
 
-    // 🔥 Semua rightId yang sudah dipakai
-    const usedRightIds = Object.values(answers);
+    // Backend kirim satu array items[] campur kiri/kanan, dibedain lewat
+    // `side`. Dipecah di sini biar UI-nya (drag kanan → drop kiri) tetap
+    // sama seperti sebelumnya.
+    const leftItems = data.items.filter((i) => i.side === "LEFT");
+    const rightItems = data.items.filter((i) => i.side === "RIGHT");
 
-    const handleDrop = (leftId: string, rightId: string) => {
+    // 🔥 KOREKSI (ditemukan dari page.tsx admin, case "matching" di
+    // mapMaterialToCanvasItems): `matchWithId` itu TAG PASANGAN BERSAMA —
+    // item kiri dan kanan yang berpasangan sama-sama disetel `matchWithId`
+    // yang SAMA persis. Ini BUKAN leftItem.matchWithId menunjuk ke
+    // orderNumber item kanan (asumsi awal saya sebelumnya salah). Kalau
+    // salah satu sisi nggak punya matchWithId, admin fallback ke pasangan
+    // berdasar urutan index (`rightRaw[idx]`) — direplikasi persis di sini.
+    const rightOrderByMatchId = new Map<string, number>();
+    rightItems.forEach((r) => {
+      if (r.matchWithId) rightOrderByMatchId.set(r.matchWithId, r.orderNumber);
+    });
+
+    const correctRightOrderByLeft = new Map<number, number>();
+    leftItems.forEach((l, idx) => {
+      const matchedRightOrder = l.matchWithId
+        ? rightOrderByMatchId.get(l.matchWithId)
+        : undefined;
+      const fallbackRightOrder = rightItems[idx]?.orderNumber;
+      const resolved = matchedRightOrder ?? fallbackRightOrder;
+      if (resolved !== undefined) {
+        correctRightOrderByLeft.set(l.orderNumber, resolved);
+      }
+    });
+
+    // 🔥 Semua orderNumber kanan yang sudah dipakai
+    const usedRightOrders = Object.values(answers);
+
+    const handleDrop = (leftOrder: number, rightOrder: number) => {
       if (isSubmitted) return;
 
-      // 🔥 Kalau rightId sudah dipakai di tempat lain → tolak
-      const alreadyUsed = usedRightIds.includes(rightId);
-      if (alreadyUsed && answers[leftId] !== rightId) return;
+      // 🔥 Kalau orderNumber kanan sudah dipakai di tempat lain → tolak
+      const alreadyUsed = usedRightOrders.includes(rightOrder);
+      if (alreadyUsed && answers[leftOrder] !== rightOrder) return;
 
       setMatchingAnswers((prev) => ({
         ...prev,
-        [data.id]: {
-          ...prev[data.id],
-          [leftId]: rightId,
+        [matchingKey]: {
+          ...prev[matchingKey],
+          [leftOrder]: rightOrder,
         },
       }));
     };
@@ -2028,26 +3043,54 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
     const handleSubmit = () => {
       setMatchingSubmitted((prev) => ({
         ...prev,
-        [data.id]: true,
+        [matchingKey]: true,
+      }));
+      setMatchingAttempt((prev) => ({
+        ...prev,
+        [matchingKey]: (prev[matchingKey] ?? 0) + 1,
       }));
     };
 
-    const isCorrectPair = (leftId: string, rightId: string) => {
-      return data.correctPairs.some(
-        (pair) => pair.leftId === leftId && pair.rightId === rightId,
-      );
+    // 🔥 BARU: reset total ke kondisi awal — semua pasangan yang sudah
+    // di-drop untuk soal matching INI dihapus, bukan cuma "unsubmit" saja.
+    const handleReset = () => {
+      setMatchingAnswers((prev) => ({
+        ...prev,
+        [matchingKey]: {},
+      }));
+      setMatchingSubmitted((prev) => ({
+        ...prev,
+        [matchingKey]: false,
+      }));
+      setRecentlyCancelled((prev) => ({
+        ...prev,
+        [matchingKey]: null,
+      }));
     };
+
+    const isCorrectPair = (leftOrder: number, rightOrder: number) =>
+      correctRightOrderByLeft.get(leftOrder) === rightOrder;
+
+    // 🔥 BARU: semua soal (leftItems) harus sudah dijodohkan DAN pasangan
+    // yang dipilih benar semua biar dianggap "isAllCorrect" — soal yang
+    // belum di-drop sama sekali otomatis kehitung belum lengkap/salah.
+    const isAllCorrect = leftItems.every((left) => {
+      const rightOrder = answers[left.orderNumber];
+      return (
+        rightOrder !== undefined && isCorrectPair(left.orderNumber, rightOrder)
+      );
+    });
 
     return (
       <div className="w-full flex justify-center">
         <div className="w-full max-w-4xl bg-white border-2 border-emerald-600 rounded-xl p-8">
           {/* QUESTION */}
           <h3 className="text-2xl font-bold text-black text-center">
-            {data.question}
+            {data.title}
           </h3>
 
-          {data.description && (
-            <p className="text-center text-gray-600 mt-3">{data.description}</p>
+          {data.instruction && (
+            <p className="text-center text-gray-600 mt-3">{data.instruction}</p>
           )}
 
           {/* INSTRUCTION */}
@@ -2065,19 +3108,31 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
               </h4>
 
               <div className="flex flex-wrap gap-4 justify-center">
-                {data.rightItems.map((right) => {
-                  const isUsed = usedRightIds.includes(right.id);
+                {rightItems.map((right) => {
+                  const isUsed = usedRightOrders.includes(right.orderNumber);
 
                   return (
                     <div
-                      key={right.id}
+                      key={right.orderNumber}
                       draggable={!isUsed}
                       onDragStart={(e) => {
                         if (isUsed) return;
-                        e.dataTransfer.setData("text/plain", right.id);
+                        e.dataTransfer.setData(
+                          "text/plain",
+                          String(right.orderNumber),
+                        );
+                        // 🔥 BARU: tandain drag matching lagi aktif, biar
+                        // auto-scroll listener (lihat useEffect di atas)
+                        // mulai jalan selama drag ini berlangsung.
+                        isMatchingDraggingRef.current = true;
+                      }}
+                      onDragEnd={() => {
+                        // Drag berakhir — apa pun hasilnya (berhasil di-drop
+                        // atau dibatalkan) — matiin auto-scroll.
+                        isMatchingDraggingRef.current = false;
                       }}
                       className={`
-                      px-5 py-2 rounded-lg shadow-sm border transition
+                      px-5 py-2 rounded-lg shadow-sm border transition text-sm
                       ${
                         isUsed
                           ? "bg-red-50 border-red-400 text-red-600 cursor-not-allowed opacity-70"
@@ -2085,7 +3140,7 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
                       }
                     `}
                     >
-                      {right.text}
+                      {right.content}
                     </div>
                   );
                 })}
@@ -2097,30 +3152,30 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
           {/* MATCH AREA CENTERED */}
           {/* ============================= */}
           <div className="mt-14 flex flex-col items-center space-y-8">
-            {data.leftItems.map((left) => {
-              const selectedRightId = answers[left.id];
-              const selectedRight = data.rightItems.find(
-                (r) => r.id === selectedRightId,
+            {leftItems.map((left) => {
+              const selectedRightOrder = answers[left.orderNumber];
+              const selectedRight = rightItems.find(
+                (r) => r.orderNumber === selectedRightOrder,
               );
 
               const isCorrect =
                 isSubmitted &&
-                selectedRightId &&
-                isCorrectPair(left.id, selectedRightId);
+                selectedRightOrder !== undefined &&
+                isCorrectPair(left.orderNumber, selectedRightOrder);
 
               const isWrong =
                 isSubmitted &&
-                selectedRightId &&
-                !isCorrectPair(left.id, selectedRightId);
+                selectedRightOrder !== undefined &&
+                !isCorrectPair(left.orderNumber, selectedRightOrder);
 
               return (
                 <div
-                  key={left.id}
+                  key={left.orderNumber}
                   className="flex items-center justify-center gap-8 w-full max-w-3xl"
                 >
                   {/* LEFT */}
-                  <div className="w-1/3 bg-gray-100 px-4 py-3 rounded-lg font-medium text-center">
-                    {left.text}
+                  <div className="w-1/3 bg-gray-100 px-4 py-3 rounded-lg font-medium text-sm text-center">
+                    {left.content}
                   </div>
 
                   {/* 🔥 ARROW LEBIH BESAR & TEBAL */}
@@ -2134,8 +3189,10 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
                   <div
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => {
-                      const rightId = e.dataTransfer.getData("text/plain");
-                      handleDrop(left.id, rightId);
+                      const rightOrder = Number(
+                        e.dataTransfer.getData("text/plain"),
+                      );
+                      handleDrop(left.orderNumber, rightOrder);
                     }}
                     className={`
                     w-1/3 min-h-[52px] flex items-center justify-center
@@ -2148,7 +3205,8 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
                     {selectedRight ? (
                       <div
                         title={
-                          recentlyCancelled[data.id] === left.id
+                          recentlyCancelled[matchingKey] ===
+                          String(left.orderNumber)
                             ? "Cancelled Answer"
                             : "Undrop Answer"
                         }
@@ -2157,35 +3215,35 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
 
                           // 🔥 remove answer
                           setMatchingAnswers((prev) => {
-                            const newAnswers = { ...prev[data.id] };
-                            delete newAnswers[left.id];
+                            const newAnswers = { ...prev[matchingKey] };
+                            delete newAnswers[left.orderNumber];
 
                             return {
                               ...prev,
-                              [data.id]: newAnswers,
+                              [matchingKey]: newAnswers,
                             };
                           });
 
                           // 🔥 trigger cancelled tooltip
                           setRecentlyCancelled((prev) => ({
                             ...prev,
-                            [data.id]: left.id,
+                            [matchingKey]: String(left.orderNumber),
                           }));
 
                           // reset tooltip back setelah 1.5 detik
                           setTimeout(() => {
                             setRecentlyCancelled((prev) => ({
                               ...prev,
-                              [data.id]: null,
+                              [matchingKey]: null,
                             }));
                           }, 1500);
                         }}
                         className={`
-      font-medium text-red-600 cursor-pointer
+      font-medium text-sm text-red-600 cursor-pointer
       hover:opacity-80 transition
     `}
                       >
-                        {selectedRight.text}
+                        {selectedRight.content}
                       </div>
                     ) : (
                       <span className="text-gray-400 text-sm">
@@ -2195,7 +3253,7 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
                   </div>
 
                   {/* RESULT ICON */}
-                  {isSubmitted && selectedRightId && (
+                  {isSubmitted && selectedRightOrder !== undefined && (
                     <div>
                       {isCorrect ? (
                         <Check className="text-emerald-600" />
@@ -2221,15 +3279,32 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
             </div>
           )}
 
+          {/* 🔥 BARU: banner hasil (animasi) + tombol Coba Lagi — sama
+              persis pola & komponennya kayak di true/false. */}
+          {isSubmitted &&
+            renderAssessmentResultBanner(
+              isAllCorrect,
+              `${matchingKey}-${matchingAttempt[matchingKey] ?? 0}`,
+            )}
+
           {/* EXPLANATION */}
           {isSubmitted && data.explanation && (
             <div className="mt-8 bg-emerald-50 border border-emerald-200 p-6 rounded-lg">
               <h4 className="font-semibold mb-2 text-emerald-700">
                 Penjelasan:
               </h4>
-              <div>{formatContent(data.explanation)}</div>
+              <div
+                className={`break-words ${richTextDisplayClass}`}
+                dangerouslySetInnerHTML={{
+                  __html: normalizeEditorHTML(
+                    markdownToHTML(data.explanation ?? ""),
+                  ),
+                }}
+              />
             </div>
           )}
+
+          {isSubmitted && renderTryAgainButton(handleReset)}
         </div>
       </div>
     );
@@ -2242,20 +3317,22 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
     if (item.type !== "interactive_code") return null;
 
     const data = item.content as InteractiveCodeContent;
+    const codeKey = String(item.id ?? item.orderNumber ?? "code");
 
-    const output = codeOutputs[data.id];
-    const runCount = codeRunCount[data.id] ?? 0;
+    const output = codeOutputs[codeKey];
+    const runCount = codeRunCount[codeKey] ?? 0;
 
     const handleRunCode = () => {
+      if (!data.expectedResult) return;
       // setiap run akan overwrite output (bisa berkali-kali)
       setCodeOutputs((prev) => ({
         ...prev,
-        [data.id]: data.expectedResult,
+        [codeKey]: data.expectedResult as string,
       }));
 
       setCodeRunCount((prev) => ({
         ...prev,
-        [data.id]: runCount + 1,
+        [codeKey]: runCount + 1,
       }));
     };
 
@@ -2325,114 +3402,109 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
               .sort((a, b) => (a.orderNumber ?? 0) - (b.orderNumber ?? 0)) ??
             [];
 
-          const beforeItems = sortedAdditional.filter(
-            (a) => a.position === "before",
-          );
+          // 🔥 FIX URUTAN (image/video/matching/true-false/coding tampil di
+          // posisi yang salah di sisi user, padahal di admin sudah benar):
+          //
+          // Dulu di sini additionalContents dipisah dari contents lalu
+          // ditaruh pakai heuristik posisi: "BEFORE" → selalu di paling
+          // awal block, "AFTER" → selalu di paling akhir block, "INLINE" →
+          // ditaruh di tengah pakai TEBAKAN index (totalContents / 2).
+          // Field `position` itu sendiri di sisi admin (lihat
+          // buildBlocksPayload di page.tsx, semua case image/video/coding/
+          // matching/true-false) SELALU di-hardcode "AFTER" apa pun urutan
+          // aslinya waktu diinput di canvas — jadi field ini nggak pernah
+          // benar-benar merepresentasikan posisi asli, dan heuristik di
+          // atas jelas gagal merepresentasikan urutan input yang sebenarnya.
+          //
+          // Sumber kebenaran urutan yang BENAR adalah `orderNumber`: admin
+          // pakai SATU counter global yang sama-sama dipakai contents DAN
+          // additionalContents waktu disave ("Satu counter global untuk
+          // contents DAN additionalContents supaya urutan canvas
+          // tersimpan dengan benar" — page.tsx), dan waktu di-restore ke
+          // canvas juga digabung+sort ulang pakai orderNumber global itu
+          // ("Gabung contents + additionalContents, sort by orderNumber
+          // global" — page.tsx). Itu sebabnya admin preview selalu benar
+          // urutannya walau sudah disave & direfresh.
+          //
+          // Fix: tiru persis cara admin — gabung sortedContents +
+          // sortedAdditional jadi SATU list, sort ulang bareng-bareng
+          // berdasarkan orderNumber global itu, lalu render sekuensial apa
+          // adanya (bukan dikelompokkan lagi jadi before/inline/after).
+          const mergedItems = [
+            ...sortedContents.map((c) => ({
+              kind: "content" as const,
+              orderNumber: c.orderNumber ?? 0,
+              data: c,
+            })),
+            ...sortedAdditional.map((a) => ({
+              kind: "additional" as const,
+              orderNumber: a.orderNumber ?? 0,
+              data: a,
+            })),
+          ].sort((a, b) => a.orderNumber - b.orderNumber);
 
-          const afterItems = sortedAdditional.filter(
-            (a) => a.position === "after",
-          );
-
-          const inlineItems = sortedAdditional.filter(
-            (a) => a.position === "inline",
-          );
-
-          const totalContents = sortedContents.length;
-
-          // menentukan index inline
-          const inlineIndex =
-            totalContents % 2 === 0
-              ? totalContents / 2
-              : Math.floor(totalContents / 2);
+          const renderAdditionalItem = (item: AdditionalContent) =>
+            item.type === "image_video"
+              ? renderImageVideo(item)
+              : item.type === "multiple_choice"
+                ? renderMultipleChoice(item)
+                : item.type === "matching"
+                  ? renderMatching(item)
+                  : item.type === "interactive_code"
+                    ? renderInteractiveCode(item)
+                    : null;
 
           return (
-            <div key={block.id}>
-              {/* ================= BEFORE (1x per block) ================= */}
-              {beforeItems.map((item) => (
-                <div
-                  key={item.id}
-                  className={
-                    isInteractiveType(item.type) ? "mb-12 mt-10" : "mb-4"
-                  }
-                >
-                  {item.type === "image_video"
-                    ? renderImageVideo(item)
-                    : item.type === "multiple_choice"
-                      ? renderMultipleChoice(item)
-                      : item.type === "matching"
-                        ? renderMatching(item)
-                        : item.type === "interactive_code"
-                          ? renderInteractiveCode(item)
-                          : null}
-                </div>
-              ))}
+            <div key={block.id ?? block.orderNumber}>
+              {mergedItems.map((entry, index) => {
+                if (entry.kind === "additional") {
+                  const item = entry.data;
+                  return (
+                    <div
+                      key={item.id ?? `additional-${item.orderNumber ?? index}`}
+                      className={
+                        isInteractiveType(item.type) ? "my-10" : "my-5"
+                      }
+                    >
+                      {renderAdditionalItem(item)}
+                    </div>
+                  );
+                }
 
-              {/* ================= CONTENT LOOP ================= */}
-              {sortedContents.map((content, index) => {
-                const prev = sortedContents[index - 1];
+                const content = entry.data as BlockContent;
+                const prevEntry = mergedItems[index - 1];
 
                 let marginTop = "";
-
-                if (index === 0) marginTop = "";
-                else if (
-                  prev?.type === "paragraph" &&
-                  content.type === "paragraph"
-                )
-                  marginTop = "mt-3";
-                else if (prev?.type === "heading") marginTop = "mt-4";
-                else marginTop = "mt-7";
+                if (index === 0) {
+                  marginTop = "";
+                } else if (prevEntry?.kind === "content") {
+                  const prevContent = prevEntry.data as BlockContent;
+                  if (
+                    prevContent?.type === "paragraph" &&
+                    content.type === "paragraph"
+                  ) {
+                    marginTop = "mt-3";
+                  } else if (prevContent?.type === "heading") {
+                    marginTop = "mt-4";
+                  } else {
+                    marginTop = "mt-7";
+                  }
+                } else {
+                  // Entry sebelumnya additional (image/video/matching/dst)
+                  // yang sudah punya margin sendiri (my-5 / my-10) — cukup
+                  // jarak wajar di sini, jangan dobel margin gede.
+                  marginTop = "mt-5";
+                }
 
                 return (
-                  <div key={content.id} className={marginTop}>
-                    {/* INLINE (muncul 1x di tengah block) */}
-                    {inlineItems.length > 0 && index === inlineIndex && (
-                      <div
-                        className={
-                          inlineItems.some((i) => isInteractiveType(i.type))
-                            ? "my-12"
-                            : "mb-5"
-                        }
-                      >
-                        {inlineItems.map((item) => (
-                          <div key={item.id}>
-                            {item.type === "image_video"
-                              ? renderImageVideo(item)
-                              : item.type === "multiple_choice"
-                                ? renderMultipleChoice(item)
-                                : item.type === "matching"
-                                  ? renderMatching(item)
-                                  : item.type === "interactive_code"
-                                    ? renderInteractiveCode(item)
-                                    : null}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
+                  <div
+                    key={content.id ?? content.orderNumber ?? index}
+                    className={marginTop}
+                  >
                     {renderContent(content)}
                   </div>
                 );
               })}
-
-              {/* ================= AFTER (1x per block) ================= */}
-              {afterItems.map((item) => (
-                <div
-                  key={item.id}
-                  className={
-                    isInteractiveType(item.type) ? "mt-12 mb-10" : "mt-5"
-                  }
-                >
-                  {item.type === "image_video"
-                    ? renderImageVideo(item)
-                    : item.type === "multiple_choice"
-                      ? renderMultipleChoice(item)
-                      : item.type === "matching"
-                        ? renderMatching(item)
-                        : item.type === "interactive_code"
-                          ? renderInteractiveCode(item)
-                          : null}
-                </div>
-              ))}
             </div>
           );
         })}

@@ -72,6 +72,9 @@ function MatchingCanvas({
       </button>
 
       <div className="mb-4 space-y-1">
+        <p className="text-[10px] font-semibold text-gray-400 mb-0.5">
+          Title <span className="text-red-500">*</span>
+        </p>
         <input
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
@@ -81,7 +84,7 @@ function MatchingCanvas({
         />
         <div className="border-b border-dashed border-gray-200 pb-2">
           <p className="text-[10px] font-semibold text-gray-400 mb-0.5">
-            Description
+            Description <span className="text-red-500">*</span>
           </p>
           <RichTextEditor
             ref={descRef}
@@ -109,7 +112,7 @@ function MatchingCanvas({
             </div>
             <div className="flex-1 px-3 py-2.5 border-r border-gray-200">
               <p className="text-[11px] font-semibold text-gray-500 mb-1">
-                Question / Term
+                Question / Term <span className="text-red-500">*</span>
               </p>
               <RichTextEditor
                 ref={(ref) => {
@@ -137,7 +140,7 @@ function MatchingCanvas({
             <div className="flex-1 px-3 py-2.5">
               <div className="flex items-center justify-between mb-1">
                 <p className="text-[11px] font-semibold text-gray-500">
-                  Answer / Match
+                  Answer / Match <span className="text-red-500">*</span>
                 </p>
                 <button
                   onClick={() => onRemovePair(pair.id)}

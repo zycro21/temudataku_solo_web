@@ -82,6 +82,9 @@ function TabNavigationCanvas({
       </button>
 
       <div className="mb-4 space-y-1">
+        <p className="text-[11px] font-semibold text-gray-500 mb-0.5">
+          Title <span className="text-red-500">*</span>
+        </p>
         <RichTextEditor
           ref={titleRef}
           value={title}
@@ -100,7 +103,7 @@ function TabNavigationCanvas({
 
         <div className="border-b border-dashed border-gray-200 pb-2">
           <p className="text-[10px] font-semibold text-gray-400 mb-0.5">
-            Description
+            Description <span className="text-red-500">*</span>
           </p>
           <RichTextEditor
             ref={descRef}
@@ -129,7 +132,7 @@ function TabNavigationCanvas({
             <div className="grid grid-cols-2">
               <div className="px-3 py-2 border-r border-gray-200">
                 <p className="text-[11px] font-semibold text-gray-500 mb-1">
-                  Tab Label
+                  Tab Label <span className="text-red-500">*</span>
                 </p>
                 <RichTextEditor
                   ref={(ref) => {
@@ -161,7 +164,7 @@ function TabNavigationCanvas({
               <div className="px-3 py-2">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-[11px] font-semibold text-gray-500">
-                    Tab Content
+                    Tab Content <span className="text-red-500">*</span>
                   </p>
                   <button
                     onClick={() => onRemoveTab(tab.id)}

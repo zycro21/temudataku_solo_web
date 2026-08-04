@@ -97,6 +97,9 @@ function ContentCardCanvas({
 
       {/* Title */}
       <div className="mb-3 space-y-1">
+        <p className="text-[11px] font-semibold text-gray-500 mb-0.5">
+          Title <span className="text-red-500">*</span>
+        </p>
         <RichTextEditor
           ref={titleRef}
           value={title}
@@ -117,7 +120,7 @@ function ContentCardCanvas({
         {/* Description */}
         <div className="border-b border-dashed border-gray-200 pb-2">
           <p className="text-[10px] font-semibold text-gray-400 mb-0.5">
-            Description
+            Description <span className="text-red-500">*</span>
           </p>
           <RichTextEditor
             ref={descRef}
@@ -140,7 +143,7 @@ function ContentCardCanvas({
 
       {/* Disable expandable toggle */}
       <div className="flex items-center gap-2 mb-4">
-        <span className="text-xs text-gray-500">
+        <span className="text-xs font-bold text-red-500">
           Disable expandable content
         </span>
         <button
@@ -194,7 +197,7 @@ function ContentCardCanvas({
                 {/* Card Title */}
                 <div className="w-[38%] px-3 py-2 border-r border-gray-200">
                   <p className="text-[11px] font-semibold text-gray-500 mb-1">
-                    Card Title
+                    Card Title <span className="text-red-500">*</span>
                   </p>
                   <RichTextEditor
                     ref={(ref) => {
@@ -225,7 +228,7 @@ function ContentCardCanvas({
                 <div className="flex-1 px-3 py-2 space-y-2">
                   <div>
                     <p className="text-[11px] font-semibold text-gray-500 mb-1">
-                      Card Content
+                      Card Content <span className="text-red-500">*</span>
                     </p>
                     <RichTextEditor
                       ref={(ref) => {
@@ -254,7 +257,7 @@ function ContentCardCanvas({
                   {!disableExpandable && (
                     <div className="border-t border-gray-100 pt-2">
                       <p className="text-[11px] font-semibold text-gray-500 mb-1">
-                        Expanded Content
+                        Expanded Content <span className="text-red-500">*</span>
                       </p>
                       <RichTextEditor
                         ref={(ref) => {

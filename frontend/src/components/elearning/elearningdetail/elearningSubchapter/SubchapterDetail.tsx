@@ -92,35 +92,50 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
     );
   }, [subChapter]);
 
-  // 🔥 Task (quiz + assignment) diambil dari SubBab TERAKHIR di SubChapter
-  // ini — mengikuti pola lama (penilaian akhir kelas).
+  // 🔥 FIX: dulu quiz/assignment cuma dicari di SubBab TERAKHIR
+  // (`subChapter.subBabs[subChapter.subBabs.length - 1]`), ngikutin asumsi
+  // lama "penilaian selalu di akhir kelas". Tapi sesuai skema Prisma,
+  // `quiz`/`assignment` itu relasi ke ELearningText (`text.quiz` /
+  // `text.assignment`), dan ELearningText bisa ada di SubBab MANA SAJA —
+  // bukan cuma yang terakhir. Kalau quiz/assignment-nya nempel di Text di
+  // SubBab yang bukan terakhir, kode lama nggak akan pernah nemuin dia sama
+  // sekali: Text itu sudah difilter keluar dari `allTexts` (karena
+  // `!t.quiz && !t.assignment`), TAPI juga nggak masuk `taskFlow` (karena
+  // taskFlow cuma ngecek lastSubBab) — jadi Text itu lenyap total dari
+  // sidebar. Itu sebabnya "modulenya kosong": pas SubBab yang punya
+  // quiz/assignment itu di-drop/dibuka, nggak ada poin apa pun yang
+  // muncul.
+  //
+  // Fix: scan SEMUA SubBab (bukan cuma yang terakhir) buat nyari Text yang
+  // punya quiz/assignment.
   const taskFlow = useMemo(() => {
-    if (!subChapter || subChapter.subBabs.length === 0) return [];
+    if (!subChapter) return [];
 
-    const lastSubBab = subChapter.subBabs[subChapter.subBabs.length - 1];
     const flow: {
       type: "quiz" | "assignment";
       textId: string;
       title: string;
     }[] = [];
 
-    const quizText = lastSubBab.texts.find((t) => t.quiz);
-    if (quizText?.quiz) {
-      flow.push({
-        type: "quiz",
-        textId: quizText.id,
-        title: quizText.quiz.title,
-      });
-    }
+    subChapter.subBabs.forEach((subBab) => {
+      const quizText = subBab.texts.find((t) => t.quiz);
+      if (quizText?.quiz) {
+        flow.push({
+          type: "quiz",
+          textId: quizText.id,
+          title: quizText.quiz.title,
+        });
+      }
 
-    const assignmentText = lastSubBab.texts.find((t) => t.assignment);
-    if (assignmentText?.assignment) {
-      flow.push({
-        type: "assignment",
-        textId: assignmentText.id,
-        title: assignmentText.assignment.title,
-      });
-    }
+      const assignmentText = subBab.texts.find((t) => t.assignment);
+      if (assignmentText?.assignment) {
+        flow.push({
+          type: "assignment",
+          textId: assignmentText.id,
+          title: assignmentText.assignment.title,
+        });
+      }
+    });
 
     return flow;
   }, [subChapter]);
@@ -173,6 +188,14 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
       ? contentMode.type
       : null;
 
+  // 🔥 Quiz/assignment sekarang bisa ada di lebih dari satu SubBab, jadi
+  // sidebar butuh tahu textId-nya juga (bukan cuma type-nya) buat nentuin
+  // MARKER quiz/assignment yang mana persisnya yang lagi aktif.
+  const activeTaskTextId =
+    contentMode?.type === "quiz" || contentMode?.type === "assignment"
+      ? contentMode.textId
+      : null;
+
   /* ================= HERO META ================= */
   const heroMeta = useMemo(() => {
     if (!subChapter || !contentMode) return null;
@@ -199,17 +222,28 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
     }
 
     // QUIZ / ASSIGNMENT
-    const lastSubBab = subChapter.subBabs[subChapter.subBabs.length - 1];
-    if (!lastSubBab) return null;
+    // 🔥 FIX: sama seperti taskFlow di atas — jangan asumsikan lastSubBab,
+    // cari SubBab yang BENERAN memiliki Text aktif ini (quiz/assignment
+    // bisa ada di SubBab mana saja).
+    const activeTask = taskFlow.find(
+      (t) => t.type === contentMode.type && t.textId === contentMode.textId,
+    );
+    if (!activeTask) return null;
+
+    const ownerSubBabIndex = subChapter.subBabs.findIndex((sb) =>
+      sb.texts.some((t) => t.id === activeTask.textId),
+    );
+    const ownerSubBab = subChapter.subBabs[ownerSubBabIndex];
+    if (ownerSubBabIndex === -1 || !ownerSubBab) return null;
 
     return {
-      moduleNumber: subChapter.subBabs.length,
-      moduleTitle: lastSubBab.title,
-      subModuleNumber: lastSubBab.texts.length,
-      totalSubModules: lastSubBab.texts.length,
-      subModuleTitle: lastSubBab.title,
+      moduleNumber: ownerSubBabIndex + 1,
+      moduleTitle: ownerSubBab.title,
+      subModuleNumber: ownerSubBab.texts.length,
+      totalSubModules: ownerSubBab.texts.length,
+      subModuleTitle: ownerSubBab.title,
     };
-  }, [subChapter, contentMode, allTexts]);
+  }, [subChapter, contentMode, allTexts, taskFlow]);
 
   const heroOverrideMeta = useMemo(() => {
     if (!contentMode) return null;
@@ -238,84 +272,121 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
   const [assignmentScore, setAssignmentScore] = useState<number | null>(null);
 
   /* ================= NAVIGATION (prev/next di footer) ================= */
+  // 🔥 FIX: navigasi lama nganggep alurnya cuma 2 fase: SEMUA submodule
+  // dulu (dari `allTexts`, flat lintas SubBab), baru SEMUA task (dari
+  // `taskFlow`, yang sekarang bisa nempel di SubBab mana aja) di paling
+  // akhir. Itu cuma benar kalau quiz/assignment SELALU di SubBab terakhir.
+  // Sekarang quiz/assignment bisa nempel di SubBab mana pun, jadi alur
+  // prev/next yang benar harus di-interleave PER SubBab: materi SubBab itu
+  // dulu, baru quiz/assignment SubBab itu (kalau ada), baru lanjut ke
+  // SubBab berikutnya — dst.
   const navigationMeta = useMemo(() => {
-    if (!contentMode) return { prev: null, next: null };
+    if (!contentMode || !subChapter) return { prev: null, next: null };
 
-    if (contentMode.type === "submodule") {
-      const index = allTexts.findIndex((t) => t.id === contentMode.textId);
-      const isLast = index === allTexts.length - 1;
+    type FlowEntry =
+      | { kind: "submodule"; id: string; title: string; subBabTitle: string }
+      | {
+          kind: "task";
+          taskType: "quiz" | "assignment";
+          id: string;
+          title: string;
+          subBabTitle: string;
+        };
 
-      return {
-        prev:
-          index > 0
-            ? {
-                id: allTexts[index - 1].id,
-                title: allTexts[index - 1].title ?? "",
-                moduleTitle: allTexts[index - 1].subBabTitle,
-              }
-            : null,
-        next: !isLast
-          ? {
-              id: allTexts[index + 1].id,
-              title: allTexts[index + 1].title ?? "",
-              moduleTitle: allTexts[index + 1].subBabTitle,
-            }
-          : taskFlow.length > 0
-            ? {
-                id: taskFlow[0].textId,
-                title: taskFlow[0].title,
-                moduleTitle:
-                  taskFlow[0].type === "quiz"
-                    ? "Penilaian Quiz"
-                    : "Penilaian Proyek",
-                __task: taskFlow[0],
-              }
-            : null,
-      };
-    }
+    const flow: FlowEntry[] = [];
 
-    // TASK MODE
-    const taskIndex = taskFlow.findIndex(
-      (t) => t.type === contentMode.type && t.textId === contentMode.textId,
+    subChapter.subBabs.forEach((subBab) => {
+      subBab.texts
+        .filter((t) => !t.quiz && !t.assignment)
+        .forEach((t) => {
+          flow.push({
+            kind: "submodule",
+            id: t.id,
+            title: t.title ?? "",
+            subBabTitle: subBab.title,
+          });
+        });
+
+      const quizText = subBab.texts.find((t) => t.quiz);
+      if (quizText?.quiz) {
+        flow.push({
+          kind: "task",
+          taskType: "quiz",
+          id: quizText.id,
+          title: quizText.quiz.title,
+          subBabTitle: subBab.title,
+        });
+      }
+
+      const assignmentText = subBab.texts.find((t) => t.assignment);
+      if (assignmentText?.assignment) {
+        flow.push({
+          kind: "task",
+          taskType: "assignment",
+          id: assignmentText.id,
+          title: assignmentText.assignment.title,
+          subBabTitle: subBab.title,
+        });
+      }
+    });
+
+    const activeIndex = flow.findIndex((entry) =>
+      entry.kind === "submodule"
+        ? contentMode.type === "submodule" && entry.id === contentMode.textId
+        : contentMode.type === entry.taskType &&
+          entry.id === contentMode.textId,
     );
 
+    if (activeIndex === -1) return { prev: null, next: null };
+
+    const toNavItem = (entry: FlowEntry) =>
+      entry.kind === "submodule"
+        ? { id: entry.id, title: entry.title, moduleTitle: entry.subBabTitle }
+        : {
+            id: entry.id,
+            title: entry.title,
+            moduleTitle:
+              entry.taskType === "quiz" ? "Penilaian Quiz" : "Penilaian Proyek",
+            __task: {
+              type: entry.taskType,
+              textId: entry.id,
+              title: entry.title,
+            },
+          };
+
     return {
-      prev:
-        taskIndex > 0
-          ? {
-              id: taskFlow[taskIndex - 1].textId,
-              title: taskFlow[taskIndex - 1].title,
-              moduleTitle:
-                taskFlow[taskIndex - 1].type === "quiz"
-                  ? "Penilaian Quiz"
-                  : "Penilaian Proyek",
-              __task: taskFlow[taskIndex - 1],
-            }
-          : allTexts.length > 0
-            ? {
-                id: allTexts[allTexts.length - 1].id,
-                title: allTexts[allTexts.length - 1].title ?? "",
-                moduleTitle: allTexts[allTexts.length - 1].subBabTitle,
-              }
-            : null,
+      prev: activeIndex > 0 ? toNavItem(flow[activeIndex - 1]) : null,
       next:
-        taskIndex >= 0 && taskIndex < taskFlow.length - 1
-          ? {
-              id: taskFlow[taskIndex + 1].textId,
-              title: taskFlow[taskIndex + 1].title,
-              moduleTitle:
-                taskFlow[taskIndex + 1].type === "quiz"
-                  ? "Penilaian Quiz"
-                  : "Penilaian Proyek",
-              __task: taskFlow[taskIndex + 1],
-            }
-          : null,
+        activeIndex < flow.length - 1 ? toNavItem(flow[activeIndex + 1]) : null,
     };
-  }, [contentMode, allTexts, taskFlow]);
+  }, [contentMode, subChapter]);
 
   /* ================= MODE UNTUK SubchapterContent ================= */
   const rendererMode = useMemo(() => {
     if (!contentMode || !fullText) return null;
+
+    // 🔥 FIX crash "Cannot read properties of null (reading 'questions'/
+    // 'description')" di QuizRenderer/AssignmentRenderer:
+    //
+    // `fullText` dari useElearningTextDetail(activeTextId) itu STATE —
+    // begitu `contentMode` ganti (mis. user klik marker quiz/assignment
+    // yang textId-nya beda dari text yang lagi aktif), textId baru
+    // langsung diteruskan ke hook, TAPI `fullText` belum ke-update ke data
+    // yang baru sampai fetch-nya selesai. Untuk SATU frame render itu,
+    // `fullText` masih berisi data TEXT LAMA (mis. materi biasa yang
+    // `quiz`/`assignment`-nya null) sementara `contentMode.type` sudah
+    // "quiz"/"assignment". Akibatnya `adaptQuizForRenderer(fullText.quiz)`
+    // / `adaptAssignmentForRenderer(fullText.assignment)` sempat
+    // menghasilkan `data: null` di frame itu, dan QuizRenderer/
+    // AssignmentRenderer langsung coba akses `quiz.questions`/
+    // `a.description` dari null → crash.
+    //
+    // Fix: kalau `fullText` yang di tangan BUKAN punya Text yang sesuai
+    // dengan textId yang lagi aktif, anggap masih loading (rendererMode
+    // null dulu) — parent (`textLoading || !rendererMode`) akan nampilin
+    // loader "Memuat konten..." sampai fetch textId yang benar selesai,
+    // alih-alih coba render data basi.
+    if (fullText.id !== contentMode.textId) return null;
 
     if (contentMode.type === "submodule") {
       return { type: "submodule" as const, data: fullText };
@@ -371,6 +442,7 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
           }
           navigationSource={navigationSource}
           activeTaskType={activeTaskType}
+          activeTaskTextId={activeTaskTextId}
           progressPercent={
             courseProgressForThisSubChapter?.progressPercent ?? 0
           }
@@ -407,7 +479,19 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
           }}
         />
 
-        <div className="flex-1 flex flex-col">
+        {/* 🔥 FIX (sidebar ikut menyempit kalau judul materi panjang):
+            `min-w-0` di sini WAJIB ada. Sebagai flex item di baris
+            `<div className="flex flex-1">` bareng sidebar, div ini
+            defaultnya (`min-width: auto`) nggak akan pernah menyusut di
+            bawah lebar konten terlebarnya — kalau HeroNavigation di
+            dalamnya butuh ruang lebih (judul panjang, dst), div ini bakal
+            "maksa" tetap selebar itu, dan sidebar di sebelahnya yang
+            akhirnya kena susut walau sudah dikunci `shrink-0` + w-[240px]
+            (lihat SubchapterSidebar.tsx). `min-w-0` di sini + `min-w-0` +
+            `break-words` di wrapper judul HeroNavigation (lihat
+            SubchapterHeroNavigation.tsx) sama-sama diperlukan supaya judul
+            panjang WRAP ke bawah, bukan mendorong lebar ke samping. */}
+        <div className="flex-1 min-w-0 flex flex-col">
           <SubchapterNavbar practiceId={practiceId} />
 
           {heroMeta && (

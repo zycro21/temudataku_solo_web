@@ -128,6 +128,9 @@ function TrueFalseCanvas({
       </button>
 
       <div className="mb-4 space-y-1">
+        <p className="text-[10px] font-semibold text-gray-400 mb-0.5">
+          Title <span className="text-red-500">*</span>
+        </p>
         <input
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
@@ -137,7 +140,7 @@ function TrueFalseCanvas({
         />
         <div className="border-b border-dashed border-gray-200 pb-2">
           <p className="text-[10px] font-semibold text-gray-400 mb-0.5">
-            Description
+            Description <span className="text-red-500">*</span>
           </p>
           <RichTextEditor
             ref={descRef}
@@ -170,7 +173,7 @@ function TrueFalseCanvas({
               <div className="flex flex-1 min-w-0">
                 <div className="flex-1 px-3 py-2 border-r border-gray-200">
                   <p className="text-[11px] font-semibold text-gray-500 mb-1">
-                    Question
+                    Question <span className="text-red-500">*</span>
                   </p>
                   <RichTextEditor
                     ref={(ref) => {
@@ -198,7 +201,7 @@ function TrueFalseCanvas({
                 <div className="px-3 py-2 min-w-[160px]">
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-[11px] font-semibold text-gray-500">
-                      Correct Answer
+                      Correct Answer <span className="text-red-500">*</span>
                     </p>
                     <button
                       onClick={() => onRemoveQuestion(q.id)}
