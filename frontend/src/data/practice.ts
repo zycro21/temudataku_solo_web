@@ -1,6 +1,6 @@
-import { Practice } from "@/components/elearning/ElearningSelection";
+// import { Practice } from "@/components/elearning/ElearningSelection";
 
-export const practices: Practice[] = [
+export const practices = [
   {
     id: 1,
     tipe: "data",
@@ -80,7 +80,7 @@ export const practices: Practice[] = [
                         id: "video-1",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-1",
                           url: "https://www.youtube.com/watch?v=ua-CiDNNj30",
@@ -219,7 +219,7 @@ export const practices: Practice[] = [
                         id: "code-1",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-1",
                           language: "python",
@@ -231,7 +231,7 @@ export const practices: Practice[] = [
                         id: "mcq-1",
                         type: "multiple_choice",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-1",
                           question:
@@ -301,7 +301,7 @@ export const practices: Practice[] = [
                         id: "video-2",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-2",
                           url: "https://www.youtube.com/watch?v=X3paOmcrTjQ",
@@ -361,7 +361,7 @@ export const practices: Practice[] = [
                         id: "mcq-2",
                         type: "multiple_choice",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-2",
                           question:
@@ -429,7 +429,7 @@ export const practices: Practice[] = [
                         id: "code-2",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-2",
                           language: "python",
@@ -477,7 +477,7 @@ export const practices: Practice[] = [
                         id: "mcq-3",
                         type: "multiple_choice",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-3",
                           question:
@@ -563,7 +563,7 @@ export const practices: Practice[] = [
                         id: "video-4",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-4",
                           url: "https://www.youtube.com/watch?v=n3RKsY2H-NE",
@@ -597,7 +597,7 @@ export const practices: Practice[] = [
                         id: "code-3",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-3",
                           language: "python",
@@ -633,7 +633,7 @@ export const practices: Practice[] = [
                         id: "matching-1",
                         type: "matching",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "matching-question-1",
                           question:
@@ -766,7 +766,7 @@ export const practices: Practice[] = [
                         id: "mcq-4",
                         type: "multiple_choice",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-4",
                           question:
@@ -799,7 +799,7 @@ export const practices: Practice[] = [
                         id: "code-4",
                         type: "interactive_code",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-4",
                           language: "python",
@@ -835,7 +835,7 @@ export const practices: Practice[] = [
                         id: "summary-1",
                         type: "matching",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "matching-question-2",
                           question:
@@ -1090,7 +1090,7 @@ export const practices: Practice[] = [
                         id: "image-6",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-6",
                           url: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400",
@@ -1124,7 +1124,7 @@ export const practices: Practice[] = [
                         id: "code-5",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-5",
                           language: "sql",
@@ -1165,7 +1165,7 @@ export const practices: Practice[] = [
                         id: "mcq-5",
                         type: "multiple_choice",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-5",
                           question:
@@ -1247,7 +1247,7 @@ export const practices: Practice[] = [
                         id: "image-7",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-7",
                           url: "https://www.youtube.com/watch?v=ua-CiDNNj30",
@@ -1304,7 +1304,7 @@ export const practices: Practice[] = [
                         id: "code-6",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-6",
                           language: "json",
@@ -1317,7 +1317,7 @@ export const practices: Practice[] = [
                         id: "mcq-6",
                         type: "multiple_choice",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-6",
                           question:
@@ -1445,7 +1445,7 @@ export const practices: Practice[] = [
                         id: "image-8",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-8",
                           url: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400",
@@ -1497,7 +1497,7 @@ export const practices: Practice[] = [
                         id: "mcq-7",
                         type: "multiple_choice",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-7",
                           question: "Manakah contoh sumber data eksternal?",
@@ -1553,7 +1553,7 @@ export const practices: Practice[] = [
                         id: "matching-3",
                         type: "matching",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "matching-question-3",
                           question: "Cocokkan jenis sumber data berikut:",
@@ -1575,7 +1575,7 @@ export const practices: Practice[] = [
                         id: "code-7",
                         type: "interactive_code",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-7",
                           language: "python",
@@ -1623,7 +1623,7 @@ export const practices: Practice[] = [
                         id: "code-8",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-8",
                           language: "python",
@@ -1665,7 +1665,7 @@ export const practices: Practice[] = [
                         id: "image-9",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-9",
                           url: "https://www.youtube.com/watch?v=X3paOmcrTjQ",
@@ -1722,7 +1722,7 @@ export const practices: Practice[] = [
                         id: "mcq-8",
                         type: "multiple_choice",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-8",
                           question:
@@ -1776,7 +1776,7 @@ export const practices: Practice[] = [
                         id: "matching-4",
                         type: "matching",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "matching-question-4",
                           question: "Cocokkan teknik dengan deskripsinya:",
@@ -1853,7 +1853,7 @@ export const practices: Practice[] = [
                         id: "code-9",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-9",
                           language: "javascript",
@@ -1895,7 +1895,7 @@ export const practices: Practice[] = [
                         id: "image-10",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-10",
                           url: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400",
@@ -1952,7 +1952,7 @@ export const practices: Practice[] = [
                         id: "mcq-9",
                         type: "multiple_choice",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-9",
                           question:
@@ -2045,7 +2045,7 @@ export const practices: Practice[] = [
                         id: "image-11",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-11",
                           url: "https://www.youtube.com/watch?v=8H6Qo2e_D8M",
@@ -2107,7 +2107,7 @@ export const practices: Practice[] = [
                         id: "mcq-10",
                         type: "multiple_choice",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-10",
                           question:
@@ -2156,7 +2156,7 @@ export const practices: Practice[] = [
                         id: "code-10",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-10",
                           language: "python",
@@ -2169,7 +2169,7 @@ export const practices: Practice[] = [
                         id: "matching-5",
                         type: "matching",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "matching-question-5",
                           question: "Cocokkan istilah dengan definisinya:",
@@ -2305,7 +2305,7 @@ export const practices: Practice[] = [
                         id: "image-12",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-12",
                           url: "https://images.unsplash.com/photo-1534723452862-4c874018d66d?w=400",
@@ -2367,7 +2367,7 @@ export const practices: Practice[] = [
                         id: "code-11",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-11",
                           language: "python",
@@ -2439,7 +2439,7 @@ export const practices: Practice[] = [
                         id: "paragraph-60",
                         type: "paragraph",
                         orderNumber: 2,
-                        text: "Untuk memastikan bahwa perubahan layout benar-benar memberikan dampak yang terukur, tim melakukan pengumpulan data selama 14 hari setelah intervensi dilakukan. Data ini dibandingkan dengan periode sebelum perubahan menggunakan pendekatan before-after analysis. Selain melihat angka penjualan mentah, tim juga memperhatikan pola waktu transaksi, distribusi pembelian per jam, serta perubahan komposisi keranjang belanja pelanggan. Hal ini penting agar keputusan tidak hanya didasarkan pada kenaikan sementara, tetapi benar-benar mencerminkan perubahan perilaku konsumen yang konsisten.",
+                        text: "Untuk memastikan bahwa perubahan layout benar-benar memberikan dampak yang terukur, tim melakukan pengumpulan data selama 14 hari setelah intervensi dilakukan. Data ini dibandingkan dengan periode sebelum perubahan menggunakan pendekatan before-AFTER analysis. Selain melihat angka penjualan mentah, tim juga memperhatikan pola waktu transaksi, distribusi pembelian per jam, serta perubahan komposisi keranjang belanja pelanggan. Hal ini penting agar keputusan tidak hanya didasarkan pada kenaikan sementara, tetapi benar-benar mencerminkan perubahan perilaku konsumen yang konsisten.",
                       },
                       {
                         id: "highlight-11",
@@ -2496,7 +2496,7 @@ export const practices: Practice[] = [
                         id: "mcq-11",
                         type: "multiple_choice",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-11",
                           question:
@@ -2539,7 +2539,7 @@ export const practices: Practice[] = [
                         id: "image-13",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-13",
                           url: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400",
@@ -2550,7 +2550,7 @@ export const practices: Practice[] = [
                         id: "code-12",
                         type: "interactive_code",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-12",
                           language: "python",
@@ -2585,7 +2585,7 @@ export const practices: Practice[] = [
                         type: "summary",
                         orderNumber: 3,
                         comments: [
-                          "Validasi dilakukan dengan before-after analysis",
+                          "Validasi dilakukan dengan before-AFTER analysis",
                           "Metrik utama: Basket Size & Cross-Selling Rate",
                           "Growth rate membantu evaluasi proporsional",
                           "Keputusan strategis harus berbasis data konsisten",
@@ -2802,7 +2802,7 @@ export const practices: Practice[] = [
                         id: "code-13",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-13",
                           language: "python",
@@ -2838,7 +2838,7 @@ export const practices: Practice[] = [
                         id: "image-14",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-14",
                           url: "https://images.unsplash.com/photo-1599658880436-c61792e70672?w=400",
@@ -2850,7 +2850,7 @@ export const practices: Practice[] = [
                         id: "mcq-12",
                         type: "multiple_choice",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-12",
                           question:
@@ -2876,7 +2876,7 @@ export const practices: Practice[] = [
                         id: "matching-6",
                         type: "matching",
                         orderNumber: 3,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "matching-question-6",
                           question:
@@ -3011,7 +3011,7 @@ export const practices: Practice[] = [
                         id: "code-14",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-14",
                           language: "python",
@@ -3052,7 +3052,7 @@ export const practices: Practice[] = [
                         id: "image-15",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-15",
                           url: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400",
@@ -3064,7 +3064,7 @@ export const practices: Practice[] = [
                         id: "mcq-13",
                         type: "multiple_choice",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-13",
                           question:
@@ -3090,7 +3090,7 @@ export const practices: Practice[] = [
                         id: "matching-7",
                         type: "matching",
                         orderNumber: 3,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "matching-question-7",
                           question: "Cocokkan teknik dengan karakteristiknya:",
@@ -3209,7 +3209,7 @@ export const practices: Practice[] = [
                         id: "code-15",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-15",
                           language: "python",
@@ -3275,7 +3275,7 @@ export const practices: Practice[] = [
                         id: "mcq-14",
                         type: "multiple_choice",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-14",
                           question:
@@ -3337,7 +3337,7 @@ export const practices: Practice[] = [
                         id: "matching-8",
                         type: "matching",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "matching-question-8",
                           question:
@@ -3363,7 +3363,7 @@ export const practices: Practice[] = [
                         id: "image-16",
                         type: "image_video",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-16",
                           url: "https://images.unsplash.com/photo-1508385082359-f48b45d34c2a?w=400",
@@ -3494,7 +3494,7 @@ export const practices: Practice[] = [
                         id: "code-16",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-16",
                           language: "python",
@@ -3507,7 +3507,7 @@ export const practices: Practice[] = [
                         id: "mcq-15",
                         type: "multiple_choice",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-15",
                           question:
@@ -3569,7 +3569,7 @@ export const practices: Practice[] = [
                         id: "matching-9",
                         type: "matching",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "matching-question-9",
                           question: "Cocokkan konsep dengan tujuannya:",
@@ -3712,7 +3712,7 @@ export const practices: Practice[] = [
                         id: "image-18",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-18",
                           url: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400",
@@ -3723,7 +3723,7 @@ export const practices: Practice[] = [
                         id: "mcq-16",
                         type: "multiple_choice",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-16",
                           question:
@@ -3801,7 +3801,7 @@ export const practices: Practice[] = [
                         id: "code-17",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-17",
                           language: "python",
@@ -3814,7 +3814,7 @@ export const practices: Practice[] = [
                         id: "matching-10",
                         type: "matching",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "matching-question-10",
                           question:
@@ -3878,7 +3878,7 @@ export const practices: Practice[] = [
                         id: "code-18",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-18",
                           language: "python",
@@ -3936,7 +3936,7 @@ export const practices: Practice[] = [
                         id: "mcq-17",
                         type: "multiple_choice",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-17",
                           question:
@@ -4001,7 +4001,7 @@ export const practices: Practice[] = [
                         id: "image-19",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-19",
                           url: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400",
@@ -4066,7 +4066,7 @@ export const practices: Practice[] = [
                         id: "code-19",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-19",
                           language: "python",
@@ -4079,7 +4079,7 @@ export const practices: Practice[] = [
                         id: "matching-11",
                         type: "matching",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "matching-question-11",
                           question: "Cocokkan metode dengan karakteristiknya:",
@@ -4147,7 +4147,7 @@ export const practices: Practice[] = [
                         id: "image-20",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-20",
                           url: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400",
@@ -4203,7 +4203,7 @@ export const practices: Practice[] = [
                         id: "code-20",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-20",
                           language: "python",
@@ -4260,7 +4260,7 @@ export const practices: Practice[] = [
                         id: "mcq-18",
                         type: "multiple_choice",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-18",
                           question:
@@ -4325,7 +4325,7 @@ export const practices: Practice[] = [
                         id: "matching-12",
                         type: "matching",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "matching-question-12",
                           question: "Cocokkan langkah dengan tujuannya:",
@@ -4391,7 +4391,7 @@ export const practices: Practice[] = [
                         id: "code-21",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-21",
                           language: "python",
@@ -4447,7 +4447,7 @@ export const practices: Practice[] = [
                         id: "mcq-19",
                         type: "multiple_choice",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-19",
                           question:
@@ -4473,7 +4473,7 @@ export const practices: Practice[] = [
                         id: "code-22",
                         type: "interactive_code",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-22",
                           language: "python",
@@ -4537,7 +4537,7 @@ export const practices: Practice[] = [
                         id: "image-21",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-21",
                           url: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400",
@@ -4582,7 +4582,7 @@ export const practices: Practice[] = [
                         id: "code-23",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-23",
                           language: "python",
@@ -4595,7 +4595,7 @@ export const practices: Practice[] = [
                         id: "matching-13",
                         type: "matching",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "matching-question-13",
                           question: "Cocokkan teknik dengan tujuannya:",
@@ -4841,7 +4841,7 @@ export const practices: Practice[] = [
                         id: "image-22",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-22",
                           url: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400",
@@ -4895,7 +4895,7 @@ export const practices: Practice[] = [
                         id: "code-24",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-24",
                           language: "python",
@@ -4952,7 +4952,7 @@ export const practices: Practice[] = [
                         id: "mcq-20",
                         type: "multiple_choice",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-20",
                           question:
@@ -5008,7 +5008,7 @@ export const practices: Practice[] = [
                         id: "matching-14",
                         type: "matching",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "matching-question-14",
                           question: "Cocokkan konsep dengan fungsinya:",
@@ -5080,7 +5080,7 @@ export const practices: Practice[] = [
                         id: "code-25",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-25",
                           language: "python",
@@ -5137,7 +5137,7 @@ export const practices: Practice[] = [
                         id: "image-23",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-23",
                           url: "https://images.unsplash.com/photo-1551288049-9b3c1d4d3c6a?w=400",
@@ -5177,7 +5177,7 @@ export const practices: Practice[] = [
                         id: "code-26",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-26",
                           language: "python",
@@ -5190,7 +5190,7 @@ export const practices: Practice[] = [
                         id: "mcq-21",
                         type: "multiple_choice",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-21",
                           question:
@@ -5243,7 +5243,7 @@ export const practices: Practice[] = [
                         id: "matching-15",
                         type: "matching",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "matching-question-15",
                           question:
@@ -5366,7 +5366,7 @@ export const practices: Practice[] = [
                         id: "image-24",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-24",
                           url: "https://www.youtube.com/watch?v=8H6Qo2e_D8M",
@@ -5405,7 +5405,7 @@ export const practices: Practice[] = [
                         id: "mcq-22",
                         type: "multiple_choice",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-22",
                           question:
@@ -5458,7 +5458,7 @@ export const practices: Practice[] = [
                         id: "matching-16",
                         type: "matching",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "matching-question-16",
                           question: "Cocokkan jenis grafik dengan fungsinya:",
@@ -5550,7 +5550,7 @@ export const practices: Practice[] = [
                         id: "code-27",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-27",
                           language: "python",
@@ -5563,7 +5563,7 @@ export const practices: Practice[] = [
                         id: "image-25",
                         type: "image_video",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-25",
                           url: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800",
@@ -5620,7 +5620,7 @@ export const practices: Practice[] = [
                         id: "mcq-23",
                         type: "multiple_choice",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-23",
                           question:
@@ -5685,7 +5685,7 @@ export const practices: Practice[] = [
                         id: "matching-17",
                         type: "matching",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "matching-question-17",
                           question: "Cocokkan library dengan karakteristiknya:",
@@ -5785,7 +5785,7 @@ export const practices: Practice[] = [
                         id: "code-28",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-28",
                           language: "python",
@@ -5847,7 +5847,7 @@ export const practices: Practice[] = [
                         id: "mcq-24",
                         type: "multiple_choice",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-24",
                           question:
@@ -5903,7 +5903,7 @@ export const practices: Practice[] = [
                         id: "matching-18",
                         type: "matching",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "matching-question-18",
                           question: "Cocokkan istilah dengan definisinya:",
@@ -5972,7 +5972,7 @@ export const practices: Practice[] = [
                         id: "image-26",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-26",
                           url: "https://images.unsplash.com/photo-1543286386-713bdd548da4?w=400",
@@ -6012,7 +6012,7 @@ export const practices: Practice[] = [
                         id: "code-29",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-29",
                           language: "python",
@@ -6025,7 +6025,7 @@ export const practices: Practice[] = [
                         id: "mcq-25",
                         type: "multiple_choice",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-25",
                           question:
@@ -6095,7 +6095,7 @@ export const practices: Practice[] = [
                         id: "matching-19",
                         type: "matching",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "matching-question-19",
                           question: "Cocokkan konsep dengan penjelasannya:",
@@ -6229,7 +6229,7 @@ export const practices: Practice[] = [
                         id: "code-30",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-30",
                           language: "python",
@@ -6242,7 +6242,7 @@ export const practices: Practice[] = [
                         id: "mcq-26",
                         type: "multiple_choice",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-26",
                           question:
@@ -6316,7 +6316,7 @@ export const practices: Practice[] = [
                         id: "image-27",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-27",
                           url: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400",
@@ -6366,7 +6366,7 @@ export const practices: Practice[] = [
                         id: "code-31",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-31",
                           language: "python",
@@ -6379,7 +6379,7 @@ export const practices: Practice[] = [
                         id: "matching-20",
                         type: "matching",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "matching-question-20",
                           question: "Cocokkan langkah dengan tujuannya:",
@@ -6588,7 +6588,7 @@ export const practices: Practice[] = [
                         id: "image-28",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-28",
                           url: "https://images.unsplash.com/photo-1509228463558-399364a71109?w=400",
@@ -6656,7 +6656,7 @@ export const practices: Practice[] = [
                         id: "code-32",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-32",
                           language: "python",
@@ -6708,7 +6708,7 @@ export const practices: Practice[] = [
                         id: "mcq-27",
                         type: "multiple_choice",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-27",
                           question:
@@ -6775,7 +6775,7 @@ export const practices: Practice[] = [
                         id: "code-33",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-33",
                           language: "python",
@@ -6837,7 +6837,7 @@ export const practices: Practice[] = [
                         id: "mcq-28",
                         type: "multiple_choice",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-28",
                           question:
@@ -6925,7 +6925,7 @@ export const practices: Practice[] = [
                         id: "image-29",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-29",
                           url: "https://www.youtube.com/watch?v=fNk_zzaMoBA",
@@ -7012,7 +7012,7 @@ export const practices: Practice[] = [
                         id: "code-34",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-34",
                           language: "python",
@@ -7074,7 +7074,7 @@ export const practices: Practice[] = [
                         id: "code-35",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-35",
                           language: "python",
@@ -7132,7 +7132,7 @@ export const practices: Practice[] = [
                         id: "image-30",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-30",
                           url: "https://images.unsplash.com/photo-1509228463558-399364a71109?w=400",
@@ -7143,7 +7143,7 @@ export const practices: Practice[] = [
                         id: "mcq-29",
                         type: "multiple_choice",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-29",
                           question:
@@ -7224,7 +7224,7 @@ export const practices: Practice[] = [
                         id: "code-36",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-36",
                           language: "python",
@@ -7285,7 +7285,7 @@ export const practices: Practice[] = [
                         id: "mcq-30",
                         type: "multiple_choice",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-30",
                           question:
@@ -7373,7 +7373,7 @@ export const practices: Practice[] = [
                         id: "matching-1",
                         type: "matching",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "matching-1-content",
                           question: "Cocokkan konsep dengan deskripsinya:",
@@ -7490,7 +7490,7 @@ export const practices: Practice[] = [
                         id: "code-37",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-37",
                           language: "python",
@@ -7571,7 +7571,7 @@ export const practices: Practice[] = [
                         id: "image-31",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-31",
                           url: "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?w=400",
@@ -7583,7 +7583,7 @@ export const practices: Practice[] = [
                         id: "mcq-31",
                         type: "multiple_choice",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-31",
                           question:
@@ -7892,7 +7892,7 @@ export const practices: Practice[] = [
                         id: "code-38",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-38",
                           language: "python",
@@ -7972,7 +7972,7 @@ export const practices: Practice[] = [
                         id: "mcq-32",
                         type: "multiple_choice",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-32",
                           question:
@@ -8001,7 +8001,7 @@ export const practices: Practice[] = [
                         id: "image-32",
                         type: "image_video",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-32",
                           url: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400",
@@ -8108,7 +8108,7 @@ export const practices: Practice[] = [
                         id: "code-39",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-39",
                           language: "python",
@@ -8185,7 +8185,7 @@ export const practices: Practice[] = [
                         id: "mcq-33",
                         type: "multiple_choice",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-33",
                           question:
@@ -8217,7 +8217,7 @@ export const practices: Practice[] = [
                         id: "image-33",
                         type: "image_video",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-33",
                           url: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400",
@@ -8278,7 +8278,7 @@ export const practices: Practice[] = [
                         id: "image-34",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-34",
                           url: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400",
@@ -8338,7 +8338,7 @@ export const practices: Practice[] = [
                         id: "code-40",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-40",
                           language: "python",
@@ -8390,7 +8390,7 @@ export const practices: Practice[] = [
                         id: "mcq-34",
                         type: "multiple_choice",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-34",
                           question:
@@ -8452,7 +8452,7 @@ export const practices: Practice[] = [
                         id: "code-41",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-41",
                           language: "python",
@@ -8559,7 +8559,7 @@ export const practices: Practice[] = [
                         id: "mcq-35",
                         type: "multiple_choice",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-35",
                           question:
@@ -8829,7 +8829,7 @@ export const practices: Practice[] = [
                         id: "imagevideo-16",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-16",
                           url: "https://images.unsplash.com/photo-1596495573826-3946d0286c49?w=400",
@@ -8953,7 +8953,7 @@ export const practices: Practice[] = [
                         id: "mcq-36",
                         type: "multiple_choice",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-36",
                           question:
@@ -9014,7 +9014,7 @@ export const practices: Practice[] = [
                         id: "mcq-37",
                         type: "multiple_choice",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-37",
                           question:
@@ -9085,7 +9085,7 @@ export const practices: Practice[] = [
                         id: "code-42",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-42",
                           language: "python",
@@ -9137,7 +9137,7 @@ export const practices: Practice[] = [
                         id: "matching-1",
                         type: "matching",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-38",
                           question:
@@ -9212,7 +9212,7 @@ export const practices: Practice[] = [
                         id: "code-43",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-43",
                           language: "python",
@@ -9278,7 +9278,7 @@ export const practices: Practice[] = [
                         id: "mcq-38",
                         type: "multiple_choice",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-39",
                           question:
@@ -9349,7 +9349,7 @@ export const practices: Practice[] = [
                         id: "matching-2",
                         type: "matching",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-40",
                           question: "Cocokkan konsep dengan penjelasannya",
@@ -9421,7 +9421,7 @@ export const practices: Practice[] = [
                         id: "code-44",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-44",
                           language: "python",
@@ -9492,7 +9492,7 @@ export const practices: Practice[] = [
                         id: "mcq-39",
                         type: "multiple_choice",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-41",
                           question:
@@ -9551,7 +9551,7 @@ export const practices: Practice[] = [
                         id: "image-7",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-7",
                           url: "https://images.unsplash.com/photo-1509228463558-399364a71109?w=400",
@@ -9661,7 +9661,7 @@ export const practices: Practice[] = [
                         id: "image-8",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-8",
                           url: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400",
@@ -9673,7 +9673,7 @@ export const practices: Practice[] = [
                         id: "mcq-40",
                         type: "multiple_choice",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-42",
                           question:
@@ -9735,7 +9735,7 @@ export const practices: Practice[] = [
                         id: "code-45",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-45",
                           language: "python",
@@ -9809,7 +9809,7 @@ export const practices: Practice[] = [
                         id: "code-46",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-46",
                           language: "python",
@@ -9822,7 +9822,7 @@ export const practices: Practice[] = [
                         id: "mcq-41",
                         type: "multiple_choice",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-43",
                           question: "Mengapa Naive Bayes disebut 'naive'?",
@@ -9892,7 +9892,7 @@ export const practices: Practice[] = [
                         id: "image-9",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-9",
                           url: "https://images.unsplash.com/photo-1557200134-90327ee9fafa?w=400",
@@ -9904,7 +9904,7 @@ export const practices: Practice[] = [
                         id: "matching-1",
                         type: "matching",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "matching-1-content",
                           question:
@@ -10219,7 +10219,7 @@ export const practices: Practice[] = [
                         id: "image-10",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-10",
                           url: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400",
@@ -10231,7 +10231,7 @@ export const practices: Practice[] = [
                         id: "mcq-42",
                         type: "multiple_choice",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-44",
                           question:
@@ -10290,7 +10290,7 @@ export const practices: Practice[] = [
                         id: "code-47",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-47",
                           language: "python",
@@ -10344,7 +10344,7 @@ export const practices: Practice[] = [
                         id: "mcq-43",
                         type: "multiple_choice",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-45",
                           question: "Turunan dari f(x) = 3x^4 adalah?",
@@ -10415,7 +10415,7 @@ export const practices: Practice[] = [
                         id: "image-11",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-11",
                           url: "https://www.youtube.com/watch?v=YG15m2VwSXY",
@@ -10466,7 +10466,7 @@ export const practices: Practice[] = [
                         id: "code-48",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-48",
                           language: "python",
@@ -10576,7 +10576,7 @@ export const practices: Practice[] = [
                         id: "image-12",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-12",
                           url: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=400",
@@ -10655,7 +10655,7 @@ export const practices: Practice[] = [
                         id: "code-49",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-49",
                           language: "python",
@@ -10668,7 +10668,7 @@ export const practices: Practice[] = [
                         id: "mcq-44",
                         type: "multiple_choice",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-46",
                           question:
@@ -10743,7 +10743,7 @@ export const practices: Practice[] = [
                         id: "code-50",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-50",
                           language: "python",
@@ -10784,7 +10784,7 @@ export const practices: Practice[] = [
                         id: "code-51",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-51",
                           language: "python",
@@ -10797,7 +10797,7 @@ export const practices: Practice[] = [
                         id: "mcq-45",
                         type: "multiple_choice",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-47",
                           question:
@@ -10957,7 +10957,7 @@ export const practices: Practice[] = [
                         id: "image-13",
                         type: "image_video",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-13",
                           url: "https://www.youtube.com/watch?v=sDv4f4s2SB8",
@@ -11008,7 +11008,7 @@ export const practices: Practice[] = [
                         id: "code-52",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-52",
                           language: "python",
@@ -11021,7 +11021,7 @@ export const practices: Practice[] = [
                         id: "mcq-46",
                         type: "multiple_choice",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-48",
                           question:
@@ -11085,7 +11085,7 @@ export const practices: Practice[] = [
                         id: "code-53",
                         type: "interactive_code",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "interactive-53",
                           language: "python",
@@ -11149,7 +11149,7 @@ export const practices: Practice[] = [
                         id: "mcq-47",
                         type: "multiple_choice",
                         orderNumber: 1,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "question-49",
                           question:
@@ -11178,7 +11178,7 @@ export const practices: Practice[] = [
                         id: "image-14",
                         type: "image_video",
                         orderNumber: 2,
-                        position: "after",
+                        position: "AFTER",
                         content: {
                           id: "media-14",
                           url: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400",
