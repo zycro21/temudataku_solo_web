@@ -945,7 +945,7 @@ export interface AuthenticatedRequestQuizAttempt extends Request {
     fullName?: string;
   };
   validatedBody?: {
-    answers?: Record<string, string>; // questionId -> selectedAnswer
+    answers?: Record<string, string | string[]>;
     score?: number;
     remarks?: string;
     isAutoGraded?: boolean;

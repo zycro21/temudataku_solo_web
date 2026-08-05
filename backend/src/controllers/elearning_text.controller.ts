@@ -137,6 +137,27 @@ export class ELearningTextController {
         return;
       }
 
+      // ── 🔥 FIX: Parse quiz & assignment dari string ke object/null ──
+      const parsedBody = { ...validatedBody };
+
+      // Quiz: string "null" → null, string JSON → object
+      if (parsedBody.quiz !== undefined) {
+        if (typeof parsedBody.quiz === "string") {
+          parsedBody.quiz =
+            parsedBody.quiz === "null" ? null : JSON.parse(parsedBody.quiz);
+        }
+      }
+
+      // Assignment: string "null" → null, string JSON → object
+      if (parsedBody.assignment !== undefined) {
+        if (typeof parsedBody.assignment === "string") {
+          parsedBody.assignment =
+            parsedBody.assignment === "null"
+              ? null
+              : JSON.parse(parsedBody.assignment);
+        }
+      }
+
       const files =
         (req.files as {
           supportingFiles?: Express.Multer.File[];
@@ -148,7 +169,7 @@ export class ELearningTextController {
 
       const updated = await ELearningTextService.updateText(
         validatedParams.id,
-        validatedBody,
+        parsedBody, // ← pakai parsedBody
         assignmentFiles,
         mediaFiles,
         user,

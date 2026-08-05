@@ -894,6 +894,7 @@ model ELearningQuizAttempt {
   startedAt       DateTime?          @default(now())
   completedAt     DateTime?
   answers         Json?              @db.JsonB
+  attemptNumber   Int                @default(1) @map("attempt_number")
 
   // tambahan
   isAutoGraded    Boolean?           @default(true)
@@ -904,7 +905,7 @@ model ELearningQuizAttempt {
   quiz            ELearningQuiz      @relation(fields: [quizId], references: [id], onDelete: Cascade)
   user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([quizId, userId])
+  @@unique([quizId, userId, attemptNumber])
   @@map("e_learning_quiz_attempts")
 }
 
@@ -970,6 +971,7 @@ model ELearningSubmission {
   id              String                    @id @default(cuid())
   assignmentId    String                    @map("assignment_id")
   userId          String                    @map("user_id")
+  attemptNumber   Int                       @default(1) @map("attempt_number")
   notes           String?
   files           String[]                  @db.VarChar
   submittedAt     DateTime?                 @default(now())
@@ -989,7 +991,7 @@ model ELearningSubmission {
   user            User                @relation("ELearningSubmittedBy", fields: [userId], references: [id])
   reviewer        User?               @relation("ELearningReviewedBy", fields: [reviewedById], references: [id])
 
-  @@unique([assignmentId, userId])
+  @@unique([assignmentId, userId, attemptNumber])
   @@map("e_learning_submissions")
 }
 

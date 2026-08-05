@@ -208,7 +208,7 @@ const multipleChoiceSchema = z.object({
           orderNumber: z.number().int().min(1),
         }),
       )
-      .min(2),
+      .min(1),
   }),
 });
 
@@ -345,8 +345,8 @@ export const updateTextSchema = z.object({
       status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).optional(),
       orderNumber: z.number().int().min(1).optional(),
       blocks: z.array(blockSchema).optional(),
-      quiz: quizSchema.optional(),
-      assignment: assignmentSchema.optional(),
+      quiz: z.union([quizSchema, z.null()]).optional(), // ← BISA NULL
+      assignment: z.union([assignmentSchema, z.null()]).optional(), // ← BISA NULL
     })
     .refine((data) => Object.keys(data).length > 0, {
       message: "Minimal satu field harus diupdate",

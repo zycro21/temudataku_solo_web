@@ -6,7 +6,7 @@ export class ELearningSubmissionController {
   static async createSubmission(
     req: AuthenticatedRequestElearningSubmission,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { user, validatedParams, validatedBody } = req;
@@ -15,7 +15,7 @@ export class ELearningSubmissionController {
       // ambil file upload dari multer
       const uploadedFiles = req.files
         ? (req.files as Express.Multer.File[]).map(
-            (file) => `/uploads/elearning/submissions/${file.filename}`
+            (file) => `/uploads/elearning/submissions/${file.filename}`,
           )
         : [];
 
@@ -25,7 +25,7 @@ export class ELearningSubmissionController {
         {
           ...validatedBody,
           files: uploadedFiles,
-        }
+        },
       );
 
       res.status(201).json({
@@ -33,7 +33,21 @@ export class ELearningSubmissionController {
         message: "Submission berhasil dikirim",
         data: result,
       });
-    } catch (err) {
+    } catch (err: any) {
+      if (err.message.includes("tidak ditemukan")) {
+        res.status(404).json({ success: false, message: err.message });
+        return;
+      }
+      if (
+        err.message.includes("belum memiliki subscription") ||
+        err.message.includes("batas maksimal") ||
+        err.message.includes("menunggu penilaian") ||
+        err.message.includes("sudah lolos") ||
+        err.message.includes("sudah final")
+      ) {
+        res.status(400).json({ success: false, message: err.message });
+        return;
+      }
       next(err);
     }
   }
@@ -41,7 +55,7 @@ export class ELearningSubmissionController {
   static async getMySubmission(
     req: AuthenticatedRequestElearningSubmission,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { user, validatedParams } = req;
@@ -49,7 +63,7 @@ export class ELearningSubmissionController {
 
       const submission = await ELearningSubmissionService.getMySubmission(
         user.userId,
-        validatedParams.id
+        validatedParams.id,
       );
 
       if (!submission) {
@@ -73,7 +87,7 @@ export class ELearningSubmissionController {
   static async getAllSubmissions(
     req: AuthenticatedRequestElearningSubmission,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { user, validatedParams, validatedQuery } = req;
@@ -98,7 +112,7 @@ export class ELearningSubmissionController {
   static async reviewSubmission(
     req: AuthenticatedRequestElearningSubmission,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { user, validatedBody, validatedParams } = req;
@@ -108,7 +122,7 @@ export class ELearningSubmissionController {
       const result = await ELearningSubmissionService.reviewSubmission(
         validatedParams.id,
         user,
-        validatedBody
+        validatedBody,
       );
 
       res.json({
@@ -124,7 +138,7 @@ export class ELearningSubmissionController {
   static async reviseSubmission(
     req: AuthenticatedRequestElearningSubmission,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { user, validatedBody, validatedParams } = req;
@@ -132,7 +146,7 @@ export class ELearningSubmissionController {
 
       const uploadedFiles = req.files
         ? (req.files as Express.Multer.File[]).map(
-            (file) => `/uploads/elearning/submissions/${file.filename}`
+            (file) => `/uploads/elearning/submissions/${file.filename}`,
           )
         : [];
 
@@ -142,7 +156,7 @@ export class ELearningSubmissionController {
         {
           ...validatedBody,
           files: uploadedFiles,
-        }
+        },
       );
 
       res.json({
@@ -158,7 +172,7 @@ export class ELearningSubmissionController {
   static async getSubmissionDetail(
     req: AuthenticatedRequestElearningSubmission,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { user, validatedParams } = req;
@@ -169,7 +183,7 @@ export class ELearningSubmissionController {
 
       const result = await ELearningSubmissionService.getSubmissionDetail(
         submissionId,
-        user
+        user,
       );
 
       res.json({
@@ -185,7 +199,7 @@ export class ELearningSubmissionController {
   static async getSubmissionHistory(
     req: AuthenticatedRequestElearningSubmission,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { user, validatedParams } = req;
@@ -196,7 +210,7 @@ export class ELearningSubmissionController {
 
       const history = await ELearningSubmissionService.getSubmissionHistory(
         submissionId,
-        user
+        user,
       );
 
       res.json({
@@ -212,7 +226,7 @@ export class ELearningSubmissionController {
   static async exportSubmissions(
     req: AuthenticatedRequestElearningSubmission,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedQuery, user } = req;
@@ -234,13 +248,12 @@ export class ELearningSubmissionController {
         return;
       }
 
-      const file = await ELearningSubmissionService.exportSubmissionsToFile(
-        format
-      );
+      const file =
+        await ELearningSubmissionService.exportSubmissionsToFile(format);
 
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename=${file.filename}`
+        `attachment; filename=${file.filename}`,
       );
       res.setHeader("Content-Type", file.mimetype);
 
@@ -253,7 +266,7 @@ export class ELearningSubmissionController {
   static async deleteSubmission(
     req: AuthenticatedRequestElearningSubmission,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, user } = req;
@@ -269,9 +282,8 @@ export class ELearningSubmissionController {
 
       const submissionId = validatedParams?.id;
 
-      const result = await ELearningSubmissionService.deleteSubmissionById(
-        submissionId
-      );
+      const result =
+        await ELearningSubmissionService.deleteSubmissionById(submissionId);
 
       res.status(200).json({
         success: true,

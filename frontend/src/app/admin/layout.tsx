@@ -330,6 +330,13 @@ export default function AdminLayout({
     if (pathname.startsWith("/admin/kelola-mentoring")) {
       setOpenDropdown("Kelola Mentoring");
     }
+    // 🔥 BARU: auto-expand submenu "E-Learning" (sekarang punya submenu
+    // "Kelola Materi" + "Submission E-Learning") begitu user berada di
+    // salah satu halaman /admin/elearning/*, sama pola-nya dengan
+    // "Kelola Mentoring" di atas.
+    if (pathname.startsWith("/admin/elearning")) {
+      setOpenDropdown("E-Learning");
+    }
   }, [pathname]);
 
   useEffect(() => {
@@ -469,9 +476,23 @@ export default function AdminLayout({
     },
     {
       name: "E-Learning",
-      href: "/admin/elearning",
       icon: "/assets/dashboard/user/practice.svg",
       activeIcon: "/assets/dashboard/user/whitepractice.svg",
+      hasSubmenu: true,
+      children: [
+        {
+          name: "Kelola Materi E-Learning",
+          href: "/admin/elearning",
+          icon: "/assets/dashboard/user/practice.svg",
+          activeIcon: "/assets/dashboard/user/whitepractice.svg",
+        },
+        {
+          name: "Kelola Projek Mentee",
+          href: "/admin/elearning/submissions",
+          icon: "/assets/admin/tugas.svg",
+          activeIcon: "/assets/admin/whitetugas.svg",
+        },
+      ],
     },
     {
       name: "AYCL",

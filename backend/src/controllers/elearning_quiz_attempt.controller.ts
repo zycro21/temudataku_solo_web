@@ -6,7 +6,7 @@ export class ELearningQuizAttemptController {
   static async startQuizAttempt(
     req: AuthenticatedRequestQuizAttempt,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, validatedBody, user } = req;
@@ -24,7 +24,7 @@ export class ELearningQuizAttemptController {
       const attempt = await ELearningQuizAttemptService.startQuizAttempt(
         validatedParams.id,
         user,
-        answers
+        answers,
       );
 
       res.status(201).json({
@@ -40,7 +40,7 @@ export class ELearningQuizAttemptController {
       }
       if (
         err.message.includes("belum membeli") ||
-        err.message.includes("sudah mengerjakan") ||
+        err.message.includes("batas maksimal") || // 🔥 ganti dari "sudah mengerjakan"
         err.message.includes("tidak valid") ||
         err.message.includes("Harus menjawab semua")
       ) {
@@ -54,7 +54,7 @@ export class ELearningQuizAttemptController {
   static async getMyAttempt(
     req: AuthenticatedRequestQuizAttempt,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, validatedQuery, user } = req;
@@ -99,7 +99,7 @@ export class ELearningQuizAttemptController {
   static async gradeAttempt(
     req: AuthenticatedRequestQuizAttempt,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, validatedBody, user } = req;
@@ -124,7 +124,7 @@ export class ELearningQuizAttemptController {
       const updated = await ELearningQuizAttemptService.gradeAttempt(
         attemptId,
         user,
-        { score, remarks, isAutoGraded }
+        { score, remarks, isAutoGraded },
       );
 
       res.status(200).json({
@@ -149,7 +149,7 @@ export class ELearningQuizAttemptController {
   static async getAllAttempts(
     req: AuthenticatedRequestQuizAttempt,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedQuery, user } = req;
@@ -160,7 +160,7 @@ export class ELearningQuizAttemptController {
 
       const data = await ELearningQuizAttemptService.getAllAttempts(
         user,
-        validatedQuery
+        validatedQuery,
       );
 
       res.status(200).json({
@@ -180,7 +180,7 @@ export class ELearningQuizAttemptController {
   static async getAttemptById(
     req: AuthenticatedRequestQuizAttempt,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, user } = req;
@@ -197,7 +197,7 @@ export class ELearningQuizAttemptController {
 
       const data = await ELearningQuizAttemptService.getAttemptById(
         attemptId,
-        user
+        user,
       );
 
       res.status(200).json({
@@ -221,7 +221,7 @@ export class ELearningQuizAttemptController {
   static async deleteAttempt(
     req: AuthenticatedRequestQuizAttempt,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, user } = req;
@@ -238,7 +238,7 @@ export class ELearningQuizAttemptController {
 
       const deleted = await ELearningQuizAttemptService.deleteAttempt(
         attemptId,
-        user
+        user,
       );
 
       res.status(200).json({
@@ -262,7 +262,7 @@ export class ELearningQuizAttemptController {
   static async getQuizAttemptSummary(
     req: AuthenticatedRequestQuizAttempt,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedParams, user } = req;
@@ -277,7 +277,7 @@ export class ELearningQuizAttemptController {
       const quizId = validatedParams.id;
       const summary = await ELearningQuizAttemptService.getQuizAttemptSummary(
         quizId,
-        user
+        user,
       );
 
       res.status(200).json({
@@ -301,7 +301,7 @@ export class ELearningQuizAttemptController {
   static async getMyQuizHistory(
     req: AuthenticatedRequestQuizAttempt,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { user, validatedQuery } = req;
@@ -315,7 +315,7 @@ export class ELearningQuizAttemptController {
 
       const history = await ELearningQuizAttemptService.getMyQuizHistory(
         user.userId,
-        validatedQuery
+        validatedQuery,
       );
 
       res.status(200).json({
@@ -331,7 +331,7 @@ export class ELearningQuizAttemptController {
   static async exportQuizAttempts(
     req: AuthenticatedRequestQuizAttempt,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { validatedQuery, user } = req;
@@ -354,13 +354,12 @@ export class ELearningQuizAttemptController {
         return;
       }
 
-      const file = await ELearningQuizAttemptService.exportQuizAttemptsToFile(
-        format
-      );
+      const file =
+        await ELearningQuizAttemptService.exportQuizAttemptsToFile(format);
 
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename=${file.filename}`
+        `attachment; filename=${file.filename}`,
       );
       res.setHeader("Content-Type", file.mimetype);
       res.send(file.buffer);

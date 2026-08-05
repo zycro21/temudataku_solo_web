@@ -18,69 +18,74 @@ export class ELearningSubmissionService {
     assignmentId: string,
     data: any,
   ) {
-    // cek apakah assignment valid
     const assignment = await prisma.eLearningAssignment.findUnique({
       where: { id: assignmentId },
       include: {
         text: {
           include: {
-            subBab: {
-              include: {
-                subChapter: {
-                  include: {
-                    course: true,
-                  },
-                },
-              },
-            },
+            subBab: { include: { subChapter: { include: { course: true } } } },
           },
         },
       },
     });
     if (!assignment) throw new Error("Assignment tidak ditemukan");
 
-    // pastikan user memiliki subscription aktif
     const now = new Date();
-
     const activeSubscription = await prisma.eLearningSubscription.findFirst({
       where: {
         userId,
-        status: {
-          in: ["active", "confirmed", "completed"],
-        },
-        startAt: {
-          lte: now,
-        },
-        endAt: {
-          gte: now,
-        },
+        status: { in: ["active", "confirmed", "completed"] },
+        startAt: { lte: now },
+        endAt: { gte: now },
       },
     });
-
     if (!activeSubscription) {
       throw new Error("Anda belum memiliki subscription aktif");
     }
 
-    // cek duplikasi submission
-    const existing = await prisma.eLearningSubmission.findUnique({
-      where: {
-        assignmentId_userId: { assignmentId, userId },
-      },
+    // 🔥 BARU: ganti cek duplikasi jadi berbasis attempt count (max 2) +
+    // status submission TERAKHIR — bukan sekadar "sudah ada row atau belum".
+    const MAX_ATTEMPTS = 2;
+    const previousSubmissions = await prisma.eLearningSubmission.findMany({
+      where: { assignmentId, userId },
+      orderBy: { attemptNumber: "desc" },
     });
-    if (existing) throw new Error("Anda sudah mengumpulkan tugas ini");
+    const attemptCount = previousSubmissions.length;
+    const latestPrevious = previousSubmissions[0];
 
-    // generate custom id
+    if (attemptCount >= MAX_ATTEMPTS) {
+      throw new Error(
+        "Kamu sudah mencapai batas maksimal 2 kali pengumpulan tugas ini",
+      );
+    }
+
+    if (latestPrevious) {
+      if (latestPrevious.status === "PENDING") {
+        throw new Error(
+          "Submission sebelumnya masih menunggu penilaian, tunggu hasil review dulu",
+        );
+      }
+      if (latestPrevious.status === "APPROVED") {
+        throw new Error("Tugas ini sudah lolos, tidak perlu dikumpulkan ulang");
+      }
+      if (!latestPrevious.isRevisionRequired) {
+        throw new Error(
+          "Submission sebelumnya sudah final dan tidak memerlukan revisi",
+        );
+      }
+    }
+
     const today = new Date();
     const formattedDate = today.toISOString().split("T")[0].replace(/-/g, "");
     const randomHex = crypto.randomBytes(6).toString("hex");
     const submissionId = `elearnsub-${formattedDate}-${randomHex}`;
 
-    // simpan ke DB
     const submission = await prisma.eLearningSubmission.create({
       data: {
         id: submissionId,
         assignmentId,
         userId,
+        attemptNumber: attemptCount + 1, // 🔥 BARU
         notes: data.notes,
         files: data.files || [],
         status: "PENDING",
@@ -88,7 +93,12 @@ export class ELearningSubmissionService {
       },
     });
 
-    return submission;
+    // 🔥 BARU: ikut balikin attemptsRemaining biar FE nggak perlu fetch ulang.
+    return {
+      ...submission,
+      attemptsUsed: attemptCount + 1,
+      attemptsRemaining: Math.max(MAX_ATTEMPTS - (attemptCount + 1), 0),
+    };
   }
 
   static async getMySubmission(userId: string, assignmentId: string) {
@@ -139,18 +149,21 @@ export class ELearningSubmissionService {
     }
 
     // 3. ambil submission user
-    const submission = await prisma.eLearningSubmission.findUnique({
-      where: { assignmentId_userId: { assignmentId, userId } },
-      include: {
-        assignment: true,
-      },
+    const MAX_ATTEMPTS = 2;
+    const submissions = await prisma.eLearningSubmission.findMany({
+      where: { assignmentId, userId },
+      orderBy: { attemptNumber: "desc" },
+      include: { assignment: true },
     });
 
-    if (!submission) {
-      return null; // controller akan handle jadi 404
-    }
+    if (submissions.length === 0) return null; // controller tetap 404
 
-    return submission;
+    const latest = submissions[0];
+    return {
+      ...latest,
+      attemptsUsed: submissions.length,
+      attemptsRemaining: Math.max(MAX_ATTEMPTS - submissions.length, 0),
+    };
   }
 
   static async getAllSubmissions({

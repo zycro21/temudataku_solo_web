@@ -1283,236 +1283,298 @@ export class ELearningTextService {
           where: { textId: id },
         });
 
-        if (existingQuiz) {
-          // Text ini sudah punya quiz → update
-          await tx.eLearningQuestion.deleteMany({
-            where: { quizId: existingQuiz.id },
-          });
-
-          await tx.eLearningQuiz.update({
-            where: { id: existingQuiz.id },
-            data: {
-              title: quiz.title,
-              description: quiz.description,
-              timeLimitMinutes: quiz.timeLimitMinutes,
-              totalQuestions: quiz.questions.length,
-              updatedAt: new Date(),
-            },
-          });
-
-          for (const question of quiz.questions) {
-            await tx.eLearningQuestion.create({
-              data: {
-                quizId: existingQuiz.id,
-                questionText: question.questionText,
-                options: question.options,
-                correctAnswers: question.correctAnswers,
-                explanation: question.explanation,
-                orderNumber: question.orderNumber,
-              },
+        // 🔥 CASE 1: Hapus quiz
+        if (quiz === null) {
+          if (existingQuiz) {
+            // Hapus questions (cascade akan otomatis karena onDelete: Cascade di schema)
+            await tx.eLearningQuestion.deleteMany({
+              where: { quizId: existingQuiz.id },
+            });
+            // Hapus quiz
+            await tx.eLearningQuiz.delete({
+              where: { id: existingQuiz.id },
             });
           }
-        } else {
-          // Text ini belum punya quiz → cek dulu apakah SubBab sudah ada quiz di text lain
-          const quizInSameSubBab = await tx.eLearningQuiz.findFirst({
-            where: {
-              text: { subBabId: existing.subBabId },
-            },
-            select: {
-              id: true,
-              text: { select: { title: true, orderNumber: true } },
-            },
-          });
+        }
+        // 🔥 CASE 2: Update atau Create quiz
+        else {
+          if (existingQuiz) {
+            // Update existing quiz
+            await tx.eLearningQuestion.deleteMany({
+              where: { quizId: existingQuiz.id },
+            });
 
-          if (quizInSameSubBab) {
-            throw new Error(
-              `SubBab ini sudah memiliki quiz di modul lain (modul: "${quizInSameSubBab.text.title ?? `#${quizInSameSubBab.text.orderNumber}`}"). Setiap SubBab hanya boleh memiliki 1 quiz.`,
-            );
-          }
-
-          const newQuiz = await tx.eLearningQuiz.create({
-            data: {
-              textId: id,
-              title: quiz.title,
-              description: quiz.description,
-              totalQuestions: quiz.questions.length,
-              timeLimitMinutes: quiz.timeLimitMinutes,
-            },
-          });
-
-          for (const question of quiz.questions) {
-            await tx.eLearningQuestion.create({
+            await tx.eLearningQuiz.update({
+              where: { id: existingQuiz.id },
               data: {
-                quizId: newQuiz.id,
-                questionText: question.questionText,
-                options: question.options,
-                correctAnswers: question.correctAnswers,
-                explanation: question.explanation,
-                orderNumber: question.orderNumber,
+                title: quiz.title,
+                description: quiz.description,
+                timeLimitMinutes: quiz.timeLimitMinutes,
+                totalQuestions: quiz.questions.length,
+                updatedAt: new Date(),
               },
             });
+
+            for (const question of quiz.questions) {
+              await tx.eLearningQuestion.create({
+                data: {
+                  quizId: existingQuiz.id,
+                  questionText: question.questionText,
+                  options: question.options,
+                  correctAnswers: question.correctAnswers,
+                  explanation: question.explanation,
+                  orderNumber: question.orderNumber,
+                },
+              });
+            }
+          } else {
+            // Cek limit per SubChapter (jika diperlukan)
+            const quizInSameSubChapter = await tx.eLearningQuiz.findFirst({
+              where: {
+                text: {
+                  subBab: {
+                    subChapterId: existing.subBab.subChapterId,
+                  },
+                },
+              },
+              select: {
+                id: true,
+                text: {
+                  select: {
+                    title: true,
+                    subBab: {
+                      select: {
+                        title: true,
+                      },
+                    },
+                  },
+                },
+              },
+            });
+
+            if (quizInSameSubChapter) {
+              throw new Error(
+                `Course ini sudah memiliki quiz di modul lain (Modul: "${quizInSameSubChapter.text.subBab.title ?? "Tanpa judul"}"). Setiap Course hanya boleh memiliki 1 quiz.`,
+              );
+            }
+
+            // Create new quiz
+            const newQuiz = await tx.eLearningQuiz.create({
+              data: {
+                textId: id,
+                title: quiz.title,
+                description: quiz.description,
+                totalQuestions: quiz.questions.length,
+                timeLimitMinutes: quiz.timeLimitMinutes,
+              },
+            });
+
+            for (const question of quiz.questions) {
+              await tx.eLearningQuestion.create({
+                data: {
+                  quizId: newQuiz.id,
+                  questionText: question.questionText,
+                  options: question.options,
+                  correctAnswers: question.correctAnswers,
+                  explanation: question.explanation,
+                  orderNumber: question.orderNumber,
+                },
+              });
+            }
           }
         }
       }
 
       // ── 6. Assignment ────────────────────────────────────────────────────
       if (assignment !== undefined) {
-        const assignmentFilesNeeded = (assignment.supportingFiles ?? []).filter(
-          (f) => f.isNewUpload,
-        ).length;
-
-        if (assignmentFiles.length !== assignmentFilesNeeded) {
-          throw new Error(
-            `Jumlah assignmentFiles (${assignmentFiles.length}) tidak sesuai jumlah supportingFiles baru (${assignmentFilesNeeded})`,
-          );
-        }
-
-        let newFileIndex = 0;
-
         const existingAssignment = await tx.eLearningAssignment.findUnique({
           where: { textId: id },
         });
 
-        if (existingAssignment) {
-          // Text ini sudah punya assignment → update
-          await tx.eLearningAssignmentInstruction.deleteMany({
-            where: { assignmentId: existingAssignment.id },
-          });
-
-          await tx.eLearningAssignmentSupportingFile.deleteMany({
-            where: { assignmentId: existingAssignment.id },
-          });
-
-          await tx.eLearningAssignment.update({
-            where: { id: existingAssignment.id },
-            data: {
-              title: assignment.title,
-              description: assignment.description,
-              dueDays: assignment.dueDays,
-              updatedAt: new Date(),
-            },
-          });
-
-          for (const instruction of assignment.instructions) {
-            await tx.eLearningAssignmentInstruction.create({
-              data: {
-                assignmentId: existingAssignment.id,
-                instruction: instruction.instruction,
-                orderNumber: instruction.orderNumber,
-              },
+        // 🔥 CASE 1: Hapus assignment
+        if (assignment === null) {
+          if (existingAssignment) {
+            // Hapus child tables
+            await tx.eLearningAssignmentInstruction.deleteMany({
+              where: { assignmentId: existingAssignment.id },
+            });
+            await tx.eLearningAssignmentSupportingFile.deleteMany({
+              where: { assignmentId: existingAssignment.id },
+            });
+            // Hapus assignment (submissions akan cascade karena onDelete: Cascade)
+            await tx.eLearningAssignment.delete({
+              where: { id: existingAssignment.id },
             });
           }
+        }
+        // 🔥 CASE 2: Update atau Create assignment
+        else {
+          const assignmentFilesNeeded = (
+            assignment.supportingFiles ?? []
+          ).filter((f) => f.isNewUpload).length;
 
-          for (const meta of assignment.supportingFiles) {
-            let finalUrl: string;
-            let finalFormat: string | undefined;
-            let finalSizeKB: number | undefined;
-
-            if (meta.isNewUpload) {
-              const uploaded = assignmentFiles[newFileIndex++];
-              if (!uploaded)
-                throw new Error(
-                  `File upload untuk "${meta.name}" tidak ditemukan`,
-                );
-              finalUrl = `/uploads/elearningAssignments/${uploaded.filename}`;
-              finalFormat = path.extname(uploaded.originalname);
-              finalSizeKB = Math.ceil(uploaded.size / 1024);
-            } else {
-              if (!meta.url)
-                throw new Error(
-                  `url wajib diisi untuk file "${meta.name}" yang tidak diupload ulang`,
-                );
-              finalUrl = meta.url;
-              finalFormat = meta.format;
-              finalSizeKB = meta.sizeKB;
-            }
-
-            await tx.eLearningAssignmentSupportingFile.create({
-              data: {
-                assignmentId: existingAssignment.id,
-                name: meta.name,
-                type: meta.type,
-                url: finalUrl,
-                format: finalFormat,
-                sizeKB: finalSizeKB,
-                pageCount: meta.pageCount,
-              },
-            });
-          }
-        } else {
-          // Text ini belum punya assignment → cek dulu apakah SubBab sudah ada assignment di text lain
-          const assignmentInSameSubBab = await tx.eLearningAssignment.findFirst(
-            {
-              where: {
-                text: { subBabId: existing.subBabId },
-              },
-              select: {
-                id: true,
-                text: { select: { title: true, orderNumber: true } },
-              },
-            },
-          );
-
-          if (assignmentInSameSubBab) {
+          if (assignmentFiles.length !== assignmentFilesNeeded) {
             throw new Error(
-              `SubBab ini sudah memiliki project/assignment di modul lain (modul: "${assignmentInSameSubBab.text.title ?? `#${assignmentInSameSubBab.text.orderNumber}`}"). Setiap SubBab hanya boleh memiliki 1 assignment.`,
+              `Jumlah assignmentFiles (${assignmentFiles.length}) tidak sesuai jumlah supportingFiles baru (${assignmentFilesNeeded})`,
             );
           }
 
-          const newAssignment = await tx.eLearningAssignment.create({
-            data: {
-              textId: id,
-              title: assignment.title,
-              description: assignment.description,
-              dueDays: assignment.dueDays,
-            },
-          });
+          let newFileIndex = 0;
 
-          for (const instruction of assignment.instructions) {
-            await tx.eLearningAssignmentInstruction.create({
+          if (existingAssignment) {
+            // Update existing assignment
+            await tx.eLearningAssignmentInstruction.deleteMany({
+              where: { assignmentId: existingAssignment.id },
+            });
+
+            await tx.eLearningAssignmentSupportingFile.deleteMany({
+              where: { assignmentId: existingAssignment.id },
+            });
+
+            await tx.eLearningAssignment.update({
+              where: { id: existingAssignment.id },
               data: {
-                assignmentId: newAssignment.id,
-                instruction: instruction.instruction,
-                orderNumber: instruction.orderNumber,
+                title: assignment.title,
+                description: assignment.description,
+                dueDays: assignment.dueDays,
+                updatedAt: new Date(),
               },
             });
-          }
 
-          for (const meta of assignment.supportingFiles) {
-            let finalUrl: string;
-            let finalFormat: string | undefined;
-            let finalSizeKB: number | undefined;
-
-            if (meta.isNewUpload) {
-              const uploaded = assignmentFiles[newFileIndex++];
-              if (!uploaded)
-                throw new Error(
-                  `File upload untuk "${meta.name}" tidak ditemukan`,
-                );
-              finalUrl = `/uploads/elearningAssignments/${uploaded.filename}`;
-              finalFormat = path.extname(uploaded.originalname);
-              finalSizeKB = Math.ceil(uploaded.size / 1024);
-            } else {
-              if (!meta.url)
-                throw new Error(
-                  `url wajib diisi untuk file "${meta.name}" yang tidak diupload ulang`,
-                );
-              finalUrl = meta.url;
-              finalFormat = meta.format;
-              finalSizeKB = meta.sizeKB;
+            for (const instruction of assignment.instructions) {
+              await tx.eLearningAssignmentInstruction.create({
+                data: {
+                  assignmentId: existingAssignment.id,
+                  instruction: instruction.instruction,
+                  orderNumber: instruction.orderNumber,
+                },
+              });
             }
 
-            await tx.eLearningAssignmentSupportingFile.create({
+            for (const meta of assignment.supportingFiles) {
+              let finalUrl: string;
+              let finalFormat: string | undefined;
+              let finalSizeKB: number | undefined;
+
+              if (meta.isNewUpload) {
+                const uploaded = assignmentFiles[newFileIndex++];
+                if (!uploaded)
+                  throw new Error(
+                    `File upload untuk "${meta.name}" tidak ditemukan`,
+                  );
+                finalUrl = `/uploads/elearningAssignments/${uploaded.filename}`;
+                finalFormat = path.extname(uploaded.originalname);
+                finalSizeKB = Math.ceil(uploaded.size / 1024);
+              } else {
+                if (!meta.url)
+                  throw new Error(
+                    `url wajib diisi untuk file "${meta.name}" yang tidak diupload ulang`,
+                  );
+                finalUrl = meta.url;
+                finalFormat = meta.format;
+                finalSizeKB = meta.sizeKB;
+              }
+
+              await tx.eLearningAssignmentSupportingFile.create({
+                data: {
+                  assignmentId: existingAssignment.id,
+                  name: meta.name,
+                  type: meta.type,
+                  url: finalUrl,
+                  format: finalFormat,
+                  sizeKB: finalSizeKB,
+                  pageCount: meta.pageCount,
+                },
+              });
+            }
+          } else {
+            // Cek limit per SubChapter (jika diperlukan)
+            const assignmentInSameSubChapter =
+              await tx.eLearningAssignment.findFirst({
+                where: {
+                  text: {
+                    subBab: {
+                      subChapterId: existing.subBab.subChapterId,
+                    },
+                  },
+                },
+                select: {
+                  id: true,
+                  text: {
+                    select: {
+                      title: true,
+                      subBab: {
+                        select: {
+                          title: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              });
+
+            if (assignmentInSameSubChapter) {
+              throw new Error(
+                `Course ini sudah memiliki project/assignment di modul lain (Modul: "${assignmentInSameSubChapter.text.subBab.title ?? "Tanpa judul"}"). Setiap Course hanya boleh memiliki 1 project/assignment.`,
+              );
+            }
+
+            // Create new assignment
+            const newAssignment = await tx.eLearningAssignment.create({
               data: {
-                assignmentId: newAssignment.id,
-                name: meta.name,
-                type: meta.type,
-                url: finalUrl,
-                format: finalFormat,
-                sizeKB: finalSizeKB,
-                pageCount: meta.pageCount,
+                textId: id,
+                title: assignment.title,
+                description: assignment.description,
+                dueDays: assignment.dueDays,
               },
             });
+
+            for (const instruction of assignment.instructions) {
+              await tx.eLearningAssignmentInstruction.create({
+                data: {
+                  assignmentId: newAssignment.id,
+                  instruction: instruction.instruction,
+                  orderNumber: instruction.orderNumber,
+                },
+              });
+            }
+
+            for (const meta of assignment.supportingFiles) {
+              let finalUrl: string;
+              let finalFormat: string | undefined;
+              let finalSizeKB: number | undefined;
+
+              if (meta.isNewUpload) {
+                const uploaded = assignmentFiles[newFileIndex++];
+                if (!uploaded)
+                  throw new Error(
+                    `File upload untuk "${meta.name}" tidak ditemukan`,
+                  );
+                finalUrl = `/uploads/elearningAssignments/${uploaded.filename}`;
+                finalFormat = path.extname(uploaded.originalname);
+                finalSizeKB = Math.ceil(uploaded.size / 1024);
+              } else {
+                if (!meta.url)
+                  throw new Error(
+                    `url wajib diisi untuk file "${meta.name}" yang tidak diupload ulang`,
+                  );
+                finalUrl = meta.url;
+                finalFormat = meta.format;
+                finalSizeKB = meta.sizeKB;
+              }
+
+              await tx.eLearningAssignmentSupportingFile.create({
+                data: {
+                  assignmentId: newAssignment.id,
+                  name: meta.name,
+                  type: meta.type,
+                  url: finalUrl,
+                  format: finalFormat,
+                  sizeKB: finalSizeKB,
+                  pageCount: meta.pageCount,
+                },
+              });
+            }
           }
         }
       }
@@ -1583,28 +1645,44 @@ export class ELearningTextService {
       // Bagian 3: Quiz
       let quizChangeLabel: string | null = null;
       if (quiz !== undefined) {
-        quizChangeLabel = hadQuizBefore
-          ? "memperbarui Quiz"
-          : "menambahkan Quiz";
-        oldValue.quiz = hadQuizBefore ? "ada" : null;
-        newValue.quiz = {
-          title: quiz.title,
-          totalQuestions: quiz.questions.length,
-          description: quiz.description,
-        };
+        if (quiz === null) {
+          // 🟢 Kasus: Quiz dihapus
+          quizChangeLabel = "menghapus Quiz";
+          oldValue.quiz = hadQuizBefore ? "ada" : null;
+          newValue.quiz = null;
+        } else {
+          // 🟢 Kasus: Quiz ditambahkan atau diupdate
+          quizChangeLabel = hadQuizBefore
+            ? "memperbarui Quiz"
+            : "menambahkan Quiz";
+          oldValue.quiz = hadQuizBefore ? "ada" : null;
+          newValue.quiz = {
+            title: quiz.title,
+            totalQuestions: quiz.questions.length,
+            description: quiz.description,
+          };
+        }
       }
 
       // Bagian 4: Assignment
       let assignmentChangeLabel: string | null = null;
       if (assignment !== undefined) {
-        assignmentChangeLabel = hadAssignmentBefore
-          ? "memperbarui Assignment"
-          : "menambahkan Assignment";
-        oldValue.assignment = hadAssignmentBefore ? "ada" : null;
-        newValue.assignment = {
-          title: assignment.title,
-          description: assignment.description,
-        };
+        if (assignment === null) {
+          // 🟢 Kasus: Assignment dihapus
+          assignmentChangeLabel = "menghapus Assignment";
+          oldValue.assignment = hadAssignmentBefore ? "ada" : null;
+          newValue.assignment = null;
+        } else {
+          // 🟢 Kasus: Assignment ditambahkan atau diupdate
+          assignmentChangeLabel = hadAssignmentBefore
+            ? "memperbarui Assignment"
+            : "menambahkan Assignment";
+          oldValue.assignment = hadAssignmentBefore ? "ada" : null;
+          newValue.assignment = {
+            title: assignment.title,
+            description: assignment.description,
+          };
+        }
       }
 
       // ── Susun description dinamis ──────────────────────────────────────

@@ -1024,6 +1024,10 @@ export default function CreateMaterialPage() {
           setTitle(data.title || "Untitled material");
           setStatus(data.status);
 
+          // 🔥 Track keberadaan quiz/assignment
+          setHasQuiz(!!data.quiz);
+          setHasAssignment(!!data.assignment);
+
           // Restore canvas items dari data backend (blocks + quiz + assignment)
           const mappedItems = mapMaterialToCanvasItems(data);
           if (mappedItems.length > 0) {
@@ -1090,6 +1094,9 @@ export default function CreateMaterialPage() {
   const [status, setStatus] = useState<"DRAFT" | "PUBLISHED" | "ARCHIVED">(
     "DRAFT",
   );
+  // ── State untuk track keberadaan quiz/assignment di database ──
+  const [hasQuiz, setHasQuiz] = useState(false);
+  const [hasAssignment, setHasAssignment] = useState(false);
 
   // true kalau state sekarang berbeda dari snapshot terakhir yang tersimpan
   const isDirty = useMemo(
@@ -1682,8 +1689,6 @@ export default function CreateMaterialPage() {
         }
 
         case "true-false": {
-          // TrueFalseBody stores: { title, description, questions: [{id, statement, answer}] }
-          // statement is HTML — htmlToMarkdown may return empty string → Zod min(1) fails
           const tfOptions = (d.questions ?? [])
             .map((q: any, i: number) => {
               const raw = htmlToMarkdown(q.statement ?? "");
@@ -1697,7 +1702,8 @@ export default function CreateMaterialPage() {
             })
             .filter(Boolean);
 
-          if (tfOptions.length >= 2) {
+          // ✅ Minimal 1 soal (tidak harus 2)
+          if (tfOptions.length >= 1) {
             additionalContents.push({
               type: "multiple_choice",
               position: "AFTER",
@@ -1912,11 +1918,17 @@ export default function CreateMaterialPage() {
           formData.append("mediaFiles", file);
         }
 
+        // 🔥 QUIZ: Kirim null hanya jika sebelumnya ada quiz
         if (quizItem) {
           const quiz = buildQuizPayload(quizItem);
           formData.append("quiz", JSON.stringify(quiz));
+        } else if (hasQuiz) {
+          // Hanya kirim null jika sebelumnya ada quiz (berarti dihapus)
+          formData.append("quiz", "null");
         }
+        // Jika tidak ada quizItem dan hasQuiz = false, jangan kirim field
 
+        // 🔥 ASSIGNMENT: Kirim null hanya jika sebelumnya ada assignment
         if (projectItem) {
           const { assignment, supportingFilesToUpload } =
             buildAssignmentPayload(projectItem);
@@ -1924,7 +1936,11 @@ export default function CreateMaterialPage() {
           for (const file of supportingFilesToUpload) {
             formData.append("supportingFiles", file);
           }
+        } else if (hasAssignment) {
+          // Hanya kirim null jika sebelumnya ada assignment (berarti dihapus)
+          formData.append("assignment", "null");
         }
+        // Jika tidak ada projectItem dan hasAssignment = false, jangan kirim field
 
         const res = await axios.put(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/elearningText/texts/${textId}`,

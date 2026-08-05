@@ -13,7 +13,7 @@ export class ELearningQuizAttemptService {
   static async startQuizAttempt(
     quizId: string,
     user: { userId: string; roles: string[] },
-    answers: Record<string, string>,
+    answers: Record<string, string | string[]>, // 🔥 diubah
   ) {
     return await prisma.$transaction(async (tx) => {
       const quiz = await tx.eLearningQuiz.findUnique({
@@ -46,7 +46,7 @@ export class ELearningQuizAttemptService {
             userId: user.userId,
             status: {
               in: ["active", "confirmed", "completed"],
-            }, // sesuaikan jika enum / value berbeda
+            },
             startAt: { lte: now },
             endAt: { gte: now },
           },
@@ -59,12 +59,14 @@ export class ELearningQuizAttemptService {
         }
       }
 
-      // ===== Cek apakah sudah pernah mengerjakan =====
-      const existingAttempt = await tx.eLearningQuizAttempt.findUnique({
-        where: { quizId_userId: { quizId, userId: user.userId } },
+      const MAX_ATTEMPTS = 2;
+      const attemptCount = await tx.eLearningQuizAttempt.count({
+        where: { quizId, userId: user.userId },
       });
-      if (existingAttempt) {
-        throw new Error("Kamu sudah pernah mengerjakan quiz ini");
+      if (attemptCount >= MAX_ATTEMPTS) {
+        throw new Error(
+          "Kamu sudah mencapai batas maksimal 2 kali percobaan untuk quiz ini",
+        );
       }
 
       // ===== Validasi jawaban lengkap =====
@@ -75,10 +77,38 @@ export class ELearningQuizAttemptService {
         );
       }
 
+      // 🔥 BARU: helper buat normalisasi jawaban (string tunggal ATAU array)
+      // jadi Set, supaya soal single-answer & multi-answer bisa dinilai
+      // dengan logika yang sama — dianggap benar kalau set jawaban yang
+      // dikirim user PERSIS SAMA (bukan subset/superset) dengan set
+      // correctAnswers.
+      const toAnswerSet = (
+        value: string | string[] | undefined,
+      ): Set<string> => {
+        if (value === undefined) return new Set();
+        const arr = Array.isArray(value) ? value : [value];
+        return new Set(
+          arr.filter((v) => v !== undefined && v !== null && v !== ""),
+        );
+      };
+
+      const isAnswerCorrect = (
+        correctAnswers: string[],
+        submitted: string | string[] | undefined,
+      ): boolean => {
+        const correctSet = toAnswerSet(correctAnswers);
+        const submittedSet = toAnswerSet(submitted);
+        if (correctSet.size !== submittedSet.size) return false;
+        for (const val of correctSet) {
+          if (!submittedSet.has(val)) return false;
+        }
+        return true;
+      };
+
       // ===== Hitung skor =====
       let correctCount = 0;
       for (const q of quiz.questions) {
-        if (q.correctAnswers.includes(answers[q.id])) {
+        if (isAnswerCorrect(q.correctAnswers, answers[q.id])) {
           correctCount++;
         }
       }
@@ -97,8 +127,9 @@ export class ELearningQuizAttemptService {
           id: attemptId,
           quizId,
           userId: user.userId,
+          attemptNumber: attemptCount + 1,
           score,
-          answers,
+          answers, // Json — otomatis nyimpen campuran string/array apa adanya
           startedAt: now,
           completedAt: now,
           gradedAt: now,
@@ -119,12 +150,7 @@ export class ELearningQuizAttemptService {
                       subChapter: {
                         select: {
                           title: true,
-                          course: {
-                            select: {
-                              id: true,
-                              title: true,
-                            },
-                          },
+                          course: { select: { id: true, title: true } },
                         },
                       },
                     },
@@ -137,11 +163,17 @@ export class ELearningQuizAttemptService {
       });
 
       return {
-        attemptId: attempt.id,
+        id: attempt.id,
+        quizId: attempt.quizId,
         quizTitle: attempt.quiz.title,
         score,
+        answers: attempt.answers,
         correctAnswers: correctCount,
         totalQuestions,
+        attemptNumber: attempt.attemptNumber,
+        attemptsRemaining: Math.max(MAX_ATTEMPTS - attempt.attemptNumber, 0),
+        startedAt: attempt.startedAt,
+        completedAt: attempt.completedAt,
         gradedAt: attempt.gradedAt,
         course: attempt.quiz.text?.subBab?.subChapter?.course,
       };
@@ -291,7 +323,7 @@ export class ELearningQuizAttemptService {
           userId: user.userId,
           status: {
             in: ["active", "confirmed", "completed"],
-          }, // sesuaikan jika enum / value berbeda
+          },
           startAt: { lte: now },
           endAt: { gte: now },
         },
@@ -318,7 +350,10 @@ export class ELearningQuizAttemptService {
         }),
       ]);
 
-      if (!data.length) throw new Error("Belum ada attempt untuk quiz ini");
+      // 🔥 FIX: belum pernah mengerjakan itu kondisi NORMAL (baru pertama
+      // kali buka quiz), bukan error — biarkan balik 200 dengan data
+      // kosong, bukan throw. Ini juga yang bikin GET /attempts/me kena
+      // 500 begitu quiz belum pernah dikerjakan sama sekali.
       return {
         total,
         page,

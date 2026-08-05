@@ -78,8 +78,13 @@ import {
   RotateCcw,
   PartyPopper,
   XCircle,
+  Loader2,
+  Clock,
+  FileCheck2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { useElearningQuizAttempt } from "@/hooks/useElearningQuizAttempt";
+import { useElearningAssignmentSubmission } from "@/hooks/useElearningAssignmentSubmission";
 
 /* ================= KEYWORD → ICON PICKER (block-level title icon) =================
  * 🔥 Dulu icon di kiri title Accordion/Tab Navigation/Content Card/Carousel
@@ -344,17 +349,73 @@ const QuizRenderer = ({
 
   const isStepMode = questions.length > 5;
 
+  // ================= INTEGRASI API ATTEMPT =================
+  // 🔥 BARU: history attempt (buat tau nilai terakhir + sisa kesempatan
+  // begitu halaman di-refresh) & fungsi submit jawaban ke backend, lihat
+  // hooks/useElearningQuizAttempt.ts.
+  const {
+    isLoadingHistory,
+    latestAttempt,
+    attemptsRemaining,
+    hasReachedMaxAttempts,
+    isPerfectScore,
+    isSubmitting,
+    submitAttempt,
+  } = useElearningQuizAttempt(quiz.id);
+
   const [currentStep, setCurrentStep] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, string[]>>({});
+  const [answers, setAnswers] = useState<Record<string, string[]>>({});
   const [submitted, setSubmitted] = useState(false);
+  // 🔥 BARU: true selama user lagi ngerjain ULANG (attempt ke-2) — dipakai
+  // supaya effect restore-dari-history di bawah nggak nimpa form kosong
+  // yang lagi dikerjain user dengan jawaban attempt sebelumnya.
+  const [isRetrying, setIsRetrying] = useState(false);
+
+  // 🔥 BARU: begitu history attempt selesai dimuat, kalau ternyata user
+  // SUDAH PERNAH mengerjakan quiz ini (ada latestAttempt), langsung
+  // tampilkan hasil percobaan terakhirnya (termasuk kalau halaman baru
+  // saja di-refresh) — bukan form kosong.
+  useEffect(() => {
+    if (isLoadingHistory || isRetrying) return;
+    if (!latestAttempt) return;
+
+    const restored: Record<string, string[]> = {};
+    Object.entries(latestAttempt.answers ?? {}).forEach(
+      ([questionId, value]) => {
+        if (Array.isArray(value)) restored[questionId] = value;
+        else if (typeof value === "string") restored[questionId] = [value];
+      },
+    );
+
+    setAnswers(restored);
+    setSubmitted(true);
+  }, [isLoadingHistory, latestAttempt, isRetrying]);
 
   /* ================= LOGIC ================= */
 
-  const toggleAnswer = (questionId: number, option: string) => {
-    if (submitted) return;
+  // 🔥 FIX: sebelumnya toggleAnswer selalu treat semua soal sebagai
+  // multi-select (push/remove ke array), padahal soal single-answer
+  // seharusnya kelakuannya seperti radio button — pilih 1 opsi otomatis
+  // mengganti pilihan sebelumnya, bukan menambah ke array. Sekarang
+  // dibedakan pakai `isMultiAnswer` (diturunkan dari `correctAnswers.length
+  // > 1`, lihat pemanggilannya di bawah): kalau false → ganti total isi
+  // array jadi cuma opsi yang baru diklik (atau kosongkan kalau opsi yang
+  // sama diklik lagi buat batalkan pilihan); kalau true → tetap
+  // toggle/push-remove seperti checkbox biasa.
+  const toggleAnswer = (
+    questionId: string,
+    option: string,
+    isMultiAnswer: boolean,
+  ) => {
+    if (submitted || isSubmitting) return;
 
     setAnswers((prev) => {
       const current = prev[questionId] || [];
+
+      if (!isMultiAnswer) {
+        const alreadySelected = current.includes(option);
+        return { ...prev, [questionId]: alreadySelected ? [] : [option] };
+      }
 
       const updated = current.includes(option)
         ? current.filter((o) => o !== option)
@@ -378,21 +439,67 @@ const QuizRenderer = ({
     (q: any) => (answers[q.id] || []).length > 0,
   );
 
-  const correctCount = questions.filter((q: any) => checkIsCorrect(q)).length;
+  // 🔥 Skor yang ditampilkan SETELAH submit selalu ambil dari backend
+  // (`latestAttempt.score`) — bukan dihitung ulang di client — supaya
+  // nilai yang tersimpan di history konsisten dengan yang di tampilkan.
+  // Sebelum ada attempt tersimpan, fallback ke hitungan lokal cuma buat
+  // kebutuhan UI non-submitted (tidak pernah benar-benar ditampilkan).
+  const localCorrectCount = questions.filter((q: any) =>
+    checkIsCorrect(q),
+  ).length;
+  const score =
+    latestAttempt?.score ??
+    Math.round((localCorrectCount / questions.length) * 100);
+  const isAllCorrect = isPerfectScore;
 
-  const score = Math.round((correctCount / questions.length) * 100);
-  const passed = score >= 80;
+  // 🔥 BARU: "Coba Lagi" cuma tersedia kalau belum dapat nilai sempurna
+  // DAN masih ada sisa kesempatan (max 2x percobaan).
+  const canRetry = submitted && !isAllCorrect && attemptsRemaining > 0;
 
+  const handleSubmit = async () => {
+    setShowConfirmModal(false);
+
+    // 🔥 Selalu kirim array opsi terpilih per soal (walau soalnya
+    // single-answer, cukup array berisi 1 elemen) — backend menormalisasi
+    // string vs array jadi Set yang sama, jadi tidak perlu FE bedain
+    // single/multi-answer per soal.
+    const payloadAnswers: Record<string, string[]> = {};
+    questions.forEach((q: any) => {
+      const selected = answers[q.id] ?? [];
+      if (selected.length > 0) payloadAnswers[q.id] = selected;
+    });
+
+    const attempt = await submitAttempt(payloadAnswers);
+    if (!attempt) return; // gagal → toast error sudah ditampilkan oleh hook
+
+    setIsRetrying(false);
+    setSubmitted(true);
+    onSubmitScore?.(attempt.score ?? 0);
+  };
+
+  // 🔥 BARU: "Coba Lagi" mengosongkan form (bukan cuma unlock submit) dan
+  // masuk mode isRetrying supaya history attempt sebelumnya nggak ikut
+  // dipakai buat isi ulang jawaban.
   const handleReset = () => {
     setAnswers({});
     setSubmitted(false);
     setCurrentStep(0);
+    setIsRetrying(true);
     onReset?.();
   };
 
   // Setelah submit → tampil semua (scroll mode)
   const visibleQuestions =
     isStepMode && !submitted ? [questions[currentStep]] : questions;
+
+  if (isLoadingHistory) {
+    return (
+      <div className="flex items-center justify-center min-h-[40vh] gap-3 text-sm text-gray-500">
+        <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
+        Memuat riwayat quiz...
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-6xl">
@@ -458,6 +565,15 @@ const QuizRenderer = ({
           const currentAnswers = answers[q.id] || [];
           const isCorrect = checkIsCorrect(q);
 
+          // 🔥 BARU: backend belum punya field `questionType` eksplisit
+          // ("single" | "multiple") kayak di admin (MaterialPreviewModal
+          // → QuizModalPreview: `q.questionType === "multiple"`) — tapi FE
+          // sudah dapat `correctAnswers` per soal, jadi tipe soal cukup
+          // diturunkan dari situ: lebih dari 1 jawaban benar = multi-answer.
+          // Ini otomatis konsisten dengan cara backend menilai jawaban
+          // (dibandingkan sebagai SET), jadi tidak perlu field tambahan.
+          const isMultiAnswer = (q.correctAnswers?.length ?? 0) > 1;
+
           return (
             <div key={q.id} id={`question-${index}`} className="space-y-4">
               <p className="text-2xl font-bold text-black">
@@ -483,27 +599,47 @@ const QuizRenderer = ({
                 }}
               />
 
+              {/* 🔥 BARU: keterangan soal multi-answer — sama persis teks
+                  & style-nya dengan admin (QuizModalPreview:
+                  `q.questionType === "multiple"` → "Pilih semua jawaban
+                  yang sesuai."), supaya user tahu soal ini butuh lebih
+                  dari satu jawaban dicentang. */}
+              {isMultiAnswer && (
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                  Pilih semua jawaban yang sesuai.
+                </p>
+              )}
+
               {/* OPTIONS */}
               <div className="pl-8 space-y-4 pt-4">
                 {q.options.map((opt: string) => {
                   const checked = currentAnswers.includes(opt);
                   const isCorrectOption = q.correctAnswers.includes(opt);
 
+                  // 🔥 BARU: bentuk indikator sekarang FIX per tipe soal —
+                  // bulat (rounded-full, kayak radio button) buat soal
+                  // single-answer, kotak (rounded-md, kayak checkbox) buat
+                  // soal multi-answer — bukan berubah-ubah tergantung
+                  // checked/submitted seperti sebelumnya. Ini yang bikin
+                  // user bisa langsung bedain dari bentuknya, bukan cuma
+                  // dari teks keterangan di atas.
+                  const shapeClass = isMultiAnswer
+                    ? "rounded-md"
+                    : "rounded-full";
+
                   let borderStyle = "border-gray-200";
-                  let checkboxStyle =
-                    "w-6 h-6 border-2 border-gray-500 rounded-full";
+                  let checkboxStyle = `w-6 h-6 border-2 border-gray-500 ${shapeClass}`;
 
                   if (submitted && checked) {
                     if (isCorrectOption) {
                       borderStyle = "border-emerald-500";
-                      checkboxStyle =
-                        "w-6 h-6 bg-emerald-500 rounded-md p-[3px]";
+                      checkboxStyle = `w-6 h-6 bg-emerald-500 ${shapeClass} p-[3px]`;
                     } else {
                       borderStyle = "border-red-500";
-                      checkboxStyle = "w-6 h-6 bg-red-500 rounded-md p-[3px]";
+                      checkboxStyle = `w-6 h-6 bg-red-500 ${shapeClass} p-[3px]`;
                     }
                   } else if (checked) {
-                    checkboxStyle = "w-6 h-6 bg-emerald-500 rounded-md p-[3px]";
+                    checkboxStyle = `w-6 h-6 bg-emerald-500 ${shapeClass} p-[3px]`;
                   }
 
                   return (
@@ -514,8 +650,8 @@ const QuizRenderer = ({
                       <input
                         type="checkbox"
                         checked={checked}
-                        onChange={() => toggleAnswer(q.id, opt)}
-                        disabled={submitted}
+                        onChange={() => toggleAnswer(q.id, opt, isMultiAnswer)}
+                        disabled={submitted || isSubmitting}
                         className="hidden"
                       />
 
@@ -591,10 +727,10 @@ const QuizRenderer = ({
       {!isStepMode && !submitted && (
         <div className="bg-white flex justify-center pl-28 pr-8 pb-16">
           <button
-            disabled={!allAnswered || submitted}
+            disabled={!allAnswered || submitted || isSubmitting}
             onClick={() => setShowConfirmModal(true)}
             className={`flex items-center gap-3 px-10 py-4 rounded-xl font-semibold text-base transition ${
-              !allAnswered || submitted
+              !allAnswered || submitted || isSubmitting
                 ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                 : "bg-emerald-500 text-white hover:bg-emerald-600"
             }`}
@@ -618,10 +754,10 @@ const QuizRenderer = ({
 
           {currentStep === questions.length - 1 ? (
             <button
-              disabled={!allAnswered}
+              disabled={!allAnswered || isSubmitting}
               onClick={() => setShowConfirmModal(true)}
               className={`flex items-center gap-3 px-10 py-4 rounded-xl font-semibold transition ${
-                !allAnswered
+                !allAnswered || isSubmitting
                   ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                   : "bg-emerald-500 text-white hover:bg-emerald-600"
               }`}
@@ -664,19 +800,18 @@ const QuizRenderer = ({
             <div className="flex gap-4 pt-2">
               <button
                 onClick={() => setShowConfirmModal(false)}
-                className="flex-1 border border-emerald-500 text-emerald-600 py-3 rounded-lg font-semibold hover:bg-emerald-50 transition"
+                disabled={isSubmitting}
+                className="flex-1 border border-emerald-500 text-emerald-600 py-3 rounded-lg font-semibold hover:bg-emerald-50 transition disabled:opacity-60"
               >
                 Cek Lagi
               </button>
 
               <button
-                onClick={() => {
-                  setShowConfirmModal(false);
-                  setSubmitted(true);
-                  onSubmitScore?.(score);
-                }}
-                className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-lg font-semibold transition"
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-lg font-semibold transition disabled:opacity-60 flex items-center justify-center gap-2"
               >
+                {isSubmitting && <Loader2 size={18} className="animate-spin" />}
                 Kirim Jawaban
               </button>
             </div>
@@ -685,58 +820,225 @@ const QuizRenderer = ({
       )}
 
       {/* ================= AFTER SUBMIT RESULT PANEL ================= */}
-      {submitted && (
-        <div className="w-full flex justify-center mb-16">
-          <div className="bg-[#F9F9F9] border border-gray-200 rounded-2xl ml-20 p-10 text-center space-y-6 max-w-3xl w-full">
-            {!passed ? (
-              <>
-                <h2 className="text-2xl font-bold text-gray-800">
-                  Belum Lulus ..
-                </h2>
+      {submitted &&
+        (() => {
+          // 🔥 BARU: satu sumber warna/tone buat seluruh panel — biar nilai
+          // & bahasa visualnya konsisten. "warning" (kuning/amber) dipakai
+          // khusus buat kondisi "belum tepat semua TAPI masih ada
+          // kesempatan" — beda dari "danger" (merah) yang final/sudah
+          // habis kesempatan. Ini murni visual, teks & logic-nya sama
+          // persis seperti sebelumnya.
+          const tone: "success" | "warning" | "danger" = isAllCorrect
+            ? "success"
+            : canRetry
+              ? "warning"
+              : "danger";
 
-                <p className="text-gray-600">
-                  Nilai kamu {score} poin. Nilai minimum kelulusan adalah 80
-                  poin. Silakan mengulang kuis untuk meningkatkan pemahaman
-                  sebelum melanjutkan.
-                </p>
+          const toneStyles = {
+            success: {
+              panelBg: "bg-gradient-to-b from-emerald-50 via-white to-white",
+              panelBorder: "border-emerald-200",
+              iconBg: "bg-emerald-500",
+              scoreRing: "border-emerald-500",
+              scoreGlow: "shadow-[0_0_0_8px_rgba(16,185,129,0.12)]",
+              scoreText: "text-emerald-600",
+              barColor: "bg-emerald-500",
+              badgeBg: "bg-emerald-100 text-emerald-700",
+              headline: "text-emerald-700",
+            },
+            warning: {
+              panelBg: "bg-gradient-to-b from-amber-50 via-white to-white",
+              panelBorder: "border-amber-200",
+              iconBg: "bg-amber-500",
+              scoreRing: "border-amber-500",
+              scoreGlow: "shadow-[0_0_0_8px_rgba(245,158,11,0.12)]",
+              scoreText: "text-amber-600",
+              barColor: "bg-amber-500",
+              badgeBg: "bg-amber-100 text-amber-700",
+              headline: "text-amber-700",
+            },
+            danger: {
+              panelBg: "bg-gradient-to-b from-red-50 via-white to-white",
+              panelBorder: "border-red-200",
+              iconBg: "bg-red-500",
+              scoreRing: "border-red-500",
+              scoreGlow: "shadow-[0_0_0_8px_rgba(239,68,68,0.12)]",
+              scoreText: "text-red-600",
+              barColor: "bg-red-500",
+              badgeBg: "bg-red-100 text-red-700",
+              headline: "text-red-700",
+            },
+          }[tone];
 
-                <button
-                  onClick={handleReset}
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-3 rounded-lg font-semibold transition"
+          return (
+            <div className="w-full flex justify-center mb-16">
+              <div
+                key={`quiz-result-${quiz.id}-${latestAttempt?.id ?? "local"}`}
+                className={`quiz-result-panel ${toneStyles.panelBg} border ${toneStyles.panelBorder} rounded-3xl shadow-lg ml-20 px-10 pt-10 pb-9 text-center max-w-3xl w-full`}
+              >
+                {/* ================= ICON ================= */}
+                <div
+                  className={`quiz-result-icon ${
+                    tone === "success"
+                      ? "quiz-result-icon--success"
+                      : "quiz-result-icon--error"
+                  } mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full ${toneStyles.iconBg}`}
                 >
-                  Ulangi Kuis
-                </button>
-              </>
-            ) : (
-              <>
-                <h2 className="text-2xl font-bold text-gray-800">
-                  Selamat! 🎉
-                </h2>
-
-                <p className="text-gray-600">
-                  Nilai kamu {score} poin dan telah mencapai nilai minimum
-                  kelulusan. Silakan mengunduh sertifikat atau ulangi kuis untuk
-                  memperdalam pemahaman.
-                </p>
-
-                <div className="flex justify-center gap-4 pt-2">
-                  <button
-                    onClick={handleReset}
-                    className="border border-emerald-500 text-emerald-600 px-6 py-3 rounded-lg font-semibold hover:bg-emerald-50 transition"
-                  >
-                    Ulangi Kuis
-                  </button>
-
-                  <button className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-lg font-semibold transition">
-                    Unduh Sertifikat
-                    <ArrowRight size={18} />
-                  </button>
+                  {tone === "success" ? (
+                    <PartyPopper size={30} className="text-white" />
+                  ) : tone === "warning" ? (
+                    <AlertCircle size={30} className="text-white" />
+                  ) : (
+                    <XCircle size={30} className="text-white" />
+                  )}
                 </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+
+                {/* ================= SKOR — DITONJOLKAN ================= */}
+                <div
+                  className={`quiz-score-badge mx-auto mb-6 flex h-32 w-32 flex-col items-center justify-center rounded-full border-4 bg-white ${toneStyles.scoreRing} ${toneStyles.scoreGlow}`}
+                >
+                  <span
+                    className={`text-4xl font-extrabold leading-none ${toneStyles.scoreText}`}
+                  >
+                    {score}
+                  </span>
+                  <span className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                    / 100 Poin
+                  </span>
+                </div>
+
+                {/* Progress bar tipis di bawah skor — representasi visual
+                    tambahan dari angka yang sama, bukan info baru. */}
+                <div className="mx-auto mb-7 h-2 w-full max-w-xs overflow-hidden rounded-full bg-gray-100">
+                  <div
+                    className={`quiz-score-bar h-full rounded-full ${toneStyles.barColor}`}
+                    style={{ width: `${Math.max(score, 0)}%` }}
+                  />
+                </div>
+
+                {tone === "success" ? (
+                  <>
+                    {/* 🔥 BARU: animasi jawaban benar semua — muncul baik
+                        di percobaan pertama maupun kedua, selama skornya
+                        100. */}
+                    <h2 className={`text-2xl font-bold ${toneStyles.headline}`}>
+                      Selamat! Jawabanmu benar semua 🎉
+                    </h2>
+
+                    <p className="mt-2 text-gray-600">
+                      Nilai kamu {score} poin. Kerja bagus, semua jawaban sudah
+                      tepat!
+                    </p>
+
+                    {/* 🔥 Skor sempurna → tidak ada tombol "Ulangi Kuis"
+                        lagi, sesuai permintaan. */}
+                    {/* <div className="flex justify-center gap-4 pt-5">
+                      <button className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-lg font-semibold shadow-sm transition">
+                        Unduh Sertifikat
+                        <ArrowRight size={18} />
+                      </button>
+                    </div> */}
+                  </>
+                ) : tone === "warning" ? (
+                  <>
+                    <h2 className={`text-2xl font-bold ${toneStyles.headline}`}>
+                      Belum Tepat Semua
+                    </h2>
+
+                    <p className="mt-2 text-gray-600">
+                      Nilai kamu {score} poin. Masih ada jawaban yang kurang
+                      tepat.
+                    </p>
+
+                    {/* 🔥 BARU: keterangan sisa kesempatan, sekarang dalam
+                        bentuk badge/pill supaya lebih menonjol daripada
+                        teks polos. */}
+                    <span
+                      className={`mt-4 inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold ${toneStyles.badgeBg}`}
+                    >
+                      Kamu tinggal memiliki {attemptsRemaining} kali kesempatan
+                      untuk mengerjakan ulang.
+                    </span>
+
+                    <div className="pt-6">
+                      <button
+                        onClick={handleReset}
+                        className="bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-3 rounded-lg font-semibold shadow-sm transition"
+                      >
+                        Coba Lagi
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* 🔥 BARU: sudah 2x percobaan & masih belum 100 →
+                        nilai final apa adanya, tanpa tombol "Coba Lagi". */}
+                    <h2 className={`text-2xl font-bold ${toneStyles.headline}`}>
+                      Sayang Sekali..
+                    </h2>
+
+                    <p className="mt-2 text-gray-600">
+                      Nilai terakhir yang kamu dapatkan adalah {score} poin.
+                      Kesempatan mengerjakan quiz ini sudah habis.
+                    </p>
+                  </>
+                )}
+              </div>
+
+              {/* 🔥 Animasi murni CSS keyframes, sama polanya dengan banner
+                  hasil di RenderSubModuleContent (assessment-result-banner)
+                  — di-inject sebagai <style> biasa supaya tidak bergantung
+                  pada styled-jsx. */}
+              <style>{`
+                .quiz-result-panel {
+                  animation: quizResultIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+                }
+                .quiz-result-icon--success {
+                  animation:
+                    quizIconPop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both,
+                    quizRingPulse 1.6s ease-out 0.65s infinite;
+                }
+                .quiz-result-icon--error {
+                  animation: quizIconShake 0.55s ease-in-out 0.1s both;
+                }
+                .quiz-score-badge {
+                  animation: quizScorePop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s both;
+                }
+                .quiz-score-bar {
+                  animation: quizBarGrow 0.8s ease-out 0.35s both;
+                }
+                @keyframes quizResultIn {
+                  from { opacity: 0; transform: translateY(16px) scale(0.96); }
+                  to { opacity: 1; transform: translateY(0) scale(1); }
+                }
+                @keyframes quizIconPop {
+                  0% { transform: scale(0) rotate(-15deg); opacity: 0; }
+                  60% { transform: scale(1.2) rotate(5deg); opacity: 1; }
+                  100% { transform: scale(1) rotate(0deg); }
+                }
+                @keyframes quizIconShake {
+                  0%, 100% { transform: translateX(0) scale(1); }
+                  20% { transform: translateX(-6px) scale(1.05); }
+                  40% { transform: translateX(6px) scale(1.05); }
+                  60% { transform: translateX(-4px) scale(1.05); }
+                  80% { transform: translateX(4px) scale(1.05); }
+                }
+                @keyframes quizRingPulse {
+                  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.45); }
+                  100% { box-shadow: 0 0 0 14px rgba(16, 185, 129, 0); }
+                }
+                @keyframes quizScorePop {
+                  0% { transform: scale(0.5); opacity: 0; }
+                  70% { transform: scale(1.08); opacity: 1; }
+                  100% { transform: scale(1); }
+                }
+                @keyframes quizBarGrow {
+                  from { width: 0%; }
+                }
+              `}</style>
+            </div>
+          );
+        })()}
     </div>
   );
 };
@@ -754,38 +1056,29 @@ function AssignmentRenderer({
   a: any;
   onAssignmentScore?: (score: number | null) => void;
 }) {
+  // ================= INTEGRASI API SUBMISSION =================
+  // 🔥 BARU: history submission (buat tau status/nilai/feedback terakhir
+  // begitu halaman di-refresh) & fungsi kirim tugas ke backend, lihat
+  // hooks/useElearningAssignmentSubmission.ts.
+  const {
+    isLoadingHistory,
+    latestSubmission,
+    attemptsRemaining,
+    isPending,
+    isApproved,
+    needsRevision,
+    canRetry,
+    isSubmitting,
+    submitAssignment,
+  } = useElearningAssignmentSubmission(a?.id);
+
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [note, setNote] = useState("");
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [submittedAt, setSubmittedAt] = useState<Date | null>(null);
-
-  type ReviewStatus = "pending" | "passed" | "failed";
-  const [reviewStatus, setReviewStatus] = useState<ReviewStatus>("pending");
-  const [mentorFeedback, setMentorFeedback] = useState<string | null>(null);
-  const [reviewedAt, setReviewedAt] = useState<Date | null>(null);
-  const [score, setScore] = useState<number | null>(null);
-
-  const applyReview = (
-    status: ReviewStatus,
-    scoreValue?: number,
-    feedbackValue?: string,
-  ) => {
-    setReviewStatus(status);
-
-    if (status === "pending") {
-      setScore(null);
-      setMentorFeedback(null);
-      setReviewedAt(null);
-      onAssignmentScore?.(null);
-    } else {
-      setScore(scoreValue ?? null);
-      setMentorFeedback(feedbackValue ?? null);
-      setReviewedAt(new Date());
-
-      onAssignmentScore?.(scoreValue ?? null);
-    }
-  };
+  // 🔥 BARU: true selama user lagi mengumpulkan REVISI (attempt ke-2) —
+  // dipakai supaya form upload tampil kosong lagi walau `latestSubmission`
+  // dari attempt pertama masih ada di hook.
+  const [isRetrying, setIsRetrying] = useState(false);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -806,6 +1099,34 @@ function AssignmentRenderer({
     return null;
   };
 
+  // 🔥 BARU: nama file dari URL yang tersimpan di backend (submission yang
+  // sudah dikirim), buat ditampilkan di panel "sudah dikumpulkan" —
+  // beda dari `uploadedFiles` (objek File lokal) yang cuma ada selagi
+  // ngisi form yang belum disubmit.
+  const getFileNameFromUrl = (url: string) =>
+    decodeURIComponent(url.split("/").pop() ?? url);
+
+  const handleSubmit = async () => {
+    setShowConfirmModal(false);
+
+    const submission = await submitAssignment(uploadedFiles, note);
+    if (!submission) return; // gagal → toast error sudah ditampilkan hook
+
+    setIsRetrying(false);
+    setUploadedFiles([]);
+    setNote("");
+    onAssignmentScore?.(submission.score ?? null);
+  };
+
+  // 🔥 BARU: "Kumpulkan Revisi" — form dikosongkan total (bukan cuma buka
+  // kunci submit), masuk mode isRetrying supaya file/notes attempt
+  // sebelumnya nggak ikut nempel di form yang baru.
+  const handleStartRevision = () => {
+    setUploadedFiles([]);
+    setNote("");
+    setIsRetrying(true);
+  };
+
   // 🔥 GUARD tambahan (di luar fix race di SubchapterDetail.tsx): kalau
   // karena alasan apa pun `a` yang sampai ke sini masih null/undefined
   // (mis. Text-nya kepilih sebagai "assignment" tapi relasi assignment-nya
@@ -816,6 +1137,20 @@ function AssignmentRenderer({
     return (
       <div className="flex items-center justify-center min-h-[30vh] text-sm text-gray-400">
         Proyek tidak ditemukan.
+      </div>
+    );
+  }
+
+  // 🔥 BARU: form upload ditampilkan kalau belum pernah submit sama
+  // sekali, ATAU lagi mode revisi (klik "Kumpulkan Revisi"). Selain itu
+  // (submission ada & bukan mode revisi) → tampilkan panel status.
+  const showUploadForm = !latestSubmission || isRetrying;
+
+  if (isLoadingHistory) {
+    return (
+      <div className="flex items-center justify-center min-h-[40vh] gap-3 text-sm text-gray-500">
+        <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
+        Memuat status pengumpulan tugas...
       </div>
     );
   }
@@ -897,21 +1232,36 @@ function AssignmentRenderer({
                       href={resolvedFileUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-between border rounded-lg px-5 py-4 hover:bg-gray-50 transition"
+                      className="flex items-center justify-between gap-4 border rounded-lg px-5 py-4 hover:bg-gray-50 transition"
                     >
-                      <div className="flex items-center gap-4">
+                      {/* 🔥 FIX: sebelumnya wrapper ini nggak punya
+                          `min-w-0`, jadi nama file yang panjang bebas
+                          melebarkan div ini sampai mendesak/menabrak
+                          tombol unduh di kanan (flex child default-nya
+                          `min-width: auto`, bukan `0`, jadi nggak pernah
+                          mau menyusut). Sekarang dikasih `min-w-0 flex-1`
+                          biar wrapper ini yang menyusut duluan, dan nama
+                          filenya sendiri di-`truncate` (potong + "...")
+                          kalau kepanjangan — sama persis polanya dengan
+                          preview file upload di section kanan yang sudah
+                          benar dari awal. */}
+                      <div className="flex items-center gap-4 min-w-0 flex-1">
                         <Image
                           src="/assets/elearning/download-1.svg"
                           alt="file"
                           width={36}
                           height={36}
+                          className="shrink-0"
                         />
 
-                        <div>
-                          <p className="text-base font-semibold text-black mb-1">
+                        <div className="min-w-0">
+                          <p
+                            className="text-base font-semibold text-black mb-1 truncate"
+                            title={f.name}
+                          >
                             {f.name}
                           </p>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-gray-500 truncate">
                             {f.pageCount ? `${f.pageCount} pages | ` : ""}
                             {f.format.toUpperCase()} |{" "}
                             {formatFileSize(f.sizeKB)}
@@ -954,39 +1304,32 @@ function AssignmentRenderer({
               </div>
 
               <h2 className="text-2xl font-bold text-gray-800">
-                Kirim Tugas Proyek?
+                {isRetrying ? "Kirim Revisi Tugas?" : "Kirim Tugas Proyek?"}
               </h2>
 
               <p className="text-gray-600 text-sm leading-relaxed">
-                Setelah dikirim, tugas tidak dapat diedit atau dikirim ulang.
+                {isRetrying
+                  ? "Ini adalah kesempatan terakhirmu mengumpulkan tugas ini. Pastikan file & catatan sudah sesuai revisi yang diminta."
+                  : "Setelah dikirim, tugas akan menunggu penilaian dan tidak dapat diedit sampai hasil review keluar."}
               </p>
 
               <div className="flex gap-4 pt-2">
                 <button
                   onClick={() => setShowConfirmModal(false)}
-                  className="flex-1 border border-emerald-500 text-emerald-600 py-3 rounded-lg font-semibold hover:bg-emerald-50 transition"
+                  disabled={isSubmitting}
+                  className="flex-1 border border-emerald-500 text-emerald-600 py-3 rounded-lg font-semibold hover:bg-emerald-50 transition disabled:opacity-60"
                 >
                   Cek Lagi
                 </button>
 
                 <button
-                  onClick={() => {
-                    setShowConfirmModal(false);
-                    setIsSubmitted(true);
-                    setSubmittedAt(new Date());
-
-                    // ===== MANUAL TESTING =====
-                    // Ubah ini untuk testing
-                    // applyReview("pending");
-                    // applyReview("passed", 88, "Struktur laporan sangat baik.");
-                    applyReview(
-                      "failed",
-                      60,
-                      "Perlu perbaikan pada analisis data.",
-                    );
-                  }}
-                  className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-lg font-semibold transition"
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                  className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-lg font-semibold transition disabled:opacity-60 flex items-center justify-center gap-2"
                 >
+                  {isSubmitting && (
+                    <Loader2 size={18} className="animate-spin" />
+                  )}
                   Kirim Tugas
                 </button>
               </div>
@@ -994,10 +1337,21 @@ function AssignmentRenderer({
           </div>
         )}
         {/* ================= RIGHT (35%) ================= */}
-        {!isSubmitted ? (
+        {showUploadForm ? (
           <>
             <section className="overflow-y-auto pl-4 pr-4 space-y-6 pb-10">
-              <h2 className="text-xl font-bold text-black">Unggah File</h2>
+              <div>
+                <h2 className="text-xl font-bold text-black">Unggah File</h2>
+
+                {/* 🔥 BARU: keterangan mode revisi + sisa kesempatan,
+                    cuma muncul kalau ini attempt ke-2 (revisi). */}
+                {isRetrying && (
+                  <p className="mt-1 text-sm font-semibold text-amber-600">
+                    Ini kesempatan terakhirmu — tidak ada percobaan berikutnya
+                    setelah ini.
+                  </p>
+                )}
+              </div>
 
               {/* UPLOAD BOX */}
               <label
@@ -1085,17 +1439,29 @@ function AssignmentRenderer({
                 />
               </div>
 
-              <div className="flex justify-end pt-4">
+              <div className="flex justify-end gap-3 pt-4">
+                {/* 🔥 BARU: kalau lagi mode revisi, kasih opsi batal balik
+                    ke panel status sebelumnya tanpa harus submit. */}
+                {isRetrying && (
+                  <button
+                    onClick={() => setIsRetrying(false)}
+                    disabled={isSubmitting}
+                    className="text-sm font-medium py-2.5 px-4 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 transition disabled:opacity-60"
+                  >
+                    Batal
+                  </button>
+                )}
+
                 <button
                   onClick={() => setShowConfirmModal(true)}
-                  disabled={uploadedFiles.length === 0}
+                  disabled={uploadedFiles.length === 0 || isSubmitting}
                   className={`w-2/5 text-sm font-medium py-2.5 rounded-lg transition ${
-                    uploadedFiles.length === 0
+                    uploadedFiles.length === 0 || isSubmitting
                       ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                       : "bg-emerald-500 hover:bg-emerald-600 text-white"
                   }`}
                 >
-                  Kumpulkan Proyek →
+                  {isRetrying ? "Kumpulkan Revisi →" : "Kumpulkan Proyek →"}
                 </button>
               </div>
             </section>
@@ -1103,103 +1469,222 @@ function AssignmentRenderer({
         ) : (
           <>
             <section className="overflow-y-auto pl-4 pr-4 space-y-6 pb-10 min-h-0">
-              {/* Tanggal */}
+              {/* Tanggal + status */}
               <div className="flex justify-between items-center border rounded-lg px-4 py-3 bg-gray-50">
                 <div className="space-y-1">
                   <p className="text-sm text-gray-500">Dikumpulkan pada:</p>
                   <p className="text-base font-semibold text-black">
-                    {submittedAt?.toLocaleDateString("id-ID", {
-                      day: "2-digit",
-                      month: "long",
-                      year: "numeric",
-                    })}
+                    {latestSubmission?.submittedAt
+                      ? new Date(
+                          latestSubmission.submittedAt,
+                        ).toLocaleDateString("id-ID", {
+                          day: "2-digit",
+                          month: "long",
+                          year: "numeric",
+                        })
+                      : "-"}
                   </p>
                 </div>
 
                 <span
-                  className={`text-sm md:text-base font-bold px-4 py-1.5 rounded-full
-    ${
-      reviewStatus === "pending"
-        ? "bg-yellow-100 text-yellow-600"
-        : reviewStatus === "passed"
-          ? "bg-emerald-100 text-emerald-600"
-          : "bg-red-100 text-red-600"
-    }`}
+                  className={`text-sm md:text-base font-bold px-4 py-1.5 rounded-full ${
+                    isPending
+                      ? "bg-yellow-100 text-yellow-600"
+                      : isApproved
+                        ? "bg-emerald-100 text-emerald-600"
+                        : needsRevision
+                          ? "bg-amber-100 text-amber-600"
+                          : "bg-red-100 text-red-600"
+                  }`}
                 >
-                  {reviewStatus === "pending"
+                  {isPending
                     ? "Belum Direview"
-                    : reviewStatus === "passed"
+                    : isApproved
                       ? "Lulus"
-                      : "Tidak Lulus"}
+                      : needsRevision
+                        ? "Perlu Revisi"
+                        : "Tidak Lulus"}
                 </span>
               </div>
 
-              {reviewStatus !== "pending" && (
-                <div className="border rounded-lg p-5 bg-gray-50 space-y-3">
-                  <h3 className="text-base font-semibold text-emerald-600">
-                    Masukan dari Mentor
+              {/* ================= MENUNGGU PENILAIAN ================= */}
+              {isPending && (
+                <div className="assignment-status-card flex flex-col items-center text-center gap-3 rounded-xl border-2 border-dashed border-yellow-300 bg-yellow-50 px-6 py-8">
+                  <div className="assignment-status-icon flex h-14 w-14 items-center justify-center rounded-full bg-yellow-400">
+                    <Clock size={26} className="text-white" />
+                  </div>
+                  <h3 className="text-lg font-bold text-yellow-700">
+                    Menunggu Penilaian
+                  </h3>
+                  <p className="max-w-sm text-sm text-yellow-700/80">
+                    Tugasmu sudah kami terima dan sedang diperiksa oleh
+                    mentor/admin. Hasil penilaian akan muncul di halaman ini
+                    begitu selesai direview.
+                  </p>
+                </div>
+              )}
+
+              {/* ================= SUDAH DIREVIEW (lolos / perlu revisi / tidak lolus) ================= */}
+              {!isPending && (
+                <div
+                  className={`assignment-status-card rounded-xl border-2 px-6 py-7 text-center ${
+                    isApproved
+                      ? "border-emerald-300 bg-emerald-50"
+                      : needsRevision
+                        ? "border-amber-300 bg-amber-50"
+                        : "border-red-300 bg-red-50"
+                  }`}
+                >
+                  <div
+                    className={`assignment-status-icon mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full ${
+                      isApproved
+                        ? "bg-emerald-500"
+                        : needsRevision
+                          ? "bg-amber-500"
+                          : "bg-red-500"
+                    }`}
+                  >
+                    {isApproved ? (
+                      <FileCheck2 size={26} className="text-white" />
+                    ) : (
+                      <AlertCircle size={26} className="text-white" />
+                    )}
+                  </div>
+
+                  {typeof latestSubmission?.score === "number" && (
+                    <p
+                      className={`text-4xl font-extrabold ${
+                        isApproved
+                          ? "text-emerald-600"
+                          : needsRevision
+                            ? "text-amber-600"
+                            : "text-red-600"
+                      }`}
+                    >
+                      {latestSubmission.score}
+                      <span className="ml-1 text-base font-semibold text-gray-400">
+                        / 100
+                      </span>
+                    </p>
+                  )}
+
+                  <h3
+                    className={`mt-2 text-lg font-bold ${
+                      isApproved
+                        ? "text-emerald-700"
+                        : needsRevision
+                          ? "text-amber-700"
+                          : "text-red-700"
+                    }`}
+                  >
+                    {isApproved
+                      ? "Selamat, tugasmu lolos! 🎉"
+                      : needsRevision
+                        ? "Perlu revisi sebelum lolos"
+                        : "Belum memenuhi kriteria"}
                   </h3>
 
-                  <p className="text-sm text-gray-700 leading-relaxed">
-                    {mentorFeedback}
-                  </p>
+                  {latestSubmission?.feedback && (
+                    <div className="mt-4 rounded-lg bg-white/70 p-4 text-left">
+                      <h4 className="text-sm font-semibold text-gray-700">
+                        Masukan dari Mentor
+                      </h4>
+                      <p className="mt-1 text-sm text-gray-700 leading-relaxed">
+                        {latestSubmission.feedback}
+                      </p>
+                    </div>
+                  )}
 
-                  {reviewedAt && (
-                    <p className="text-xs text-gray-500">
+                  {latestSubmission?.reviewedAt && (
+                    <p className="mt-3 text-xs text-gray-500">
                       Dinilai pada{" "}
-                      {reviewedAt.toLocaleDateString("id-ID", {
-                        day: "2-digit",
-                        month: "long",
-                        year: "numeric",
-                      })}
+                      {new Date(latestSubmission.reviewedAt).toLocaleDateString(
+                        "id-ID",
+                        {
+                          day: "2-digit",
+                          month: "long",
+                          year: "numeric",
+                        },
+                      )}
                     </p>
+                  )}
+
+                  {/* 🔥 BARU: tombol revisi cuma muncul kalau memang perlu
+                      revisi DAN masih ada sisa kesempatan (max 2x). Kalau
+                      needsRevision tapi kesempatan sudah habis, tampilkan
+                      keterangan final tanpa tombol. */}
+                  {needsRevision && (
+                    <div className="mt-5">
+                      {canRetry ? (
+                        <>
+                          <p className="mb-3 text-sm font-semibold text-amber-700">
+                            Kamu tinggal memiliki {attemptsRemaining} kali
+                            kesempatan untuk mengumpulkan ulang.
+                          </p>
+                          <button
+                            onClick={handleStartRevision}
+                            className="bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-3 rounded-lg font-semibold transition"
+                          >
+                            Kumpulkan Revisi
+                          </button>
+                        </>
+                      ) : (
+                        <p className="text-sm font-semibold text-red-600">
+                          Kesempatan mengumpulkan tugas ini sudah habis.
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
               )}
 
-              {/* File Proyek */}
+              {/* File Proyek yang sudah dikirim */}
               <div>
                 <h3 className="text-base font-bold text-black mb-3">
                   File Proyek
                 </h3>
 
                 <div className="space-y-3">
-                  {uploadedFiles.map((file, idx) => (
-                    <div
-                      key={idx}
-                      className="border rounded-lg px-5 py-4 flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-4 min-w-0 flex-1">
-                        <Image
-                          src="/assets/elearning/download-1.svg"
-                          alt="file"
-                          width={36}
-                          height={36}
-                        />
+                  {(latestSubmission?.files ?? []).map((fileUrl, idx) => {
+                    const resolvedUrl = resolveMediaUrl(fileUrl);
+                    const fileName = getFileNameFromUrl(fileUrl);
 
-                        <div className="min-w-0">
-                          <p className="text-base font-semibold text-black mb-1 truncate">
-                            {file.name}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {getEstimatedPageCount(file)
-                              ? `${getEstimatedPageCount(file)} halaman | `
-                              : ""}
-                            {getFileFormat(file.name)} |{" "}
-                            {formatFileSize(Math.round(file.size / 1024))}
-                          </p>
+                    return (
+                      <a
+                        key={idx}
+                        href={resolvedUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="border rounded-lg px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition"
+                      >
+                        <div className="flex items-center gap-4 min-w-0 flex-1">
+                          <Image
+                            src="/assets/elearning/download-1.svg"
+                            alt="file"
+                            width={36}
+                            height={36}
+                          />
+
+                          <div className="min-w-0">
+                            <p className="text-base font-semibold text-black mb-1 truncate">
+                              {fileName}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              {getFileFormat(fileName)}
+                            </p>
+                          </div>
                         </div>
-                      </div>
 
-                      <Image
-                        src="/assets/elearning/download.svg"
-                        alt="download"
-                        width={20}
-                        height={20}
-                        className="cursor-pointer ml-2"
-                      />
-                    </div>
-                  ))}
+                        <Image
+                          src="/assets/elearning/download.svg"
+                          alt="download"
+                          width={20}
+                          height={20}
+                          className="cursor-pointer ml-2 shrink-0"
+                        />
+                      </a>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1210,13 +1695,35 @@ function AssignmentRenderer({
                 </h3>
 
                 <p className="text-sm text-gray-700">
-                  {note.trim() !== "" ? note : "-"}
+                  {latestSubmission?.notes?.trim()
+                    ? latestSubmission.notes
+                    : "-"}
                 </p>
               </div>
             </section>
           </>
         )}
       </div>
+
+      {/* 🔥 Animasi murni CSS keyframes, pola sama dengan panel hasil quiz
+          (quiz-result-panel) — di-inject sebagai <style> biasa. */}
+      <style>{`
+        .assignment-status-card {
+          animation: assignmentStatusIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        }
+        .assignment-status-icon {
+          animation: assignmentIconPop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both;
+        }
+        @keyframes assignmentStatusIn {
+          from { opacity: 0; transform: translateY(12px) scale(0.97); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes assignmentIconPop {
+          0% { transform: scale(0) rotate(-10deg); opacity: 0; }
+          60% { transform: scale(1.15) rotate(4deg); opacity: 1; }
+          100% { transform: scale(1) rotate(0deg); }
+        }
+      `}</style>
     </div>
   );
 }
