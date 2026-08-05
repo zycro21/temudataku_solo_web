@@ -325,7 +325,7 @@ router.delete(
 router.get(
   "/assignments",
   authenticate,
-  authorizeRoles("admin", "mentor"),
+  authorizeRoles("admin", "mentor", "curdev"),
   validate(getAllAssignmentsSchema),
   ELearningAssignmentController.getAllAssignments
 );
@@ -364,7 +364,7 @@ router.get(
 router.get(
   "/assignments/:id/detail",
   authenticate,
-  authorizeRoles("admin", "mentor", "mentee"),
+  authorizeRoles("admin", "mentor", "mentee", "curdev"),
   validate(getAssignmentDetailSchema),
   ELearningAssignmentController.getAssignmentDetail
 );

@@ -528,8 +528,11 @@ export class ELearningAssignmentService {
       ];
     }
 
-    // Filtering by mentor (if not admin)
-    if (user.roles.includes("mentor")) {
+    // 🔥 Filtering by mentor (if not admin and not curdev)
+    const hasFullAccess =
+      user.roles.includes("admin") || user.roles.includes("curdev");
+
+    if (!hasFullAccess && user.roles.includes("mentor")) {
       whereClause.text = {
         subBab: {
           subChapter: {
@@ -543,7 +546,7 @@ export class ELearningAssignmentService {
       };
     }
 
-    // 🔹 Filtering by score range (optional, if needed)
+    // Filtering by score range (optional, if needed)
     if (query.minScore || query.maxScore) {
       whereClause.submissions = {
         some: {
@@ -685,7 +688,8 @@ export class ELearningAssignmentService {
 
     // ===== VALIDASI AKSES =====
 
-    if (user.roles.includes("admin")) {
+    // 🔥 Admin dan curdev memiliki akses penuh
+    if (user.roles.includes("admin") || user.roles.includes("curdev")) {
       // boleh akses semua
     } else if (user.roles.includes("mentor")) {
       if (course.mentorProfile.userId !== user.userId) {
@@ -706,7 +710,6 @@ export class ELearningAssignmentService {
           endAt: {
             gte: now,
           },
-
           // tambahkan jika ada field courseId
           // courseId: course.id,
         },

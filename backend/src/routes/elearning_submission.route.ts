@@ -191,7 +191,7 @@ router.get(
 router.get(
   "/assignments/:id/submissions",
   authenticate,
-  authorizeRoles("mentor", "admin"),
+  authorizeRoles("mentor", "admin", "curdev"),
   validate(getAllSubmissionsSchema),
   ELearningSubmissionController.getAllSubmissions
 );
@@ -253,7 +253,7 @@ router.get(
 router.put(
   "/submissions/:id/review",
   authenticate,
-  authorizeRoles("mentor", "admin"),
+  authorizeRoles("mentor", "admin", "curdev"),
   validate(reviewSubmissionSchema),
   ELearningSubmissionController.reviewSubmission
 );

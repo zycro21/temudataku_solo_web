@@ -201,11 +201,15 @@ export class ELearningSubmissionService {
 
     const courseId = assignment.text.subBab.subChapter.course.id;
 
-    // 2. Jika mentor → cek apakah dia pemilik course
+    // 2. 🔥 Admin dan curdev bisa akses semua
     const isAdmin = user.roles.includes("admin");
+    const isCurdev = user.roles.includes("curdev");
     const isMentor = user.roles.includes("mentor");
 
-    if (isMentor && !isAdmin) {
+    const hasFullAccess = isAdmin || isCurdev;
+
+    // 3. Jika mentor (dan bukan admin/curdev) → cek apakah dia pemilik course
+    if (isMentor && !hasFullAccess) {
       const isMentorCourse = await prisma.eLearningCourse.findFirst({
         where: {
           id: courseId,
@@ -218,16 +222,16 @@ export class ELearningSubmissionService {
       }
     }
 
-    // 3. Pagination
+    // 4. Pagination
     const page = parseInt(query.page || "1");
     const limit = parseInt(query.limit || "10");
     const skip = (page - 1) * limit;
 
-    // 4. Sorting
+    // 5. Sorting
     const sortBy = query.sortBy || "submittedAt";
     const sortOrder = query.sortOrder || "desc";
 
-    // 5. Filter + Search
+    // 6. Filter + Search
     const whereFilter: any = {
       assignmentId,
     };
@@ -247,7 +251,7 @@ export class ELearningSubmissionService {
       ];
     }
 
-    // 6. Query prisma
+    // 7. Query prisma
     const [total, submissions] = await Promise.all([
       prisma.eLearningSubmission.count({
         where: whereFilter,
@@ -317,16 +321,19 @@ export class ELearningSubmissionService {
 
     const course = submission.assignment.text.subBab.subChapter.course;
 
-    // ====== 2. ADMIN BOLEH AKSES SEMUA ======
+    // ====== 2. 🔥 ADMIN & CURDEV BOLEH AKSES SEMUA ======
     const isAdmin = roles.includes("admin");
+    const isCurdev = roles.includes("curdev");
     const isMentor = roles.includes("mentor");
 
-    if (!isAdmin && !isMentor) {
+    const hasFullAccess = isAdmin || isCurdev;
+
+    if (!hasFullAccess && !isMentor) {
       throw new Error("Anda tidak memiliki akses untuk melakukan review");
     }
 
     // ====== 3. MENTOR HANYA BOLEH REVIEW COURSE YANG DIA AMPU ======
-    if (isMentor) {
+    if (isMentor && !hasFullAccess) {
       if (!mentorProfileId) {
         throw new Error("Mentor profile tidak ditemukan");
       }
