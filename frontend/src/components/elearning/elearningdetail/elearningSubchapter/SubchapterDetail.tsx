@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import SubchapterNavbar from "./SubchapterNavbar";
@@ -8,9 +8,15 @@ import SubchapterSidebar from "./SubchapterSidebar";
 import SubchapterHeroNavigation from "./SubchapterHeroNavigation";
 import SubchapterContent from "./SubchapterContent";
 import SubchapterFooter from "./SubchapterFooter";
+import SubchapterReviewModal from "./SubchapterReviewModal";
 import { useElearningSubChapterDetail } from "@/hooks/Useelearningsubchapterdetail";
 import { useElearningTextDetail } from "@/hooks/Useelearningtextdetail";
 import { useElearningCourseProgress } from "@/hooks/useElearningCourseProgress";
+import {
+  useElearningTextProgress,
+  type SubChapterProgressRecord,
+} from "@/hooks/useElearningTextProgress";
+import { useElearningSubChapterReview } from "@/hooks/Useelearningsubchapterreview";
 import { Loader2, SearchX } from "lucide-react";
 
 // ─── Font ──────────────────────────────────────────────────────────────────
@@ -75,6 +81,69 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
   const courseProgressForThisSubChapter = progress?.subChapterProgress.find(
     (sc) => sc.subChapterId === subChapterId,
   );
+
+  // 🔥 BARU: override lokal buat progress SubChapter ini — begitu mentee
+  // menyelesaikan satu item (scroll materi sampai bawah / submit quiz /
+  // assignment-nya direview tuntas), backend langsung balikin angka
+  // progressPercent + lastActivityAt YANG BARU (lihat
+  // useElearningTextProgress.ts). Kita simpan di sini supaya sidebar
+  // ke-update SEKETIKA tanpa nunggu refetch penuh `useElearningCourseProgress`
+  // (yang datanya course-wide, bukan cuma subchapter ini) — begitu ada
+  // nilai di sini, dia menang dibanding angka dari `progress` di atas.
+  const [progressOverride, setProgressOverride] =
+    useState<SubChapterProgressRecord | null>(null);
+
+  const { markTextComplete, syncSubChapterProgress } = useElearningTextProgress(
+    (updated) => {
+      if (updated.subChapterId === subChapterId) {
+        setProgressOverride(updated);
+      }
+    },
+  );
+
+  const displayProgressPercent =
+    progressOverride?.progressPercent ??
+    courseProgressForThisSubChapter?.progressPercent ??
+    0;
+  const displayLastActivityAt =
+    progressOverride?.lastActivityAt ??
+    courseProgressForThisSubChapter?.lastActivityAt ??
+    null;
+
+  // 🔥 BARU: modal review otomatis — begitu progress SubChapter ini
+  // nyentuh 100%, cek apakah mentee sudah pernah review. Kalau BELUM,
+  // modal otomatis muncul. Modal bisa ditutup (tombol "Nanti Saja" / X)
+  // tanpa mengirim apa pun — tapi karena `reviewCheckedRef` di-reset
+  // setiap kali komponen ini di-mount ulang (mis. mentee keluar lalu
+  // masuk lagi ke SubChapter/course ini), pengecekan akan jalan lagi
+  // dari awal tiap kunjungan baru, dan modal akan muncul LAGI selama
+  // belum ada review tersimpan — persis sesuai yang diminta. Begitu
+  // review berhasil dikirim, `myReview` dari hook langsung terisi, jadi
+  // modal nggak akan ke-trigger lagi meski effect ini re-run.
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const reviewCheckedRef = useRef(false);
+  const {
+    isSubmitting: isSubmittingReview,
+    checkMyReview,
+    submitReview,
+  } = useElearningSubChapterReview();
+
+  useEffect(() => {
+    if (displayProgressPercent < 100) return;
+    if (reviewCheckedRef.current) return;
+    reviewCheckedRef.current = true;
+
+    (async () => {
+      const existing = await checkMyReview(subChapterId);
+      // `existing === undefined` berarti pengecekannya gagal (mis. network
+      // error) — jangan paksa nampilin modal dalam kondisi nggak pasti
+      // begini, biar nggak keliru muncul buat mentee yang sebenarnya
+      // sudah pernah review.
+      if (existing === null) {
+        setReviewModalOpen(true);
+      }
+    })();
+  }, [displayProgressPercent, subChapterId, checkMyReview]);
 
   // 🔥 Daftar materi ("submodule") per SubBab — text yang TIDAK punya
   // quiz/assignment dianggap materi biasa. Text yang punya quiz/assignment
@@ -195,6 +264,33 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
     contentMode?.type === "quiz" || contentMode?.type === "assignment"
       ? contentMode.textId
       : null;
+
+  // 🔥 BARU: deteksi "sudah scroll sampai bawah" buat materi (submodule)
+  // — quiz & assignment progress-nya ditandai dari dalam
+  // SubchapterContent.tsx sendiri (lewat onContentCompleted, dipanggil
+  // pas attempt/submission sudah final), BUKAN dari scroll, jadi handler
+  // ini sengaja no-op kalau `contentMode.type` bukan "submodule". Threshold
+  // 32px dari bawah — nggak menuntut PERSIS mentok piksel terakhir (yang
+  // gampang meleset gara-gara sub-pixel rounding di browser berbeda-beda).
+  const handleContentScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (contentMode?.type !== "submodule" || !activeTextId) return;
+
+    const el = e.currentTarget;
+    const SCROLL_BOTTOM_THRESHOLD_PX = 32;
+    const reachedBottom =
+      el.scrollHeight - el.scrollTop - el.clientHeight <=
+      SCROLL_BOTTOM_THRESHOLD_PX;
+
+    if (reachedBottom) {
+      markTextComplete(activeTextId);
+    }
+  };
+
+  // Ref buat container scroll (`<main>` di JSX bawah) — dipakai oleh
+  // effect "konten pendek" di bawah `rendererMode` (lihat catatan di
+  // sana kenapa effect-nya HARUS ditaruh setelah `rendererMode`
+  // dideklarasikan).
+  const mainRef = useRef<HTMLDivElement | null>(null);
 
   /* ================= HERO META ================= */
   const heroMeta = useMemo(() => {
@@ -405,6 +501,41 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
     };
   }, [contentMode, fullText]);
 
+  // 🔥 BARU: kalau konten materinya PENDEK (lebih pendek dari tinggi area
+  // konten, jadi nggak ada apa pun buat di-scroll), `onScroll` di
+  // `handleContentScroll` di atas nggak akan pernah kepicu sama sekali —
+  // user tetap "sudah baca semuanya" cuma karena buka halamannya, cuma
+  // nggak sempat scroll. Effect ini ngecek sekali tiap kali materi
+  // (submodule) aktif berganti/selesai loading: kalau isinya nggak
+  // melebihi tinggi container (`scrollHeight <= clientHeight`), langsung
+  // tandai selesai tanpa nunggu scroll. `requestAnimationFrame` dipakai
+  // supaya pengecekan tinggi kontennya dilakukan SETELAH browser selesai
+  // layout render terbaru (kalau dicek di frame yang sama, `scrollHeight`
+  // bisa masih kepakai nilai dari konten sebelumnya).
+  //
+  // 🔥 FIX (TS2448/TS2454 "used before its declaration"): effect ini
+  // sengaja ditaruh DI SINI — SETELAH `rendererMode` (di atas) selesai
+  // didefinisikan — bukan lagi di dekat `handleContentScroll`/`mainRef`
+  // seperti sebelumnya. `rendererMode` dideklarasikan pakai `const` lewat
+  // `useMemo`, jadi dia kena temporal dead zone: dipakai di dependency
+  // array sebuah hook yang letaknya (secara tekstual di source, bukan
+  // urutan eksekusi runtime) SEBELUM baris deklarasinya → error di
+  // compile time. Ini murni soal urutan baris kode, bukan soal isi
+  // logic-nya — makanya cukup dipindah ke bawah sini, isinya sama persis.
+  useEffect(() => {
+    if (contentMode?.type !== "submodule" || !activeTextId) return;
+    if (textLoading || !rendererMode) return;
+
+    const raf = requestAnimationFrame(() => {
+      const el = mainRef.current;
+      if (!el) return;
+      const notScrollable = el.scrollHeight <= el.clientHeight + 4;
+      if (notScrollable) markTextComplete(activeTextId);
+    });
+
+    return () => cancelAnimationFrame(raf);
+  }, [contentMode, activeTextId, textLoading, rendererMode, markTextComplete]);
+
   if (loading) {
     return (
       <div
@@ -443,12 +574,8 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
           navigationSource={navigationSource}
           activeTaskType={activeTaskType}
           activeTaskTextId={activeTaskTextId}
-          progressPercent={
-            courseProgressForThisSubChapter?.progressPercent ?? 0
-          }
-          lastActivityAt={
-            courseProgressForThisSubChapter?.lastActivityAt ?? null
-          }
+          progressPercent={displayProgressPercent}
+          lastActivityAt={displayLastActivityAt}
           onSelectText={(text) => {
             setNavigationSource("manual");
             setQuizScore(null);
@@ -515,7 +642,11 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
           )}
 
           {/* CONTENT AREA */}
-          <main className="flex-1 overflow-y-auto px-6 py-8 pb-24 bg-white">
+          <main
+            ref={mainRef}
+            onScroll={handleContentScroll}
+            className="flex-1 overflow-y-auto px-6 py-8 pb-24 bg-white"
+          >
             {textLoading || !rendererMode ? (
               <div className="flex items-center justify-center min-h-[40vh] gap-3">
                 <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
@@ -524,6 +655,7 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
             ) : (
               <SubchapterContent
                 mode={rendererMode}
+                textId={activeTextId}
                 onQuizSubmitScore={(score) => {
                   setQuizScore(score);
                   setIsQuizSubmitted(true);
@@ -534,6 +666,18 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
                 }}
                 onAssignmentScore={(score) => {
                   setAssignmentScore(score);
+                }}
+                onContentCompleted={(completedTextId) => {
+                  // 🔥 FIX: quiz & assignment TIDAK lagi ditandai lewat
+                  // markTextComplete (yang nulis ke ELearningTextProgress
+                  // — cocoknya buat materi doang, bukan quiz/assignment).
+                  // Sumber kebenaran quiz/assignment ada di
+                  // ELearningQuizAttempt/ELearningSubmission sendiri, jadi
+                  // cukup minta backend hitung ULANG dari situ tiap kali
+                  // halaman quiz/assignment ini dibuka & dianggap selesai
+                  // — hasilnya selalu segar, nggak nyangkut di angka lama
+                  // kalau attempt/submission-nya berubah/dihapus.
+                  syncSubChapterProgress(subChapterId, completedTextId);
                 }}
               />
             )}
@@ -575,6 +719,21 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
           router.push(`?module=${subBabIndex + 1}&submodule=${textIndex + 1}`, {
             scroll: false,
           });
+        }}
+      />
+
+      <SubchapterReviewModal
+        open={reviewModalOpen}
+        subChapterTitle={subChapter.title}
+        isSubmitting={isSubmittingReview}
+        onClose={() => setReviewModalOpen(false)}
+        onSubmit={async (payload) => {
+          const result = await submitReview(subChapterId, payload);
+          // 🔥 Cuma tutup modal kalau submit-nya BENERAN sukses (result
+          // bukan null) — kalau gagal (mis. rating tidak valid, sudah
+          // pernah review dari device lain), modal tetap terbuka biar
+          // mentee bisa lihat toast error-nya dan coba lagi.
+          if (result) setReviewModalOpen(false);
         }}
       />
     </div>

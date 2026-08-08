@@ -81,7 +81,10 @@ export default function LoginModal({
         r?.role?.roleName?.toLowerCase(),
       );
 
-      const adminRoles = ["admin", "curdev", "cm"];
+      const adminRoles = ["admin"];
+      const restrictedRoles = ["curdev", "cm", "guest"];
+      const hasRestrictedRole = roles.some((r) => restrictedRoles.includes(r));
+      const guestRole = roles.includes("guest");
 
       setCurrentUser(user);
       setIsOpen(false);
@@ -93,15 +96,18 @@ export default function LoginModal({
       window.dispatchEvent(new Event("elearning-subscription:refresh"));
 
       setTimeout(() => {
-        if (roles.some((r) => adminRoles.includes(r))) {
+        // 🔥 GUEST, CURDEV, CM: redirect ke /admin/elearning
+        if (hasRestrictedRole) {
+          router.push("/admin/elearning");
+        } else if (roles.some((r) => adminRoles.includes(r))) {
           router.push("/admin");
         } else if (roles.includes("mentor")) {
           router.push("/dashboard/mentor");
         } else {
           if (returnUrl) {
-            router.push(returnUrl); // 🔥 balik ke /aycl atau /aycl?slug=...
+            router.push(returnUrl);
           } else {
-            router.push("/"); // default selain aycl
+            router.push("/");
           }
         }
       }, 100);
@@ -231,21 +237,6 @@ export default function LoginModal({
               <div className="text-center text-gray-500 text-xs">atau</div>
 
               {/* Google login */}
-              {/* <Button
-                type="button"
-                variant="outline"
-                className="w-full border-[#0CA678] text-[#0CA678] hover:bg-[#f2f1f1] hover:text-[#0CA678]"
-              >
-                <Image
-                  src="/assets/auth/googleIcon.svg"
-                  alt="Google Logo"
-                  width={14}
-                  height={14}
-                  className="mr-2"
-                />
-                Gunakan Akun Google
-              </Button> */}
-
               <div className="flex justify-center">
                 <div className="w-full max-w-sm">
                   <GoogleLogin
@@ -273,7 +264,11 @@ export default function LoginModal({
                           (r: any) => r?.role?.roleName?.toLowerCase(),
                         );
 
-                        const adminRoles = ["admin", "curdev", "cm"];
+                        const adminRoles = ["admin"];
+                        const restrictedRoles = ["curdev", "cm", "guest"];
+                        const hasRestrictedRole = roles.some((r) =>
+                          restrictedRoles.includes(r),
+                        );
 
                         setIsOpen(false);
                         toast.success("Login Google berhasil");
@@ -285,7 +280,9 @@ export default function LoginModal({
                           new Event("elearning-subscription:refresh"),
                         );
 
-                        if (roles.some((r) => adminRoles.includes(r))) {
+                        if (hasRestrictedRole) {
+                          router.push("/admin/elearning");
+                        } else if (roles.some((r) => adminRoles.includes(r))) {
                           router.push("/admin");
                         } else if (roles.includes("mentor")) {
                           router.push("/dashboard/mentor");

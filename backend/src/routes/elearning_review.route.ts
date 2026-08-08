@@ -9,7 +9,8 @@ import {
   deleteReviewController,
   updateReviewController,
   getReviewSummaryController,
-  getAllReviewStatsController
+  getAllReviewStatsController,
+  getReviewByIdController,
 } from "../controllers/elearning_review.controller.js";
 import {
   createReviewSchema,
@@ -18,6 +19,7 @@ import {
   deleteReviewSchema,
   updateReviewSchema,
   getReviewSummarySchema,
+  getReviewByIdSchema,
 } from "../validations/elearning_review.validation.js";
 
 const router = express.Router();
@@ -31,12 +33,13 @@ const router = express.Router();
 
 /**
  * @swagger
- * /api/elearningReview/courses/{id}/review:
+ * /api/elearningReview/subchapters/{id}/review:
  *   post:
- *     summary: Berikan review pada course
+ *     summary: Berikan review pada sub-chapter
  *     description: >
- *       Endpoint untuk mentee memberikan review terhadap course yang sudah dibeli.
- *       Setiap mentee hanya dapat memberikan **1 review per course**.
+ *       Endpoint untuk mentee memberikan review terhadap sub-chapter
+ *       (kelas) yang sudah dipelajari. Setiap mentee hanya dapat
+ *       memberikan **1 review per sub-chapter**.
  *     tags:
  *       - E-Learning Reviews
  *     security:
@@ -45,7 +48,7 @@ const router = express.Router();
  *       - in: path
  *         name: id
  *         required: true
- *         description: ID course
+ *         description: ID Sub-Chapter
  *         schema:
  *           type: string
  *     requestBody:
@@ -97,7 +100,7 @@ const router = express.Router();
  *         description: Course tidak ditemukan
  */
 router.post(
-  "/courses/:id/review",
+  "/subchapters/:id/review",
   authenticate,
   authorizeRoles("mentee"),
   validate(createReviewSchema),
@@ -329,7 +332,7 @@ router.get(
 router.get(
   "/reviews/me",
   authenticate,
-  authorizeRoles("mentee", "admin"),
+  authorizeRoles("mentee", "admin", "curdev"),
   validate(getMyReviewsSchema),
   getMyReviewsController
 );
@@ -504,6 +507,92 @@ router.get(
   authenticate,
   authorizeRoles("admin"),
   getAllReviewStatsController
+);
+
+/**
+ * @swagger
+ * /api/elearningReview/reviews/{id}:
+ *   get:
+ *     summary: Get review by ID
+ *     description: |
+ *       Ambil detail satu review berdasarkan ID.
+ *
+ *       - **Admin & Curdev**: bisa mengakses review siapa pun.
+ *       - **Mentee**: hanya bisa mengakses review miliknya sendiri.
+ *     tags:
+ *       - E-Learning Reviews
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID review
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Detail review berhasil diambil
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     rating:
+ *                       type: number
+ *                       example: 4.5
+ *                     comment:
+ *                       type: string
+ *                       nullable: true
+ *                     isPublic:
+ *                       type: boolean
+ *                     isAnonymous:
+ *                       type: boolean
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         fullName:
+ *                           type: string
+ *                     subChapter:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         title:
+ *                           type: string
+ *                         course:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: string
+ *                             title:
+ *                               type: string
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (mentee mencoba akses review milik orang lain)
+ *       404:
+ *         description: Review tidak ditemukan
+ */
+router.get(
+  "/reviews/:id",
+  authenticate,
+  authorizeRoles("mentee", "admin", "curdev"),
+  validate(getReviewByIdSchema),
+  getReviewByIdController
 );
 
 export default router;

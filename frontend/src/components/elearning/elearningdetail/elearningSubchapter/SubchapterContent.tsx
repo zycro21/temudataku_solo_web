@@ -84,7 +84,11 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useElearningQuizAttempt } from "@/hooks/useElearningQuizAttempt";
-import { useElearningAssignmentSubmission } from "@/hooks/useElearningAssignmentSubmission";
+import {
+  useElearningAssignmentSubmission,
+  MAX_ASSIGNMENT_ATTEMPTS,
+  PASSING_SCORE_THRESHOLD,
+} from "@/hooks/useElearningAssignmentSubmission";
 
 /* ================= KEYWORD → ICON PICKER (block-level title icon) =================
  * 🔥 Dulu icon di kiri title Accordion/Tab Navigation/Content Card/Carousel
@@ -315,20 +319,38 @@ interface ModeProps {
     | { type: "submodule"; data: any }
     | { type: "quiz"; data: any }
     | { type: "assignment"; data: any };
+  // 🔥 BARU: id ELearningText yang lagi aktif — dibutuhkan buat progress
+  // tracking (lihat onContentCompleted di bawah). Baik materi biasa,
+  // quiz, maupun assignment semuanya nempel ke satu ELearningText, jadi
+  // textId inilah yang dipakai buat nandain "item ini selesai" di
+  // ELearningTextProgress (lihat hooks/useElearningTextProgress.ts).
+  textId?: string | null;
   onQuizSubmitScore?: (score: number) => void;
   onQuizReset?: () => void;
   onAssignmentScore?: (score: number | null) => void;
+  // 🔥 BARU: dipanggil sekali begitu quiz/assignment yang lagi dibuka
+  // dianggap "selesai" dari sisi progress tracking — quiz begitu ada
+  // attempt yang sudah disubmit (skor apa pun), assignment begitu
+  // submission-nya sudah direview tuntas (lolos ATAU tidak lolos, BUKAN
+  // saat masih PENDING atau REVISION_REQUIRED). Materi (submodule) TIDAK
+  // lewat sini — itu dideteksi dari scroll di SubchapterDetail.tsx,
+  // karena container yang scroll ada di luar komponen ini.
+  onContentCompleted?: (textId: string) => void;
 }
 
 /* ================= QUIZ ================= */
 const QuizRenderer = ({
   quiz,
+  textId,
   onSubmitScore,
   onReset,
+  onContentCompleted,
 }: {
   quiz: any;
+  textId?: string | null;
   onSubmitScore?: (score: number) => void;
   onReset?: () => void;
+  onContentCompleted?: (textId: string) => void;
 }) => {
   // 🔥 GUARD tambahan (di luar fix race di SubchapterDetail.tsx): kalau
   // karena alasan apa pun `quiz` yang sampai ke sini masih null/undefined
@@ -390,6 +412,20 @@ const QuizRenderer = ({
     setAnswers(restored);
     setSubmitted(true);
   }, [isLoadingHistory, latestAttempt, isRetrying]);
+
+  // 🔥 BARU: progress tracking — quiz dianggap "selesai" begitu ada
+  // attempt yang sudah tersimpan di backend (attempt pertama ATAU hasil
+  // retry, skor berapa pun — nggak perlu tunggu skor sempurna). Efek ini
+  // nutupin DUA skenario sekaligus: (1) history attempt sudah ada waktu
+  // halaman ini pertama dibuka/refresh, (2) attempt baru aja berhasil
+  // disubmit lewat handleSubmit di bawah (latestAttempt ke-update setelah
+  // submitAttempt sukses). onContentCompleted sendiri sudah idempotent
+  // (lihat useElearningTextProgress.ts), jadi aman dipanggil berkali-kali
+  // selama dependency-nya nggak berubah.
+  useEffect(() => {
+    if (isLoadingHistory || !latestAttempt || !textId) return;
+    onContentCompleted?.(textId);
+  }, [isLoadingHistory, latestAttempt, textId, onContentCompleted]);
 
   /* ================= LOGIC ================= */
 
@@ -1051,10 +1087,14 @@ const formatFileSize = (kb: number) => {
 
 function AssignmentRenderer({
   a,
+  textId,
   onAssignmentScore,
+  onContentCompleted,
 }: {
   a: any;
+  textId?: string | null;
   onAssignmentScore?: (score: number | null) => void;
+  onContentCompleted?: (textId: string) => void;
 }) {
   // ================= INTEGRASI API SUBMISSION =================
   // 🔥 BARU: history submission (buat tau status/nilai/feedback terakhir
@@ -1067,10 +1107,24 @@ function AssignmentRenderer({
     isPending,
     isApproved,
     needsRevision,
+    isRejected,
+    isLastAttempt,
     canRetry,
     isSubmitting,
     submitAssignment,
   } = useElearningAssignmentSubmission(a?.id);
+
+  // 🔥 BARU: progress tracking — assignment dianggap "selesai" HANYA
+  // begitu submission-nya sudah tuntas direview DAN hasilnya final
+  // (Lolos ATAU Tidak Lolos). Sengaja BUKAN saat masih PENDING (belum
+  // direview) atau REVISION_REQUIRED (mentee masih ada kerjaan lanjutan
+  // — belum "selesai" beneran). `isApproved`/`isRejected` di atas sudah
+  // menghitung ini dengan benar (termasuk ambang batas skor di attempt
+  // terakhir), jadi tinggal dipakai langsung di sini.
+  useEffect(() => {
+    if (isLoadingHistory || !textId) return;
+    if (isApproved || isRejected) onContentCompleted?.(textId);
+  }, [isLoadingHistory, isApproved, isRejected, textId, onContentCompleted]);
 
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [note, setNote] = useState("");
@@ -1578,16 +1632,30 @@ function AssignmentRenderer({
                     }`}
                   >
                     {isApproved
-                      ? "Selamat, tugasmu lolos! 🎉"
+                      ? "Selamat, Tugasmu Lolos! 🎉"
                       : needsRevision
-                        ? "Perlu revisi sebelum lolos"
-                        : "Belum memenuhi kriteria"}
+                        ? "Perlu Revisi Sebelum Lolos"
+                        : "Belum Memenuhi Kriteria"}
                   </h3>
+
+                  {/* BARU: keterangan ambang batas kelulusan - cuma
+                      relevan & ditampilkan kalau ini attempt terakhir,
+                      karena di attempt terakhir lolos/tidaknya murni
+                      ditentukan dari skor terhadap ambang batas (tidak
+                      ada lagi opsi revisi). */}
+                  {/* {isLastAttempt && (isApproved || isRejected) && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      Ini adalah attempt terakhirmu ({MAX_ASSIGNMENT_ATTEMPTS}/
+                      {MAX_ASSIGNMENT_ATTEMPTS}). Skor minimal{" "}
+                      {PASSING_SCORE_THRESHOLD} dari 100 diperlukan untuk
+                      dinyatakan lolos.
+                    </p>
+                  )} */}
 
                   {latestSubmission?.feedback && (
                     <div className="mt-4 rounded-lg bg-white/70 p-4 text-left">
                       <h4 className="text-sm font-semibold text-gray-700">
-                        Masukan dari Mentor
+                        Feedback dari Mentor
                       </h4>
                       <p className="mt-1 text-sm text-gray-700 leading-relaxed">
                         {latestSubmission.feedback}
@@ -1607,6 +1675,26 @@ function AssignmentRenderer({
                         },
                       )}
                     </p>
+                  )}
+
+                  {/* 🔥 BARU: batas waktu revisi yang ditetapkan reviewer
+                      (admin/curdev) saat menilai — cuma ditampilkan kalau
+                      memang perlu revisi & reviewer sudah menetapkan
+                      deadline-nya. */}
+                  {needsRevision && latestSubmission?.revisionDeadline && (
+                    <div className="mt-4 inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-white px-4 py-2.5 text-sm font-semibold text-amber-700">
+                      <Clock size={16} className="shrink-0" />
+                      Batas waktu revisi:{" "}
+                      {new Date(
+                        latestSubmission.revisionDeadline,
+                      ).toLocaleString("id-ID", {
+                        day: "2-digit",
+                        month: "long",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </div>
                   )}
 
                   {/* 🔥 BARU: tombol revisi cuma muncul kalau memang perlu
@@ -4024,22 +4112,31 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
 
 export default function SubchapterContent({
   mode,
+  textId,
   onQuizSubmitScore,
   onQuizReset,
   onAssignmentScore,
+  onContentCompleted,
 }: ModeProps) {
   if (mode.type === "quiz")
     return (
       <QuizRenderer
         quiz={mode.data}
+        textId={textId}
         onSubmitScore={onQuizSubmitScore}
         onReset={onQuizReset}
+        onContentCompleted={onContentCompleted}
       />
     );
 
   if (mode.type === "assignment")
     return (
-      <AssignmentRenderer a={mode.data} onAssignmentScore={onAssignmentScore} />
+      <AssignmentRenderer
+        a={mode.data}
+        textId={textId}
+        onAssignmentScore={onAssignmentScore}
+        onContentCompleted={onContentCompleted}
+      />
     );
 
   return <RenderSubModuleContent subModule={mode.data} />;

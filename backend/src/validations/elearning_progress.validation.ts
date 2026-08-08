@@ -67,3 +67,23 @@ export const exportProgressSchema = z.object({
     courseId: z.string().min(1).optional(),
   }),
 });
+
+export const completeTextProgressSchema = z.object({
+  params: z.object({
+    id: z.string().min(1, "Text ID wajib diisi"),
+  }),
+  body: z
+    .object({
+      // opsional, default 100 — disiapkan buat masa depan (mis. progress
+      // per-block), tapi untuk kebutuhan sekarang selalu dikirim 100
+      // (scroll sampai bawah / task selesai = penuh, bukan sebagian).
+      progress: z.number().min(0).max(100).optional(),
+    })
+    .optional(),
+});
+
+export const recalculateSubChapterProgressSchema = z.object({
+  params: z.object({
+    id: z.string().min(1, "SubChapter ID wajib diisi"),
+  }),
+});

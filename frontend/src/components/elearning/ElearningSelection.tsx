@@ -18,7 +18,10 @@ import {
   Star,
   Users,
 } from "lucide-react";
-import { useElearningCourses } from "@/hooks/useElearningCourses";
+import {
+  useElearningCourses,
+  getDisplayedRating,
+} from "@/hooks/useElearningCourses";
 import {
   useElearningSubscriberCount,
   getDisplayedParticipantCount,
@@ -328,33 +331,33 @@ function resolveThumbnailImage(thumbnail: string | null | undefined) {
   return `${process.env.NEXT_PUBLIC_API_BASE_URL}${thumbnail}`;
 }
 
-// 🔥 Bintang bisa terisi sebagian (mis. rating 4.5 / 4.7), bukan cuma
-// penuh/kosong — pakai teknik overlay: lapisan bintang kuning di atas
-// bintang abu-abu, di-clip lebar-nya sesuai persentase rating.
+// 🔥 FIX: sebelumnya pakai teknik "1 lapisan overlay di-clip berdasarkan
+// persentase LEBAR TOTAL container (termasuk gap antar bintang)" — itu
+// SALAH, karena gap ikut kepotong sebagai bagian dari persentase, jadi di
+// rating tinggi (mis. 4.4) sisa lebar abis buat "melewati" gap sebelum
+// sempat ngisi bintang terakhir, hasilnya bintang ke-5 cuma keisi secuil
+// padahal seharusnya ~40%. Sekarang tiap bintang dihitung fill-nya
+// SENDIRI-SENDIRI (independen dari gap), jadi proporsinya akurat.
 function StarRating({ rating }: { rating: number }) {
-  const percentage = (Math.max(0, Math.min(rating, 5)) / 5) * 100;
+  const safeRating = Math.max(0, Math.min(rating, 5));
 
   return (
-    <div className="relative inline-flex" style={{ width: 76, height: 14 }}>
-      <div className="absolute inset-0 flex gap-0.5">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Star
-            key={i}
-            className="w-3.5 h-3.5 text-gray-300 fill-gray-300 shrink-0"
-          />
-        ))}
-      </div>
-      <div
-        className="absolute inset-0 flex gap-0.5 overflow-hidden"
-        style={{ width: `${percentage}%` }}
-      >
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Star
-            key={i}
-            className="w-3.5 h-3.5 text-amber-400 fill-amber-400 shrink-0"
-          />
-        ))}
-      </div>
+    <div className="inline-flex items-center gap-0.5">
+      {Array.from({ length: 5 }).map((_, i) => {
+        const fillPercent = Math.max(0, Math.min(1, safeRating - i)) * 100;
+
+        return (
+          <div key={i} className="relative w-3.5 h-3.5 shrink-0">
+            <Star className="absolute inset-0 w-3.5 h-3.5 text-gray-300 fill-gray-300" />
+            <div
+              className="absolute inset-0 overflow-hidden"
+              style={{ width: `${fillPercent}%` }}
+            >
+              <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -665,28 +668,41 @@ export default function ElearningSelection() {
                     </div>
 
                     {/* Footer — rating & jumlah peserta */}
-                    <div className="flex items-center justify-between text-xs pt-3 border-t border-gray-100">
-                      <div className="flex items-center gap-1.5">
-                        <StarRating rating={course.averageRating ?? 0} />
-                        <span className="text-gray-700 font-medium">
-                          {(course.averageRating ?? 0).toFixed(1)}
-                        </span>
-                        <span className="text-gray-500">
-                          ({course.reviewCount ?? 0} ulasan)
-                        </span>
-                      </div>
+                    {(() => {
+                      // 🔥 Dihitung sekali di sini, lalu dipakai ulang di
+                      // StarRating (visual bintang) & teks angka — biar
+                      // dua-duanya selalu konsisten (nggak ada kemungkinan
+                      // beda hasil pembulatan kalau getDisplayedRating
+                      // dipanggil terpisah di dua tempat).
+                      const displayedRating = getDisplayedRating(
+                        course.averageRating,
+                      );
 
-                      <div className="flex items-center gap-1 text-gray-500">
-                        <Users className="w-3.5 h-3.5" />
-                        <span className="font-medium">
-                          {getDisplayedParticipantCount(
-                            course.id,
-                            totalSubscribers,
-                          )}{" "}
-                          peserta
-                        </span>
-                      </div>
-                    </div>
+                      return (
+                        <div className="flex items-center justify-between text-xs pt-3 border-t border-gray-100">
+                          <div className="flex items-center gap-1.5">
+                            <StarRating rating={displayedRating} />
+                            <span className="text-gray-700 font-medium">
+                              {displayedRating.toFixed(1)}
+                            </span>
+                            <span className="text-gray-500">
+                              ({course.reviewCount ?? 0} ulasan)
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1 text-gray-500">
+                            <Users className="w-3.5 h-3.5" />
+                            <span className="font-medium">
+                              {getDisplayedParticipantCount(
+                                course.id,
+                                totalSubscribers,
+                              )}{" "}
+                              peserta
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </CardContent>
                 </Card>
               </Link>

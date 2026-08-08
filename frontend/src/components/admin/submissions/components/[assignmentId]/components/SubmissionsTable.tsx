@@ -1,15 +1,31 @@
 "use client";
 
-import { Search, ChevronLeft, ChevronRight, Inbox } from "lucide-react";
+import {
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Inbox,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
+import { useState } from "react";
 import type { SubmissionListItem } from "@/app/admin/elearning/submissions/[assignmentId]/page";
+import {
+  MAX_ASSIGNMENT_ATTEMPTS,
+  PASSING_SCORE_THRESHOLD,
+  getAssignmentReviewOutcome,
+  type AssignmentReviewOutcome,
+} from "@/hooks/useElearningAssignmentSubmission";
 
 interface Props {
   submissions: SubmissionListItem[];
   isLoading: boolean;
   page: number;
+  limit: number;
   totalPages: number;
   total: number;
   onPageChange: (page: number) => void;
+  onLimitChange: (limit: number) => void;
   search: string;
   onSearchChange: (value: string) => void;
   statusFilter: string;
@@ -20,33 +36,46 @@ interface Props {
   onGrade: (submission: SubmissionListItem) => void;
 }
 
+// 🔥 FIX: opsi filter "Sudah Direview" (raw status REVIEWED) diganti jadi
+// "Lolos" / "Tidak Lolos" yang eksplisit — nilai yang dikirim ke backend
+// masih string status mentah yang sama (REVIEWED), karena backend belum
+// membedakan APPROVED/REJECTED secara literal; bedanya dihitung di
+// frontend lewat getAssignmentReviewOutcome. Jadi filter ini tetap
+// mengambil submission yang statusnya "sudah dinilai", lalu badge di tiap
+// baris tabel yang menampilkan hasil sebenarnya (Lolos/Tidak Lolos).
 const STATUS_OPTIONS = [
   { value: "", label: "Semua Status" },
   { value: "PENDING", label: "Belum Direview" },
   { value: "REVISION_REQUIRED", label: "Perlu Revisi" },
-  { value: "APPROVED", label: "Lolos" },
-  { value: "REJECTED", label: "Ditolak" },
-  { value: "REVIEWED", label: "Sudah Direview" },
+  { value: "REVIEWED", label: "Sudah Dinilai (Lolos / Tidak Lolos)" },
 ];
 
-function StatusBadge({ status }: { status: SubmissionListItem["status"] }) {
-  const map: Record<string, { label: string; className: string }> = {
-    PENDING: {
-      label: "Belum Direview",
-      className: "bg-yellow-100 text-yellow-700",
-    },
-    REVISION_REQUIRED: {
-      label: "Perlu Revisi",
-      className: "bg-amber-100 text-amber-700",
-    },
-    APPROVED: { label: "Lolos", className: "bg-emerald-100 text-emerald-700" },
-    REJECTED: { label: "Ditolak", className: "bg-red-100 text-red-700" },
-    REVIEWED: { label: "Direview", className: "bg-blue-100 text-blue-700" },
-  };
-  const cfg = map[status] ?? {
-    label: status,
-    className: "bg-gray-100 text-gray-600",
-  };
+const LIMIT_OPTIONS = [5, 10, 20, 50];
+
+const OUTCOME_META: Record<
+  AssignmentReviewOutcome,
+  { label: string; className: string }
+> = {
+  PENDING: {
+    label: "Belum Direview",
+    className: "bg-yellow-100 text-yellow-700",
+  },
+  REVISION_REQUIRED: {
+    label: "Perlu Revisi",
+    className: "bg-amber-100 text-amber-700",
+  },
+  APPROVED: { label: "Lolos", className: "bg-emerald-100 text-emerald-700" },
+  REJECTED: { label: "Tidak Lolos", className: "bg-red-100 text-red-700" },
+};
+
+function StatusBadge({ submission }: { submission: SubmissionListItem }) {
+  const outcome = getAssignmentReviewOutcome({
+    status: submission.status,
+    isRevisionRequired: submission.isRevisionRequired,
+    score: submission.score,
+    isLastAttempt: submission.attemptNumber >= MAX_ASSIGNMENT_ATTEMPTS,
+  });
+  const cfg = OUTCOME_META[outcome];
 
   return (
     <span
@@ -61,9 +90,11 @@ export default function SubmissionsTable({
   submissions,
   isLoading,
   page,
+  limit,
   totalPages,
   total,
   onPageChange,
+  onLimitChange,
   search,
   onSearchChange,
   statusFilter,
@@ -73,21 +104,53 @@ export default function SubmissionsTable({
   onSortChange,
   onGrade,
 }: Props) {
-  const handleSortToggle = (field: "submittedAt" | "score") => {
-    if (sortBy === field) {
-      onSortChange(field, sortOrder === "asc" ? "desc" : "asc");
-    } else {
-      onSortChange(field, "desc");
+  const [sortField, setSortField] = useState<"submittedAt" | "score">(sortBy);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">(sortOrder);
+
+  const handleSort = (field: "submittedAt" | "score") => {
+    let newOrder: "asc" | "desc" = "desc";
+    if (sortField === field) {
+      if (sortDir === "desc") newOrder = "asc";
+      else if (sortDir === "asc") newOrder = "desc";
     }
+    setSortField(field);
+    setSortDir(newOrder);
+    onSortChange(field, newOrder);
+  };
+
+  const getSortIcon = (field: string) => {
+    if (sortField !== field) return null;
+    return sortDir === "asc" ? (
+      <ChevronUp size={14} />
+    ) : (
+      <ChevronDown size={14} />
+    );
   };
 
   return (
     <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-      {/* ================= FILTER BAR ================= */}
+      {/* 🔥 BARU: keterangan ambang batas kelulusan attempt terakhir —
+          biar admin/curdev paham kenapa suatu submission bisa "Tidak
+          Lolos" walau tidak ada opsi revisi lagi yang dipilih. */}
+      {/* <div className="flex items-start gap-2 border-b border-gray-100 bg-blue-50/60 px-5 py-2.5 text-xs text-blue-800">
+        <span>
+          Ambang batas: di attempt ke-{MAX_ASSIGNMENT_ATTEMPTS} (attempt
+          terakhir), skor{" "}
+          <span className="font-semibold">≥ {PASSING_SCORE_THRESHOLD}</span>{" "}
+          otomatis <span className="font-semibold">Lolos</span>, di bawah itu{" "}
+          <span className="font-semibold">Tidak Lolos</span>. Opsi &ldquo;perlu
+          revisi&rdquo; hanya tersedia sebelum attempt terakhir.
+        </span>
+      </div> */}
+
+      {/* FILTER BAR */}
       <div className="flex flex-col gap-3 border-b border-gray-100 p-5 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-base font-bold text-gray-900">
-          Daftar Submission ({total})
-        </h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-base font-bold text-gray-900">
+            Daftar Submission
+          </h2>
+          <span className="text-sm text-gray-500">({total} total)</span>
+        </div>
 
         <div className="flex flex-col gap-3 sm:flex-row">
           <div className="relative w-full sm:w-64">
@@ -114,10 +177,22 @@ export default function SubmissionsTable({
               </option>
             ))}
           </select>
+
+          <select
+            value={limit}
+            onChange={(e) => onLimitChange(Number(e.target.value))}
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          >
+            {LIMIT_OPTIONS.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt} per halaman
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
-      {/* ================= TABLE ================= */}
+      {/* TABLE */}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
@@ -125,25 +200,30 @@ export default function SubmissionsTable({
               <th className="px-5 py-3">Mentee</th>
               <th className="px-5 py-3 text-center">Attempt</th>
               <th
-                className="cursor-pointer select-none px-5 py-3"
-                onClick={() => handleSortToggle("submittedAt")}
+                className="cursor-pointer select-none px-5 py-3 hover:text-gray-700"
+                onClick={() => handleSort("submittedAt")}
               >
-                Tanggal Kirim{" "}
-                {sortBy === "submittedAt" && (sortOrder === "asc" ? "↑" : "↓")}
+                <div className="flex items-center gap-1">
+                  Tanggal Kirim
+                  {getSortIcon("submittedAt")}
+                </div>
               </th>
               <th className="px-5 py-3">Status</th>
               <th
-                className="cursor-pointer select-none px-5 py-3 text-center"
-                onClick={() => handleSortToggle("score")}
+                className="cursor-pointer select-none px-5 py-3 text-center hover:text-gray-700"
+                onClick={() => handleSort("score")}
               >
-                Skor {sortBy === "score" && (sortOrder === "asc" ? "↑" : "↓")}
+                <div className="flex items-center justify-center gap-1">
+                  Skor
+                  {getSortIcon("score")}
+                </div>
               </th>
               <th className="px-5 py-3 text-right">Aksi</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {isLoading &&
-              Array.from({ length: 5 }).map((_, idx) => (
+              Array.from({ length: limit }).map((_, idx) => (
                 <tr key={idx}>
                   <td className="px-5 py-4" colSpan={6}>
                     <div className="h-5 w-full animate-pulse rounded bg-gray-100" />
@@ -186,18 +266,27 @@ export default function SubmissionsTable({
                       : "-"}
                   </td>
                   <td className="px-5 py-4">
-                    <StatusBadge status={s.status} />
+                    <StatusBadge submission={s} />
                   </td>
                   <td className="px-5 py-4 text-center font-semibold text-gray-900">
                     {typeof s.score === "number" ? s.score : "-"}
                   </td>
                   <td className="px-5 py-4 text-right">
-                    <button
-                      onClick={() => onGrade(s)}
-                      className="rounded-lg bg-emerald-500 px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-emerald-600"
-                    >
-                      Menilai
-                    </button>
+                    {s.status === "PENDING" ? (
+                      <button
+                        onClick={() => onGrade(s)}
+                        className="rounded-lg bg-emerald-500 px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-emerald-600"
+                      >
+                        Menilai
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => onGrade(s)}
+                        className="rounded-lg border border-emerald-500 px-4 py-1.5 text-sm font-semibold text-emerald-600 transition hover:bg-emerald-50"
+                      >
+                        Lihat Detail
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -205,11 +294,12 @@ export default function SubmissionsTable({
         </table>
       </div>
 
-      {/* ================= PAGINATION ================= */}
+      {/* PAGINATION */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-gray-100 px-5 py-4">
+        <div className="flex flex-col gap-3 border-t border-gray-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-gray-500">
-            Halaman {page} dari {totalPages}
+            Menampilkan {(page - 1) * limit + 1} -{" "}
+            {Math.min(page * limit, total)} dari {total} submission
           </p>
           <div className="flex items-center gap-2">
             <button
@@ -219,6 +309,9 @@ export default function SubmissionsTable({
             >
               <ChevronLeft size={16} />
             </button>
+            <span className="text-sm text-gray-600">
+              Halaman {page} dari {totalPages}
+            </span>
             <button
               onClick={() => onPageChange(Math.min(page + 1, totalPages))}
               disabled={page >= totalPages}

@@ -19,7 +19,7 @@ export const registerSchema = z.object({
   city: z.string().optional(),
   province: z.string().optional(),
   role: z
-    .enum(["mentee", "mentor", "affiliator", "admin", "cm", "curdev"], {
+    .enum(["mentee", "mentor", "affiliator", "admin", "cm", "curdev", "guest"], {
       invalid_type_error: "Invalid role selected",
     })
     .default("mentee"),

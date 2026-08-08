@@ -2,10 +2,10 @@ import { z } from "zod";
 
 export const generateCertificateSchema = z.object({
   params: z.object({
-    id: z.string().min(1), // courseId
+    id: z.string().min(1), // 🔥 UBAH: subChapterId (dulu courseId)
   }),
   body: z.object({
-    userId: z.string().min(1), // menteeId (manual admin)
+    userId: z.string().min(1),
     note: z.string().optional(),
   }),
 });

@@ -404,8 +404,6 @@ model ELearningCourse {
   // Relations
   mentorProfile     MentorProfile       @relation("MentorCourses", fields: [mentorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   subChapters       ELearningSubChapter[]
-  reviews           ELearningReview[]
-  certificates      ELearningCertificate[]
   discussions       ELearningDiscussion[]
 
   @@map("e_learning_courses")
@@ -435,6 +433,8 @@ model ELearningSubChapter {
   course          ELearningCourse   @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   subBabs         ELearningSubBab[]
   progresses      ELearningSubChapterProgress[]
+  reviews         ELearningReview[]
+  certificates    ELearningCertificate[]
 
   @@map("e_learning_sub_chapters")
 }
@@ -1121,7 +1121,7 @@ model ELearningBlockProgress {
 model ELearningReview {
   id              String             @id @default(cuid())
   userId          String             @map("user_id")
-  courseId        String             @map("course_id")
+  subChapterId    String             @map("sub_chapter_id")
   rating          Decimal            @db.Decimal(2,1)
   comment         String?
   isPublic        Boolean            @default(true) @map("is_public")
@@ -1129,15 +1129,15 @@ model ELearningReview {
   createdAt       DateTime?          @default(now())
 
   user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course          ELearningCourse    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  subChapter      ELearningSubChapter @relation(fields: [subChapterId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, courseId])
+  @@unique([userId, subChapterId])
   @@map("e_learning_reviews")
 }
 
 model ELearningCertificate {
   id                String   @id @default(cuid())
-  courseId          String   @map("course_id")
+  subChapterId      String   @map("sub_chapter_id")
   userId            String   @map("user_id")
   certificateUrl    String   @db.VarChar
   certificatePath   String?   @db.VarChar @map("certificate_path")
@@ -1148,9 +1148,9 @@ model ELearningCertificate {
   note              String?   @db.VarChar @map("note")
 
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course      ELearningCourse @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  subChapter  ELearningSubChapter @relation(fields: [subChapterId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, courseId])
+  @@unique([userId, subChapterId])
   @@map("e_learning_certificates")
 }
 

@@ -35,6 +35,26 @@ export type ElearningCoursesErrorType =
   | "unknown"
   | null;
 
+/**
+ * 🔥 Rating yang DITAMPILKAN ke user sengaja dinaikkan dari rating asli
+ * (`averageRating` apa adanya dari backend) — permintaan bisnis:
+ * - Rating di rentang 0 - 1 dinaikkan 50%.
+ * - Rating di atas 1 dinaikkan 30%.
+ * - Hasilnya nggak pernah melebihi 5 (dibatasi/clamped).
+ *
+ * Dipakai bareng oleh ElearningSelection.tsx & ElearningFul.tsx — jangan
+ * dipanggil dua kali buat nilai yang sama (mis. sekali buat StarRating,
+ * sekali lagi buat teks angka) dengan hasil beda gara-gara pembulatan;
+ * simpan hasilnya ke satu variabel dulu di pemanggil kalau dipakai lebih
+ * dari sekali untuk course yang sama.
+ */
+export function getDisplayedRating(rating: number | null | undefined): number {
+  const safeRating = Math.max(0, rating ?? 0);
+  const multiplier = safeRating <= 1 ? 1.9 : 1.1;
+  const boosted = safeRating * multiplier;
+  return Math.min(5, Number(boosted.toFixed(1)));
+}
+
 interface UseElearningCoursesResult {
   courses: ElearningCourseApiItem[];
   loading: boolean;

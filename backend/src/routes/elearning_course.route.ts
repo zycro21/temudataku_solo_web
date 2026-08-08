@@ -96,7 +96,7 @@ const router = express.Router();
 router.get(
   "/courses",
   authenticate,
-  authorizeRoles("admin", "mentor", "mentee", "cm", "curdev"),
+  authorizeRoles("admin", "mentor", "mentee", "cm", "curdev", "guest"),
   validate(getAllCoursesSchema),
   ELearningCourseController.getAllCourses,
 );
@@ -129,7 +129,7 @@ router.get(
 router.get(
   "/courses/:id",
   authenticate,
-  authorizeRoles("admin", "mentor", "mentee", "cm", "curdev"),
+  authorizeRoles("admin", "mentor", "mentee", "cm", "curdev", "guest"),
   validate(getCourseByIdSchema),
   ELearningCourseController.getCourseById,
 );
@@ -485,7 +485,7 @@ router.get(
 router.get(
   "/courses/:id/statistics",
   authenticate,
-  authorizeRoles("mentor", "admin"),
+  authorizeRoles("mentor", "admin", "guest"),
   validate(getCourseStatisticsSchema),
   ELearningCourseController.getCourseStatistics,
 );
@@ -531,7 +531,7 @@ router.get(
 router.get(
   "/coursesExport",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "guest"),
   validate(exportCoursesSchema),
   ELearningCourseController.exportCourses,
 );
@@ -569,7 +569,7 @@ router.get(
 router.get(
   "/exportProductEvent",
   authenticate,
-  authorizeRoles("admin", "cm", "curdev"),
+  authorizeRoles("admin", "cm", "curdev", "guest"),
   validate(exportProductEventSchema),
   ELearningCourseController.exportProductEvent,
 );
@@ -629,7 +629,7 @@ router.post(
 router.get(
   "/courses/:id/history",
   authenticate,
-  authorizeRoles("admin", "mentor", "cm", "curdev"),
+  authorizeRoles("admin", "mentor", "cm", "curdev", "guest"),
   validate(getCourseHistorySchema),
   ELearningCourseController.getCourseHistory,
 );

@@ -6,9 +6,6 @@ import { toast } from "sonner";
 import AssignmentStatsCards from "@/components/admin/submissions/components/AssignmentStatsCards";
 import AssignmentListTable from "@/components/admin/submissions/components/AssignmentListTable";
 
-// 🔥 Bentuk data assignment yang dikembalikan GET /api/elearningAssignment/assignments
-// (lihat include di ELearningAssignmentService.getAllAssignments) — dipakai
-// bareng-bareng oleh page ini & kedua komponen di bawah.
 export interface AssignmentListItem {
   id: string;
   title: string;
@@ -46,12 +43,22 @@ export default function AdminSubmissionsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  // 🔥 Assignment biasanya tidak sebanyak submission — jadi di sini kita
-  // tarik SEMUA assignment sekaligus (limit besar, bukan sortBy score/
-  // submittedAt karena itu bikin backend error, lihat catatan di chat)
-  // lalu search & stats dihitung di client. Kalau nanti jumlah assignment
-  // sudah ratusan+, ini sebaiknya dipindah ke server-side pagination +
-  // endpoint agregat count submission tersendiri.
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // Sorting state
+  const [sortBy, setSortBy] = useState<
+    "createdAt" | "updatedAt" | "score" | "submittedAt"
+  >("createdAt");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
+  // Stats (total assignment count, submitted, reviewed)
+  const [totalSubmitted, setTotalSubmitted] = useState(0);
+  const [totalReviewed, setTotalReviewed] = useState(0);
+
   const fetchAssignments = async () => {
     setIsLoading(true);
     try {
@@ -59,10 +66,30 @@ export default function AdminSubmissionsPage() {
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/elearningAssignment/assignments`,
         {
           withCredentials: true,
-          params: { limit: 500, sortBy: "createdAt", order: "desc" },
+          params: {
+            page,
+            limit,
+            search: search || undefined,
+            sortBy,
+            order: sortOrder,
+          },
         },
       );
-      setAssignments(res.data?.data ?? []);
+
+      const data = res.data?.data ?? [];
+      setAssignments(data);
+
+      // 🔥 Hitung stats dari semua data (backend sudah memberikan semua data sesuai filter)
+      const allSubmissions = data.flatMap(
+        (a: AssignmentListItem) => a.submissions,
+      );
+      setTotalSubmitted(allSubmissions.length);
+      setTotalReviewed(
+        allSubmissions.filter((s: any) => s.score !== null).length,
+      );
+
+      setTotal(res.data?.pagination?.total ?? 0);
+      setTotalPages(res.data?.pagination?.totalPages ?? 1);
     } catch (err: any) {
       toast.error(
         err?.response?.data?.message ??
@@ -75,36 +102,12 @@ export default function AdminSubmissionsPage() {
 
   useEffect(() => {
     fetchAssignments();
-  }, []);
-
-  const filteredAssignments = assignments.filter((a) => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return (
-      a.title.toLowerCase().includes(q) ||
-      a.text.subBab.subChapter.course.title.toLowerCase().includes(q)
-    );
-  });
-
-  // 🔥 Status "sudah dicek" diturunkan dari `score !== null` — backend
-  // selalu mewajibkan `score` diisi saat review (lihat reviewSubmissionSchema:
-  // score wajib), jadi score !== null adalah proxy yang aman buat "sudah
-  // direview", tanpa perlu field status per submission di endpoint list ini.
-  const totalSubmitted = assignments.reduce(
-    (sum, a) => sum + a.submissions.length,
-    0,
-  );
-  const totalReviewed = assignments.reduce(
-    (sum, a) => sum + a.submissions.filter((s) => s.score !== null).length,
-    0,
-  );
+  }, [page, limit, search, sortBy, sortOrder]);
 
   return (
     <div className="space-y-6 p-2 pb-15">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">
-          Projek E-Learning
-        </h1>
+        <h1 className="text-2xl font-bold text-gray-900">Projek E-Learning</h1>
         <p className="mt-1 text-sm text-gray-500">
           Pilih projek untuk melihat & menilai tugas/submission yang dikumpulkan
           mentee.
@@ -112,17 +115,36 @@ export default function AdminSubmissionsPage() {
       </div>
 
       <AssignmentStatsCards
-        totalAssignments={assignments.length}
+        totalAssignments={total}
         totalSubmitted={totalSubmitted}
         totalReviewed={totalReviewed}
         isLoading={isLoading}
       />
 
       <AssignmentListTable
-        assignments={filteredAssignments}
+        assignments={assignments}
         isLoading={isLoading}
         search={search}
-        onSearchChange={setSearch}
+        onSearchChange={(v) => {
+          setPage(1);
+          setSearch(v);
+        }}
+        page={page}
+        limit={limit}
+        total={total}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        onLimitChange={(v) => {
+          setPage(1);
+          setLimit(v);
+        }}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSortChange={(by, order) => {
+          setPage(1);
+          setSortBy(by);
+          setSortOrder(order);
+        }}
       />
     </div>
   );

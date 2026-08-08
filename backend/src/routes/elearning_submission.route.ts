@@ -325,7 +325,7 @@ router.patch(
 router.get(
   "/submissions/:id",
   authenticate,
-  authorizeRoles("admin", "mentor", "mentee"),
+  authorizeRoles("admin", "mentor", "mentee", "curdev"),
   validate(getSubmissionDetailSchema),
   ELearningSubmissionController.getSubmissionDetail
 );

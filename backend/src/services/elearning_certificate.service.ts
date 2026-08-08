@@ -40,7 +40,7 @@ async function generateQRCodeBuffer(url: string): Promise<Buffer> {
    PDF GENERATOR
 ================================ */
 
-// UTILS DRAW TABLE
+// UTILS DRAW TABLE — TIDAK BERUBAH
 function drawTable({
   doc,
   startX,
@@ -79,19 +79,20 @@ function drawTable({
   });
 }
 
-// PAGE 1
+// PAGE 1 — 🔥 UBAH: courseTitle → subChapterTitle (nama parameter saja,
+// isi/urutan tampilannya di PDF tidak berubah)
 function renderCertificatePage({
   doc,
   certificateNumber,
   userName,
-  courseTitle,
+  subChapterTitle,
   issueDate,
   qrBuffer,
 }: {
   doc: PDFKit.PDFDocument;
   certificateNumber: string;
   userName: string;
-  courseTitle: string;
+  subChapterTitle: string;
   issueDate: Date;
   qrBuffer: Buffer;
 }) {
@@ -119,9 +120,9 @@ function renderCertificatePage({
     .moveDown(1)
     .fontSize(14)
     .fillColor("#333")
-    .text("For successfully completing the course", { align: "center" });
+    .text("For successfully completing the class", { align: "center" });
 
-  doc.moveDown(1).fontSize(22).fillColor("#00A859").text(courseTitle, {
+  doc.moveDown(1).fontSize(22).fillColor("#00A859").text(subChapterTitle, {
     align: "center",
   });
 
@@ -142,7 +143,7 @@ function renderCertificatePage({
   });
 }
 
-// PAGE 2
+// PAGE 2 — TIDAK BERUBAH
 function buildAssessmentRows(data: {
   quizScore?: number;
   assignmentScore?: number;
@@ -192,74 +193,83 @@ function renderAssessmentPage(doc: PDFKit.PDFDocument, rows: string[][]) {
 async function generateCertificatePDF({
   certificateNumber,
   userName,
-  courseTitle,
+  subChapterTitle,
   issueDate,
   pdfPath,
   userId,
-  courseId,
+  subChapterId,
 }: {
   certificateNumber: string;
   userName: string;
-  courseTitle: string;
+  subChapterTitle: string;
   issueDate: Date;
   pdfPath: string;
   userId: string;
-  courseId: string;
+  subChapterId: string; // 🔥 UBAH: dulu courseId
 }) {
   /* ========= GET ASSESSMENT DATA ========= */
 
+  // 🔥 UBAH (quiz):
+  // 1. Filter: dulu naik sampai ke `subChapter.courseId` (via Course),
+  //    sekarang cukup `subBab.subChapterId` langsung — subChapterId
+  //    memang sudah scalar field di ELearningSubBab, nggak perlu lompat
+  //    lewat Course lagi.
+  // 2. orderBy: dulu `score: "desc"` (ambil skor TERTINGGI, salah — bisa
+  //    ambil attempt lama yang kebetulan skornya lebih bagus). Sekarang
+  //    `attemptNumber: "desc"` → ambil attempt PALING TERAKHIR sesuai
+  //    permintaan, apa pun skornya.
+  // 3. Satu subChapter cuma boleh ada 1 quiz (task per subChapter),
+  //    jadi findFirst di sini aman tanpa perlu group by quizId.
   const quizAttempt = await prisma.eLearningQuizAttempt.findFirst({
     where: {
       userId,
       quiz: {
         text: {
           subBab: {
-            subChapter: {
-              courseId,
-            },
+            subChapterId,
           },
         },
       },
     },
     orderBy: {
-      score: "desc",
+      attemptNumber: "desc",
     },
   });
 
+  // 🔥 UBAH (assignment/submission): sama persis polanya seperti quiz di
+  // atas — filter langsung ke `subBab.subChapterId`, orderBy diganti
+  // jadi `attemptNumber: "desc"` (attempt terakhir, bukan skor
+  // tertinggi).
   const assignment = await prisma.eLearningSubmission.findFirst({
     where: {
       userId,
       assignment: {
         text: {
           subBab: {
-            subChapter: {
-              courseId,
-            },
+            subChapterId,
           },
         },
       },
     },
     orderBy: {
-      score: "desc",
+      attemptNumber: "desc",
     },
   });
 
-  const progress = await prisma.eLearningProgress.findMany({
-    where: {
-      userId,
-      subBab: {
-        subChapter: { courseId },
+  // 🔥 UBAH (progress): dulu manual hitung dari ELearningProgress
+  // (per-subBab isCompleted, di-scope ke seluruh course). Sekarang
+  // tinggal baca LANGSUNG dari ELearningSubChapterProgress.progressPercent
+  // — itu sudah sumber kebenaran progress yang benar (yang juga dipakai
+  // sidebar mentee), jadi nggak perlu hitung ulang manual lagi di sini.
+  const subChapterProgress =
+    await prisma.eLearningSubChapterProgress.findUnique({
+      where: {
+        userId_subChapterId: { userId, subChapterId },
       },
-    },
-  });
+      select: { progressPercent: true },
+    });
 
-  const progressScore =
-    progress.length === 0
-      ? 0
-      : Math.round(
-          (progress.filter((p) => p.isCompleted).length / progress.length) *
-            100,
-        );
+  const progressScore = Math.round(subChapterProgress?.progressPercent ?? 0);
 
   const quizScore =
     typeof quizAttempt?.score === "number" ? quizAttempt.score : undefined;
@@ -291,7 +301,7 @@ async function generateCertificatePDF({
       doc,
       certificateNumber,
       userName,
-      courseTitle,
+      subChapterTitle,
       issueDate,
       qrBuffer,
     });
@@ -317,43 +327,46 @@ async function generateCertificatePDF({
 ================================ */
 
 export const generateCertificate = async ({
-  courseId,
+  subChapterId,
   userId,
   verifiedBy,
   note,
 }: {
-  courseId: string;
+  subChapterId: string; // 🔥 UBAH: dulu courseId
   userId: string;
   verifiedBy?: string;
   note?: string;
 }) => {
-  /* === 1. CEK DUPLIKASI === */
+  /* === 1. CEK DUPLIKASI ===
+     🔥 UBAH: compound unique key `userId_courseId` → `userId_subChapterId`
+     (sesuai `@@unique([userId, subChapterId])` di schema baru) */
   const existing = await prisma.eLearningCertificate.findUnique({
     where: {
-      userId_courseId: { userId, courseId },
+      userId_subChapterId: { userId, subChapterId },
     },
   });
 
   if (existing) {
-    throw new Error("Certificate already exists for this course");
+    throw new Error("Certificate already exists for this sub-chapter");
   }
 
-  /* === 2. AMBIL DATA USER & COURSE === */
+  /* === 2. AMBIL DATA USER & SUB-CHAPTER ===
+     🔥 UBAH: query course → query subChapter */
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { fullName: true },
   });
 
-  const course = await prisma.eLearningCourse.findUnique({
-    where: { id: courseId },
+  const subChapter = await prisma.eLearningSubChapter.findUnique({
+    where: { id: subChapterId },
     select: { title: true },
   });
 
-  if (!user || !course) {
-    throw new Error("User or course not found");
+  if (!user || !subChapter) {
+    throw new Error("User or sub-chapter not found");
   }
 
-  /* === 3. PREPARE FILE PATH === */
+  /* === 3. PREPARE FILE PATH === (tidak berubah) */
   const certificateNumber = generateCertificateNumber();
 
   const uploadDir = path.join(__dirname, "../../uploads/elearning_certificate");
@@ -369,18 +382,18 @@ export const generateCertificate = async ({
   await generateCertificatePDF({
     certificateNumber,
     userName: user.fullName,
-    courseTitle: course.title,
+    subChapterTitle: subChapter.title, // 🔥 UBAH: courseTitle → subChapterTitle
     issueDate: new Date(),
     pdfPath,
     userId,
-    courseId,
+    subChapterId, // 🔥 UBAH
   });
 
-  /* === 4.1 UPLOAD KE GOOGLE DRIVE === */
+  /* === 4.1 UPLOAD KE GOOGLE DRIVE === (tidak berubah) */
   const uploadedFile = await uploadToGoogleDrive(
     pdfPath,
     fileName,
-    "16dqTiqyEhFhrfzfoX5upUkgkNoUGNnI9", // ⬅️ ganti sesuai folder certificate e-learning
+    "16dqTiqyEhFhrfzfoX5upUkgkNoUGNnI9",
   );
 
   console.log("Uploaded to Google Drive:", uploadedFile.webViewLink);
@@ -389,10 +402,12 @@ export const generateCertificate = async ({
     throw new Error("Failed to upload certificate to Google Drive");
   }
 
-  /* === 5. SIMPAN KE DATABASE === */
+  /* === 5. SIMPAN KE DATABASE ===
+     🔥 UBAH: `courseId` → `subChapterId` di data create, dan
+     `include: { course }` → `include: { subChapter }` */
   const certificate = await prisma.eLearningCertificate.create({
     data: {
-      courseId,
+      subChapterId,
       userId,
       certificateNumber,
       certificateUrl: uploadedFile.webViewLink,
@@ -404,42 +419,41 @@ export const generateCertificate = async ({
     },
     include: {
       user: { select: { fullName: true } },
-      course: { select: { title: true } },
+      subChapter: { select: { title: true } },
     },
   });
 
   return certificate;
 };
 
-// export const generateCertificateAuto = async ({
-//   courseId,
-//   userId,
-// }: {
-//   courseId: string;
-//   userId: string;
-// }) => {
-//   const subBabCount = await prisma.eLearningSubBab.count({
-//     where: {
-//       subChapter: { courseId },
-//     },
-//   });
+export const generateCertificateAuto = async ({
+  subChapterId,
+  userId,
+}: {
+  subChapterId: string;
+  userId: string;
+}) => {
+  // 🔥 UBAH TOTAL: dulu ngitung manual (subBabCount vs completedCount
+  // dari ELearningProgress, di-scope lewat courseId). Sekarang tinggal
+  // baca LANGSUNG dari ELearningSubChapterProgress.progressPercent —
+  // itu satu-satunya sumber kebenaran progress yang sudah kita bangun
+  // (dan yang juga ditampilkan ke mentee di sidebar), jadi trigger
+  // sertifikat ini otomatis konsisten dengan apa yang mentee lihat
+  // sendiri. Nggak perlu hitung ulang dari ELearningProgress lagi (itu
+  // model lama yang sudah nggak jadi sumber progress yang aktif).
+  const progress = await prisma.eLearningSubChapterProgress.findUnique({
+    where: {
+      userId_subChapterId: { userId, subChapterId },
+    },
+    select: { progressPercent: true },
+  });
 
-//   const completedCount = await prisma.eLearningProgress.count({
-//     where: {
-//       userId,
-//       isCompleted: true,
-//       subBab: {
-//         subChapter: { courseId },
-//       },
-//     },
-//   });
+  if (!progress || progress.progressPercent < 100) {
+    throw new Error("Progress belum 100%");
+  }
 
-//   if (subBabCount === 0 || completedCount !== subBabCount) {
-//     throw new Error("Progress belum 100%");
-//   }
-
-//   return generateCertificate({ courseId, userId });
-// };
+  return generateCertificate({ subChapterId, userId });
+};
 
 export const getCertificatesByUser = async ({
   userId,
@@ -467,8 +481,11 @@ export const getCertificatesByUser = async ({
   const where: any = {
     userId,
     ...(status && { status }),
+    // 🔥 UBAH: `course: { title: {...} }` → `subChapter: { title: {...} }`
+    // — search sekarang mencari berdasarkan judul sub-chapter (kelas),
+    // bukan judul course lagi, karena sertifikat nempel ke SubChapter.
     ...(search && {
-      course: {
+      subChapter: {
         title: {
           contains: search,
           mode: "insensitive",
@@ -482,7 +499,16 @@ export const getCertificatesByUser = async ({
   const rows = await prisma.eLearningCertificate.findMany({
     where,
     include: {
-      course: { select: { title: true } },
+      // 🔥 UBAH: `course: {...}` → `subChapter: {...}`, plus disertakan
+      // nested `course` di dalamnya biar mentee tetap bisa lihat course
+      // induknya di daftar sertifikat (dulu itu langsung ada di
+      // `course.title`, sekarang lewat `subChapter.course.title`).
+      subChapter: {
+        select: {
+          title: true,
+          course: { select: { title: true } },
+        },
+      },
     },
     orderBy: { [sortBy]: sortOrder },
     skip: (page - 1) * limit,
@@ -511,10 +537,20 @@ export const getCertificateDetail = async ({
   const cert = await prisma.eLearningCertificate.findUnique({
     where: { id: certificateId },
     include: {
-      course: {
+      // 🔥 UBAH: `course: {...}` → `subChapter: {...}`, plus disertakan
+      // nested `course` di dalamnya biar detail sertifikat tetap bisa
+      // nampilin course induknya juga (dulu langsung `course.title`,
+      // sekarang lewat `subChapter.course.title`).
+      subChapter: {
         select: {
           id: true,
           title: true,
+          course: {
+            select: {
+              id: true,
+              title: true,
+            },
+          },
         },
       },
       user: {
@@ -531,7 +567,7 @@ export const getCertificateDetail = async ({
     throw new Error("Certificate not found");
   }
 
-  // Authorization rule
+  // Authorization rule — TIDAK berubah, tetap pakai cert.userId
   if (!isAdmin && cert.userId !== userId) {
     throw new Error("Forbidden");
   }
@@ -603,10 +639,20 @@ export const getAllCertificates = async ({
           email: true,
         },
       },
-      course: {
+      // 🔥 UBAH: `course: {...}` → `subChapter: {...}`, plus disertakan
+      // nested `course` di dalamnya biar admin tetap bisa lihat course
+      // induknya (dulu langsung `course.title`, sekarang lewat
+      // `subChapter.course.title`).
+      subChapter: {
         select: {
           id: true,
           title: true,
+          course: {
+            select: {
+              id: true,
+              title: true,
+            },
+          },
         },
       },
     },
@@ -659,10 +705,19 @@ export const updateCertificate = async (
           email: true,
         },
       },
-      course: {
+      // 🔥 UBAH: `course: {...}` → `subChapter: {...}`, plus disertakan
+      // nested `course` di dalamnya biar admin tetap bisa lihat course
+      // induknya di response update.
+      subChapter: {
         select: {
           id: true,
           title: true,
+          course: {
+            select: {
+              id: true,
+              title: true,
+            },
+          },
         },
       },
     },
@@ -683,12 +738,12 @@ export const markCertificateAsViewed = async (
     throw new Error("Certificate not found");
   }
 
-  // 🔐 Ownership check (mentee only sees their own certificate)
+  // 🔐 Ownership check — TIDAK berubah
   if (certificate.userId !== userId) {
     throw new Error("You are not allowed to view this certificate");
   }
 
-  // ⛔ Jika sudah viewed, tidak perlu update
+  // ⛔ TIDAK berubah
   if (certificate.status === "viewed") {
     return certificate;
   }
@@ -706,10 +761,18 @@ export const markCertificateAsViewed = async (
           email: true,
         },
       },
-      course: {
+      // 🔥 UBAH: `course: {...}` → `subChapter: {...}`, plus disertakan
+      // nested `course` di dalamnya.
+      subChapter: {
         select: {
           id: true,
           title: true,
+          course: {
+            select: {
+              id: true,
+              title: true,
+            },
+          },
         },
       },
     },
@@ -722,12 +785,13 @@ export const regenerateCertificate = async (
   certificateId: string,
   adminId: string,
 ) => {
-  /* === 1. AMBIL CERTIFICATE LAMA === */
+  /* === 1. AMBIL CERTIFICATE LAMA ===
+     🔥 UBAH: `course: {...}` → `subChapter: {...}` */
   const certificate = await prisma.eLearningCertificate.findUnique({
     where: { id: certificateId },
     include: {
       user: { select: { id: true, fullName: true } },
-      course: { select: { id: true, title: true } },
+      subChapter: { select: { id: true, title: true } },
     },
   });
 
@@ -735,7 +799,7 @@ export const regenerateCertificate = async (
     throw new Error("Certificate not found");
   }
 
-  /* === 2. HAPUS FILE PDF LAMA (JIKA ADA) === */
+  /* === 2. HAPUS FILE PDF LAMA (JIKA ADA) === (tidak berubah) */
   if (certificate.certificatePath) {
     const oldPath = path.join(__dirname, "../../", certificate.certificatePath);
     if (fs.existsSync(oldPath)) {
@@ -743,10 +807,10 @@ export const regenerateCertificate = async (
     }
   }
 
-  /* === 3. GENERATE CERTIFICATE NUMBER BARU === */
+  /* === 3. GENERATE CERTIFICATE NUMBER BARU === (tidak berubah) */
   const newCertificateNumber = generateCertificateNumber();
 
-  /* === 4. PREPARE FILE BARU === */
+  /* === 4. PREPARE FILE BARU === (tidak berubah) */
   const uploadDir = path.join(__dirname, "../../uploads/elearning_certificate");
 
   if (!fs.existsSync(uploadDir)) {
@@ -756,29 +820,35 @@ export const regenerateCertificate = async (
   const fileName = `${newCertificateNumber}.pdf`;
   const pdfPath = path.join(uploadDir, fileName);
 
-  /* === 5. GENERATE ULANG PDF (PAKAI NOMOR BARU) === */
+  /* === 5. GENERATE ULANG PDF (PAKAI NOMOR BARU) ===
+     🔥 UBAH: `courseTitle`/`courseId` → `subChapterTitle`/`subChapterId`
+     — mengikuti signature `generateCertificatePDF` yang sudah kita
+     ubah di endpoint generate manual sebelumnya. Kalau ini nggak
+     disesuaikan, TypeScript bakal error karena parameter yang dikirim
+     nggak match dengan yang diminta fungsinya. */
   await generateCertificatePDF({
     certificateNumber: newCertificateNumber,
     userName: certificate.user.fullName,
-    courseTitle: certificate.course.title,
+    subChapterTitle: certificate.subChapter.title,
     issueDate: new Date(),
     pdfPath,
     userId: certificate.userId,
-    courseId: certificate.courseId,
+    subChapterId: certificate.subChapterId,
   });
 
-  /* === 6. UPLOAD ULANG KE GOOGLE DRIVE === */
+  /* === 6. UPLOAD ULANG KE GOOGLE DRIVE === (tidak berubah) */
   const uploadedFile = await uploadToGoogleDrive(
     pdfPath,
     fileName,
-    "16dqTiqyEhFhrfzfoX5upUkgkNoUGNnI9", // folder certificate
+    "16dqTiqyEhFhrfzfoX5upUkgkNoUGNnI9",
   );
 
   if (!uploadedFile?.webViewLink) {
     throw new Error("Failed to upload regenerated certificate");
   }
 
-  /* === 7. UPDATE DATABASE (CERTIFICATE BARU) === */
+  /* === 7. UPDATE DATABASE (CERTIFICATE BARU) ===
+     🔥 UBAH: `include.course` → `include.subChapter` */
   const updated = await prisma.eLearningCertificate.update({
     where: { id: certificateId },
     data: {
@@ -797,7 +867,7 @@ export const regenerateCertificate = async (
           email: true,
         },
       },
-      course: {
+      subChapter: {
         select: {
           id: true,
           title: true,
@@ -819,12 +889,24 @@ export const exportCertificatesToFile = async (formatType: string) => {
           fullName: true,
         },
       },
-      course: {
+      // 🔥 UBAH: `course: {...}` → `subChapter: {...}`. `level` diambil
+      // dari SubChapter sendiri (lebih akurat, karena sertifikat memang
+      // levelnya sekarang per sub-chapter/kelas). `category` tetap
+      // cuma ada di Course, jadi diambil lewat nested `course` di
+      // dalamnya. `course.title` juga disertakan biar kolom export
+      // tetap bisa nunjukin course induknya.
+      subChapter: {
         select: {
           id: true,
           title: true,
-          category: true,
           level: true,
+          course: {
+            select: {
+              id: true,
+              title: true,
+              category: true,
+            },
+          },
         },
       },
     },
@@ -843,10 +925,15 @@ export const exportCertificatesToFile = async (formatType: string) => {
     UserEmail: c.user.email,
     UserFullName: c.user.fullName,
 
-    CourseID: c.course.id,
-    CourseTitle: c.course.title,
-    CourseCategory: c.course.category || "",
-    CourseLevel: c.course.level || "",
+    // 🔥 UBAH: kolom Course* → SubChapter* + CourseTitle terpisah,
+    // supaya tetap jelas ini sertifikat kelas (sub-chapter) yang mana,
+    // sekaligus course induknya apa.
+    SubChapterID: c.subChapter.id,
+    SubChapterTitle: c.subChapter.title,
+    SubChapterLevel: c.subChapter.level || "",
+    CourseID: c.subChapter.course.id,
+    CourseTitle: c.subChapter.course.title,
+    CourseCategory: c.subChapter.course.category || "",
 
     VerifiedBy: c.verifiedBy || "",
     Note: c.note || "",
@@ -857,7 +944,7 @@ export const exportCertificatesToFile = async (formatType: string) => {
   const dateStr = formatDate(new Date(), "yyyyMMdd-HHmmss");
   const baseFileName = `elearning-certificates-${dateStr}`;
 
-  /* ===== EXCEL ===== */
+  /* ===== EXCEL ===== (tidak berubah) */
   if (formatType === "excel") {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("E-Learning Certificates");
@@ -880,7 +967,7 @@ export const exportCertificatesToFile = async (formatType: string) => {
     };
   }
 
-  /* ===== CSV ===== */
+  /* ===== CSV ===== (tidak berubah) */
   const parser = new Json2CsvParser();
   const csv = parser.parse(rows);
 

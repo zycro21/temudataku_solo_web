@@ -6,12 +6,71 @@ import { toast } from "sonner";
 
 export const MAX_ASSIGNMENT_ATTEMPTS = 2;
 
+// 🔥 BARU: ambang batas skor kelulusan yang berlaku KHUSUS di attempt
+// terakhir (attempt ke-MAX_ASSIGNMENT_ATTEMPTS). Di attempt terakhir,
+// admin/curdev tidak lagi bisa menandai "perlu revisi" (karena memang
+// sudah tidak ada kesempatan mengumpulkan ulang), jadi lolos/tidaknya
+// mentee ditentukan otomatis dari skor terhadap ambang batas ini.
+export const PASSING_SCORE_THRESHOLD = 75;
+
 export type SubmissionStatus =
   | "PENDING"
   | "REVIEWED"
   | "REVISION_REQUIRED"
   | "APPROVED"
   | "REJECTED";
+
+// 🔥 BARU: hasil akhir yang benar-benar ditampilkan ke user (mentee
+// maupun admin), TERPISAH dari `status` mentah yang dikirim backend.
+// Backend cuma pernah mengirim PENDING / REVISION_REQUIRED / REVIEWED
+// (tidak pernah literal APPROVED/REJECTED — lihat catatan di
+// getAssignmentReviewOutcome di bawah), jadi "lolos" vs "tidak lolos"
+// HARUS diturunkan di sini, bukan dibaca langsung dari `status`.
+export type AssignmentReviewOutcome =
+  | "PENDING"
+  | "REVISION_REQUIRED"
+  | "APPROVED"
+  | "REJECTED";
+
+/**
+ * Satu-satunya sumber kebenaran untuk menentukan hasil akhir submission
+ * assignment (dipakai oleh sisi mentee lewat hook ini, DAN oleh sisi
+ * admin/curdev di GradeSubmissionModal.tsx & SubmissionsTable.tsx —
+ * supaya kedua sisi selalu sepakat, tidak ada lagi celah beda logic).
+ *
+ * Aturan bisnisnya:
+ * - Belum direview sama sekali → PENDING.
+ * - Reviewer mencentang "perlu revisi" → REVISION_REQUIRED. Ini HANYA
+ *   valid untuk attempt yang BUKAN attempt terakhir — di attempt
+ *   terakhir, UI form review (GradeSubmissionModal) sudah tidak
+ *   menyediakan opsi ini sama sekali, karena mentee sudah tidak punya
+ *   kesempatan mengumpulkan ulang. Kalau bukan attempt terakhir DAN
+ *   reviewer tidak mencentang "perlu revisi" → langsung APPROVED, tanpa
+ *   syarat skor minimum (skor cuma catatan, bukan penentu lolos di
+ *   attempt non-terakhir).
+ * - Di attempt terakhir, reviewer tidak lagi menentukan revisi — lolos
+ *   tidaknya murni dari skor: >= PASSING_SCORE_THRESHOLD → APPROVED,
+ *   di bawah itu → REJECTED.
+ */
+export function getAssignmentReviewOutcome(params: {
+  status: string | null | undefined;
+  isRevisionRequired?: boolean | null;
+  score?: number | null;
+  isLastAttempt: boolean;
+}): AssignmentReviewOutcome {
+  const { status, isRevisionRequired, score, isLastAttempt } = params;
+
+  if (!status || status === "PENDING") return "PENDING";
+  if (isRevisionRequired) return "REVISION_REQUIRED";
+
+  if (isLastAttempt) {
+    return typeof score === "number" && score >= PASSING_SCORE_THRESHOLD
+      ? "APPROVED"
+      : "REJECTED";
+  }
+
+  return "APPROVED";
+}
 
 export interface SubmissionRecord {
   id: string;
@@ -23,6 +82,11 @@ export interface SubmissionRecord {
   feedback: string | null;
   score: number | null;
   isRevisionRequired: boolean | null;
+  // 🔥 BARU: batas waktu revisi yang ditetapkan reviewer (admin/curdev)
+  // saat me-review submission — dikirim balik oleh backend di field yang
+  // sama dengan yang di-set lewat endpoint review (lihat
+  // GradeSubmissionModal.tsx sisi admin).
+  revisionDeadline: string | null;
   attemptsUsed?: number;
   attemptsRemaining?: number;
 }
@@ -39,6 +103,8 @@ interface UseElearningAssignmentSubmissionResult {
   isPending: boolean; // sudah dikirim, belum direview admin/curdev
   isApproved: boolean; // lolos
   needsRevision: boolean; // sudah direview, perlu revisi
+  isRejected: boolean; // 🔥 BARU: sudah direview di attempt terakhir & skor < ambang batas → tidak lolos
+  isLastAttempt: boolean; // 🔥 BARU: submission ini dikirim di attempt terakhir (tidak ada kesempatan revisi lagi)
   canRetry: boolean; // needsRevision DAN masih ada sisa kesempatan
 
   // submit
@@ -179,26 +245,50 @@ export function useElearningAssignmentSubmission(
     [assignmentId],
   );
 
-  const isPending = latestSubmission?.status === "PENDING";
-  const isApproved = latestSubmission?.status === "APPROVED";
-  const needsRevision =
-    !!latestSubmission &&
-    !isPending &&
-    !isApproved &&
-    !!latestSubmission.isRevisionRequired;
-
   const attemptsRemaining =
     latestSubmission?.attemptsRemaining ??
     Math.max(MAX_ASSIGNMENT_ATTEMPTS - attemptsUsed, 0);
+
+  // 🔥 FIX (celah revisi-di-attempt-terakhir): sebelumnya lolos/tidaknya
+  // cuma ditentukan dari `isRevisionRequired`, jadi kalau reviewer
+  // mencentang "perlu revisi" di attempt TERAKHIR, mentee terjebak
+  // selamanya di status "Perlu Revisi" padahal sudah tidak ada
+  // kesempatan mengumpulkan ulang (attemptsRemaining = 0, tombol
+  // "Kumpulkan Revisi" tidak pernah bisa dipakai). Sekarang isLastAttempt
+  // dihitung dulu, lalu hasil akhirnya diturunkan lewat
+  // getAssignmentReviewOutcome (satu-satunya sumber kebenaran, dipakai
+  // juga di sisi admin) — di attempt terakhir, status ditentukan dari
+  // skor terhadap PASSING_SCORE_THRESHOLD, bukan dari toggle revisi lagi
+  // (toggle itu sendiri sudah dihilangkan dari form review admin untuk
+  // attempt terakhir).
+  const isLastAttempt =
+    !!latestSubmission &&
+    (latestSubmission.attemptsUsed ?? attemptsUsed) >= MAX_ASSIGNMENT_ATTEMPTS;
+
+  const outcome = latestSubmission
+    ? getAssignmentReviewOutcome({
+        status: latestSubmission.status,
+        isRevisionRequired: latestSubmission.isRevisionRequired,
+        score: latestSubmission.score,
+        isLastAttempt,
+      })
+    : "PENDING";
+
+  const isPending = outcome === "PENDING";
+  const isApproved = outcome === "APPROVED";
+  const needsRevision = outcome === "REVISION_REQUIRED";
+  const isRejected = outcome === "REJECTED";
 
   return {
     isLoadingHistory,
     latestSubmission,
     attemptsUsed,
     attemptsRemaining,
-    isPending: !!isPending,
-    isApproved: !!isApproved,
+    isPending,
+    isApproved,
     needsRevision,
+    isRejected,
+    isLastAttempt,
     canRetry: needsRevision && attemptsRemaining > 0,
     isSubmitting,
     submitAssignment,

@@ -11,7 +11,9 @@ import {
   getSubChapterProgressController,
   getCourseRoadmapController,
   resetSubBabProgressController,
-  exportElearningProgressController
+  exportElearningProgressController,
+  completeTextProgressController,
+  recalculateSubChapterProgressController,
 } from "../controllers/elearning_progress.controller.js";
 import {
   getMyProgressSchema,
@@ -23,6 +25,8 @@ import {
   getCourseRoadmapSchema,
   resetProgressSchema,
   exportProgressSchema,
+  completeTextProgressSchema,
+  recalculateSubChapterProgressSchema,
 } from "../validations/elearning_progress.validation.js";
 
 const router = express.Router();
@@ -734,6 +738,46 @@ router.get(
   authorizeRoles("admin", "mentor"),
   validate(exportProgressSchema),
   exportElearningProgressController
+);
+
+/**
+ * @swagger
+ * /api/elearningProgress/texts/{id}/progress:
+ *   patch:
+ *     summary: Tandai satu Text (materi/quiz/assignment) sebagai selesai
+ *     description: |
+ *       Dipanggil mentee saat scroll materi sampai bawah, quiz sudah
+ *       disubmit, atau assignment sudah tuntas direview. Otomatis
+ *       menghitung ulang progressPercent SubChapter induknya.
+ *     tags: [E-Learning Progress]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: string, format: cuid }
+ *     responses:
+ *       200:
+ *         description: Progress berhasil dicatat
+ *       401: { description: Unauthorized }
+ *       403: { description: Subscription tidak aktif }
+ *       404: { description: Text tidak ditemukan }
+ */
+router.patch(
+  "/texts/:id/progress",
+  authenticate,
+  authorizeRoles("mentee"),
+  validate(completeTextProgressSchema),
+  completeTextProgressController
+);
+
+router.post(
+  "/subchapters/:id/recalculate",
+  authenticate,
+  authorizeRoles("mentee"),
+  validate(recalculateSubChapterProgressSchema),
+  recalculateSubChapterProgressController
 );
 
 export default router;

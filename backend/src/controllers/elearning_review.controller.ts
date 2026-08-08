@@ -1,28 +1,29 @@
 import { Response, NextFunction } from "express";
 import {
-  createCourseReview,
+  createSubChapterReview,
   getCourseReviews,
   getMyReviews,
   deleteReview,
   updateReview,
   getReviewSummary,
-   getAllReviewStats
+  getAllReviewStats,
+  getReviewById,
 } from "../services/elearning_review.service.js";
 import { AuthenticatedRequestELearningReview } from "../middlewares/authenticate.js";
 
 export const createReviewController = async (
   req: AuthenticatedRequestELearningReview,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const userId = req.user!.userId;
-    const courseId = req.validatedParams.id;
+    const subChapterId = req.validatedParams.id;
     const { rating, comment } = req.validatedBody;
 
-    const result = await createCourseReview({
+    const result = await createSubChapterReview({
       userId,
-      courseId,
+      subChapterId,
       rating,
       comment,
     });
@@ -36,7 +37,7 @@ export const createReviewController = async (
 export const getCourseReviewsController = async (
   req: AuthenticatedRequestELearningReview,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const courseId = req.validatedParams.id;
@@ -57,7 +58,7 @@ export const getCourseReviewsController = async (
 export const getMyReviewsController = async (
   req: AuthenticatedRequestELearningReview,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const userId = req.user!.userId;
@@ -70,6 +71,7 @@ export const getMyReviewsController = async (
       page: q.page,
       limit: q.limit,
       sort: q.sort,
+      subChapterId: q.subChapterId, // 🔥 BARU
     });
 
     res.json({ success: true, data: result });
@@ -81,7 +83,7 @@ export const getMyReviewsController = async (
 export const deleteReviewController = async (
   req: AuthenticatedRequestELearningReview,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const reviewId = req.validatedParams.id;
@@ -102,7 +104,7 @@ export const deleteReviewController = async (
 export const updateReviewController = async (
   req: AuthenticatedRequestELearningReview,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const reviewId = req.validatedParams.id;
@@ -123,7 +125,7 @@ export const updateReviewController = async (
 export const getReviewSummaryController = async (
   req: AuthenticatedRequestELearningReview,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const courseId = req.validatedParams.id;
@@ -139,7 +141,7 @@ export const getReviewSummaryController = async (
 export const getAllReviewStatsController = async (
   req: AuthenticatedRequestELearningReview,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const result = await getAllReviewStats();
@@ -149,3 +151,24 @@ export const getAllReviewStatsController = async (
   }
 };
 
+export const getReviewByIdController = async (
+  req: AuthenticatedRequestELearningReview,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const reviewId = req.validatedParams.id;
+    const userId = req.user!.userId;
+    const roles = req.user!.roles;
+
+    const result = await getReviewById({
+      reviewId,
+      userId,
+      roles,
+    });
+
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+};

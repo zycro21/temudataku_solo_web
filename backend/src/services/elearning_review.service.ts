@@ -9,54 +9,56 @@ import { elearningThumbnailPath } from "../middlewares/uploadImage.js";
 
 const prisma = new PrismaClient();
 
-export const createCourseReview = async ({
+export const createSubChapterReview = async ({
   userId,
-  courseId,
+  subChapterId,
   rating,
   comment,
 }: {
   userId: string;
-  courseId: string;
+  subChapterId: string;
   rating: number;
   comment?: string;
 }) => {
   /**
-   * 1. Pastikan course ada & aktif
+   * 1. Pastikan sub-chapter ada & published
+   *    🔥 UBAH: Course pakai field `isActive` (boolean), tapi SubChapter
+   *    pakai `status` (enum CourseStatus: DRAFT/PUBLISHED/ARCHIVED) —
+   *    jadi pengecekannya beda, bukan sekadar rename `courseId` jadi
+   *    `subChapterId` doang.
    */
-  const course = await prisma.eLearningCourse.findUnique({
-    where: { id: courseId },
-    select: { id: true, isActive: true },
+  const subChapter = await prisma.eLearningSubChapter.findUnique({
+    where: { id: subChapterId },
+    select: { id: true, status: true },
   });
 
-  if (!course) {
-    const err = new Error("Course tidak ditemukan");
+  if (!subChapter) {
+    const err = new Error("Sub-chapter tidak ditemukan");
     (err as any).statusCode = 404;
     throw err;
   }
 
-  if (!course.isActive) {
-    const err = new Error("Course tidak aktif");
+  if (subChapter.status !== "PUBLISHED") {
+    const err = new Error("Sub-chapter tidak aktif");
     (err as any).statusCode = 400;
     throw err;
   }
 
   /**
    * 🔥 2. Pastikan user memiliki subscription aktif
+   * (TIDAK diubah — subscription tetap general, tidak spesifik per
+   * course/subChapter, persis seperti perilaku aslinya. Kalau kamu mau
+   * ini dibuat spesifik ke course induk sub-chapter ini, kasih tahu,
+   * itu perubahan behavior terpisah dari sekadar migrasi skema.)
    */
   const now = new Date();
 
   const activeSubscription = await prisma.eLearningSubscription.findFirst({
     where: {
       userId,
-      status: {
-        in: ["active", "confirmed", "completed"],
-      },
-      startAt: {
-        lte: now,
-      },
-      endAt: {
-        gte: now,
-      },
+      status: { in: ["active", "confirmed", "completed"] },
+      startAt: { lte: now },
+      endAt: { gte: now },
     },
   });
 
@@ -67,16 +69,19 @@ export const createCourseReview = async ({
   }
 
   /**
-   * 3. Pastikan belum pernah review
+   * 3. Pastikan belum pernah review sub-chapter ini
+   *    🔥 UBAH: nama compound unique key ikut berubah karena field-nya
+   *    beda — `userId_courseId` → `userId_subChapterId` (sesuai
+   *    `@@unique([userId, subChapterId])` di schema baru).
    */
   const existingReview = await prisma.eLearningReview.findUnique({
     where: {
-      userId_courseId: { userId, courseId },
+      userId_subChapterId: { userId, subChapterId },
     },
   });
 
   if (existingReview) {
-    const err = new Error("Anda sudah memberikan review untuk course ini");
+    const err = new Error("Anda sudah memberikan review untuk sub-chapter ini");
     (err as any).statusCode = 400;
     throw err;
   }
@@ -88,13 +93,12 @@ export const createCourseReview = async ({
     return await prisma.eLearningReview.create({
       data: {
         userId,
-        courseId,
+        subChapterId,
         rating,
         comment,
       },
     });
   } catch (error: any) {
-    // Handle race condition (double submit)
     if (error.code === "P2002") {
       const err = new Error("Review sudah pernah diberikan");
       (err as any).statusCode = 400;
@@ -113,8 +117,22 @@ export const getCourseReviews = async ({
   page?: number;
   limit?: number;
 }) => {
+  // 🔥 BARU: review sekarang nempel ke SubChapter, bukan langsung ke
+  // Course. Jadi harus ambil dulu daftar subChapterId yang termasuk
+  // course ini, baru filter review berdasarkan itu — sama pola dengan
+  // "kumpulkan dulu, baru gabung" di endpoint-endpoint sebelumnya.
+  const subChapters = await prisma.eLearningSubChapter.findMany({
+    where: { courseId },
+    select: { id: true },
+  });
+  const subChapterIds = subChapters.map((sc) => sc.id);
+
+  if (subChapterIds.length === 0) {
+    return { meta: { page, limit, total: 0 }, data: [] };
+  }
+
   const where = {
-    courseId,
+    subChapterId: { in: subChapterIds },
     isPublic: true,
   };
 
@@ -131,13 +149,20 @@ export const getCourseReviews = async ({
           profilePicture: true,
         },
       },
+      // 🔥 BARU: include info subChapter-nya — dulu review langsung
+      // nempel ke course jadi "kelas mana" nggak relevan, sekarang perlu
+      // eksplisit di-include supaya frontend tetap tau review ini dari
+      // subChapter (kelas) yang mana di dalam course tersebut.
+      subChapter: {
+        select: { id: true, title: true },
+      },
     },
     orderBy: { createdAt: "desc" },
     skip: (page - 1) * limit,
     take: limit,
   });
 
-  // handle anonymous review
+  // handle anonymous review — TIDAK berubah
   const sanitizedRows = rows.map((review) => {
     if (review.isAnonymous) {
       return {
@@ -164,32 +189,37 @@ export const getMyReviews = async ({
   page = 1,
   limit = 10,
   sort = "desc",
+  subChapterId, // 🔥 BARU
 }: {
   userId: string;
   roles: string[];
   page?: number;
   limit?: number;
   sort?: "asc" | "desc";
+  subChapterId?: string;
 }) => {
   const isAdmin = roles.includes("admin");
 
-  const where = isAdmin ? {} : { userId };
+  // 🔥 UBAH: filter `subChapterId` digabung ke where yang sudah ada.
+  // Kalau nggak diisi, behavior lama (list semua review milik user, atau
+  // semua review kalau admin) tetap sama persis — nggak ada breaking
+  // change buat pemanggil yang sudah ada (halaman "review saya").
+  const where = {
+    ...(isAdmin ? {} : { userId }),
+    ...(subChapterId && { subChapterId }),
+  };
 
   const total = await prisma.eLearningReview.count({ where });
 
   const rows = await prisma.eLearningReview.findMany({
     where,
     include: {
-      user: {
-        select: {
-          id: true,
-          fullName: true,
-        },
-      },
-      course: {
+      user: { select: { id: true, fullName: true } },
+      subChapter: {
         select: {
           id: true,
           title: true,
+          course: { select: { id: true, title: true } },
         },
       },
     },
@@ -198,10 +228,7 @@ export const getMyReviews = async ({
     take: limit,
   });
 
-  return {
-    meta: { page, limit, total },
-    data: rows,
-  };
+  return { meta: { page, limit, total }, data: rows };
 };
 
 export const deleteReview = async ({
@@ -317,8 +344,26 @@ export const updateReview = async ({
 };
 
 export const getReviewSummary = async (courseId: string) => {
-  const reviews = await prisma.eLearningReview.findMany({
+  // 🔥 BARU: review sekarang nempel ke SubChapter, bukan Course
+  // langsung — ambil dulu daftar subChapterId yang termasuk course ini,
+  // baru query review berdasarkan itu (gabungan seluruh "kelas" di
+  // course tersebut, sama pola dengan getCourseReviews).
+  const subChapters = await prisma.eLearningSubChapter.findMany({
     where: { courseId },
+    select: { id: true },
+  });
+  const subChapterIds = subChapters.map((sc) => sc.id);
+
+  if (subChapterIds.length === 0) {
+    return {
+      averageRating: 0,
+      totalReviews: 0,
+      distribution: {},
+    };
+  }
+
+  const reviews = await prisma.eLearningReview.findMany({
+    where: { subChapterId: { in: subChapterIds } },
     select: { rating: true },
   });
 
@@ -376,4 +421,57 @@ export const getAllReviewStats = async () => {
     publicReviews: reviews.filter((r) => r.isPublic).length,
     anonymousReviews: reviews.filter((r) => r.isAnonymous).length,
   };
+};
+
+export const getReviewById = async ({
+  reviewId,
+  userId,
+  roles,
+}: {
+  reviewId: string;
+  userId: string;
+  roles: string[];
+}) => {
+  const review = await prisma.eLearningReview.findUnique({
+    where: { id: reviewId },
+    include: {
+      user: {
+        select: {
+          id: true,
+          fullName: true,
+        },
+      },
+      subChapter: {
+        select: {
+          id: true,
+          title: true,
+          course: {
+            select: {
+              id: true,
+              title: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!review) {
+    const err = new Error("Review tidak ditemukan");
+    (err as any).statusCode = 404;
+    throw err;
+  }
+
+  // Admin & curdev bebas akses review siapa pun. Mentee cuma boleh
+  // akses review miliknya sendiri.
+  const hasFullAccess = roles.includes("admin") || roles.includes("curdev");
+  const isOwner = review.userId === userId;
+
+  if (!hasFullAccess && !isOwner) {
+    const err = new Error("Tidak memiliki izin untuk mengakses review ini");
+    (err as any).statusCode = 403;
+    throw err;
+  }
+
+  return review;
 };

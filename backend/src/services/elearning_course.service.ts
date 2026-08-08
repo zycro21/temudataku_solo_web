@@ -70,7 +70,7 @@ export const ELearningCourseService = {
     const roles = user.roles || [];
 
     // admin-like roles
-    const adminLikeRoles = ["admin", "cm", "curdev"];
+    const adminLikeRoles = ["admin", "cm", "curdev", "guest"];
     const isAdminLike = roles.some((role) => adminLikeRoles.includes(role));
 
     const isMentor = roles.includes("mentor");
@@ -118,7 +118,6 @@ export const ELearningCourseService = {
               },
             },
           },
-          // TAMBAHAN: include relasi untuk hitung courses, modules, materials
           subChapters: {
             include: {
               subBabs: {
@@ -126,12 +125,18 @@ export const ELearningCourseService = {
                   texts: true, // untuk hitung materials (ELearningText)
                 },
               },
+              // 🔥 PINDAH KE SINI: reviews sekarang relasinya ke SubChapter,
+              // bukan Course lagi — jadi harus di-include di dalam
+              // `subChapters`, bukan sejajar dengannya seperti sebelumnya.
+              reviews: {
+                where: { isPublic: true },
+                select: { rating: true },
+              },
             },
           },
-          reviews: {
-            where: { isPublic: true },
-            select: { rating: true },
-          },
+          // 🔥 DIHAPUS: blok `reviews: {...}` yang tadinya di sini (sejajar
+          // dengan `subChapters`) — sudah nggak ada relasi `reviews` langsung
+          // di ELearningCourse lagi, makanya query lama ini yang bikin error.
         },
         skip,
         take: limit,
@@ -158,11 +163,6 @@ export const ELearningCourseService = {
         0,
       );
 
-      // 🔥 TAMBAHAN BARU — total estimasi waktu belajar (menit), dijumlahkan
-      // dari estimatedTime tiap subChapter ("kelas"). estimatedTime disimpan
-      // sebagai string di DB, jadi di-parse dulu; kalau kosong/invalid
-      // dianggap 0. Tidak perlu query tambahan karena course.subChapters
-      // sudah di-include lengkap di atas (termasuk field estimatedTime).
       const totalEstimatedMinutes = course.subChapters.reduce(
         (acc, subChapter) => {
           const minutes = subChapter.estimatedTime
@@ -173,13 +173,20 @@ export const ELearningCourseService = {
         0,
       );
 
-      // 🔥 TAMBAHAN — rating rata-rata & jumlah ulasan
-      const reviewCount = course.reviews.length;
+      // 🔥 UBAH: review sekarang ada di level SubChapter, bukan Course
+      // langsung. Rating course dihitung dengan MENGUMPULKAN (pool) semua
+      // review dari SELURUH subChapter di course ini jadi satu array, baru
+      // dirata-rata SEKALI di situ — bukan rata-rata dari rata-rata tiap
+      // subChapter (yang bisa bikin subChapter dengan 1 review dapat bobot
+      // sama gedenya dengan subChapter yang punya 50 review, padahal
+      // seharusnya nggak).
+      const allReviews = course.subChapters.flatMap((sc) => sc.reviews);
+      const reviewCount = allReviews.length;
       const averageRating =
         reviewCount > 0
           ? Number(
               (
-                course.reviews.reduce((sum, r) => sum + Number(r.rating), 0) /
+                allReviews.reduce((sum, r) => sum + Number(r.rating), 0) /
                 reviewCount
               ).toFixed(1),
             )
@@ -247,16 +254,22 @@ export const ELearningCourseService = {
                 orderNumber: "asc",
               },
             },
+            // 🔥 PINDAH KE SINI: reviews sekarang relasinya ke SubChapter,
+            // bukan Course lagi — jadi di-include di dalam `subChapters`,
+            // bukan sejajar dengannya seperti sebelumnya.
+            reviews: {
+              include: {
+                user: {
+                  select: { fullName: true, profilePicture: true },
+                },
+              },
+            },
           },
           orderBy: { orderNumber: "asc" },
         },
-        reviews: {
-          include: {
-            user: {
-              select: { fullName: true, profilePicture: true },
-            },
-          },
-        },
+        // 🔥 DIHAPUS: `reviews: {...}` yang tadinya di sini (sejajar
+        // dengan `subChapters`) — ini yang bikin error, karena
+        // ELearningCourse sudah nggak punya relasi langsung ke reviews.
       },
     });
 
@@ -264,18 +277,17 @@ export const ELearningCourseService = {
       throw { status: 404, message: "Kursus tidak ditemukan" };
     }
 
-    /* ===== 2. ROLE-BASED ACCESS ===== */
+    /* ===== 2. ROLE-BASED ACCESS ===== (tidak berubah, semuanya di bawah ini tetap sama) */
 
-    // ADMIN / CM / CURDEV → bebas
     if (
       user.roles.includes("admin") ||
       user.roles.includes("cm") ||
-      user.roles.includes("curdev")
+      user.roles.includes("curdev")||
+      user.roles.includes("guest")
     ) {
       return course;
     }
 
-    // MENTOR → hanya course miliknya
     if (user.roles.includes("mentor")) {
       if (course.mentorId !== user.mentorProfileId) {
         throw {
@@ -286,7 +298,6 @@ export const ELearningCourseService = {
       return course;
     }
 
-    // MENTEE → HARUS ADA SUBSCRIPTION AKTIF
     if (user.roles.includes("mentee")) {
       const now = new Date();
 
@@ -612,10 +623,16 @@ export const ELearningCourseService = {
                 },
               },
             },
+            // 🔥 PINDAH KE SINI: reviews & certificates sekarang relasinya
+            // ke SubChapter, bukan Course lagi — jadi di-include di dalam
+            // `subChapters`, bukan sejajar dengannya seperti sebelumnya.
+            reviews: true,
+            certificates: true,
           },
         },
-        reviews: true,
-        certificates: true,
+        // 🔥 DIHAPUS: `reviews: true` dan `certificates: true` yang tadinya
+        // di sini (sejajar dengan `subChapters`) — ELearningCourse sudah
+        // nggak punya relasi langsung ke keduanya, ini yang bikin error.
       },
     });
 
@@ -630,10 +647,15 @@ export const ELearningCourseService = {
       0,
     );
 
+    // 🔥 UBAH: review sekarang ada di level SubChapter. Rating course
+    // dihitung dari GABUNGAN semua review di seluruh subChapter course
+    // ini (bukan course.reviews langsung, karena field itu sudah nggak
+    // ada) — sama seperti pola di getAllCourses.
+    const allReviews = course.subChapters.flatMap((sc) => sc.reviews);
     const averageRating =
-      course.reviews.length > 0
-        ? course.reviews.reduce((sum, r) => sum + r.rating.toNumber(), 0) /
-          course.reviews.length
+      allReviews.length > 0
+        ? allReviews.reduce((sum, r) => sum + r.rating.toNumber(), 0) /
+          allReviews.length
         : null;
 
     const stats = {
@@ -657,13 +679,17 @@ export const ELearningCourseService = {
       select: {
         id: true,
         mentorId: true,
-        reviews: {
-          select: {
-            rating: true,
-          },
-        },
+        // 🔥 DIHAPUS: `reviews: { select: { rating: true } }` yang tadinya
+        // di sini (sejajar dengan `subChapters`) — ELearningCourse sudah
+        // nggak punya relasi langsung ke reviews lagi.
         subChapters: {
           select: {
+            // 🔥 PINDAH KE SINI: reviews sekarang relasinya ke SubChapter
+            reviews: {
+              select: {
+                rating: true,
+              },
+            },
             subBabs: {
               select: {
                 progresses: {
@@ -703,10 +729,14 @@ export const ELearningCourseService = {
     const totalStudents = studentSet.size;
 
     /* ===== AVERAGE RATING ===== */
+    // 🔥 UBAH: kumpulkan dulu semua review dari SELURUH subChapter di
+    // course ini, baru dirata-rata sekali — sama seperti pola di
+    // getAllCourses & getCourseDetail sebelumnya.
+    const allReviews = course.subChapters.flatMap((sc) => sc.reviews);
     const averageRating =
-      course.reviews.length > 0
-        ? course.reviews.reduce((sum, r) => sum + r.rating.toNumber(), 0) /
-          course.reviews.length
+      allReviews.length > 0
+        ? allReviews.reduce((sum, r) => sum + r.rating.toNumber(), 0) /
+          allReviews.length
         : 0;
 
     /* ===== AVERAGE PROGRESS ===== */
@@ -750,39 +780,60 @@ export const ELearningCourseService = {
             },
           },
         },
-        reviews: true,
+        // 🔥 PINDAH KE SINI: reviews sekarang relasinya ke SubChapter,
+        // bukan Course lagi. Cukup ambil `rating`-nya saja (sama seperti
+        // yang dipakai di bawah), nggak perlu field lain.
+        subChapters: {
+          select: {
+            reviews: {
+              select: {
+                rating: true,
+              },
+            },
+          },
+        },
+        // 🔥 DIHAPUS: `reviews: true` yang tadinya sejajar di sini —
+        // ELearningCourse sudah nggak punya relasi langsung ke reviews.
       },
     });
 
-    const rows = courses.map((course) => ({
-      ID: course.id,
-      Title: course.title,
-      Description: course.description || "-",
-      Category: course.category || "-",
-      Tags: course.tags.join(", "),
-      Level: course.level || "-",
-      EstimatedDuration: course.estimatedDuration || "-",
-      Benefits: course.benefits || "-",
-      ToolsUsed: course.toolsUsed || "-",
-      TargetAudience: course.targetAudience || "-",
-      IsActive: course.isActive ? "Yes" : "No",
-      AverageRating:
-        course.reviews.length > 0
-          ? course.reviews.reduce((sum, r) => sum + r.rating.toNumber(), 0) /
-            course.reviews.length
-          : 0,
-      MentorID: course.mentorProfile.id,
-      MentorName: course.mentorProfile.user.fullName,
-      MentorEmail: course.mentorProfile.user.email,
-      CreatedAt: formatDate(
-        course.createdAt ?? new Date(),
-        "yyyy-MM-dd HH:mm:ss",
-      ),
-      UpdatedAt: formatDate(
-        course.updatedAt ?? new Date(),
-        "yyyy-MM-dd HH:mm:ss",
-      ),
-    }));
+    const rows = courses.map((course) => {
+      // 🔥 BARU: gabungkan dulu semua review dari seluruh subChapter di
+      // course ini, baru dirata-rata — sama seperti pola di
+      // getAllCourses/getCourseDetail/getCourseStatistics sebelumnya.
+      const allReviews = course.subChapters.flatMap((sc) => sc.reviews);
+      const averageRating =
+        allReviews.length > 0
+          ? allReviews.reduce((sum, r) => sum + r.rating.toNumber(), 0) /
+            allReviews.length
+          : 0;
+
+      return {
+        ID: course.id,
+        Title: course.title,
+        Description: course.description || "-",
+        Category: course.category || "-",
+        Tags: course.tags.join(", "),
+        Level: course.level || "-",
+        EstimatedDuration: course.estimatedDuration || "-",
+        Benefits: course.benefits || "-",
+        ToolsUsed: course.toolsUsed || "-",
+        TargetAudience: course.targetAudience || "-",
+        IsActive: course.isActive ? "Yes" : "No",
+        AverageRating: averageRating,
+        MentorID: course.mentorProfile.id,
+        MentorName: course.mentorProfile.user.fullName,
+        MentorEmail: course.mentorProfile.user.email,
+        CreatedAt: formatDate(
+          course.createdAt ?? new Date(),
+          "yyyy-MM-dd HH:mm:ss",
+        ),
+        UpdatedAt: formatDate(
+          course.updatedAt ?? new Date(),
+          "yyyy-MM-dd HH:mm:ss",
+        ),
+      };
+    });
 
     function randomString(length: number) {
       const chars =
@@ -908,16 +959,33 @@ export const ELearningCourseService = {
             user: true,
           },
         },
-        reviews: true,
+        // 🔥 PINDAH KE SINI: reviews sekarang relasinya ke SubChapter,
+        // bukan Course lagi. Cukup ambil `rating`-nya saja, sama seperti
+        // yang dipakai buat hitung avgRating di bawah.
+        subChapters: {
+          select: {
+            reviews: {
+              select: {
+                rating: true,
+              },
+            },
+          },
+        },
+        // 🔥 DIHAPUS: `reviews: true` yang tadinya sejajar di sini —
+        // ELearningCourse sudah nggak punya relasi langsung ke reviews.
       },
     });
 
     const elearningRows = courses.map((c) => {
+      // 🔥 BARU: gabungkan dulu semua review dari seluruh subChapter di
+      // course ini, baru dirata-rata — sama seperti pola di endpoint-
+      // endpoint lain yang sudah diperbaiki sebelumnya.
+      const allReviews = c.subChapters.flatMap((sc) => sc.reviews);
       const avgRating =
-        c.reviews.length > 0
+        allReviews.length > 0
           ? (
-              c.reviews.reduce((sum, r) => sum + r.rating.toNumber(), 0) /
-              c.reviews.length
+              allReviews.reduce((sum, r) => sum + r.rating.toNumber(), 0) /
+              allReviews.length
             ).toFixed(2)
           : "0";
 
@@ -1145,7 +1213,8 @@ export const ELearningCourseService = {
     const isPrivileged =
       user.roles.includes("admin") ||
       user.roles.includes("cm") ||
-      user.roles.includes("curdev");
+      user.roles.includes("curdev") ||
+      user.roles.includes("guest");
 
     if (!isPrivileged) {
       if (user.roles.includes("mentor")) {

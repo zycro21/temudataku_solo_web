@@ -330,10 +330,6 @@ export default function AdminLayout({
     if (pathname.startsWith("/admin/kelola-mentoring")) {
       setOpenDropdown("Kelola Mentoring");
     }
-    // 🔥 BARU: auto-expand submenu "E-Learning" (sekarang punya submenu
-    // "Kelola Materi" + "Submission E-Learning") begitu user berada di
-    // salah satu halaman /admin/elearning/*, sama pola-nya dengan
-    // "Kelola Mentoring" di atas.
     if (pathname.startsWith("/admin/elearning")) {
       setOpenDropdown("E-Learning");
     }
@@ -378,6 +374,19 @@ export default function AdminLayout({
     currentUser?.userRoles?.map((r: any) => r.role.roleName.toLowerCase()) ||
     [];
 
+  // 🔥 Cek apakah user memiliki role yang restricted (guest, curdev, cm)
+  const restrictedRoles = ["guest", "curdev", "cm"];
+  const isRestricted = roles.some((r) => restrictedRoles.includes(r));
+
+  // 🔥 Guest/curdev/cm guard: redirect dari /admin ke /admin/elearning
+  useEffect(() => {
+    if (!authLoading && currentUser && isRestricted) {
+      if (pathname === "/admin" || pathname === "/admin/") {
+        router.replace("/admin/elearning");
+      }
+    }
+  }, [authLoading, currentUser, isRestricted, pathname, router]);
+
   const isBreadcrumbPage =
     /\/admin\/elearning\/streams\/[^/]+\/courses$/.test(pathname) ||
     /\/admin\/elearning\/streams\/[^/]+\/courses\/[^/]+\/modules$/.test(
@@ -387,6 +396,7 @@ export default function AdminLayout({
       pathname,
     );
 
+  // 🔥 PERMISSIONS: Restricted roles hanya bisa melihat E-Learning dan Produk & Event
   const permissions: Record<string, string[]> = {
     admin: [
       "Overview",
@@ -398,14 +408,27 @@ export default function AdminLayout({
       "Produk & Event",
       "History",
     ],
-    cm: ["Kelola Mentoring", "Produk & Event"],
-    curdev: ["Produk & Event", "E-Learning"],
+    cm: ["E-Learning", "Produk & Event"],
+    curdev: ["E-Learning", "Produk & Event"],
+    guest: ["E-Learning"],
   };
 
   const allowedMenus = new Set<string>();
   roles.forEach((r) => {
     permissions[r]?.forEach((menu) => allowedMenus.add(menu));
   });
+
+  // 🔥 Jika user adalah restricted, pastikan hanya menu yang diizinkan
+  if (isRestricted) {
+    allowedMenus.clear();
+    const allowedMenusForRole =
+      permissions[
+        roles.find((r) =>
+          restrictedRoles.includes(r),
+        ) as keyof typeof permissions
+      ] || [];
+    allowedMenusForRole.forEach((menu) => allowedMenus.add(menu));
+  }
 
   const avatarUrl =
     currentUser?.profilePicture && currentUser.profilePicture !== "default.jpg"
@@ -620,6 +643,15 @@ export default function AdminLayout({
     return null;
   }
 
+  // 🔥 Restricted roles: hanya boleh mengakses /admin/elearning/* dan /admin/produk-event/*
+  if (isRestricted) {
+    const allowedPaths = ["/admin/elearning", "/admin/produk-event"];
+    const isAllowed = allowedPaths.some((path) => pathname.startsWith(path));
+    if (!isAllowed) {
+      return null; // Akan redirect oleh useEffect di atas
+    }
+  }
+
   return (
     <>
       <div className="min-h-screen bg-gray-50 flex">
@@ -628,7 +660,7 @@ export default function AdminLayout({
           <div className="mt-2 flex flex-col h-full overflow-hidden">
             {/* Logo */}
             <div className="pl-6 pb-6 pt-3">
-              <Link href="/admin">
+              <Link href={isRestricted ? "/admin/elearning" : "/admin"}>
                 <Image
                   src="/assets/dashboard/user/Navbar_logo.png"
                   alt="Temu Dataku"
@@ -645,6 +677,10 @@ export default function AdminLayout({
               <nav className="space-y-0.5">
                 {adminMenu
                   .filter((item) => {
+                    // 🔥 Restricted: hanya bisa melihat menu yang diizinkan
+                    if (isRestricted) {
+                      return allowedMenus.has(item.name);
+                    }
                     if (roles.includes("admin")) return true;
                     if (["Overview"].includes(item.name)) return true;
                     return allowedMenus.has(item.name);

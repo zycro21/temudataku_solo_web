@@ -23,6 +23,22 @@ async function main() {
       roleName: "affiliator",
       description: "Affiliator who brings new users",
     },
+    {
+      id: "5",
+      roleName: "curdev",
+      description:
+        "Curriculum Developer who manages curriculum mentoring & elearning",
+    },
+    {
+      id: "6",
+      roleName: "cm",
+      description: "Class Manager who manages class operations",
+    },
+    {
+      id: "7",
+      roleName: "guest",
+      description: "Guest with VIEW access to e-learning dashboard in admin",
+    },
   ];
 
   for (const role of roles) {

@@ -42,7 +42,7 @@ export const ELearningSubBabService = {
     // =========================
     const roles = user.roles || [];
 
-    const adminLikeRoles = ["admin", "cm", "curdev"];
+    const adminLikeRoles = ["admin", "cm", "curdev", "guest"];
     const isAdminLike = roles.some((role) => adminLikeRoles.includes(role));
     const isMentor = roles.includes("mentor");
     const isMentee = roles.includes("mentee");
@@ -186,17 +186,27 @@ export const ELearningSubBabService = {
     // HAK AKSES
     // ======================
 
+    // 🔥 CEK ROLE ADMIN-LIKE (admin, cm, curdev, guest) - AKSES BEBAS
+    const adminLikeRoles = ["admin", "cm", "curdev", "guest"];
+    const isAdminLike = user.roles.some((role) =>
+      adminLikeRoles.includes(role),
+    );
+
+    // Jika admin-like, berikan akses bebas (skip semua pengecekan)
+    if (isAdminLike) {
+      // Langsung lanjut ke response tanpa pengecekan tambahan
+      // (tidak perlu cek mentor, tidak perlu cek subscription)
+    }
     // Mentor
-    if (user.roles.includes("mentor")) {
+    else if (user.roles.includes("mentor")) {
       if (user.mentorProfileId !== course.mentorId) {
         throw new Error(
           "Mentor hanya bisa melihat sub-bab dari course yang dia ampu",
         );
       }
     }
-
     // Mentee (PAKAI SUBSCRIPTION)
-    if (user.roles.includes("mentee")) {
+    else if (user.roles.includes("mentee")) {
       const activeSubscription = await prisma.eLearningSubscription.findFirst({
         where: {
           userId: user.userId,
@@ -220,6 +230,10 @@ export const ELearningSubBabService = {
           "Akses ditolak. Anda tidak memiliki subscription aktif.",
         );
       }
+    }
+    // Jika role tidak dikenali
+    else {
+      throw new Error("Akses ditolak. Role tidak dikenali.");
     }
 
     // ======================
@@ -867,7 +881,8 @@ export const ELearningSubBabService = {
     const isPrivileged =
       user.roles.includes("admin") ||
       user.roles.includes("cm") ||
-      user.roles.includes("curdev");
+      user.roles.includes("curdev") ||
+      user.roles.includes("guest");
 
     if (isPrivileged) {
       // admin/cm/curdev selalu full access, walaupun dia juga punya role

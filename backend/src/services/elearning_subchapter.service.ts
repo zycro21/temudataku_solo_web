@@ -38,7 +38,7 @@ export const ELearningSubChapterService = {
     // ROLE: FULL ACCESS (skip semua restriction di bawah)
     // =========================
     const hasFullAccess = user.roles.some((r) =>
-      ["admin", "cm", "curdev"].includes(r),
+      ["admin", "cm", "curdev", "guest"].includes(r),
     );
 
     // =========================
@@ -171,7 +171,7 @@ export const ELearningSubChapterService = {
     const course = subChapter.course;
 
     // ROLE: ADMIN / CM / CURDEV
-    const adminLikeRoles = ["admin", "cm", "curdev"];
+    const adminLikeRoles = ["admin", "cm", "curdev", "guest"];
     if (user.roles.some((r) => adminLikeRoles.includes(r))) {
       return subChapter;
     }
@@ -837,7 +837,8 @@ export const ELearningSubChapterService = {
     const isPrivileged =
       user.roles.includes("admin") ||
       user.roles.includes("cm") ||
-      user.roles.includes("curdev");
+      user.roles.includes("curdev") ||
+      user.roles.includes("guest");
 
     if (!isPrivileged) {
       if (user.roles.includes("mentor")) {

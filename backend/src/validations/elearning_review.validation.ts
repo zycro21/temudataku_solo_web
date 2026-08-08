@@ -31,6 +31,11 @@ export const getMyReviewsSchema = z.object({
     page: z.string().regex(/^\d+$/).transform(Number).optional(),
     limit: z.string().regex(/^\d+$/).transform(Number).optional(),
     sort: z.enum(["asc", "desc"]).optional(),
+    // 🔥 BARU: filter opsional — kalau diisi, cuma balikin review mentee
+    // ini buat subChapter tertentu (dipakai frontend buat cek "apakah
+    // saya sudah review kelas ini", bukan cuma dipakai buat halaman
+    // "review saya" yang nampilin semuanya).
+    subChapterId: z.string().min(1).optional(),
   }),
 });
 
@@ -67,5 +72,11 @@ export const updateReviewSchema = z.object({
 export const getReviewSummarySchema = z.object({
   params: z.object({
     id: z.string().min(1),
+  }),
+});
+
+export const getReviewByIdSchema = z.object({
+  params: z.object({
+    id: z.string().min(1), // reviewId
   }),
 });

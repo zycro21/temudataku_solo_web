@@ -9,13 +9,15 @@ import {
   getCourseRoadmap,
   resetSubBabProgress,
   exportElearningProgressToFile,
+  completeTextProgress,
+  recalculateSubChapterProgress,
 } from "../services/elearning_progress.service.js";
 import { AuthenticatedRequestELearningProgress } from "../middlewares/authenticate.js";
 
 export const getMyProgressController = async (
   req: AuthenticatedRequestELearningProgress,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const userId = req.user!.userId;
@@ -46,7 +48,7 @@ export const getMyProgressController = async (
 export const getSubBabProgressController = async (
   req: AuthenticatedRequestELearningProgress,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const userId = req.user!.userId;
@@ -66,7 +68,7 @@ export const getSubBabProgressController = async (
 export const completeSubBabController = async (
   req: AuthenticatedRequestELearningProgress,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const userId = req.user!.userId;
@@ -89,7 +91,7 @@ export const completeSubBabController = async (
 export const updateSubBabProgressController = async (
   req: AuthenticatedRequestELearningProgress,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const userId = req.user!.userId;
@@ -114,7 +116,7 @@ export const updateSubBabProgressController = async (
 export const getCourseProgressController = async (
   req: AuthenticatedRequestELearningProgress,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const userId = req.user!.userId;
@@ -134,7 +136,7 @@ export const getCourseProgressController = async (
 export const getSubChapterProgressController = async (
   req: AuthenticatedRequestELearningProgress,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const userId = req.user!.userId;
@@ -151,7 +153,7 @@ export const getSubChapterProgressController = async (
 export const getCourseRoadmapController = async (
   req: AuthenticatedRequestELearningProgress,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const userId = req.user!.userId;
@@ -168,7 +170,7 @@ export const getCourseRoadmapController = async (
 export const resetSubBabProgressController = async (
   req: AuthenticatedRequestELearningProgress,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const requesterId = req.user!.userId;
@@ -193,11 +195,10 @@ export const resetSubBabProgressController = async (
   }
 };
 
-
 export const exportElearningProgressController = async (
   req: AuthenticatedRequestELearningProgress,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { validatedQuery, user } = req;
@@ -217,7 +218,7 @@ export const exportElearningProgressController = async (
 
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename=${file.filename}`
+      `attachment; filename=${file.filename}`,
     );
     res.setHeader("Content-Type", file.mimetype);
 
@@ -227,3 +228,40 @@ export const exportElearningProgressController = async (
   }
 };
 
+export const completeTextProgressController = async (
+  req: AuthenticatedRequestELearningProgress,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const userId = req.user!.userId;
+    const textId = req.validatedParams.id;
+    const progress = req.validatedBody?.progress;
+
+    const result = await completeTextProgress({ userId, textId, progress });
+
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const recalculateSubChapterProgressController = async (
+  req: AuthenticatedRequestELearningProgress,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const userId = req.user!.userId;
+    const subChapterId = req.validatedParams.id;
+
+    const result = await recalculateSubChapterProgress({
+      userId,
+      subChapterId,
+    });
+
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+};

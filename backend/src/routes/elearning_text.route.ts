@@ -90,7 +90,7 @@ const router = express.Router();
 router.get(
   "/subbabs/:subBabId/texts",
   authenticate,
-  authorizeRoles("admin", "mentor", "mentee", "cm", "curdev"),
+  authorizeRoles("admin", "mentor", "mentee", "cm", "curdev", "guest"),
   validate(getTextsBySubBabSchema),
   ELearningTextController.getTextsBySubBab,
 );
@@ -127,7 +127,7 @@ router.get(
 router.get(
   "/texts/:id",
   authenticate,
-  authorizeRoles("admin", "mentor", "mentee", "cm", "curdev"),
+  authorizeRoles("admin", "mentor", "mentee", "cm", "curdev", "guest"),
   validate(getTextByIdSchema),
   ELearningTextController.getTextById,
 );
@@ -531,7 +531,7 @@ router.get(
 router.get(
   "/texts/:id/history",
   authenticate,
-  authorizeRoles("admin", "mentor", "mentee", "cm", "curdev"),
+  authorizeRoles("admin", "mentor", "mentee", "cm", "curdev", "guest"),
   validate(getTextHistorySchema),
   ELearningTextController.getTextHistory,
 );

@@ -79,7 +79,7 @@ const router = express.Router();
 router.get(
   "/courses/:courseId/subchapters",
   authenticate,
-  authorizeRoles("admin", "mentor", "mentee", "cm", "curdev"),
+  authorizeRoles("admin", "mentor", "mentee", "cm", "curdev", "guest"),
   validate(getSubChaptersByCourseSchema),
   ELearningSubChapterController.getSubChaptersByCourse
 );
@@ -114,7 +114,7 @@ router.get(
 router.get(
   "/subchapters/:id",
   authenticate,
-  authorizeRoles("admin", "mentor", "mentee", "cm", "curdev"),
+  authorizeRoles("admin", "mentor", "mentee", "cm", "curdev", "guest"),
   validate(getSubChapterByIdSchema),
   ELearningSubChapterController.getSubChapterById
 );
@@ -540,7 +540,7 @@ router.get(
 router.get(
   "/subchapters/:id/history",
   authenticate,
-  authorizeRoles("admin", "mentor", "mentee", "cm", "curdev"),
+  authorizeRoles("admin", "mentor", "mentee", "cm", "curdev", "guest"),
   validate(getSubChapterHistorySchema),
   ELearningSubChapterController.getSubChapterHistory
 );

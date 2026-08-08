@@ -25,9 +25,9 @@ const router = Router();
 
 /**
  * @swagger
- * /api/elearningCertificate/courses/{id}/certificate:
+ * /api/elearningCertificate/subchapters/{id}/certificate:
  *   post:
- *     summary: Generate sertifikat course (admin manual)
+ *     summary: Generate sertifikat sub-chapter (admin manual)
  *     tags: [E-Learning Certificate]
  *     security:
  *       - bearerAuth: []
@@ -35,6 +35,7 @@ const router = Router();
  *       - in: path
  *         name: id
  *         required: true
+ *         description: ID Sub-Chapter
  *         schema:
  *           type: string
  *     responses:
@@ -42,7 +43,7 @@ const router = Router();
  *         description: Sertifikat berhasil dibuat
  */
 router.post(
-  "/courses/:id/certificate",
+  "/subchapters/:id/certificate",
   authenticate,
   authorizeRoles("admin"),
   validate(generateCertificateSchema),
@@ -51,19 +52,35 @@ router.post(
 
 /**
  * @swagger
- * /api/elearningCertificate/courses/{id}/certificate/auto:
+ * /api/elearningCertificate/subchapters/{id}/certificate/auto:
  *   post:
- *     summary: Generate sertifikat otomatis (progress 100%)
+ *     summary: Generate sertifikat otomatis (progress sub-chapter 100%)
+ *     description: |
+ *       Mentee memicu pembuatan sertifikat sendiri untuk sub-chapter
+ *       (kelas) yang progress-nya sudah 100%. Gagal kalau progress
+ *       belum 100% atau sertifikat sudah pernah dibuat sebelumnya.
  *     tags: [E-Learning Certificate]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID Sub-Chapter
+ *         schema:
+ *           type: string
+ *     responses:
+ *       201:
+ *         description: Sertifikat berhasil dibuat
+ *       400:
+ *         description: Progress belum 100% atau sertifikat sudah ada
  */
-// router.post(
-//   "/courses/:id/certificate/auto",
-//   authenticate,
-//   authorizeRoles("mentee"),
-//   ElearningCertificateController.generateCertificateAuto
-// );
+router.post(
+  "/subchapters/:id/certificate/auto",
+  authenticate,
+  authorizeRoles("mentee"),
+  ElearningCertificateController.generateCertificateAuto
+);
 
 /**
  * @swagger

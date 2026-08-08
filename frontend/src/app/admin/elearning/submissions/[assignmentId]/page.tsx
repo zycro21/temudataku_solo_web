@@ -10,9 +10,6 @@ import SubmissionStatsCards from "@/components/admin/submissions/components/[ass
 import SubmissionsTable from "@/components/admin/submissions/components/[assignmentId]/components/SubmissionsTable";
 import GradeSubmissionModal from "@/components/admin/submissions/components/[assignmentId]/components/GradeSubmissionModal";
 
-// 🔥 Bentuk data submission dari GET /api/elearningSubmission/assignments/{id}/submissions
-// (findMany TANPA `select`, cuma `include: { user: ... }` → semua field
-// scalar ELearningSubmission ikut kebawa, termasuk attemptNumber).
 export interface SubmissionListItem {
   id: string;
   assignmentId: string;
@@ -37,19 +34,33 @@ export interface SubmissionListItem {
   user: { id: string; fullName: string; email: string };
 }
 
-const PAGE_SIZE = 10;
-
 export default function AssignmentSubmissionsPage() {
   const params = useParams();
   const assignmentId = params?.assignmentId as string;
 
-  // 🔥 Endpoint GET /api/elearningAssignment/assignments/:id/detail sudah
-  // tersedia di backend, jadi title assignment & course diambil langsung
-  // dari sana — akurat baik navigasi dari list maupun saat halaman
-  // dibuka langsung/di-refresh. Query string ?title=&course= dari Page 1
-  // sudah tidak dipakai lagi di sini.
   const [assignmentTitle, setAssignmentTitle] = useState("Assignment");
   const [courseTitle, setCourseTitle] = useState<string | null>(null);
+
+  const [submissions, setSubmissions] = useState<SubmissionListItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // Filter & Sort state
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [sortBy, setSortBy] = useState<"submittedAt" | "score">("submittedAt");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
+  // Stats (total & pending)
+  const [totalPending, setTotalPending] = useState(0);
+
+  const [selectedSubmission, setSelectedSubmission] =
+    useState<SubmissionListItem | null>(null);
 
   const fetchAssignmentDetail = useCallback(async () => {
     if (!assignmentId) return;
@@ -75,21 +86,6 @@ export default function AssignmentSubmissionsPage() {
     fetchAssignmentDetail();
   }, [fetchAssignmentDetail]);
 
-  const [submissions, setSubmissions] = useState<SubmissionListItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [total, setTotal] = useState(0);
-  const [totalPending, setTotalPending] = useState(0);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
-  const [sortBy, setSortBy] = useState<"submittedAt" | "score">("submittedAt");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-
-  const [selectedSubmission, setSelectedSubmission] =
-    useState<SubmissionListItem | null>(null);
-
   const fetchSubmissions = useCallback(async () => {
     if (!assignmentId) return;
     setIsLoading(true);
@@ -100,7 +96,7 @@ export default function AssignmentSubmissionsPage() {
           withCredentials: true,
           params: {
             page,
-            limit: PAGE_SIZE,
+            limit,
             search: search || undefined,
             status: statusFilter || undefined,
             sortBy,
@@ -119,12 +115,12 @@ export default function AssignmentSubmissionsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [assignmentId, page, search, statusFilter, sortBy, sortOrder]);
+  }, [assignmentId, page, limit, search, statusFilter, sortBy, sortOrder]);
 
-  // 🔥 Panggilan ringan terpisah cuma buat ambil total keseluruhan & total
-  // yang masih PENDING (buat stats card) — lepas dari filter/pencarian
-  // tabel utama di atas, supaya angkanya selalu merepresentasikan
-  // keseluruhan assignment ini, bukan hasil filter yang sedang aktif.
+  useEffect(() => {
+    fetchSubmissions();
+  }, [fetchSubmissions]);
+
   const fetchStats = useCallback(async () => {
     if (!assignmentId) return;
     try {
@@ -147,10 +143,6 @@ export default function AssignmentSubmissionsPage() {
       // stats gagal dimuat bukan hal fatal — tabel utama tetap jalan
     }
   }, [assignmentId]);
-
-  useEffect(() => {
-    fetchSubmissions();
-  }, [fetchSubmissions]);
 
   useEffect(() => {
     fetchStats();
@@ -189,9 +181,14 @@ export default function AssignmentSubmissionsPage() {
         submissions={submissions}
         isLoading={isLoading}
         page={page}
+        limit={limit}
         totalPages={totalPages}
         total={total}
         onPageChange={setPage}
+        onLimitChange={(v) => {
+          setPage(1);
+          setLimit(v);
+        }}
         search={search}
         onSearchChange={(v) => {
           setPage(1);
@@ -205,6 +202,7 @@ export default function AssignmentSubmissionsPage() {
         sortBy={sortBy}
         sortOrder={sortOrder}
         onSortChange={(by, order) => {
+          setPage(1);
           setSortBy(by);
           setSortOrder(order);
         }}

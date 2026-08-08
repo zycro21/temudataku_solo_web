@@ -80,7 +80,7 @@ const router = express.Router();
 router.get(
   "/subchapters/:subChapterId/subbabs",
   authenticate,
-  authorizeRoles("admin", "cm", "curdev", "mentor", "mentee"),
+  authorizeRoles("admin", "cm", "curdev", "mentor", "mentee", "guest"),
   validate(getSubBabsBySubChapterSchema),
   ELearningSubBabController.getSubBabsBySubChapter
 );
@@ -115,7 +115,7 @@ router.get(
 router.get(
   "/subbabs/:id",
   authenticate,
-  authorizeRoles("admin", "mentor", "mentee"),
+  authorizeRoles("admin", "mentor", "mentee", "curdev", "cm", "guest"),
   validate(getSubBabByIdSchema),
   ELearningSubBabController.getSubBabById
 );
@@ -401,7 +401,7 @@ router.patch(
 router.get(
   "/all",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev", "guest"),
   validate(getAllSubBabsSchema),
   ELearningSubBabController.getAllSubBabs
 );
@@ -452,7 +452,7 @@ router.get(
 router.get(
   "/subbabsExport",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "guest"),
   validate(exportSubBabsSchema),
   ELearningSubBabController.exportSubBabs
 );
@@ -499,7 +499,7 @@ router.get(
 router.get(
   "/subbabs/:id/history",
   authenticate,
-  authorizeRoles("admin", "mentor", "mentee", "cm", "curdev"),
+  authorizeRoles("admin", "mentor", "mentee", "cm", "curdev", "guest"),
   validate(getSubBabHistorySchema),
   ELearningSubBabController.getSubBabHistory
 );

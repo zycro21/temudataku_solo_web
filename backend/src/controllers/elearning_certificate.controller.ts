@@ -13,11 +13,12 @@ export const generateCertificateManual = async (
   next: NextFunction
 ) => {
   try {
-    const { id: courseId } = req.validatedParams;
+    // 🔥 UBAH: courseId → subChapterId
+    const { id: subChapterId } = req.validatedParams;
     const { userId, note } = req.validatedBody;
 
     const result = await ElearningCertificateService.generateCertificate({
-      courseId,
+      subChapterId,
       userId,
       verifiedBy: req.user!.userId,
       note,
@@ -29,25 +30,26 @@ export const generateCertificateManual = async (
   }
 };
 
-// export const generateCertificateAuto = async (
-//   req: AuthenticatedRequestELearningCertificate,
-//   res: Response,
-//   next: NextFunction
-// ) => {
-//   try {
-//     const courseId = req.params.id;
-//     const userId = req.user!.userId;
+export const generateCertificateAuto = async (
+  req: AuthenticatedRequestELearningCertificate,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    // 🔥 UBAH: courseId → subChapterId
+    const subChapterId = req.params.id;
+    const userId = req.user!.userId;
 
-//     const result = await ElearningCertificateService.generateCertificateAuto({
-//       courseId,
-//       userId,
-//     });
+    const result = await ElearningCertificateService.generateCertificateAuto({
+      subChapterId,
+      userId,
+    });
 
-//     res.status(201).json({ success: true, data: result });
-//   } catch (err) {
-//     next(err);
-//   }
-// };
+    res.status(201).json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+};
 
 export const getMyCertificates = async (
   req: AuthenticatedRequestELearningCertificate,

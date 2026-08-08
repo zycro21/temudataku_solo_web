@@ -6,6 +6,10 @@ import { fileURLToPath } from "url";
 import { parseAsync } from "json2csv";
 import ExcelJS from "exceljs";
 import { format } from "date-fns";
+import {
+  upsertTextProgress,
+  recalculateSubChapterProgress,
+} from "./elearning_progress.service.js";
 
 const prisma = new PrismaClient();
 
@@ -381,6 +385,26 @@ export class ELearningSubmissionService {
       },
     });
 
+    // 🔥 BARU: status FINAL "REVIEWED" (lolos atau tidak lolos — bukan
+    // REVISION_REQUIRED, karena mentee masih ada kerjaan lanjutan) →
+    // langsung tandai Text assignment ini selesai & hitung ulang progress
+    // SubChapter DI BACKEND. Ini yang bikin progress bar mentee ke-update
+    // otomatis begitu admin/curdev/mentor submit penilaian, tanpa perlu
+    // mentee balik buka halaman assignment-nya dulu (beda dari deteksi di
+    // AssignmentRenderer.tsx sisi mentee, yang tetap saya biarkan jalan
+    // sebagai fallback/safety net kalau baris ini somehow belum ke-hit,
+    // mis. submission lama sebelum fitur ini ada).
+    if (newStatus === "REVIEWED") {
+      const textId = submission.assignment.textId;
+      const subChapterId = submission.assignment.text.subBab.subChapterId;
+
+      await upsertTextProgress({ userId: submission.userId, textId });
+      await recalculateSubChapterProgress({
+        userId: submission.userId,
+        subChapterId,
+      });
+    }
+
     return updated;
   }
 
@@ -475,8 +499,8 @@ export class ELearningSubmissionService {
       throw new Error("Submission tidak ditemukan");
     }
 
-    // ===== ADMIN =====
-    if (user.roles.includes("admin")) {
+    // ===== ADMIN & CURDEV (hak akses sama) =====
+    if (user.roles.includes("admin") || user.roles.includes("curdev")) {
       return submission;
     }
 

@@ -212,7 +212,8 @@ export class ELearningTextService {
     if (
       !user.roles.includes("admin") &&
       !user.roles.includes("cm") &&
-      !user.roles.includes("curdev")
+      !user.roles.includes("curdev") &&
+      !user.roles.includes("guest")
     ) {
       if (
         user.roles.includes("mentor") &&
@@ -433,7 +434,7 @@ export class ELearningTextService {
     const course = text.subBab.subChapter.course;
 
     // ── Akses kontrol (tidak diubah) ────────────────────────────────────────
-    const isAdminLike = ["admin", "cm", "curdev"].some((role) =>
+    const isAdminLike = ["admin", "cm", "curdev", "guest"].some((role) =>
       user.roles.includes(role),
     );
 
@@ -2121,7 +2122,7 @@ export class ELearningTextService {
     const course = text.subBab.subChapter.course;
 
     /* ===== 2. ROLE-BASED ACCESS (sama seperti getTextById) ===== */
-    const isAdminLike = ["admin", "cm", "curdev"].some((role) =>
+    const isAdminLike = ["admin", "cm", "curdev", "guest"].some((role) =>
       user.roles.includes(role),
     );
 

@@ -332,7 +332,17 @@ export default function SubChapterSection({
                           >
                             <Button
                               size="sm"
-                              className="bg-emerald-600 px-4 py-2 text-xs text-white hover:bg-emerald-700 shrink-0"
+                              className={
+                                chapterProgress?.status === "completed"
+                                  ? // 🔥 BARU: state "Ulangi" — outline, bukan solid, biar visually
+                                    // beda dari "Mulai"/"Lanjut" (yang masih ada progress
+                                    // berjalan/belum mulai). Solid emerald dipertahankan cuma
+                                    // buat aksi yang "mendorong maju", sedangkan "Ulangi" itu
+                                    // aksi opsional (subChapter-nya sudah 100%), jadi lebih pas
+                                    // ditonjolkan lebih ringan/secondary.
+                                    "bg-white px-4 py-2 text-xs text-emerald-600 border border-emerald-600 hover:bg-emerald-50 shrink-0"
+                                  : "bg-emerald-600 px-4 py-2 text-xs text-white hover:bg-emerald-700 shrink-0"
+                              }
                             >
                               {getActionLabel(chapterProgress?.status)}
                             </Button>

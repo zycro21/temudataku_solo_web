@@ -922,3 +922,222 @@ export const exportElearningProgressToFile = async ({
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   };
 };
+
+/**
+ * Hitung ulang progressPercent SubChapter dari jumlah Text yang sudah
+ * "selesai" (ELearningTextProgress.progress >= 100) dibanding total Text
+ * di semua SubBab-nya. Reusable — kalau nanti mau dipanggil juga dari
+ * service submit-quiz-attempt / review-assignment yang sudah ada
+ * (supaya progress ke-update otomatis di backend, nggak nunggu mentee
+ * balik ke halaman ini), tinggal import fungsi ini.
+ */
+export const recalculateSubChapterProgress = async ({
+  userId,
+  subChapterId,
+}: {
+  userId: string;
+  subChapterId: string;
+}) => {
+  const subChapter = await prisma.eLearningSubChapter.findUnique({
+    where: { id: subChapterId },
+    select: {
+      subBabs: {
+        select: {
+          texts: {
+            select: {
+              id: true,
+              quiz: { select: { id: true } },
+              assignment: { select: { id: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!subChapter) {
+    const err = new Error("Sub-chapter tidak ditemukan");
+    (err as any).statusCode = 404;
+    throw err;
+  }
+
+  const allTexts = subChapter.subBabs.flatMap((sb) => sb.texts);
+  const total = allTexts.length;
+
+  if (total === 0) {
+    return prisma.eLearningSubChapterProgress.upsert({
+      where: { userId_subChapterId: { userId, subChapterId } },
+      update: { progressPercent: 0, lastActivityAt: new Date() },
+      create: {
+        userId,
+        subChapterId,
+        progressPercent: 0,
+        lastActivityAt: new Date(),
+      },
+    });
+  }
+
+  // 🔥 Text dipisah 3 kategori — masing-masing sumber kebenarannya beda
+  const materiTextIds = allTexts
+    .filter((t) => !t.quiz && !t.assignment)
+    .map((t) => t.id);
+  const quizIds = allTexts.filter((t) => t.quiz).map((t) => t.quiz!.id);
+  const assignmentIds = allTexts
+    .filter((t) => t.assignment)
+    .map((t) => t.assignment!.id);
+
+  // 1) Materi: dari cache ELearningTextProgress (scroll sampai bawah)
+  const materiDoneCount =
+    materiTextIds.length > 0
+      ? await prisma.eLearningTextProgress.count({
+          where: {
+            userId,
+            textId: { in: materiTextIds },
+            progress: { gte: 100 },
+          },
+        })
+      : 0;
+
+  // 2) Quiz: LIVE dari ELearningQuizAttempt — minimal 1 attempt tersimpan
+  let quizDoneCount = 0;
+  if (quizIds.length > 0) {
+    const attempted = await prisma.eLearningQuizAttempt.findMany({
+      where: { userId, quizId: { in: quizIds } },
+      distinct: ["quizId"],
+      select: { quizId: true },
+    });
+    quizDoneCount = attempted.length;
+  }
+
+  // 3) Assignment: LIVE dari ELearningSubmission — attempt TERAKHIR-nya
+  //    berstatus REVIEWED (lolos ATAU tidak lolos, bukan REVISION_REQUIRED)
+  let assignmentDoneCount = 0;
+  if (assignmentIds.length > 0) {
+    const latestPerAssignment = await prisma.eLearningSubmission.findMany({
+      where: { userId, assignmentId: { in: assignmentIds } },
+      orderBy: { attemptNumber: "desc" },
+      distinct: ["assignmentId"],
+      select: { assignmentId: true, status: true },
+    });
+    assignmentDoneCount = latestPerAssignment.filter(
+      (s) => s.status === "REVIEWED",
+    ).length;
+  }
+
+  const doneCount = materiDoneCount + quizDoneCount + assignmentDoneCount;
+  const progressPercent = (doneCount / total) * 100;
+
+  return prisma.eLearningSubChapterProgress.upsert({
+    where: { userId_subChapterId: { userId, subChapterId } },
+    update: { progressPercent, lastActivityAt: new Date() },
+    create: {
+      userId,
+      subChapterId,
+      progressPercent,
+      lastActivityAt: new Date(),
+    },
+  });
+};
+
+export const completeTextProgress = async ({
+  userId,
+  textId,
+  progress,
+}: {
+  userId: string;
+  textId: string;
+  progress?: number;
+}) => {
+  const text = await prisma.eLearningText.findUnique({
+    where: { id: textId },
+    select: {
+      id: true,
+      subBab: {
+        select: {
+          subChapterId: true,
+          subChapter: { select: { courseId: true } },
+        },
+      },
+    },
+  });
+
+  if (!text) {
+    const err = new Error("Text tidak ditemukan");
+    (err as any).statusCode = 404;
+    throw err;
+  }
+
+  const subChapterId = text.subBab.subChapterId;
+
+  // Cek subscription aktif — sama persis seperti completeSubBab
+  const now = new Date();
+  const activeSubscription = await prisma.eLearningSubscription.findFirst({
+    where: {
+      userId,
+      status: { in: ["active", "confirmed", "completed"] },
+      startAt: { lte: now },
+      endAt: { gte: now },
+    },
+  });
+
+  if (!activeSubscription) {
+    const err = new Error("Anda belum memiliki subscription aktif");
+    (err as any).statusCode = 403;
+    throw err;
+  }
+
+  // 🔥 Progress nggak boleh mundur — kalau endpoint ini kepanggil lagi
+  // dengan angka lebih kecil (race/retry), jangan turunin yang sudah
+  // tercatat lebih tinggi.
+  const existing = await prisma.eLearningTextProgress.findUnique({
+    where: { userId_textId: { userId, textId } },
+  });
+  const finalProgress = Math.max(
+    existing?.progress ?? 0,
+    Math.max(0, Math.min(100, progress ?? 100)),
+  );
+
+  const textProgress = await prisma.eLearningTextProgress.upsert({
+    where: { userId_textId: { userId, textId } },
+    update: { progress: finalProgress, lastAccessedAt: now },
+    create: { userId, textId, progress: finalProgress, lastAccessedAt: now },
+  });
+
+  const subChapterProgress = await recalculateSubChapterProgress({
+    userId,
+    subChapterId,
+  });
+
+  return { textProgress, subChapterProgress };
+};
+
+export const upsertTextProgress = async ({
+  userId,
+  textId,
+  progress = 100,
+}: {
+  userId: string;
+  textId: string;
+  progress?: number;
+}) => {
+  const existing = await prisma.eLearningTextProgress.findUnique({
+    where: { userId_textId: { userId, textId } },
+  });
+
+  // progress nggak boleh mundur
+  const finalProgress = Math.max(
+    existing?.progress ?? 0,
+    Math.max(0, Math.min(100, progress)),
+  );
+
+  return prisma.eLearningTextProgress.upsert({
+    where: { userId_textId: { userId, textId } },
+    update: { progress: finalProgress, lastAccessedAt: new Date() },
+    create: {
+      userId,
+      textId,
+      progress: finalProgress,
+      lastAccessedAt: new Date(),
+    },
+  });
+};
