@@ -120,7 +120,7 @@ function ContentCardCanvas({
         {/* Description */}
         <div className="border-b border-dashed border-gray-200 pb-2">
           <p className="text-[10px] font-semibold text-gray-400 mb-0.5">
-            Description <span className="text-red-500">*</span>
+            Description <span className="text-green-500">-- Disarankan</span>
           </p>
           <RichTextEditor
             ref={descRef}

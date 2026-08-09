@@ -515,6 +515,12 @@ export default function AdminLayout({
           icon: "/assets/admin/tugas.svg",
           activeIcon: "/assets/admin/whitetugas.svg",
         },
+        {
+          name: "Monitoring Review",
+          href: "/admin/elearning/reviews",
+          icon: "/assets/dashboard/mentor/report.svg",
+          activeIcon: "/assets/dashboard/mentor/reportwhite.svg",
+        },
       ],
     },
     {

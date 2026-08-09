@@ -1143,6 +1143,7 @@ model ELearningCertificate {
   certificatePath   String?   @db.VarChar @map("certificate_path")
   issuedAt          DateTime? @default(now())
   certificateNumber String    @unique @db.VarChar @map("certificate_number")
+  displayNumber     String    @unique @db.VarChar @map("display_number")
   status            String?   @db.VarChar @map("status") // generated, sent, viewed
   verifiedBy        String?   @db.VarChar @map("verified_by") // ID dari admin/yang verifikasi (opsional)
   note              String?   @db.VarChar @map("note")

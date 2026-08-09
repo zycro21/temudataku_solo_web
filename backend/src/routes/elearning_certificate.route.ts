@@ -9,6 +9,7 @@ import {
   markCertificateViewedSchema,
   regenerateCertificateSchema,
   exportELearningCertificateQuerySchema,
+  verifyCertificateParamSchema,
 } from "../validations/elearning_certificate.validation.js";
 import { validate } from "../middlewares/validate.js";
 import { authenticate } from "../middlewares/authenticate.js";
@@ -515,5 +516,80 @@ router.get(
   ElearningCertificateController.exportCertificates
 );
 
+/**
+ * @swagger
+ * /api/elearningCertificate/certificates/verify/{certificateNumber}:
+ *   get:
+ *     summary: Verifikasi sertifikat (publik, tanpa login)
+ *     description: >
+ *       Dipakai oleh halaman publik yang dituju QR code di sertifikat
+ *       (`${FRONTEND_BASE_URL}/certificates/{certificateNumber}`).
+ *       Tidak butuh login — siapa saja yang scan QR fisik harus bisa
+ *       memverifikasi keasliannya. Cuma mengembalikan data yang aman
+ *       untuk publik (nama peserta, judul course, nomor sertifikat,
+ *       tanggal terbit, status) — TIDAK termasuk email atau catatan
+ *       internal admin.
+ *     tags: [E-Learning Certificate]
+ *     parameters:
+ *       - in: path
+ *         name: certificateNumber
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: >
+ *           Nilai `certificateNumber` (format ELCERT-...), BUKAN
+ *           `displayNumber` — ini yang dipakai sebagai slug URL karena
+ *           aman dari karakter "/".
+ *     responses:
+ *       200:
+ *         description: Sertifikat ditemukan & valid
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     certificateNumber:
+ *                       type: string
+ *                     displayNumber:
+ *                       type: string
+ *                       example: "01/ABCDEFG/TemuDataku"
+ *                     certificateUrl:
+ *                       type: string
+ *                     issuedAt:
+ *                       type: string
+ *                       format: date-time
+ *                     status:
+ *                       type: string
+ *                       example: generated
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         fullName:
+ *                           type: string
+ *                     subChapter:
+ *                       type: object
+ *                       properties:
+ *                         title:
+ *                           type: string
+ *                         course:
+ *                           type: object
+ *                           properties:
+ *                             title:
+ *                               type: string
+ *       404:
+ *         description: Sertifikat tidak ditemukan
+ */
+router.get(
+  "/certificates/verify/:certificateNumber",
+  validate(verifyCertificateParamSchema),
+  ElearningCertificateController.verifyCertificate,
+);
 
 export default router;
+

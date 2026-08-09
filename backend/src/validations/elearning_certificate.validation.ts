@@ -64,3 +64,9 @@ export const exportELearningCertificateQuerySchema = z.object({
     format: z.enum(["csv", "excel"]).optional().default("csv"),
   }),
 });
+
+export const verifyCertificateParamSchema = z.object({
+  params: z.object({
+    certificateNumber: z.string().min(1),
+  }),
+});

@@ -9,24 +9,82 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { uploadToGoogleDrive } from "../utils/googleDrive.js";
 import QRCode from "qrcode";
+import {
+  renderCertificatePage,
+  renderAssessmentPage,
+} from "../utils/certificateDesign.js";
 
 const prisma = new PrismaClient();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// ⚠️ Ganti ini pakai domain frontend production kamu, atau (lebih baik)
+// taruh di .env sebagai FRONTEND_URL supaya gampang beda-beda per
+// environment (dev/staging/prod) tanpa perlu redeploy code.
+const FRONTEND_URL =
+  process.env.FRONTEND_URL ?? "https://elearning.temudataku.com";
+
+// ID internal, dipakai buat nama file PDF & path di URL verifikasi QR.
+// SENGAJA dibikin aman-URL/aman-filesystem (nggak ada karakter "/"),
+// beda sama `displayNumber` yang formatnya ada "/" dan cuma buat
+// DITAMPILKAN di sertifikat, bukan buat jadi bagian URL/nama file.
 const generateCertificateNumber = () =>
   `ELCERT-${Date.now()}-${Math.random()
     .toString(36)
     .substring(2, 6)
     .toUpperCase()}`;
 
-const formatIssueDate = (date: Date) =>
-  date.toLocaleDateString("id-ID", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
+// 🔥 BARU: generator nomor "cantik" yang ditampilkan di sertifikat,
+// formatnya: "01/ABCDEFG/TemuDataku"
+//   - "01"      → 2 digit nomor batch, urut. Naik +1 tiap kali total
+//                 sertifikat yang sudah pernah dibuat (di seluruh sistem)
+//                 sudah mencapai kelipatan 10.000.
+//   - "ABCDEFG" → 7 huruf acak (A-Z), DICEK UNIK ke database (bukan cuma
+//                 unik dalam batch, tapi unik keseluruhan), retry kalau
+//                 ternyata bentrok.
+//   - "TemuDataku" → suffix tetap.
+const RANDOM_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+function generateRandomLetters(length = 7) {
+  let result = "";
+  for (let i = 0; i < length; i++) {
+    result += RANDOM_LETTERS[Math.floor(Math.random() * RANDOM_LETTERS.length)];
+  }
+  return result;
+}
+
+async function generateDisplayCertificateNumber(): Promise<string> {
+  // Batch number: total sertifikat yang SUDAH ADA di DB dibagi 10.000.
+  // Sertifikat ke-1 s/d 10.000 → batch "01", ke-10.001 s/d 20.000 →
+  // batch "02", dst.
+  const totalIssued = await prisma.eLearningCertificate.count();
+  const batchNumber = Math.floor(totalIssued / 10000) + 1;
+  const batchLabel = String(batchNumber).padStart(2, "0");
+
+  const MAX_ATTEMPTS = 25;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const randomLetters = generateRandomLetters(7);
+    const displayNumber = `${batchLabel}/${randomLetters}/TemuDataku`;
+
+    // Cek unik ke DB. Field `displayNumber` perlu ditambah dulu di
+    // schema Prisma (lihat catatan migrasi di bawah kode ini).
+    const existing = await prisma.eLearningCertificate.findUnique({
+      where: { displayNumber },
+    });
+
+    if (!existing) {
+      return displayNumber;
+    }
+  }
+
+  // Kalau 25x percobaan tetap bentrok terus (kemungkinan sangat kecil,
+  // 26^7 = ±8 miliar kombinasi), lempar error daripada nyimpen data yang
+  // nggak konsisten.
+  throw new Error(
+    "Gagal generate nomor sertifikat unik setelah beberapa kali percobaan. Silakan coba lagi.",
+  );
+}
 
 async function generateQRCodeBuffer(url: string): Promise<Buffer> {
   return QRCode.toBuffer(url, {
@@ -38,110 +96,10 @@ async function generateQRCodeBuffer(url: string): Promise<Buffer> {
 
 /* ==============================
    PDF GENERATOR
+   (drawTable, renderCertificatePage, renderAssessmentPage sudah
+   PINDAH ke ../utils/certificateDesign.ts — jangan didefinisikan lagi
+   di sini biar nggak dobel/konflik nama)
 ================================ */
-
-// UTILS DRAW TABLE — TIDAK BERUBAH
-function drawTable({
-  doc,
-  startX,
-  startY,
-  rowHeight,
-  columnWidths,
-  rows,
-}: {
-  doc: PDFKit.PDFDocument;
-  startX: number;
-  startY: number;
-  rowHeight: number;
-  columnWidths: number[];
-  rows: string[][];
-}) {
-  let y = startY;
-
-  rows.forEach((row, rowIndex) => {
-    let x = startX;
-
-    row.forEach((cell, i) => {
-      doc.rect(x, y, columnWidths[i], rowHeight).stroke();
-
-      doc
-        .fontSize(rowIndex === 0 ? 12 : 11)
-        .fillColor(rowIndex === 0 ? "#0A2A66" : "#000000")
-        .text(cell, x + 8, y + 8, {
-          width: columnWidths[i] - 16,
-          align: "left",
-        });
-
-      x += columnWidths[i];
-    });
-
-    y += rowHeight;
-  });
-}
-
-// PAGE 1 — 🔥 UBAH: courseTitle → subChapterTitle (nama parameter saja,
-// isi/urutan tampilannya di PDF tidak berubah)
-function renderCertificatePage({
-  doc,
-  certificateNumber,
-  userName,
-  subChapterTitle,
-  issueDate,
-  qrBuffer,
-}: {
-  doc: PDFKit.PDFDocument;
-  certificateNumber: string;
-  userName: string;
-  subChapterTitle: string;
-  issueDate: Date;
-  qrBuffer: Buffer;
-}) {
-  /* BACKGROUND */
-  doc.rect(0, 0, doc.page.width, doc.page.height).fill("#FFFFFF");
-
-  /* HEADER */
-  doc
-    .fontSize(30)
-    .fillColor("#0A2A66")
-    .text("CERTIFICATE OF COMPLETION", 0, 80, { align: "center" });
-
-  /* BODY */
-  doc
-    .moveDown(2)
-    .fontSize(14)
-    .fillColor("#333")
-    .text("This certificate is proudly presented to", { align: "center" });
-
-  doc.moveDown(1).fontSize(28).fillColor("#000").text(userName, {
-    align: "center",
-  });
-
-  doc
-    .moveDown(1)
-    .fontSize(14)
-    .fillColor("#333")
-    .text("For successfully completing the class", { align: "center" });
-
-  doc.moveDown(1).fontSize(22).fillColor("#00A859").text(subChapterTitle, {
-    align: "center",
-  });
-
-  /* FOOTER */
-  doc
-    .fontSize(12)
-    .fillColor("#666")
-    .text(`Issued on ${formatIssueDate(issueDate)}`, 80, doc.page.height - 120);
-
-  doc
-    .fontSize(10)
-    .fillColor("#666")
-    .text(certificateNumber, 80, doc.page.height - 95);
-
-  /* QR */
-  doc.image(qrBuffer, doc.page.width - 200, doc.page.height - 200, {
-    width: 120,
-  });
-}
 
 // PAGE 2 — TIDAK BERUBAH
 function buildAssessmentRows(data: {
@@ -165,61 +123,29 @@ function buildAssessmentRows(data: {
   ];
 }
 
-function renderAssessmentPage(doc: PDFKit.PDFDocument, rows: string[][]) {
-  doc
-    .fontSize(22)
-    .fillColor("#0A2A66")
-    .text("Assessment Summary", 0, 50, { align: "center" });
-
-  drawTable({
-    doc,
-    startX: 80,
-    startY: 120,
-    rowHeight: 40,
-    columnWidths: [220, 100, 120, 200],
-    rows,
-  });
-
-  doc
-    .fontSize(10)
-    .fillColor("#666")
-    .text(
-      "This page provides a detailed breakdown of participant assessment results.",
-      80,
-      doc.page.height - 80,
-    );
-}
-
 async function generateCertificatePDF({
   certificateNumber,
+  displayNumber,
   userName,
   subChapterTitle,
   issueDate,
   pdfPath,
   userId,
   subChapterId,
+  verifyUrl,
 }: {
   certificateNumber: string;
+  displayNumber: string; // 🔥 BARU
   userName: string;
   subChapterTitle: string;
   issueDate: Date;
   pdfPath: string;
   userId: string;
-  subChapterId: string; // 🔥 UBAH: dulu courseId
+  subChapterId: string;
+  verifyUrl: string; // 🔥 BARU: URL detail sertifikat di frontend, sumber QR
 }) {
   /* ========= GET ASSESSMENT DATA ========= */
 
-  // 🔥 UBAH (quiz):
-  // 1. Filter: dulu naik sampai ke `subChapter.courseId` (via Course),
-  //    sekarang cukup `subBab.subChapterId` langsung — subChapterId
-  //    memang sudah scalar field di ELearningSubBab, nggak perlu lompat
-  //    lewat Course lagi.
-  // 2. orderBy: dulu `score: "desc"` (ambil skor TERTINGGI, salah — bisa
-  //    ambil attempt lama yang kebetulan skornya lebih bagus). Sekarang
-  //    `attemptNumber: "desc"` → ambil attempt PALING TERAKHIR sesuai
-  //    permintaan, apa pun skornya.
-  // 3. Satu subChapter cuma boleh ada 1 quiz (task per subChapter),
-  //    jadi findFirst di sini aman tanpa perlu group by quizId.
   const quizAttempt = await prisma.eLearningQuizAttempt.findFirst({
     where: {
       userId,
@@ -236,10 +162,6 @@ async function generateCertificatePDF({
     },
   });
 
-  // 🔥 UBAH (assignment/submission): sama persis polanya seperti quiz di
-  // atas — filter langsung ke `subBab.subChapterId`, orderBy diganti
-  // jadi `attemptNumber: "desc"` (attempt terakhir, bukan skor
-  // tertinggi).
   const assignment = await prisma.eLearningSubmission.findFirst({
     where: {
       userId,
@@ -256,11 +178,6 @@ async function generateCertificatePDF({
     },
   });
 
-  // 🔥 UBAH (progress): dulu manual hitung dari ELearningProgress
-  // (per-subBab isCompleted, di-scope ke seluruh course). Sekarang
-  // tinggal baca LANGSUNG dari ELearningSubChapterProgress.progressPercent
-  // — itu sudah sumber kebenaran progress yang benar (yang juga dipakai
-  // sidebar mentee), jadi nggak perlu hitung ulang manual lagi di sini.
   const subChapterProgress =
     await prisma.eLearningSubChapterProgress.findUnique({
       where: {
@@ -283,13 +200,15 @@ async function generateCertificatePDF({
     progressScore,
   });
 
-  const verifyUrl = `https://frontend-domain.com/certificates/${certificateNumber}`;
+  // 🔥 UBAH: QR sekarang mengarah ke `verifyUrl` yang dikirim dari
+  // `generateCertificate` (halaman detail sertifikat di frontend),
+  // bukan di-generate ulang di sini.
   const qrBuffer = await generateQRCodeBuffer(verifyUrl);
 
   return new Promise<void>((resolve, reject) => {
     const doc = new PDFDocument({
       size: "A4",
-      layout: "landscape",
+      layout: "landscape", // ✅ Page 1 horizontal
       margin: 40,
     });
 
@@ -300,20 +219,28 @@ async function generateCertificatePDF({
     renderCertificatePage({
       doc,
       certificateNumber,
+      displayNumber, // 🔥 BARU — ini yang ditampilkan di PDF, format "01/ABCDEFG/TemuDataku"
       userName,
       subChapterTitle,
       issueDate,
       qrBuffer,
+      // opsional, isi kalau sudah ada asset asli:
+      // logoImagePath: path.join(__dirname, "../../assets/temudataku-logo.png"),
+      // signatureImagePath: path.join(__dirname, "../../assets/signature-fathur.png"),
+      // signerName: "Mohammad Fathur Rozi",
+      // signerTitle: "CEO TemuDataku",
     });
 
     /* ========= PAGE 2 ========= */
     doc.addPage({
       size: "A4",
-      layout: "landscape",
+      layout: "landscape", // ✅ Page 2 horizontal juga
       margin: 40,
     });
 
-    renderAssessmentPage(doc, assessmentRows);
+    renderAssessmentPage(doc, subChapterTitle, assessmentRows, {
+      // logoImagePath: path.join(__dirname, "../../assets/temudataku-logo.png"),
+    });
 
     doc.end();
 
@@ -332,14 +259,12 @@ export const generateCertificate = async ({
   verifiedBy,
   note,
 }: {
-  subChapterId: string; // 🔥 UBAH: dulu courseId
+  subChapterId: string;
   userId: string;
   verifiedBy?: string;
   note?: string;
 }) => {
-  /* === 1. CEK DUPLIKASI ===
-     🔥 UBAH: compound unique key `userId_courseId` → `userId_subChapterId`
-     (sesuai `@@unique([userId, subChapterId])` di schema baru) */
+  /* === 1. CEK DUPLIKASI === */
   const existing = await prisma.eLearningCertificate.findUnique({
     where: {
       userId_subChapterId: { userId, subChapterId },
@@ -350,8 +275,7 @@ export const generateCertificate = async ({
     throw new Error("Certificate already exists for this sub-chapter");
   }
 
-  /* === 2. AMBIL DATA USER & SUB-CHAPTER ===
-     🔥 UBAH: query course → query subChapter */
+  /* === 2. AMBIL DATA USER & SUB-CHAPTER === */
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { fullName: true },
@@ -366,8 +290,9 @@ export const generateCertificate = async ({
     throw new Error("User or sub-chapter not found");
   }
 
-  /* === 3. PREPARE FILE PATH === (tidak berubah) */
-  const certificateNumber = generateCertificateNumber();
+  /* === 3. PREPARE FILE PATH & NOMOR SERTIFIKAT === */
+  const certificateNumber = generateCertificateNumber(); // ID internal (aman utk file/URL)
+  const displayNumber = await generateDisplayCertificateNumber(); // 🔥 BARU: nomor cantik "01/ABCDEFG/TemuDataku"
 
   const uploadDir = path.join(__dirname, "../../uploads/elearning_certificate");
 
@@ -378,15 +303,23 @@ export const generateCertificate = async ({
   const fileName = `${certificateNumber}.pdf`;
   const pdfPath = path.join(uploadDir, fileName);
 
+  // 🔥 BARU: URL halaman detail sertifikat di FE — ini yang jadi tujuan
+  // QR code kalau di-scan. Pakai `certificateNumber` (bukan
+  // `displayNumber`) sebagai slug karena aman dipakai di URL (nggak ada
+  // karakter "/"). Sesuaikan path route-nya kalau di FE beda.
+  const verifyUrl = `${FRONTEND_URL}/certificates/${certificateNumber}`;
+
   /* === 4. GENERATE PDF === */
   await generateCertificatePDF({
     certificateNumber,
+    displayNumber,
     userName: user.fullName,
-    subChapterTitle: subChapter.title, // 🔥 UBAH: courseTitle → subChapterTitle
+    subChapterTitle: subChapter.title,
     issueDate: new Date(),
     pdfPath,
     userId,
-    subChapterId, // 🔥 UBAH
+    subChapterId,
+    verifyUrl,
   });
 
   /* === 4.1 UPLOAD KE GOOGLE DRIVE === (tidak berubah) */
@@ -402,14 +335,13 @@ export const generateCertificate = async ({
     throw new Error("Failed to upload certificate to Google Drive");
   }
 
-  /* === 5. SIMPAN KE DATABASE ===
-     🔥 UBAH: `courseId` → `subChapterId` di data create, dan
-     `include: { course }` → `include: { subChapter }` */
+  /* === 5. SIMPAN KE DATABASE === */
   const certificate = await prisma.eLearningCertificate.create({
     data: {
       subChapterId,
       userId,
       certificateNumber,
+      displayNumber, // 🔥 BARU — perlu kolom baru di schema, lihat catatan di bawah
       certificateUrl: uploadedFile.webViewLink,
       certificatePath: `/uploads/elearning_certificate/${fileName}`,
       issuedAt: new Date(),
@@ -785,8 +717,7 @@ export const regenerateCertificate = async (
   certificateId: string,
   adminId: string,
 ) => {
-  /* === 1. AMBIL CERTIFICATE LAMA ===
-     🔥 UBAH: `course: {...}` → `subChapter: {...}` */
+  /* === 1. AMBIL CERTIFICATE LAMA === */
   const certificate = await prisma.eLearningCertificate.findUnique({
     where: { id: certificateId },
     include: {
@@ -807,8 +738,15 @@ export const regenerateCertificate = async (
     }
   }
 
-  /* === 3. GENERATE CERTIFICATE NUMBER BARU === (tidak berubah) */
+  /* === 3. GENERATE CERTIFICATE NUMBER + DISPLAY NUMBER BARU ===
+     🔥 UBAH: dulu cuma `newCertificateNumber`. Sekarang
+     `generateCertificatePDF` juga butuh `displayNumber` (nomor cantik
+     "01/ABCDEFG/TemuDataku" yang dicetak di PDF) dan `verifyUrl`
+     (tujuan QR). Jadi keduanya juga harus di-generate ulang di sini,
+     sama persis polanya kayak di `generateCertificate`. */
   const newCertificateNumber = generateCertificateNumber();
+  const newDisplayNumber = await generateDisplayCertificateNumber();
+  const newVerifyUrl = `${FRONTEND_URL}/certificates/${newCertificateNumber}`;
 
   /* === 4. PREPARE FILE BARU === (tidak berubah) */
   const uploadDir = path.join(__dirname, "../../uploads/elearning_certificate");
@@ -821,19 +759,20 @@ export const regenerateCertificate = async (
   const pdfPath = path.join(uploadDir, fileName);
 
   /* === 5. GENERATE ULANG PDF (PAKAI NOMOR BARU) ===
-     🔥 UBAH: `courseTitle`/`courseId` → `subChapterTitle`/`subChapterId`
-     — mengikuti signature `generateCertificatePDF` yang sudah kita
-     ubah di endpoint generate manual sebelumnya. Kalau ini nggak
-     disesuaikan, TypeScript bakal error karena parameter yang dikirim
-     nggak match dengan yang diminta fungsinya. */
+     🔥 UBAH: nambahin `displayNumber` & `verifyUrl` supaya match sama
+     signature `generateCertificatePDF` yang sekarang (kalau nggak
+     dikirim, TypeScript bakal error — kedua field itu wajib/required,
+     bukan optional, di signature-nya). */
   await generateCertificatePDF({
     certificateNumber: newCertificateNumber,
+    displayNumber: newDisplayNumber,
     userName: certificate.user.fullName,
     subChapterTitle: certificate.subChapter.title,
     issueDate: new Date(),
     pdfPath,
     userId: certificate.userId,
     subChapterId: certificate.subChapterId,
+    verifyUrl: newVerifyUrl,
   });
 
   /* === 6. UPLOAD ULANG KE GOOGLE DRIVE === (tidak berubah) */
@@ -848,11 +787,14 @@ export const regenerateCertificate = async (
   }
 
   /* === 7. UPDATE DATABASE (CERTIFICATE BARU) ===
-     🔥 UBAH: `include.course` → `include.subChapter` */
+     🔥 UBAH: simpan juga `displayNumber` yang baru — kalau nggak
+     di-update, kolom `displayNumber` di DB bakal nggak sinkron sama
+     yang tercetak di PDF hasil regenerate ini. */
   const updated = await prisma.eLearningCertificate.update({
     where: { id: certificateId },
     data: {
       certificateNumber: newCertificateNumber,
+      displayNumber: newDisplayNumber,
       certificateUrl: uploadedFile.webViewLink,
       certificatePath: `/uploads/elearning_certificate/${fileName}`,
       issuedAt: new Date(),
@@ -976,4 +918,34 @@ export const exportCertificatesToFile = async (formatType: string) => {
     fileName: `${baseFileName}.csv`,
     mimeType: "text/csv",
   };
+};
+
+export const verifyCertificateByNumber = async (certificateNumber: string) => {
+  const cert = await prisma.eLearningCertificate.findUnique({
+    where: { certificateNumber },
+    select: {
+      certificateNumber: true,
+      displayNumber: true,
+      certificateUrl: true,
+      issuedAt: true,
+      status: true,
+      // 🔒 SENGAJA TIDAK di-select: id, verifiedBy, note, certificatePath
+      // — nggak perlu & nggak aman ditampilkan ke publik.
+      user: {
+        select: { fullName: true }, // 🔒 email SENGAJA tidak di-select
+      },
+      subChapter: {
+        select: {
+          title: true,
+          course: {
+            select: { title: true },
+          },
+        },
+      },
+    },
+  });
+
+  // null di sini artinya "tidak ditemukan" — controller yang translate
+  // ini jadi response 404.
+  return cert;
 };

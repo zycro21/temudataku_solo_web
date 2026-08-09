@@ -246,3 +246,32 @@ export const exportCertificates = async (
     next(err);
   }
 };
+
+export const verifyCertificate = async (
+  req: AuthenticatedRequestELearningCertificate,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { certificateNumber } = req.validatedParams as {
+      certificateNumber: string;
+    };
+ 
+    const result =
+      await ElearningCertificateService.verifyCertificateByNumber(
+        certificateNumber,
+      );
+ 
+    if (!result) {
+      res.status(404).json({
+        success: false,
+        message: "Sertifikat tidak ditemukan",
+      });
+      return;
+    }
+ 
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+};
