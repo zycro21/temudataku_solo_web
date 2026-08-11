@@ -445,12 +445,12 @@ export function renderCertificatePage({
 
   /* "Of Completion" - Tanpa border, di bawah CERTIFICATE */
   const pillText = "OF COMPLETION";
-  const fontSize = 36;
+  const fontSize = 28;
   doc
     .font(FONTS.bold)
     .fontSize(fontSize)
     .fillColor(COLORS.green)
-    .text(pillText, leftX + 5, 52 + 64 + 8, {
+    .text(pillText, leftX + 5, 52 + 64 + 2, {
       // 🔥 leftX + 20 = geser ke kanan 20px
       // 52 + 64 + 8 = posisi di bawah CERTIFICATE dengan jarak 8px
       lineBreak: false,
