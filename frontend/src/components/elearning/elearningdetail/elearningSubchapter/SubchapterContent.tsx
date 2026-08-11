@@ -2006,7 +2006,10 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
         );
 
         return (
-          <div key={content.id} className="space-y-5">
+          <div
+            key={content.id}
+            className={content.description ? "space-y-5" : "space-y-3"}
+          >
             {/* ================= TITLE & DESCRIPTION =================
                 🔥 FIX: dulu icon cuma sejajar sama TITLE doang (title & icon
                 dalam satu row "flex items-center", description dirender di
@@ -2237,7 +2240,10 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
         );
 
         return (
-          <div key={content.id} className="space-y-6">
+          <div
+            key={content.id}
+            className={content.description ? "space-y-6" : "space-y-4"}
+          >
             {/* ================= TITLE & DESCRIPTION =================
                 🔥 Sama kayak accordion: icon & kolom (title+description)
                 sekarang satu baris flex yang sama, bukan icon-sejajar-title
@@ -2539,7 +2545,10 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
         );
 
         return (
-          <div key={content.id} className="space-y-8">
+          <div
+            key={content.id}
+            className={content.description ? "space-y-8" : "space-y-3"}
+          >
             {/* ================= TITLE & DESCRIPTION =================
                 🔥 Sama kayak accordion/carousel: icon & kolom
                 (title+description+hint "arahkan kursor") sekarang satu
@@ -2897,7 +2906,10 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
         );
 
         return (
-          <div key={content.id} className="space-y-6">
+          <div
+            key={content.id}
+            className={content.description ? "space-y-6" : "space-y-4"}
+          >
             {/* ================= TITLE & DESCRIPTION =================
                 🔥 Sama kayak accordion/carousel/content_card: icon &
                 kolom (title+description) sekarang satu baris flex yang

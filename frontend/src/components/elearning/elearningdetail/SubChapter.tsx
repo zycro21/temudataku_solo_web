@@ -87,7 +87,13 @@ export default function SubChapterSection({
   course,
   from = "elearning",
 }: Props) {
-  const subChapters = course.subChapters ?? [];
+  // 🔥 Safety net: subChapter yang statusnya belum PUBLISHED (misal masih
+  // DRAFT atau sudah ARCHIVED) jangan ikut ditampilkan, walau course
+  // induknya sendiri published — cegah kelas yang belum siap tampil ke
+  // mentee walau lolos dari filter backend.
+  const subChapters = (course.subChapters ?? []).filter(
+    (chapter) => chapter.status === "PUBLISHED",
+  );
   const total = subChapters.length;
 
   // 🔥 Progress overall course + progress tiap subChapter, satu request
@@ -244,7 +250,10 @@ export default function SubChapterSection({
 
                   {/* Content */}
                   <div className="p-3">
-                    <h3 className="text-base font-bold text-gray-900 mb-1 line-clamp-1 group-hover:text-emerald-600 transition-colors">
+                    <h3
+                      title={chapter.title}
+                      className="text-base font-bold text-gray-900 mb-1 line-clamp-1 group-hover:text-emerald-600 transition-colors cursor-default"
+                    >
                       {chapter.title}
                     </h3>
 

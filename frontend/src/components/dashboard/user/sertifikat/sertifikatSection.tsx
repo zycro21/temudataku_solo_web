@@ -93,7 +93,10 @@ export default function SertifikatSection({
 
               {/* CONTENT */}
               <CardContent className="px-3 py-3 flex-1 space-y-2">
-                <h3 className="text-sm mb-2 font-semibold text-gray-800 leading-tight line-clamp-2">
+                <h3
+                  title={sertifikat.title}
+                  className="text-sm mb-2 font-semibold text-gray-800 leading-tight line-clamp-2"
+                >
                   {sertifikat.title}
                 </h3>
 

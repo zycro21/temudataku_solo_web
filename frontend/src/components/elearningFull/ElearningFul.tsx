@@ -381,7 +381,10 @@ export default function ElearningSelection() {
 
                   <CardContent className="p-5 pt-0">
                     {/* Title */}
-                    <h3 className="text-[1.375rem] leading-snug font-bold text-gray-900 mb-2 line-clamp-1 transition-colors group-hover:text-emerald-600">
+                    <h3
+                      title={course.title}
+                      className="text-[1.375rem] leading-snug font-bold text-gray-900 mb-2 line-clamp-1 transition-colors group-hover:text-emerald-600"
+                    >
                       {course.title}
                     </h3>
 

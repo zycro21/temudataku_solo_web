@@ -43,7 +43,9 @@ export default function RegisterModal({
 
   const returnUrl = isElearningPage
     ? "/elearning"
-    : pathname === "/aycl" || pathname.startsWith("/programs/")
+    : pathname === "/aycl" ||
+        pathname === "/mentoring" ||
+        pathname.startsWith("/programs/")
       ? `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`
       : null;
 

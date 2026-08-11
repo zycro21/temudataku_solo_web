@@ -21,12 +21,35 @@ interface Sertifikat {
   hasCertificate: boolean;
 }
 
+// 🔥 BARU: shape response dari /api/elearningCertificate/certificates/me
+// (cuma field yang dipakai untuk ditampilkan di dashboard).
+interface ElearningCertificateResponse {
+  id: string;
+  certificateNumber: string;
+  certificateUrl: string;
+  issuedAt: string;
+  status: string;
+  subChapter: {
+    title: string;
+    course: {
+      title: string;
+    };
+  };
+}
+
 export default function SertifikatDashboardUserPage() {
   const [programFilter, setProgramFilter] = useState("Semua");
   const [searchQuery, setSearchQuery] = useState("");
   const [sertifikats, setSertifikats] = useState<Sertifikat[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // 🔥 BARU: state terpisah untuk sertifikat e-learning yang sudah terbit
+  const [elearningCertificates, setElearningCertificates] = useState<
+    Sertifikat[]
+  >([]);
+  const [elearningLoading, setElearningLoading] = useState(true);
+  const [elearningError, setElearningError] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -128,11 +151,76 @@ export default function SertifikatDashboardUserPage() {
     fetchData();
   }, []);
 
-  // Filter
-  const filtered = useMemo(() => {
-    const normalize = (str: string) => str.toLowerCase().replace(/\s+/g, "");
+  // 🔥 BARU: fetch sertifikat e-learning yang sudah terbit, dari endpoint
+  // `/api/elearningCertificate/certificates/me`. Sengaja dipisah dari
+  // `fetchData` di atas (useEffect sendiri + state loading/error sendiri)
+  // supaya kalau salah satu gagal, yang lain tetap tampil normal.
+  useEffect(() => {
+    const fetchElearningCertificates = async () => {
+      try {
+        setElearningLoading(true);
 
-    return sertifikats.filter((s) => {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/elearningCertificate/certificates/me`,
+          {
+            withCredentials: true,
+            params: { sortBy: "issuedAt", sortOrder: "desc" },
+          },
+        );
+
+        const rows: ElearningCertificateResponse[] = res.data?.data || [];
+
+        // Map ke bentuk `Sertifikat` supaya bisa langsung dipakai sama
+        // komponen `SertifikatSection` yang sudah ada, tanpa perlu ubah
+        // komponen itu sama sekali.
+        const mapped: Sertifikat[] = rows.map((cert) => ({
+          id: cert.id,
+          title: cert.subChapter?.title || "Kelas E-Learning",
+          description: `Sertifikat kelas dari course **${
+            cert.subChapter?.course?.title || "-"
+          }**`,
+          program: "elearning",
+          category: "Sertifikat E-Learning",
+          dateRange: cert.issuedAt
+            ? new Date(cert.issuedAt).toLocaleDateString("id-ID", {
+                day: "2-digit",
+                month: "long",
+                year: "numeric",
+              })
+            : "-",
+          image: "/assets/dashboard/user/certificate-placeholder.png",
+          downloadLink: cert.certificateUrl,
+          hasCertificate: true,
+        }));
+
+        setElearningCertificates(mapped);
+      } catch (err) {
+        console.error("Gagal memuat sertifikat e-learning:", err);
+        setElearningError("Gagal memuat sertifikat e-learning.");
+      } finally {
+        setElearningLoading(false);
+      }
+    };
+
+    fetchElearningCertificates();
+  }, []);
+
+  // Filter
+  // 🔥 UBAH: sekarang menggabungkan `sertifikats` (bootcamp) +
+  // `elearningCertificates` jadi satu list sebelum di-filter, supaya opsi
+  // "E-Learning" di `SertifikatFilters` beneran nyaring data e-learning
+  // juga (dulu sertifikat e-learning selalu tampil di section terpisah,
+  // di luar filter/search).
+  // 🔥 UBAH: `normalize` sekarang buang semua karakter non-alfanumerik
+  // (bukan cuma spasi), biar "E-Learning" (dari tombol filter) match
+  // sama value program "elearning" (tanpa strip).
+  const filtered = useMemo(() => {
+    const normalize = (str: string) =>
+      str.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+    const combined = [...sertifikats, ...elearningCertificates];
+
+    return combined.filter((s) => {
       const matchProgram =
         programFilter === "Semua" ||
         normalize(s.program) === normalize(programFilter);
@@ -142,7 +230,7 @@ export default function SertifikatDashboardUserPage() {
         s.category.toLowerCase().includes(searchQuery.toLowerCase());
       return matchProgram && matchSearch;
     });
-  }, [sertifikats, programFilter, searchQuery]);
+  }, [sertifikats, elearningCertificates, programFilter, searchQuery]);
 
   // Grouping
   const grouped = useMemo(() => {
@@ -177,14 +265,20 @@ export default function SertifikatDashboardUserPage() {
               onSearchChange={setSearchQuery}
             />
 
-            {loading && (
+            {(loading || elearningLoading) && (
               <p className="text-sm text-gray-500 mt-2">Memuat data...</p>
             )}
 
-            {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
+            {(error || elearningError) && (
+              <p className="text-sm text-red-500 mt-2">
+                {error || elearningError}
+              </p>
+            )}
 
             {!loading &&
+              !elearningLoading &&
               !error &&
+              !elearningError &&
               Object.entries(grouped).map(([category, sertifikats]) => (
                 <div key={category} className="min-w-0">
                   <SertifikatSection
@@ -194,23 +288,27 @@ export default function SertifikatDashboardUserPage() {
                 </div>
               ))}
 
-            {!loading && !error && isEmpty && (
-              <div className="flex flex-col items-center justify-center text-center py-14">
-                <Ban className="w-12 h-12 text-gray-300 mb-3" />
-                <h3 className="text-sm font-semibold text-gray-700 mb-1">
-                  Belum ada program mentoring
-                </h3>
-                <p className="text-xs text-gray-500 mb-4">
-                  Anda belum mengikuti program mentoring apa pun
-                </p>
-                <Link
-                  href="/programs"
-                  className="px-3 py-1.5 text-xs rounded-md bg-emerald-500 text-white hover:bg-emerald-600 transition"
-                >
-                  Ikuti Program
-                </Link>
-              </div>
-            )}
+            {!loading &&
+              !elearningLoading &&
+              !error &&
+              !elearningError &&
+              isEmpty && (
+                <div className="flex flex-col items-center justify-center text-center py-14">
+                  <Ban className="w-12 h-12 text-gray-300 mb-3" />
+                  <h3 className="text-sm font-semibold text-gray-700 mb-1">
+                    Belum ada program mentoring
+                  </h3>
+                  <p className="text-xs text-gray-500 mb-4">
+                    Anda belum mengikuti program mentoring apa pun
+                  </p>
+                  <Link
+                    href="/programs"
+                    className="px-3 py-1.5 text-xs rounded-md bg-emerald-500 text-white hover:bg-emerald-600 transition"
+                  >
+                    Ikuti Program
+                  </Link>
+                </div>
+              )}
           </div>
         </main>
       </div>

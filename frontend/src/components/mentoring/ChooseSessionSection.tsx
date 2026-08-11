@@ -9,13 +9,20 @@ import { useState } from "react";
 import axios from "axios";
 import MentorSelectionModal from "./MentorSelectionModal";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+import LoginModal from "@/components/LoginModal";
+import RegisterModal from "@/components/RegisterModal";
 
 type ServiceType = "one-on-one" | "group";
 
 export default function ChooseSessionSection() {
+  const { currentUser } = useAuth();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [openLogin, setOpenLogin] = useState(false);
+  const [openRegister, setOpenRegister] = useState(false);
 
   const oneOnOneFeatures = [
     "Mentoring 45 menit",
@@ -34,6 +41,11 @@ export default function ChooseSessionSection() {
   ];
 
   const handleSelectService = async (type: ServiceType) => {
+    if (!currentUser) {
+      setOpenLogin(true);
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -199,6 +211,24 @@ export default function ChooseSessionSection() {
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           service={selectedService}
+        />
+
+        <LoginModal
+          isOpen={openLogin}
+          setIsOpen={setOpenLogin}
+          openRegister={() => {
+            setOpenLogin(false);
+            setOpenRegister(true);
+          }}
+        />
+
+        <RegisterModal
+          isOpen={openRegister}
+          setIsOpen={setOpenRegister}
+          openLogin={() => {
+            setOpenRegister(false);
+            setOpenLogin(true);
+          }}
         />
       </div>
     </section>

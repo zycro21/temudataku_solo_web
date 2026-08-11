@@ -79,7 +79,7 @@ export default function DashboardHeader() {
         {/* Right */}
         <div className="flex items-center gap-4 pr-4">
           {/* Notification */}
-          <button className="relative flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 bg-white">
+          {/* <button className="relative flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 bg-white">
             <Image
               src="/assets/dashboard/user/bell-icon.svg"
               alt="Notification"
@@ -87,7 +87,7 @@ export default function DashboardHeader() {
               height={10}
             />
             <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500"></span>
-          </button>
+          </button> */}
 
           {/* User */}
           <div className="relative" ref={dropdownRef}>
@@ -135,7 +135,7 @@ export default function DashboardHeader() {
                   className="flex items-center gap-2 w-full text-left px-3 py-1.5 text-[12px] font-medium text-gray-700 hover:bg-emerald-500 hover:text-white transition"
                 >
                   <LayoutDashboard size={14} />
-                  Kembali ke Dashboard
+                  Kembali ke Menu Utama
                 </button>
               </div>
             )}

@@ -9,6 +9,8 @@ import CertificateVerifiedCard, {
 import CertificateNotFoundState from "@/components/certificates/CertificateNotFoundState";
 import CertificateLoadingState from "@/components/certificates/CertificateLoadingState";
 import CertificateBrandHeader from "@/components/certificates/CertificateBrandHeader";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 type ViewState = "loading" | "found" | "not-found" | "error";
 
@@ -47,8 +49,10 @@ export default function CertificateVerifyPage() {
   }, [certificateNumber]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-white">
-      <div className="mx-auto flex max-w-2xl flex-col items-center px-4 py-10 sm:py-16">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50 via-white to-white">
+      <Navbar />
+
+      <div className="flex-1 mx-auto flex max-w-2xl flex-col items-center px-4 py-10 sm:py-16">
         <CertificateBrandHeader />
 
         <div className="mt-8 w-full">
@@ -61,6 +65,8 @@ export default function CertificateVerifyPage() {
           )}
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 }

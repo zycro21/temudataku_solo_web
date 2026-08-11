@@ -31,7 +31,8 @@ export default function EditProfileModal({
   // state untuk data user
   const [userData, setUserData] = useState<any>(null);
 
-  // inputan yang bisa diubah
+  // 🔥 TAMBAH: state untuk fullName
+  const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
 
@@ -55,6 +56,8 @@ export default function EditProfileModal({
           const data = res.data?.data;
           setUserData(data);
 
+          // 🔥 TAMBAH: set fullName
+          setFullName(data?.fullName || "");
           setPhoneNumber(data?.phoneNumber || "");
           setEmail(data?.email || "");
 
@@ -83,6 +86,11 @@ export default function EditProfileModal({
   const handleSave = async () => {
     try {
       const formData = new FormData();
+
+      // 🔥 TAMBAH: cek perubahan fullName
+      if (fullName && fullName !== userData?.fullName) {
+        formData.append("fullName", fullName);
+      }
 
       if (phoneNumber && phoneNumber !== userData?.phoneNumber) {
         formData.append("phoneNumber", phoneNumber);
@@ -117,6 +125,8 @@ export default function EditProfileModal({
 
       onOpenChange(false);
       setSuccessOpen(true);
+
+      // 🔥 Refresh page setelah berhasil
       router.refresh();
     } catch (err: any) {
       console.error("Update profile error:", err);
@@ -161,8 +171,6 @@ export default function EditProfileModal({
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
-          // PERBAIKAN: Hapus overflow-y-auto dari sini agar kontainer utama tidak scroll.
-          // Ditambahkan 'flex flex-col' untuk mengatur layout header, konten, dan footer.
           className="sm:max-w-xl w-full max-h-[90vh] p-0 overflow-hidden flex flex-col"
           onInteractOutside={(e) => e.preventDefault()}
         >
@@ -234,13 +242,15 @@ export default function EditProfileModal({
 
             {/* Form */}
             <div className="grid grid-cols-2 gap-3 mt-5 text-sm min-w-0">
+              {/* 🔥 UBAH: Nama Lengkap menjadi editable */}
               <div className="col-span-2">
                 <label className="text-xs font-medium">Nama Lengkap</label>
                 <input
                   type="text"
-                  value={userData?.fullName || "-"}
-                  disabled
-                  className="w-full mt-1 px-2.5 py-1.5 border rounded-md text-xs bg-gray-100"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="w-full mt-1 px-2.5 py-1.5 border rounded-md text-xs"
+                  placeholder="Masukkan nama lengkap"
                 />
               </div>
 
@@ -251,6 +261,7 @@ export default function EditProfileModal({
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   className="w-full mt-1 px-2.5 py-1.5 border rounded-md text-xs"
+                  placeholder="Masukkan nomor telepon"
                 />
               </div>
 
@@ -261,6 +272,7 @@ export default function EditProfileModal({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full mt-1 px-2.5 py-1.5 border rounded-md text-xs break-all"
+                  placeholder="Masukkan email"
                 />
               </div>
 

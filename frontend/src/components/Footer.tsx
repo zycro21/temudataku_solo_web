@@ -28,7 +28,7 @@ export default function Footer() {
             {/* Social Media Icons */}
             <div className="flex justify-center md:justify-start space-x-3">
               <Link
-                href="https://wa.me/6282234529895"
+                href="https://wa.me/6285156750480"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-10 h-10 bg-white rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors"
@@ -116,7 +116,7 @@ export default function Footer() {
                 <br />
                 Kecamatan Sukun, Kota Malang
               </p>
-              <p className="text-blue-100">0822-3452-9895</p>
+              <p className="text-blue-100">+62 851-5675-0480</p>
               <p className="text-blue-100">temudataku@gmail.com</p>
             </div>
           </div>
@@ -150,7 +150,7 @@ export default function Footer() {
         {/* Copyright */}
         <div className="pt-6">
           <p className="text-blue-100 text-xs sm:text-sm text-center md:text-left">
-            © 2025 TemuDataku. All Rights Reserved
+            © 2026 TemuDataku. All Rights Reserved
           </p>
         </div>
       </div>

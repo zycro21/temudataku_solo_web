@@ -7,6 +7,7 @@ import SubchapterNavbar from "./SubchapterNavbar";
 import SubchapterSidebar from "./SubchapterSidebar";
 import SubchapterHeroNavigation from "./SubchapterHeroNavigation";
 import SubchapterContent from "./SubchapterContent";
+import SubchapterCertificateContent from "./SubchapterCertificateContent";
 import SubchapterFooter from "./SubchapterFooter";
 import SubchapterReviewModal from "./SubchapterReviewModal";
 import { useElearningSubChapterDetail } from "@/hooks/Useelearningsubchapterdetail";
@@ -17,6 +18,7 @@ import {
   type SubChapterProgressRecord,
 } from "@/hooks/useElearningTextProgress";
 import { useElearningSubChapterReview } from "@/hooks/Useelearningsubchapterreview";
+import { useElearningSubChapterCertificate } from "@/hooks/useElearningSubChapterCertificate";
 import { Loader2, SearchX } from "lucide-react";
 
 // ─── Font ──────────────────────────────────────────────────────────────────
@@ -66,6 +68,7 @@ type ContentMode =
   | { type: "submodule"; textId: string }
   | { type: "quiz"; textId: string }
   | { type: "assignment"; textId: string }
+  | { type: "certificate" }
   | null;
 
 export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
@@ -144,6 +147,26 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
       }
     })();
   }, [displayProgressPercent, subChapterId, checkMyReview]);
+
+  // 🔥 BARU: sertifikat otomatis — begitu progress SubChapter ini 100%,
+  // cek dulu apakah mentee sudah punya sertifikatnya (bisa saja sudah,
+  // dari kunjungan sebelumnya), kalau belum langsung generate. Sengaja
+  // effect TERPISAH dari effect review modal di atas (beda concern, beda
+  // syarat retry) walau triggernya sama-sama `displayProgressPercent`.
+  // `ensureCertificate` sendiri yang menjaga supaya tidak nembak API
+  // berulang-ulang (lihat useElearningSubChapterCertificate.ts).
+  const {
+    certificate,
+    status: certificateStatus,
+    ensureCertificate,
+  } = useElearningSubChapterCertificate();
+
+  useEffect(() => {
+    if (!subChapterId) return;
+    // 🔥 HANYA jalankan kalau progress sudah 100%
+    if (displayProgressPercent < 100) return;
+    ensureCertificate(subChapterId, displayProgressPercent);
+  }, [displayProgressPercent, subChapterId, ensureCertificate]);
 
   // 🔥 Daftar materi ("submodule") per SubBab — text yang TIDAK punya
   // quiz/assignment dianggap materi biasa. Text yang punya quiz/assignment
@@ -232,6 +255,17 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
       }
     }
 
+    // 🔥 BARU: buka langsung ke tampilan sertifikat kalau URL-nya
+    // ?task=certificate (mis. dari bookmark/refresh setelah sebelumnya
+    // klik tombol "Sertifikat" — lihat router.push di onSelectCertificate
+    // di bawah). Tidak perlu validasi macam-macam di sini; komponen
+    // SubchapterCertificateContent sendiri yang menangani kalau
+    // ternyata sertifikatnya belum siap/gagal (status checking/error).
+    if (taskParam === "certificate") {
+      setContentMode({ type: "certificate" });
+      return;
+    }
+
     if (moduleParam && subModuleParam) {
       const subBab = subChapter.subBabs[Number(moduleParam) - 1];
       const textsInSubBab = allTexts.filter((t) => t.subBabId === subBab?.id);
@@ -244,11 +278,21 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
 
     if (allTexts[0]) {
       setContentMode({ type: "submodule", textId: allTexts[0].id });
+      return;
+    }
+
+    // 🔥 TAMBAHAN: fallback ke task (quiz/assignment) pertama kalau memang
+    // tidak ada materi biasa, tapi ada quiz/assignment yang published.
+    if (taskFlow[0]) {
+      setContentMode({ type: taskFlow[0].type, textId: taskFlow[0].textId });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subChapter, allTexts, taskFlow]);
 
-  const activeTextId = contentMode?.textId ?? null;
+  const activeTextId =
+    contentMode && contentMode.type !== "certificate"
+      ? contentMode.textId
+      : null;
   const { text: fullText, loading: textLoading } =
     useElearningTextDetail(activeTextId);
 
@@ -316,6 +360,13 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
         subModuleTitle: activeText.title ?? "",
       };
     }
+
+    // 🔥 BARU: mode "certificate" nggak butuh HeroNavigation (komponen
+    // SubchapterCertificateContent sudah punya header sendiri) — return
+    // null di sini SEKALIGUS menyempitkan (narrow) tipe `contentMode` di
+    // bawah supaya TypeScript tahu sisanya cuma "quiz" | "assignment"
+    // (keduanya punya `textId`, beda dengan "certificate").
+    if (contentMode.type === "certificate") return null;
 
     // QUIZ / ASSIGNMENT
     // 🔥 FIX: sama seperti taskFlow di atas — jangan asumsikan lastSubBab,
@@ -461,6 +512,14 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
   const rendererMode = useMemo(() => {
     if (!contentMode || !fullText) return null;
 
+    // 🔥 BARU: mode "certificate" dirender LANGSUNG di JSX (lihat cabang
+    // `contentMode?.type === "certificate"` di CONTENT AREA di bawah),
+    // sama sekali nggak lewat `fullText`/`rendererMode` — jadi cukup
+    // return null di sini (sekaligus narrow tipe `contentMode` supaya
+    // `contentMode.textId` di baris bawah aman secara TypeScript, karena
+    // variant "certificate" nggak punya field itu).
+    if (contentMode.type === "certificate") return null;
+
     // 🔥 FIX crash "Cannot read properties of null (reading 'questions'/
     // 'description')" di QuizRenderer/AssignmentRenderer:
     //
@@ -576,6 +635,8 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
           activeTaskTextId={activeTaskTextId}
           progressPercent={displayProgressPercent}
           lastActivityAt={displayLastActivityAt}
+          certificateStatus={certificateStatus}
+          isCertificateActive={contentMode?.type === "certificate"}
           onSelectText={(text) => {
             setNavigationSource("manual");
             setQuizScore(null);
@@ -603,6 +664,19 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
             setAssignmentScore(null);
             setContentMode({ type: task.type, textId: task.textId });
             router.push(`?task=${task.type}`, { scroll: false });
+          }}
+          onSelectCertificate={() => {
+            // 🔥 BARU: buka sertifikat DI AREA KONTEN UTAMA — sama
+            // treatment-nya kayak klik quiz/assignment, cuma nggak perlu
+            // fetch fullText apa pun (lihat rendering di bawah, cabang
+            // `contentMode?.type === "certificate"` di-render LANGSUNG,
+            // di luar alur textLoading/rendererMode).
+            setNavigationSource("manual");
+            setQuizScore(null);
+            setIsQuizSubmitted(false);
+            setAssignmentScore(null);
+            setContentMode({ type: "certificate" });
+            router.push(`?task=certificate`, { scroll: false });
           }}
         />
 
@@ -647,7 +721,63 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
             onScroll={handleContentScroll}
             className="flex-1 overflow-y-auto px-6 py-8 pb-24 bg-white"
           >
-            {textLoading || !rendererMode ? (
+            {contentMode?.type === "certificate" ? (
+              <SubchapterCertificateContent
+                status={certificateStatus}
+                certificate={certificate}
+                onRetry={() =>
+                  ensureCertificate(subChapterId, displayProgressPercent)
+                }
+              />
+            ) : !contentMode &&
+              allTexts.length === 0 &&
+              taskFlow.length === 0 ? (
+              // 🔥 TAMBAHAN: subChapter ini belum punya modul/materi yang
+              // published sama sekali — jangan nampilin spinner selamanya,
+              // kasih info jelas.
+              <div className="relative overflow-hidden flex flex-col items-center justify-center min-h-[40vh] px-6 py-12 text-center">
+                {/* Ambient glow blobs */}
+                <div className="pointer-events-none absolute -top-16 -left-14 w-48 h-48 bg-emerald-200/40 rounded-full blur-3xl" />
+                <div className="pointer-events-none absolute -bottom-16 -right-14 w-52 h-52 bg-teal-200/30 rounded-full blur-3xl" />
+
+                {/* Dot-grid texture */}
+                <div
+                  className="pointer-events-none absolute inset-0 opacity-[0.3]"
+                  style={{
+                    backgroundImage:
+                      "radial-gradient(circle, rgba(16,185,129,0.18) 1px, transparent 1px)",
+                    backgroundSize: "18px 18px",
+                  }}
+                />
+
+                <div className="relative w-full max-w-sm">
+                  <div className="relative rounded-2xl border border-emerald-100 bg-white/80 backdrop-blur-sm shadow-xl shadow-emerald-900/5 px-6 py-9">
+                    {/* Top accent bar */}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 h-1.5 w-12 rounded-full bg-gradient-to-r from-emerald-400 to-teal-500" />
+
+                    {/* Icon with rotating dashed ring */}
+                    <div className="relative mx-auto mb-5 flex items-center justify-center w-16 h-16">
+                      <span
+                        className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-300 animate-spin"
+                        style={{ animationDuration: "12s" }}
+                      />
+                      <div className="relative w-11 h-11 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                        <SearchX className="w-5 h-5 text-white" />
+                      </div>
+                    </div>
+
+                    <h3 className="text-base font-bold text-gray-900 mb-2">
+                      Materi Belum Tersedia
+                    </h3>
+
+                    <p className="text-sm text-gray-500 leading-relaxed">
+                      Pemateri masih menyiapkan modul untuk kelas ini. Coba cek
+                      kembali lain waktu.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : textLoading || !rendererMode ? (
               <div className="flex items-center justify-center min-h-[40vh] gap-3">
                 <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
                 <p className="text-sm text-gray-500">Memuat konten...</p>

@@ -15,7 +15,7 @@ export default function SertifikatFilters({
   onProgramChange,
   onSearchChange,
 }: SertifikatFiltersProps) {
-  const programOptions = ["Semua", "Bootcamp"];
+  const programOptions = ["Semua", "Bootcamp", "E-Learning"];
 
   return (
     <div className="mb-3 pb-3">

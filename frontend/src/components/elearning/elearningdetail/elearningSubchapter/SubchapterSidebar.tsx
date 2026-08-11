@@ -7,6 +7,8 @@ import type {
   ElearningSubChapterDetailApiItem,
   ElearningTextSummaryApiItem,
 } from "@/hooks/Useelearningsubchapterdetail";
+import { Award, Loader2 } from "lucide-react";
+import type { CertificateStatus } from "@/hooks/useElearningSubChapterCertificate";
 
 interface TextWithSubBab extends ElearningTextSummaryApiItem {
   subBabId: string;
@@ -28,12 +30,19 @@ interface Props {
   progressPercent?: number;
   lastActivityAt?: string | null;
 
+  // 🔥 BARU: status sertifikat course ini (cek/generate-nya dikontrol dari
+  // SubchapterDetail.tsx lewat useElearningSubChapterCertificate — sidebar
+  // ini cuma bertugas MENAMPILKAN, bukan memicu).
+  certificateStatus?: CertificateStatus;
+  isCertificateActive?: boolean;
+
   onSelectText?: (text: TextWithSubBab) => void;
   onSelectTask?: (task: {
     type: "quiz" | "assignment";
     textId: string;
     title: string;
   }) => void;
+  onSelectCertificate?: () => void;
 }
 
 export default function ModuleSidebar({
@@ -45,8 +54,11 @@ export default function ModuleSidebar({
   activeTaskTextId,
   progressPercent = 0,
   lastActivityAt,
+  certificateStatus = "idle",
+  isCertificateActive = false,
   onSelectText,
   onSelectTask,
+  onSelectCertificate,
 }: Props) {
   const router = useRouter();
   const [keyword, setKeyword] = useState("");
@@ -183,7 +195,15 @@ export default function ModuleSidebar({
           Kembali
         </button>
 
-        <h2 className="text-lg font-bold text-gray-900 mb-4 text-left">
+        {/* 🔥 BARU: judul di-batasi maksimal 2 baris (`line-clamp-2`) +
+            dipotong pakai "..." kalau kepanjangan, biar nggak makan tempat
+            & dorong konten lain ke bawah. Judul lengkapnya tetap bisa
+            dibaca lewat native tooltip browser (attribute `title`) pas
+            di-hover. */}
+        <h2
+          className="text-lg font-bold text-gray-900 mb-4 text-left line-clamp-2"
+          title={subChapter.title}
+        >
           {subChapter.title}
         </h2>
 
@@ -579,6 +599,79 @@ ${
               );
             })()
           )}
+        </div>
+      )}
+
+      {/* 🔥 DIUBAH: dulu render card sertifikat LANGSUNG di sidebar
+          (thumbnail + tombol download nemplok di sini) — sekarang cuma
+          TOMBOL PEMICU kecil, gaya sama seperti tombol "Penilaian"
+          single-item di atas. Klik tombol ini akan MEMBUKA sertifikatnya
+          di AREA KONTEN UTAMA (lihat SubchapterCertificateContent.tsx +
+          SubchapterDetail.tsx), bukan lagi ditampilkan langsung di sini.
+          Cuma dirender kalau `certificateStatus` bukan "idle" (progress
+          course ini sudah 100%). */}
+      {certificateStatus !== "idle" && (
+        <div className="p-4 border-t bg-gray-50/70 shrink-0">
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-0.5">
+            Sertifikat
+          </p>
+
+          <button
+            onClick={() => {
+              if (
+                certificateStatus === "ready" ||
+                certificateStatus === "error"
+              ) {
+                onSelectCertificate?.();
+              }
+            }}
+            disabled={
+              certificateStatus === "checking" ||
+              certificateStatus === "generating"
+            }
+            className={`w-full flex items-center gap-2 border rounded-lg shadow-sm px-3 py-2.5 text-left transition
+${
+  certificateStatus === "checking" || certificateStatus === "generating"
+    ? "bg-white border-gray-100 text-gray-400 cursor-default"
+    : isCertificateActive
+      ? "bg-emerald-500 border-emerald-500 text-white cursor-pointer"
+      : "bg-white border-emerald-100 text-gray-800 hover:bg-emerald-50/60 cursor-pointer"
+}`}
+          >
+            <div
+              className={`flex items-center justify-center w-7 h-7 rounded-full shrink-0 ${
+                isCertificateActive ? "bg-white/20" : "bg-emerald-50"
+              }`}
+            >
+              {certificateStatus === "checking" ||
+              certificateStatus === "generating" ? (
+                <Loader2 size={13} className="animate-spin text-emerald-500" />
+              ) : (
+                <Award
+                  size={13}
+                  className={
+                    isCertificateActive ? "text-white" : "text-emerald-500"
+                  }
+                />
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold">Sertifikat</p>
+              <p
+                className={`text-[9px] truncate ${
+                  isCertificateActive ? "text-white/80" : "text-gray-500"
+                }`}
+              >
+                {certificateStatus === "generating"
+                  ? "Sedang dibuat..."
+                  : certificateStatus === "checking"
+                    ? "Memeriksa..."
+                    : certificateStatus === "error"
+                      ? "Gagal memuat, klik untuk coba lagi"
+                      : "Kelas selesai, lihat sertifikatmu"}
+              </p>
+            </div>
+          </button>
         </div>
       )}
     </aside>
