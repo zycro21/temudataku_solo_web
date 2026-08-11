@@ -206,15 +206,18 @@ export class ELearningTextService {
 
     const course = subBab.subChapter.course;
 
+    // 🔥 TAMBAHAN: dihitung sekali di sini, dipakai di gate akses & filter
+    const isAdminLike =
+      user.roles.includes("admin") ||
+      user.roles.includes("cm") ||
+      user.roles.includes("curdev") ||
+      user.roles.includes("guest");
+    const isEffectivelyMentee = !isAdminLike && user.roles.includes("mentee");
+
     // ======================
     // HAK AKSES
     // ======================
-    if (
-      !user.roles.includes("admin") &&
-      !user.roles.includes("cm") &&
-      !user.roles.includes("curdev") &&
-      !user.roles.includes("guest")
-    ) {
+    if (!isAdminLike) {
       if (
         user.roles.includes("mentor") &&
         user.mentorProfileId !== course.mentorId
@@ -239,6 +242,18 @@ export class ELearningTextService {
             "Akses ditolak: Anda tidak memiliki subscription aktif",
           );
         }
+
+        // 🔥 TAMBAHAN: course, subChapter, dan subBab induknya juga harus
+        // aktif & published — cegah akses langsung ke draft/archived.
+        if (!course.isActive || course.status !== "PUBLISHED") {
+          throw new Error("Akses ditolak: kursus ini tidak tersedia");
+        }
+        if (subBab.subChapter.status !== "PUBLISHED") {
+          throw new Error("Akses ditolak: kelas ini tidak tersedia");
+        }
+        if (subBab.status !== "PUBLISHED") {
+          throw new Error("Akses ditolak: modul ini tidak tersedia");
+        }
       }
     }
 
@@ -247,6 +262,8 @@ export class ELearningTextService {
     // ======================
     const whereCondition: any = {
       subBabId,
+      // 🔥 TAMBAHAN: mentee cuma boleh lihat text yang published.
+      ...(isEffectivelyMentee && { status: "PUBLISHED" }),
       ...(search && {
         title: { contains: search, mode: "insensitive" },
       }),

@@ -46,6 +46,8 @@ export const ELearningSubBabService = {
     const isAdminLike = roles.some((role) => adminLikeRoles.includes(role));
     const isMentor = roles.includes("mentor");
     const isMentee = roles.includes("mentee");
+    // 🔥 TAMBAHAN
+    const isEffectivelyMentee = !isAdminLike && !isMentor && isMentee;
 
     // =========================
     // ADMIN / CM / CURDEV
@@ -87,6 +89,14 @@ export const ELearningSubBabService = {
           "Mentee hanya bisa melihat sub-bab jika memiliki subscription aktif",
         );
       }
+
+      // 🔥 TAMBAHAN: course & subChapter induknya harus aktif & published.
+      if (!course.isActive || course.status !== "PUBLISHED") {
+        throw new Error("Akses ditolak: kursus ini tidak tersedia");
+      }
+      if (subChapter.status !== "PUBLISHED") {
+        throw new Error("Akses ditolak: kelas ini tidak tersedia");
+      }
     }
 
     // =========================
@@ -100,6 +110,12 @@ export const ELearningSubBabService = {
     // FILTER
     // =========================
     const where: any = { subChapterId };
+
+    // 🔥 TAMBAHAN: mentee cuma boleh lihat subBab yang published.
+    if (isEffectivelyMentee) {
+      where.status = "PUBLISHED";
+    }
+
     if (search) {
       where.title = { contains: search, mode: "insensitive" };
     }
@@ -111,6 +127,7 @@ export const ELearningSubBabService = {
       where,
       include: {
         texts: {
+          where: isEffectivelyMentee ? { status: "PUBLISHED" as const } : {}, // 🔥 TAMBAHAN
           include: {
             quiz: true,
             assignment: true,

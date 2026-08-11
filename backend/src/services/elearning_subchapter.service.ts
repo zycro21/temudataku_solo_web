@@ -40,6 +40,12 @@ export const ELearningSubChapterService = {
     const hasFullAccess = user.roles.some((r) =>
       ["admin", "cm", "curdev", "guest"].includes(r),
     );
+    const isMentor = user.roles.includes("mentor");
+    const isMentee = user.roles.includes("mentee");
+    // 🔥 TAMBAHAN: dipakai buat gate status published & filter di bawah —
+    // cuma "true" kalau BENAR-BENAR mentee murni (bukan admin/mentor yang
+    // kebetulan juga punya role mentee).
+    const isEffectivelyMentee = !hasFullAccess && !isMentor && isMentee;
 
     // =========================
     // ROLE: MENTOR
@@ -63,15 +69,9 @@ export const ELearningSubChapterService = {
       const activeSubscription = await prisma.eLearningSubscription.findFirst({
         where: {
           userId: user.userId,
-          status: {
-            in: ["active", "confirmed"],
-          },
-          startAt: {
-            lte: now,
-          },
-          endAt: {
-            gt: now,
-          },
+          status: { in: ["active", "confirmed"] },
+          startAt: { lte: now },
+          endAt: { gt: now },
         },
       });
 
@@ -80,6 +80,11 @@ export const ELearningSubChapterService = {
           "Mentee hanya bisa mengakses course jika memiliki subscription aktif",
         );
       }
+
+      // 🔥 TAMBAHAN: course-nya sendiri juga harus aktif & published.
+      if (!course.isActive || course.status !== "PUBLISHED") {
+        throw new Error("Akses ditolak: kursus ini tidak tersedia");
+      }
     }
 
     // =========================
@@ -87,11 +92,13 @@ export const ELearningSubChapterService = {
     // =========================
     const where: any = { courseId };
 
+    // 🔥 TAMBAHAN: mentee cuma boleh lihat subChapter yang published.
+    if (isEffectivelyMentee) {
+      where.status = "PUBLISHED";
+    }
+
     if (search) {
-      where.title = {
-        contains: search,
-        mode: "insensitive",
-      };
+      where.title = { contains: search, mode: "insensitive" };
     }
 
     if (orderNumber !== undefined) {
@@ -99,11 +106,7 @@ export const ELearningSubChapterService = {
     }
 
     if (level) {
-      // ✅ tambahan
-      where.level = {
-        equals: level,
-        mode: "insensitive",
-      };
+      where.level = { equals: level, mode: "insensitive" };
     }
 
     // =========================
@@ -113,8 +116,12 @@ export const ELearningSubChapterService = {
       where,
       include: {
         subBabs: {
+          where: isEffectivelyMentee ? { status: "PUBLISHED" as const } : {}, // 🔥 TAMBAHAN
           include: {
             texts: {
+              where: isEffectivelyMentee
+                ? { status: "PUBLISHED" as const }
+                : {}, // 🔥 TAMBAHAN
               include: {
                 quiz: true,
                 assignment: true,
@@ -123,21 +130,14 @@ export const ELearningSubChapterService = {
           },
         },
       },
-      orderBy: {
-        orderNumber: "asc",
-      },
+      orderBy: { orderNumber: "asc" },
       skip: (page - 1) * limit,
       take: limit,
     });
 
     const total = await prisma.eLearningSubChapter.count({ where });
 
-    return {
-      page,
-      limit,
-      total,
-      subChapters,
-    };
+    return { page, limit, total, subChapters };
   },
 
   async getSubChapterById(

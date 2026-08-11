@@ -108,12 +108,21 @@ export const ELearningCourseService = {
       whereCondition.status = "PUBLISHED";
     }
 
-    // 🔥 TAMBAHAN: filter subChapters/subBabs/texts di dalam course cuma
-    // berlaku untuk mentee — admin/mentor tetap perlu lihat draft untuk
-    // keperluan manajemen konten.
-    const subChapterFilter = isMentee ? { status: "PUBLISHED" as const } : {};
-    const subBabFilter = isMentee ? { status: "PUBLISHED" as const } : {};
-    const textFilter = isMentee ? { status: "PUBLISHED" as const } : {};
+    // 🔥 FIX: filter subChapters/subBabs/texts cuma berlaku kalau user itu
+    // BENAR-BENAR "murni" mentee (bukan admin/mentor yang KEBETULAN juga
+    // py role mentee) — konsisten dengan prioritas role di percabangan
+    // whereCondition course di atas (admin > mentor > mentee).
+    const isEffectivelyMentee = !isAdminLike && !isMentor && isMentee;
+
+    const subChapterFilter = isEffectivelyMentee
+      ? { status: "PUBLISHED" as const }
+      : {};
+    const subBabFilter = isEffectivelyMentee
+      ? { status: "PUBLISHED" as const }
+      : {};
+    const textFilter = isEffectivelyMentee
+      ? { status: "PUBLISHED" as const }
+      : {};
 
     const [total, courses] = await Promise.all([
       prisma.eLearningCourse.count({ where: whereCondition }),
