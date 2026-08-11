@@ -100,8 +100,20 @@ export const ELearningCourseService = {
         };
       }
 
-      // mentee bisa melihat semua course jika subscription aktif
+      // 🔥 mentee cuma boleh lihat course yang aktif & sudah published —
+      // dipindah ke sini (query-level) supaya course DRAFT/ARCHIVED tidak
+      // pernah ikut ke-fetch dari DB sama sekali, bukan cuma disembunyikan
+      // di frontend.
+      whereCondition.isActive = true;
+      whereCondition.status = "PUBLISHED";
     }
+
+    // 🔥 TAMBAHAN: filter subChapters/subBabs/texts di dalam course cuma
+    // berlaku untuk mentee — admin/mentor tetap perlu lihat draft untuk
+    // keperluan manajemen konten.
+    const subChapterFilter = isMentee ? { status: "PUBLISHED" as const } : {};
+    const subBabFilter = isMentee ? { status: "PUBLISHED" as const } : {};
+    const textFilter = isMentee ? { status: "PUBLISHED" as const } : {};
 
     const [total, courses] = await Promise.all([
       prisma.eLearningCourse.count({ where: whereCondition }),
@@ -119,10 +131,14 @@ export const ELearningCourseService = {
             },
           },
           subChapters: {
+            where: subChapterFilter, // 🔥 TAMBAHAN
             include: {
               subBabs: {
+                where: subBabFilter, // 🔥 TAMBAHAN
                 include: {
-                  texts: true, // untuk hitung materials (ELearningText)
+                  texts: {
+                    where: textFilter, // 🔥 TAMBAHAN
+                  }, // untuk hitung materials (ELearningText)
                 },
               },
               // 🔥 PINDAH KE SINI: reviews sekarang relasinya ke SubChapter,
@@ -282,7 +298,7 @@ export const ELearningCourseService = {
     if (
       user.roles.includes("admin") ||
       user.roles.includes("cm") ||
-      user.roles.includes("curdev")||
+      user.roles.includes("curdev") ||
       user.roles.includes("guest")
     ) {
       return course;
@@ -317,7 +333,33 @@ export const ELearningCourseService = {
         };
       }
 
-      return course;
+      // 🔥 mentee cuma boleh akses detail course yang aktif & published,
+      // sama seperti di list — cegah akses langsung ke draft/archived
+      // walau tahu courseId-nya.
+      if (!course.isActive || course.status !== "PUBLISHED") {
+        throw {
+          status: 403,
+          message: "Akses ditolak: kursus ini tidak tersedia",
+        };
+      }
+
+      // 🔥 subChapters yang masih DRAFT/ARCHIVED jangan ikut ke-expose ke
+      // mentee walau course induknya sendiri published. subBabs & texts di
+      // dalamnya juga ikut difilter, supaya moduleCount di frontend
+      // (chapter.subBabs.length) tidak ikut menghitung yang belum published.
+      const filteredSubChapters = course.subChapters
+        .filter((sc) => sc.status === "PUBLISHED")
+        .map((sc) => ({
+          ...sc,
+          subBabs: sc.subBabs
+            .filter((sb) => sb.status === "PUBLISHED")
+            .map((sb) => ({
+              ...sb,
+              texts: sb.texts.filter((t) => t.status === "PUBLISHED"),
+            })),
+        }));
+
+      return { ...course, subChapters: filteredSubChapters };
     }
 
     throw { status: 403, message: "Akses ditolak: role tidak valid" };

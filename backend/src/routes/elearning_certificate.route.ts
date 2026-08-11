@@ -10,6 +10,7 @@ import {
   regenerateCertificateSchema,
   exportELearningCertificateQuerySchema,
   verifyCertificateParamSchema,
+  getMyCertificateParamSchema,
 } from "../validations/elearning_certificate.validation.js";
 import { validate } from "../middlewares/validate.js";
 import { authenticate } from "../middlewares/authenticate.js";
@@ -46,9 +47,9 @@ const router = Router();
 router.post(
   "/subchapters/:id/certificate",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "mentee"), // 🔥 UBAH: tambah "mentee"
   validate(generateCertificateSchema),
-  ElearningCertificateController.generateCertificateManual
+  ElearningCertificateController.generateCertificateManual,
 );
 
 /**
@@ -590,6 +591,43 @@ router.get(
   validate(verifyCertificateParamSchema),
   ElearningCertificateController.verifyCertificate,
 );
+
+/* ============================================================
+   1. ROUTE — tambahkan di file route yang sama
+   ============================================================ */
+ 
+/**
+ * @swagger
+ * /api/elearningCertificate/subchapters/{id}/certificate/me:
+ *   get:
+ *     summary: Cek sertifikat milik mentee sendiri untuk sub-chapter ini
+ *     description: >
+ *       Mengembalikan sertifikat milik mentee yang sedang login untuk
+ *       sub-chapter ini, atau `null` kalau belum pernah dibuat (BUKAN
+ *       404 — belum punya sertifikat adalah kondisi normal, bukan
+ *       error).
+ *     tags: [E-Learning Certificate]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID Sub-Chapter
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: OK (data bisa `null`)
+ */
+router.get(
+  "/subchapters/:id/certificate/me",
+  authenticate,
+  authorizeRoles("mentee"),
+  validate(getMyCertificateParamSchema),
+  ElearningCertificateController.getMyCertificateForSubChapter,
+);
+ 
 
 export default router;
 

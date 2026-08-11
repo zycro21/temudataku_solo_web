@@ -151,8 +151,10 @@ export const ELearningSubChapterService = {
       where: { id },
       include: {
         subBabs: {
+          orderBy: { orderNumber: "asc" }, // 🔥 TAMBAHAN
           include: {
             texts: {
+              orderBy: { orderNumber: "asc" }, // 🔥 TAMBAHAN
               include: {
                 quiz: true,
                 assignment: true,
@@ -213,7 +215,25 @@ export const ELearningSubChapterService = {
         );
       }
 
-      return subChapter;
+      // 🔥 mentee cuma boleh akses subchapter yang published & course induknya
+      // juga aktif+published — cegah akses langsung walau tahu ID-nya.
+      if (subChapter.status !== "PUBLISHED") {
+        throw new Error("Akses ditolak: kursus ini tidak tersedia");
+      }
+      if (!course.isActive || course.status !== "PUBLISHED") {
+        throw new Error("Akses ditolak: kursus ini tidak tersedia");
+      }
+
+      // 🔥 filter subBabs & texts yang masih DRAFT/ARCHIVED supaya tidak ikut
+      // ke-expose ke mentee lewat sidebar navigasi materi.
+      const filteredSubBabs = subChapter.subBabs
+        .filter((sb) => sb.status === "PUBLISHED")
+        .map((sb) => ({
+          ...sb,
+          texts: sb.texts.filter((t) => t.status === "PUBLISHED"),
+        }));
+
+      return { ...subChapter, subBabs: filteredSubBabs };
     }
 
     throw new Error("Akses ditolak");

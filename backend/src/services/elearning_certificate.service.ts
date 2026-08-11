@@ -101,25 +101,50 @@ async function generateQRCodeBuffer(url: string): Promise<Buffer> {
    di sini biar nggak dobel/konflik nama)
 ================================ */
 
+// 🔥 BARU: mapping Final Score → Remarks, per rentang 20 poin.
+// Mau ganti label/rentangnya? tinggal ubah di sini.
+function getFinalScoreRemark(score: number): string {
+  if (score <= 20) return "Poor";
+  if (score <= 40) return "Fair";
+  if (score <= 60) return "Good";
+  if (score <= 80) return "Very Good";
+  return "Excellent";
+}
+
 // PAGE 2 — TIDAK BERUBAH
 function buildAssessmentRows(data: {
   quizScore?: number;
   assignmentScore?: number;
   progressScore?: number;
 }) {
-  const finalScore = Math.round(
-    ((data.quizScore ?? 0) +
-      (data.assignmentScore ?? 0) +
-      (data.progressScore ?? 0)) /
-      3,
-  );
+  // 🔥 FIX: dulu Final Score SELALU dibagi 3 (quiz + assignment + progress) / 3.
+  // Masalahnya, kalau quiz/assignment belum ada (`undefined`, ditampilkan "-"),
+  // itu ikut kehitung sebagai 0 di pembagian — jadi Final Score-nya jadi
+  // kekecilan nggak adil (mis. cuma progress 100 tapi hasilnya 33).
+  // Sekarang: cuma komponen yang BENERAN ADA (bukan `undefined`) yang ikut
+  // dijumlah, dan pembaginya pun cuma sejumlah komponen yang ada itu.
+  const components = [
+    data.quizScore,
+    data.assignmentScore,
+    data.progressScore,
+  ].filter((score): score is number => typeof score === "number");
+
+  const finalScore =
+    components.length > 0
+      ? Math.round(
+          components.reduce((sum, score) => sum + score, 0) /
+            components.length,
+        )
+      : 0;
 
   return [
     ["Component", "Score", "Max Score", "Remarks"],
-    ["Quiz", `${data.quizScore ?? "-"}`, "100", "Passed"],
+    ["Quiz", `${data.quizScore ?? "-"}`, "100", "Reviewed"],
     ["Assignment", `${data.assignmentScore ?? "-"}`, "100", "Reviewed"],
     ["Practice Progress", `${data.progressScore ?? "-"}`, "100", "Completed"],
-    ["Final Score", `${finalScore}`, "100", "Very Good"],
+    // 🔥 UBAH: Remarks-nya dulu di-hardcode "Very Good" terus, sekarang
+    // dinamis lewat `getFinalScoreRemark(finalScore)` sesuai rentang di atas.
+    ["Final Score", `${finalScore}`, "100", getFinalScoreRemark(finalScore)],
   ];
 }
 
@@ -209,7 +234,7 @@ async function generateCertificatePDF({
     const doc = new PDFDocument({
       size: "A4",
       layout: "landscape", // ✅ Page 1 horizontal
-      margin: 40,
+      margin: 0,
     });
 
     const stream = fs.createWriteStream(pdfPath);
@@ -219,14 +244,16 @@ async function generateCertificatePDF({
     renderCertificatePage({
       doc,
       certificateNumber,
-      displayNumber, // 🔥 BARU — ini yang ditampilkan di PDF, format "01/ABCDEFG/TemuDataku"
+      displayNumber,
       userName,
       subChapterTitle,
       issueDate,
       qrBuffer,
-      // opsional, isi kalau sudah ada asset asli:
-      // logoImagePath: path.join(__dirname, "../../assets/temudataku-logo.png"),
-      // signatureImagePath: path.join(__dirname, "../../assets/signature-fathur.png"),
+      logoImagePath: path.join(__dirname, "../../assets/logo-clean.png"), // 🔥 aktifkan
+      signatureImagePath: path.join(
+        __dirname,
+        "../../assets/signature-fathur.png",
+      ), // 🔥 aktifkan
       // signerName: "Mohammad Fathur Rozi",
       // signerTitle: "CEO TemuDataku",
     });
@@ -235,11 +262,11 @@ async function generateCertificatePDF({
     doc.addPage({
       size: "A4",
       layout: "landscape", // ✅ Page 2 horizontal juga
-      margin: 40,
+      margin: 0,
     });
 
     renderAssessmentPage(doc, subChapterTitle, assessmentRows, {
-      // logoImagePath: path.join(__dirname, "../../assets/temudataku-logo.png"),
+      logoImagePath: path.join(__dirname, "../../assets/logo-clean.png"),
     });
 
     doc.end();
@@ -349,9 +376,28 @@ export const generateCertificate = async ({
       verifiedBy,
       note,
     },
-    include: {
-      user: { select: { fullName: true } },
-      subChapter: { select: { title: true } },
+    select: {
+      certificateNumber: true,
+      displayNumber: true,
+      certificateUrl: true,
+      issuedAt: true,
+      status: true,
+      certificatePath: true,
+      user: {
+        select: {
+          fullName: true,
+        },
+      },
+      subChapter: {
+        select: {
+          title: true,
+          course: {
+            select: {
+              title: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -948,4 +994,36 @@ export const verifyCertificateByNumber = async (certificateNumber: string) => {
   // null di sini artinya "tidak ditemukan" — controller yang translate
   // ini jadi response 404.
   return cert;
+};
+
+export const getMyCertificateForSubChapter = async ({
+  subChapterId,
+  userId,
+}: {
+  subChapterId: string;
+  userId: string;
+}) => {
+  const cert = await prisma.eLearningCertificate.findUnique({
+    where: {
+      userId_subChapterId: { userId, subChapterId },
+    },
+    select: {
+      certificateNumber: true,
+      displayNumber: true,
+      certificateUrl: true,
+      issuedAt: true,
+      status: true,
+      // 🔒 id, verifiedBy, note SENGAJA tidak di-select — mentee cuma
+      // butuh info buat ditampilkan + link download, bukan data
+      // administratif.
+      subChapter: {
+        select: {
+          title: true,
+          course: { select: { title: true } },
+        },
+      },
+    },
+  });
+
+  return cert; // null kalau belum ada — itu valid, BUKAN error
 };

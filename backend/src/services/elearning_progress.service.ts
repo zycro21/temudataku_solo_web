@@ -453,7 +453,14 @@ export const getCourseProgress = async ({
    * 3. Ambil semua SubChapter ("kelas") milik course ini
    */
   const subChapters = await prisma.eLearningSubChapter.findMany({
-    where: { courseId },
+    where: {
+      courseId,
+      // 🔥 mentee cuma dihitung progressnya dari subChapter yang PUBLISHED —
+      // konsisten dengan yang ditampilkan di frontend (SubChapter.tsx), biar
+      // totalSubChapter/progressPercent tidak ikut menghitung kelas yang
+      // memang tidak ditampilkan ke mentee.
+      status: "PUBLISHED",
+    },
     select: { id: true },
     orderBy: { orderNumber: "asc" },
   });
@@ -941,9 +948,15 @@ export const recalculateSubChapterProgress = async ({
   const subChapter = await prisma.eLearningSubChapter.findUnique({
     where: { id: subChapterId },
     select: {
+      status: true, // 🔥 TAMBAHAN
+      course: {
+        select: { isActive: true, status: true }, // 🔥 TAMBAHAN
+      },
       subBabs: {
+        where: { status: "PUBLISHED" }, // 🔥 TAMBAHAN: filter subBab draft
         select: {
           texts: {
+            where: { status: "PUBLISHED" }, // 🔥 TAMBAHAN: filter text draft
             select: {
               id: true,
               quiz: { select: { id: true } },
@@ -958,6 +971,17 @@ export const recalculateSubChapterProgress = async ({
   if (!subChapter) {
     const err = new Error("Sub-chapter tidak ditemukan");
     (err as any).statusCode = 404;
+    throw err;
+  }
+
+  // 🔥 TAMBAHAN: gate akses — subChapter & course-nya harus published/aktif
+  if (
+    subChapter.status !== "PUBLISHED" ||
+    !subChapter.course.isActive ||
+    subChapter.course.status !== "PUBLISHED"
+  ) {
+    const err = new Error("Kursus ini tidak tersedia");
+    (err as any).statusCode = 403;
     throw err;
   }
 
@@ -1052,10 +1076,20 @@ export const completeTextProgress = async ({
     where: { id: textId },
     select: {
       id: true,
+      status: true, // 🔥 TAMBAHAN
       subBab: {
         select: {
           subChapterId: true,
-          subChapter: { select: { courseId: true } },
+          status: true, // 🔥 TAMBAHAN
+          subChapter: {
+            select: {
+              status: true, // 🔥 TAMBAHAN
+              courseId: true,
+              course: {
+                select: { isActive: true, status: true }, // 🔥 TAMBAHAN
+              },
+            },
+          },
         },
       },
     },
@@ -1082,6 +1116,24 @@ export const completeTextProgress = async ({
 
   if (!activeSubscription) {
     const err = new Error("Anda belum memiliki subscription aktif");
+    (err as any).statusCode = 403;
+    throw err;
+  }
+
+  // 🔥 TAMBAHAN: cegah mentee mencatat progress ke text/subBab/subChapter/
+  // course yang belum published (mis. lewat DevTools memanggil endpoint
+  // ini langsung dengan ID yang masih draft).
+  const { subChapter } = text.subBab;
+  const { course } = subChapter;
+
+  if (
+    text.status !== "PUBLISHED" ||
+    text.subBab.status !== "PUBLISHED" ||
+    subChapter.status !== "PUBLISHED" ||
+    !course.isActive ||
+    course.status !== "PUBLISHED"
+  ) {
+    const err = new Error("Materi ini tidak tersedia");
     (err as any).statusCode = 403;
     throw err;
   }

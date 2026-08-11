@@ -465,6 +465,22 @@ export class ELearningTextService {
             "Akses ditolak: Anda tidak memiliki subscription aktif",
           );
         }
+
+        // 🔥 TAMBAHAN: mentee cuma boleh akses text yang published, dan
+        // seluruh parent-nya (subBab, subChapter, course) juga harus
+        // published/aktif — cegah akses langsung walau tahu ID text-nya.
+        const subBab = text.subBab;
+        const subChapterEntity = subBab.subChapter;
+
+        if (
+          text.status !== "PUBLISHED" ||
+          subBab.status !== "PUBLISHED" ||
+          subChapterEntity.status !== "PUBLISHED" ||
+          !course.isActive ||
+          course.status !== "PUBLISHED"
+        ) {
+          throw new Error("Akses ditolak: materi ini tidak tersedia");
+        }
       }
     }
 

@@ -70,3 +70,9 @@ export const verifyCertificateParamSchema = z.object({
     certificateNumber: z.string().min(1),
   }),
 });
+
+export const getMyCertificateParamSchema = z.object({
+  params: z.object({
+    id: z.string().min(1), // subChapterId
+  }),
+});

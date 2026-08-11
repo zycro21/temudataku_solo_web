@@ -275,3 +275,27 @@ export const verifyCertificate = async (
     next(err);
   }
 };
+
+export const getMyCertificateForSubChapter = async (
+  req: AuthenticatedRequestELearningCertificate,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { id: subChapterId } = req.validatedParams;
+    const userId = req.user!.userId;
+ 
+    const result =
+      await ElearningCertificateService.getMyCertificateForSubChapter({
+        subChapterId,
+        userId,
+      });
+ 
+    // 🔥 SENGAJA selalu 200, walaupun `result` null — belum punya
+    // sertifikat itu state normal (progress belum 100% / belum
+    // di-generate), bukan error.
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+};
