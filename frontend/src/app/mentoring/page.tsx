@@ -9,7 +9,9 @@ export default function page() {
       <Suspense fallback={<div />}>
         <Navbar />
       </Suspense>
-      <Mentoring />
+      <Suspense fallback={<div />}>
+        <Mentoring />
+      </Suspense>
       <Footer />
     </>
   );
