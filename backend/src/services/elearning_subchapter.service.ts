@@ -66,20 +66,20 @@ export const ELearningSubChapterService = {
     if (!hasFullAccess && user.roles.includes("mentee")) {
       const now = new Date();
 
-      const activeSubscription = await prisma.eLearningSubscription.findFirst({
-        where: {
-          userId: user.userId,
-          status: { in: ["active", "confirmed"] },
-          startAt: { lte: now },
-          endAt: { gt: now },
-        },
-      });
+      // const activeSubscription = await prisma.eLearningSubscription.findFirst({
+      //   where: {
+      //     userId: user.userId,
+      //     status: { in: ["active", "confirmed"] },
+      //     startAt: { lte: now },
+      //     endAt: { gt: now },
+      //   },
+      // });
 
-      if (!activeSubscription) {
-        throw new Error(
-          "Mentee hanya bisa mengakses course jika memiliki subscription aktif",
-        );
-      }
+      // if (!activeSubscription) {
+      //   throw new Error(
+      //     "Mentee hanya bisa mengakses course jika memiliki subscription aktif",
+      //   );
+      // }
 
       // 🔥 TAMBAHAN: course-nya sendiri juga harus aktif & published.
       if (!course.isActive || course.status !== "PUBLISHED") {

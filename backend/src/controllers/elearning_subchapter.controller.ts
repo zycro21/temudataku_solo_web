@@ -72,7 +72,30 @@ export const ELearningSubChapterController = {
         success: true,
         data: subChapter,
       });
-    } catch (err) {
+    } catch (err: any) {
+      // 🔥 FIX: ELearningSubChapterService.getSubChapterById() cuma lempar
+      // `Error` biasa (bukan custom error class ber-statusCode), jadi kalau
+      // dibiarin lewat next(err) ke error handler global, semua kasus ini
+      // gampang ke-generalisir jadi status yang sama (mis. 401) — makanya FE
+      // yang bedain "belum login" vs "belum subscription" lewat status code
+      // (401 vs 403) jadi salah baca, walau pesannya sebenarnya udah beda-beda.
+      // Mapping-nya di sini aja, di controller ini, biar scope perubahannya
+      // kecil dan gak nyentuh error handler global / endpoint lain.
+      const message = err?.message ?? "";
+
+      if (message.includes("tidak ditemukan")) {
+        res.status(404).json({ success: false, message });
+        return;
+      }
+
+      if (
+        message.includes("harus memiliki subscription aktif") ||
+        message.includes("Akses ditolak")
+      ) {
+        res.status(403).json({ success: false, message });
+        return;
+      }
+
       next(err);
     }
   },

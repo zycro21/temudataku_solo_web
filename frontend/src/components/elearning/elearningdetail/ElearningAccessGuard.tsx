@@ -1,23 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import axios from "axios";
-import { Loader2, Lock, Sprout, ArrowRight, LogIn } from "lucide-react";
-
-interface ActiveSubscriptionResponse {
-  isActive: boolean;
-  subscriptionId?: string;
-  plan?: {
-    id: string;
-    name: string;
-    durationDay: number;
-  };
-  startAt?: string;
-  endAt?: string;
-  remainingDays?: number;
-  message?: string;
-}
+import { Loader2, Lock, Sprout, LogIn } from "lucide-react";
 
 export default function ElearningAccessGuard({
   children,
@@ -25,24 +10,29 @@ export default function ElearningAccessGuard({
   children: React.ReactNode;
 }) {
   const [loading, setLoading] = useState(true);
-  const [hasAccess, setHasAccess] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
 
-    const checkAccess = async () => {
+    // 🔥 Sekarang mentee HANYA perlu login untuk mengakses detail course /
+    // subChapter — tidak lagi harus punya elearningSubscription aktif
+    // (endpoint `/api/elearningCourse/courses/:id` di backend sudah tidak
+    // mewajibkan subscription untuk role mentee). Guard ini masih pakai
+    // endpoint subscription yang sama karena tetap butuh `authenticate` di
+    // backend, jadi 401-nya masih valid dipakai buat deteksi "belum
+    // login". Bedanya, isActive/hasAccess dari response-nya sekarang
+    // sudah tidak kita pakai sama sekali untuk memblokir akses.
+    const checkLoggedIn = async () => {
       try {
-        const res = await axios.get(
+        await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/elearningSubscription/elearning/subscriptions/me/active`,
           { withCredentials: true },
         );
 
-        const data: ActiveSubscriptionResponse = res.data?.data;
-
         if (!isMounted) return;
 
-        setHasAccess(!!data?.isActive);
+        setIsLoggedIn(true);
       } catch (err: any) {
         if (!isMounted) return;
 
@@ -50,14 +40,14 @@ export default function ElearningAccessGuard({
         if (err?.response?.status === 401) {
           setIsLoggedIn(false);
         }
-
-        setHasAccess(false);
+        // Selain 401 (mis. network/500), jangan block user yang
+        // sebenarnya sudah login hanya karena endpoint ini gagal.
       } finally {
         if (isMounted) setLoading(false);
       }
     };
 
-    checkAccess();
+    checkLoggedIn();
 
     return () => {
       isMounted = false;
@@ -84,7 +74,7 @@ export default function ElearningAccessGuard({
         </div>
 
         <p className="mt-5 sm:mt-6 text-xs sm:text-sm font-semibold text-emerald-800 text-center">
-          Memeriksa akses langganan kamu
+          Memeriksa status login kamu
         </p>
         <p className="text-[11px] sm:text-xs text-emerald-600/70 mt-1 text-center">
           Tunggu sebentar ya...
@@ -94,9 +84,9 @@ export default function ElearningAccessGuard({
   }
 
   // ============================================================
-  // LOCKED STATE
+  // LOCKED STATE (belum login)
   // ============================================================
-  if (!hasAccess) {
+  if (!isLoggedIn) {
     return (
       <div className="relative flex items-center justify-center min-h-[60vh] sm:min-h-[70vh] px-4 py-10 sm:px-5 sm:py-14 overflow-hidden bg-gradient-to-b from-emerald-50/70 via-white to-white">
         {/* Ambient glow blobs */}
@@ -132,39 +122,26 @@ export default function ElearningAccessGuard({
             {/* Badge */}
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] sm:text-[11px] font-semibold px-2.5 sm:px-3 py-1 mb-3 sm:mb-4 leading-tight">
               <Sprout className="w-3 h-3 shrink-0" />
-              <span>Hanya Bisa Diakses dengan Subscription E-Learning</span>
+              <span>Login untuk Mengakses Materi E-Learning</span>
             </span>
 
             <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 leading-snug">
-              {isLoggedIn ? "Materi ini terkunci untukmu" : "Login dulu, yuk"}
+              Login dulu, yuk
             </h2>
 
             <p className="text-xs sm:text-sm text-gray-500 leading-relaxed mb-6 sm:mb-7">
-              {isLoggedIn
-                ? "Kamu belum memiliki langganan E-Learning yang aktif. Berlangganan sekarang untuk membuka akses penuh ke seluruh materi, kelas, dan modul praktik."
-                : "Login ke akun kamu terlebih dahulu untuk mengecek dan mengakses langganan E-Learning."}
+              Login ke akun kamu terlebih dahulu untuk melihat materi, kelas,
+              dan modul praktik di course ini.
             </p>
 
-            {isLoggedIn ? (
-              <Link
-                href="/elearning"
-                className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs sm:text-sm font-semibold px-5 sm:px-6 py-2.5 sm:py-3 shadow-lg shadow-emerald-500/25 transition-all hover:shadow-emerald-500/40 hover:-translate-y-0.5"
-              >
-                Lihat Paket Langganan
-                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:translate-x-0.5" />
-              </Link>
-            ) : (
-              <button
-                type="button"
-                onClick={() =>
-                  window.dispatchEvent(new Event("auth:open-login"))
-                }
-                className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs sm:text-sm font-semibold px-5 sm:px-6 py-2.5 sm:py-3 shadow-lg shadow-emerald-500/25 transition-all hover:shadow-emerald-500/40 hover:-translate-y-0.5"
-              >
-                <LogIn className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                Masuk Sekarang
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new Event("auth:open-login"))}
+              className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs sm:text-sm font-semibold px-5 sm:px-6 py-2.5 sm:py-3 shadow-lg shadow-emerald-500/25 transition-all hover:shadow-emerald-500/40 hover:-translate-y-0.5"
+            >
+              <LogIn className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              Masuk Sekarang
+            </button>
           </div>
         </div>
       </div>

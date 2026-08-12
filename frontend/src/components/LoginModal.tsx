@@ -30,21 +30,26 @@ export default function LoginModal({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // 🔥 Halaman detail /elearning/[id] dan /elearningfull selalu dilempar
-  // balik ke /elearning (bukan ke halaman itu sendiri), sedangkan
-  // /elearning (list) tetap balik ke dirinya sendiri.
-  const isElearningPage =
-    pathname === "/elearning" ||
-    pathname.startsWith("/elearning/") ||
-    pathname === "/elearningfull";
+  // 🔥 FIX: halaman detail /elearning/[id] (course) dan
+  // /elearning/[id]/[subChapterId] (subchapter) sekarang balik ke
+  // dirinya sendiri (pathname + query, mis. ?from=elearning) setelah
+  // login — sebelumnya semua yang match `/elearning/...` dipaksa balik
+  // ke /elearning (list), jadi mentee yang login dari tengah materi
+  // malah kelempar ke list dan harus cari lagi. /elearning (list) dan
+  // /elearningfull tetap balik ke /elearning seperti semula.
+  const isElearningDetailPage = pathname.startsWith("/elearning/");
+  const isElearningListPage =
+    pathname === "/elearning" || pathname === "/elearningfull";
 
-  const returnUrl = isElearningPage
-    ? "/elearning"
-    : pathname === "/aycl" ||
-        pathname === "/mentoring" ||
-        pathname.startsWith("/programs/")
-      ? `${pathname}${searchParams.toString() ? `?${searchParams}` : ""}`
-      : null;
+  const returnUrl = isElearningDetailPage
+    ? `${pathname}${searchParams.toString() ? `?${searchParams}` : ""}`
+    : isElearningListPage
+      ? "/elearning"
+      : pathname === "/aycl" ||
+          pathname === "/mentoring" ||
+          pathname.startsWith("/programs/")
+        ? `${pathname}${searchParams.toString() ? `?${searchParams}` : ""}`
+        : null;
 
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");

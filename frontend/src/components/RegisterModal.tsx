@@ -31,23 +31,24 @@ export default function RegisterModal({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // 🔥 Samakan dengan logic returnUrl di LoginModal — hanya halaman-halaman
-  // ini yang dilempar balik setelah sign in berhasil (baik lewat Google
-  // maupun manual). Halaman detail /elearning/[id] dan /elearningfull
-  // selalu dilempar balik ke /elearning (list), bukan ke halaman itu
-  // sendiri.
-  const isElearningPage =
-    pathname === "/elearning" ||
-    pathname.startsWith("/elearning/") ||
-    pathname === "/elearningfull";
+  // 🔥 FIX: samakan dengan LoginModal — halaman detail /elearning/[id]
+  // (course) dan /elearning/[id]/[subChapterId] (subchapter) sekarang
+  // balik ke dirinya sendiri (pathname + query) setelah login lewat
+  // Google di modal ini, bukan dipaksa ke /elearning (list). /elearning
+  // (list) dan /elearningfull tetap balik ke /elearning seperti semula.
+  const isElearningDetailPage = pathname.startsWith("/elearning/");
+  const isElearningListPage =
+    pathname === "/elearning" || pathname === "/elearningfull";
 
-  const returnUrl = isElearningPage
-    ? "/elearning"
-    : pathname === "/aycl" ||
-        pathname === "/mentoring" ||
-        pathname.startsWith("/programs/")
-      ? `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`
-      : null;
+  const returnUrl = isElearningDetailPage
+    ? `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`
+    : isElearningListPage
+      ? "/elearning"
+      : pathname === "/aycl" ||
+          pathname === "/mentoring" ||
+          pathname.startsWith("/programs/")
+        ? `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`
+        : null;
 
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);

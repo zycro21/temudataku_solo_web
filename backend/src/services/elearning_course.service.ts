@@ -82,23 +82,23 @@ export const ELearningCourseService = {
       // mentor hanya melihat course miliknya
       whereCondition.mentorId = user.mentorProfileId;
     } else if (isMentee) {
-      const now = new Date();
+      // const now = new Date();
 
-      const activeSubscription = await prisma.eLearningSubscription.findFirst({
-        where: {
-          userId: user.userId,
-          status: "confirmed",
-          startAt: { lte: now },
-          endAt: { gte: now },
-        },
-      });
+      // const activeSubscription = await prisma.eLearningSubscription.findFirst({
+      //   where: {
+      //     userId: user.userId,
+      //     status: "confirmed",
+      //     startAt: { lte: now },
+      //     endAt: { gte: now },
+      //   },
+      // });
 
-      if (!activeSubscription) {
-        throw {
-          status: 403,
-          message: "Akses ditolak. Anda tidak memiliki subscription aktif.",
-        };
-      }
+      // if (!activeSubscription) {
+      //   throw {
+      //     status: 403,
+      //     message: "Akses ditolak. Anda tidak memiliki subscription aktif.",
+      //   };
+      // }
 
       // 🔥 mentee cuma boleh lihat course yang aktif & sudah published —
       // dipindah ke sini (query-level) supaya course DRAFT/ARCHIVED tidak
@@ -326,21 +326,21 @@ export const ELearningCourseService = {
     if (user.roles.includes("mentee")) {
       const now = new Date();
 
-      const activeSubscription = await prisma.eLearningSubscription.findFirst({
-        where: {
-          userId: user.userId,
-          status: "confirmed",
-          startAt: { lte: now },
-          endAt: { gte: now },
-        },
-      });
+      // const activeSubscription = await prisma.eLearningSubscription.findFirst({
+      //   where: {
+      //     userId: user.userId,
+      //     status: "confirmed",
+      //     startAt: { lte: now },
+      //     endAt: { gte: now },
+      //   },
+      // });
 
-      if (!activeSubscription) {
-        throw {
-          status: 403,
-          message: "Akses ditolak: Anda tidak memiliki subscription aktif",
-        };
-      }
+      // if (!activeSubscription) {
+      //   throw {
+      //     status: 403,
+      //     message: "Akses ditolak: Anda tidak memiliki subscription aktif",
+      //   };
+      // }
 
       // 🔥 mentee cuma boleh akses detail course yang aktif & published,
       // sama seperti di list — cegah akses langsung ke draft/archived

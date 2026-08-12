@@ -428,26 +428,26 @@ export const getCourseProgress = async ({
    */
   const now = new Date();
 
-  const activeSubscription = await prisma.eLearningSubscription.findFirst({
-    where: {
-      userId,
-      status: {
-        in: ["active", "confirmed", "completed"],
-      },
-      startAt: {
-        lte: now,
-      },
-      endAt: {
-        gte: now,
-      },
-    },
-  });
+  // const activeSubscription = await prisma.eLearningSubscription.findFirst({
+  //   where: {
+  //     userId,
+  //     status: {
+  //       in: ["active", "confirmed", "completed"],
+  //     },
+  //     startAt: {
+  //       lte: now,
+  //     },
+  //     endAt: {
+  //       gte: now,
+  //     },
+  //   },
+  // });
 
-  if (!activeSubscription) {
-    const err = new Error("Anda belum memiliki subscription aktif");
-    (err as any).statusCode = 403;
-    throw err;
-  }
+  // if (!activeSubscription) {
+  //   const err = new Error("Anda belum memiliki subscription aktif");
+  //   (err as any).statusCode = 403;
+  //   throw err;
+  // }
 
   /**
    * 3. Ambil semua SubChapter ("kelas") milik course ini

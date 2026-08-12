@@ -19,7 +19,15 @@ import {
 } from "@/hooks/useElearningTextProgress";
 import { useElearningSubChapterReview } from "@/hooks/Useelearningsubchapterreview";
 import { useElearningSubChapterCertificate } from "@/hooks/useElearningSubChapterCertificate";
-import { Loader2, SearchX } from "lucide-react";
+import {
+  Loader2,
+  SearchX,
+  Lock,
+  LogIn,
+  Sparkles,
+  ArrowLeft,
+  ArrowRight,
+} from "lucide-react";
 
 // ─── Font ──────────────────────────────────────────────────────────────────
 // Samain dengan halaman admin create/edit material — Plus Jakarta Sans,
@@ -77,6 +85,15 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
 
   const { subChapter, loading, errorType } =
     useElearningSubChapterDetail(subChapterId);
+
+  // 🔥 Asal halaman ini dibuka, dipakai buat tombol "Kembali" di
+  // state login/subscription/not-found di bawah — samain sama pola
+  // yang dipakai ElearningDetail supaya konsisten balik ke tempat yang
+  // benar (bukan `router.back()`).
+  const from =
+    searchParams.get("from") === "elearningfull"
+      ? "elearningfull"
+      : "elearning";
 
   // 🔥 Progress overall course — dipakai buat header progress bar di
   // sidebar (progress per-SubBab/Text belum ada endpoint-nya).
@@ -607,14 +624,227 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
   }
 
   if (!subChapter || errorType) {
+    // 🔥 Belum login sama sekali → jangan kasih info apa pun soal
+    // materinya, paksa login dulu. Beda treatment dari no-subscription /
+    // not-found di bawah, makanya di-cek duluan.
+    if (errorType === "unauthenticated") {
+      return (
+        <div
+          className={`${jakartaSans.className} relative flex items-center justify-center min-h-screen px-4 py-10 sm:px-5 overflow-hidden bg-gradient-to-b from-emerald-50/70 via-white to-white`}
+        >
+          {/* Ambient glow blobs */}
+          <div className="pointer-events-none absolute -top-16 -left-14 w-48 h-48 sm:-top-28 sm:-left-20 sm:w-72 sm:h-72 bg-emerald-200/40 rounded-full blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-16 -right-14 w-52 h-52 sm:-bottom-28 sm:-right-20 sm:w-80 sm:h-80 bg-teal-200/30 rounded-full blur-3xl" />
+
+          {/* Dot-grid texture */}
+          <div
+            className="pointer-events-none absolute inset-0 opacity-[0.35]"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle, rgba(16,185,129,0.18) 1px, transparent 1px)",
+              backgroundSize: "18px 18px",
+            }}
+          />
+
+          <div className="relative w-full max-w-sm sm:max-w-md">
+            <button
+              type="button"
+              onClick={() =>
+                router.push(`/elearning/${practiceId}?from=${from}`)
+              }
+              className="mb-5 inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Kembali ke Course
+            </button>
+
+            <div className="relative rounded-2xl sm:rounded-3xl border border-emerald-100 bg-white/80 backdrop-blur-sm shadow-xl shadow-emerald-900/5 px-5 py-8 sm:px-7 sm:py-10 text-center">
+              {/* Top accent bar */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 h-1.5 w-12 sm:w-16 rounded-full bg-gradient-to-r from-emerald-400 to-teal-500" />
+
+              {/* Icon with rotating dashed ring */}
+              <div className="relative mx-auto mb-5 sm:mb-6 flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20">
+                <span
+                  className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-300 animate-spin"
+                  style={{ animationDuration: "12s" }}
+                />
+                <div className="relative w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                  <Lock className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                </div>
+              </div>
+
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] sm:text-[11px] font-semibold px-2.5 sm:px-3 py-1 mb-3 sm:mb-4 leading-tight">
+                <Sparkles className="w-3 h-3 shrink-0" />
+                <span>Login untuk Mengakses Materi</span>
+              </span>
+
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 leading-snug">
+                Login dulu, yuk
+              </h2>
+
+              <p className="text-xs sm:text-sm text-gray-500 leading-relaxed mb-6 sm:mb-7">
+                Kamu perlu login dulu untuk mengakses materi ini. Kalau sesi
+                kamu sebelumnya sudah habis, login ulang aja ya.
+              </p>
+
+              <button
+                type="button"
+                onClick={() =>
+                  window.dispatchEvent(new Event("auth:open-login"))
+                }
+                className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs sm:text-sm font-semibold px-5 sm:px-6 py-2.5 sm:py-3 shadow-lg shadow-emerald-500/25 transition-all hover:shadow-emerald-500/40 hover:-translate-y-0.5"
+              >
+                <LogIn className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                Masuk Sekarang
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // 🔥 Sudah login, tapi belum punya elearningSubscription aktif.
+    if (errorType === "no-subscription") {
+      return (
+        <div
+          className={`${jakartaSans.className} relative flex items-center justify-center min-h-screen px-4 py-10 sm:px-5 overflow-hidden bg-gradient-to-b from-amber-50/70 via-white to-white`}
+        >
+          {/* Ambient glow blobs */}
+          <div className="pointer-events-none absolute -top-16 -left-14 w-48 h-48 sm:-top-28 sm:-left-20 sm:w-72 sm:h-72 bg-amber-200/40 rounded-full blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-16 -right-14 w-52 h-52 sm:-bottom-28 sm:-right-20 sm:w-80 sm:h-80 bg-orange-200/30 rounded-full blur-3xl" />
+
+          {/* Dot-grid texture */}
+          <div
+            className="pointer-events-none absolute inset-0 opacity-[0.35]"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle, rgba(245,158,11,0.18) 1px, transparent 1px)",
+              backgroundSize: "18px 18px",
+            }}
+          />
+
+          <div className="relative w-full max-w-sm sm:max-w-md">
+            <button
+              type="button"
+              onClick={() =>
+                router.push(`/elearning/${practiceId}?from=${from}`)
+              }
+              className="mb-5 inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-amber-600 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Kembali ke Course
+            </button>
+
+            <div className="relative rounded-2xl sm:rounded-3xl border border-amber-100 bg-white/80 backdrop-blur-sm shadow-xl shadow-amber-900/5 px-5 py-8 sm:px-7 sm:py-10 text-center">
+              {/* Top accent bar */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 h-1.5 w-12 sm:w-16 rounded-full bg-gradient-to-r from-amber-400 to-orange-500" />
+
+              {/* Icon with rotating dashed ring */}
+              <div className="relative mx-auto mb-5 sm:mb-6 flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20">
+                <span
+                  className="absolute inset-0 rounded-full border-2 border-dashed border-amber-300 animate-spin"
+                  style={{ animationDuration: "12s" }}
+                />
+                <div className="relative w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/30">
+                  <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                </div>
+              </div>
+
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[10px] sm:text-[11px] font-semibold px-2.5 sm:px-3 py-1 mb-3 sm:mb-4 leading-tight">
+                <Lock className="w-3 h-3 shrink-0" />
+                <span>Berlangganan Diperlukan</span>
+              </span>
+
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 leading-snug">
+                Kamu Belum Berlangganan
+              </h2>
+
+              <p className="text-xs sm:text-sm text-gray-500 leading-relaxed mb-6 sm:mb-7">
+                Materi ini cuma bisa diakses mentee dengan langganan E-Learning
+                aktif. Aktifkan dulu langgananmu buat lanjut belajar di sini.
+              </p>
+
+              <button
+                type="button"
+                onClick={() =>
+                  router.push(`/elearning`)
+                }
+                className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white text-xs sm:text-sm font-semibold px-5 sm:px-6 py-2.5 sm:py-3 shadow-lg shadow-amber-500/25 transition-all hover:shadow-amber-500/40 hover:-translate-y-0.5"
+              >
+                Lihat Detail Berlangganan
+                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:translate-x-0.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // 🔥 not-found / unknown → subChapter memang tidak ada atau error
+    // lain yang tak terduga.
     return (
       <div
-        className={`${jakartaSans.className} flex flex-col items-center justify-center min-h-screen gap-3 text-center px-6`}
+        className={`${jakartaSans.className} relative flex items-center justify-center min-h-screen px-4 py-10 sm:px-5 overflow-hidden bg-gradient-to-b from-emerald-50/70 via-white to-white`}
       >
-        <SearchX className="w-10 h-10 text-gray-300" />
-        <p className="text-sm text-gray-500">
-          Materi tidak ditemukan atau kamu belum punya akses ke sana.
-        </p>
+        {/* Ambient glow blobs */}
+        <div className="pointer-events-none absolute -top-16 -left-14 w-48 h-48 sm:-top-28 sm:-left-20 sm:w-72 sm:h-72 bg-emerald-200/40 rounded-full blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-16 -right-14 w-52 h-52 sm:-bottom-28 sm:-right-20 sm:w-80 sm:h-80 bg-teal-200/30 rounded-full blur-3xl" />
+
+        {/* Dot-grid texture */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.35]"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle, rgba(16,185,129,0.18) 1px, transparent 1px)",
+            backgroundSize: "18px 18px",
+          }}
+        />
+
+        <div className="relative w-full max-w-sm sm:max-w-md">
+          <button
+            type="button"
+            onClick={() => router.push(`/elearning/${practiceId}?from=${from}`)}
+            className="mb-5 inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Kembali ke Course
+          </button>
+
+          <div className="relative rounded-2xl sm:rounded-3xl border border-emerald-100 bg-white/80 backdrop-blur-sm shadow-xl shadow-emerald-900/5 px-5 py-8 sm:px-7 sm:py-10 text-center">
+            {/* Top accent bar */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 h-1.5 w-12 sm:w-16 rounded-full bg-gradient-to-r from-emerald-400 to-teal-500" />
+
+            {/* Icon with rotating dashed ring */}
+            <div className="relative mx-auto mb-5 sm:mb-6 flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20">
+              <span
+                className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-300 animate-spin"
+                style={{ animationDuration: "12s" }}
+              />
+              <div className="relative w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                <SearchX className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+              </div>
+            </div>
+
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 leading-snug">
+              Materi Tidak Ditemukan
+            </h2>
+
+            <p className="text-xs sm:text-sm text-gray-500 leading-relaxed mb-6 sm:mb-7">
+              Mungkin link-nya salah, atau materi ini sudah tidak tersedia lagi.
+            </p>
+
+            <button
+              type="button"
+              onClick={() =>
+                router.push(`/elearning/${practiceId}?from=${from}`)
+              }
+              className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs sm:text-sm font-semibold px-5 sm:px-6 py-2.5 sm:py-3 shadow-lg shadow-emerald-500/25 transition-all hover:shadow-emerald-500/40 hover:-translate-y-0.5"
+            >
+              Kembali ke Course
+              <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:translate-x-0.5" />
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
