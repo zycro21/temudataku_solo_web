@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import axios from "axios";
 import { toast } from "sonner";
@@ -88,6 +88,54 @@ export default function ChooseSubscriptionElearning() {
   const [loadingPlans, setLoadingPlans] = useState(true);
   const [submittingPlanId, setSubmittingPlanId] = useState<string | null>(null);
   const [openLogin, setOpenLogin] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null);
+
+  // 🔥 FIX: browser cuma scroll ke #pilihan-elearning SEKALI, pas awal
+  // navigasi. Tapi WhySection/ElearningSelection di atas section ini masih
+  // fetch data & nambah tinggi halaman belakangan, jadi posisi section ini
+  // ikut turun setelah scroll itu terjadi — hasilnya user "kurang ke bawah"
+  // kayak di screenshot. Di sini kita terus koreksi posisi scroll (rAF
+  // loop) selama layout di atas masih berubah, baru berhenti begitu posisi
+  // section-nya stabil (atau sudah 2.5 detik, buat jaga-jaga).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.location.hash !== "#pilihan-elearning") return;
+
+    let rafId: number;
+    let stableCount = 0;
+    let lastTop = Number.POSITIVE_INFINITY;
+    const start = performance.now();
+    const maxDurationMs = 2500;
+
+    const trackAndScroll = () => {
+      const el = sectionRef.current;
+      if (!el) return;
+
+      const top = el.getBoundingClientRect().top;
+
+      // Kalau posisinya belum pas di atas viewport, snap ke sana lagi.
+      if (Math.abs(top) > 4) {
+        el.scrollIntoView({ behavior: "auto", block: "start" });
+      }
+
+      stableCount = Math.abs(top - lastTop) < 1 ? stableCount + 1 : 0;
+      lastTop = top;
+
+      const elapsed = performance.now() - start;
+      if (stableCount < 6 && elapsed < maxDurationMs) {
+        rafId = requestAnimationFrame(trackAndScroll);
+      } else {
+        // Posisi udah stabil (atau waktu abis) — rapiin dengan smooth scroll.
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    };
+
+    rafId = requestAnimationFrame(trackAndScroll);
+
+    return () => cancelAnimationFrame(rafId);
+    // re-run juga saat plan selesai loading, karena section ini sendiri
+    // ganti tinggi (skeleton -> kartu asli) dan bisa geser posisi dirinya.
+  }, [loadingPlans]);
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -163,7 +211,7 @@ export default function ChooseSubscriptionElearning() {
   );
 
   return (
-    <section id="pilihan-elearning" className="py-20 px-0">
+    <section id="pilihan-elearning" ref={sectionRef} className="py-20 px-0">
       <div className="max-w-[1200px] mx-auto">
         {/* HEADER (PUTIH) */}
         <div className="text-center mb-10">

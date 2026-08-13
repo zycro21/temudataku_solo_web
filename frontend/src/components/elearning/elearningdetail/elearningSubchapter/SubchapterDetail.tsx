@@ -767,7 +767,10 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
               <button
                 type="button"
                 onClick={() =>
-                  router.push(`/elearning`)
+                  // 🔥 Arahkan langsung ke section pilihan langganan
+                  // (id="pilihan-elearning" di SubscriptionElearning.tsx),
+                  // bukan cuma ke atas halaman /elearning.
+                  router.push(`/elearning#pilihan-elearning`)
                 }
                 className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white text-xs sm:text-sm font-semibold px-5 sm:px-6 py-2.5 sm:py-3 shadow-lg shadow-amber-500/25 transition-all hover:shadow-amber-500/40 hover:-translate-y-0.5"
               >
