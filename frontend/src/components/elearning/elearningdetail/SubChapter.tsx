@@ -217,14 +217,14 @@ export default function SubChapterSection({
                 >
                   {/* Image */}
                   <div className="relative p-2">
-                    <div className="relative bg-gray-100 rounded-lg overflow-hidden h-[160px]">
+                    <div className="relative bg-gray-100 rounded-lg overflow-hidden aspect-[4/3]">
                       {coverImage ? (
                         <Image
                           src={coverImage}
                           alt={chapter.title}
                           fill
                           unoptimized
-                          className="object-cover"
+                          className="object-contain"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-300">

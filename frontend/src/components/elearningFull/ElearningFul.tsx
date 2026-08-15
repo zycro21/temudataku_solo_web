@@ -364,17 +364,16 @@ export default function ElearningSelection() {
                 <Card className="group rounded-xl border border-gray-200 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 p-0 cursor-pointer">
                   {/* Image Section */}
                   <div className="relative px-2 pt-2">
-                    <div className="relative bg-gray-100 rounded-lg overflow-hidden">
+                    <div className="relative bg-gray-100 rounded-lg overflow-hidden aspect-[4/3]">
                       <Image
                         src={
                           resolveThumbnailImage(course.thumbnailImages?.[0]) ||
                           "/assets/elearning/placeholder.png"
                         }
                         alt={course.title}
-                        width={381}
-                        height={285}
+                        fill
                         unoptimized
-                        className="w-full h-[240px] object-contain"
+                        className="object-contain"
                       />
                     </div>
                   </div>
