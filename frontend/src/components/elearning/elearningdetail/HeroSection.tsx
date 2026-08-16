@@ -42,7 +42,7 @@ export default function HeroSection({ course }: HeroSectionProps) {
           {/* Left - Thumbnail course (fallback ke ilustrasi kalau kosong) */}
           <div className="relative flex items-center justify-center">
             {thumbnail ? (
-              <div className="relative w-full max-w-sm xl:max-w-md aspect-video rounded-2xl overflow-hidden bg-gray-100 shadow-lg">
+              <div className="relative w-full max-w-sm xl:max-w-md aspect-[4/3] rounded-2xl overflow-hidden bg-gray-100 shadow-lg">
                 <Image
                   src={thumbnail}
                   alt={course.title}
