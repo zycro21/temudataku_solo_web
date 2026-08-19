@@ -191,7 +191,7 @@ export const sendAyclPaymentSuccessEmail = async ({
 
       <!-- PENUTUP -->
       <p style="margin:28px 0 0 0; color:#374151; font-size:14px; line-height:1.7;">
-        Jika ada pertanyaan, jangan ragu untuk menghubungi tim kami melalui WhatsApp (0822-3452-9895 / 0853-3619-6913) atau email resmi TemuDataku.
+        Jika ada pertanyaan, jangan ragu untuk menghubungi tim kami melalui WhatsApp (0851-5675-0480 / 0853-3619-6913) atau email resmi TemuDataku.
       </p>
       <p style="margin:10px 0 0 0; color:#374151; font-size:14px; line-height:1.7;">
         Semangat belajar dan sampai jumpa di kelas! 🚀

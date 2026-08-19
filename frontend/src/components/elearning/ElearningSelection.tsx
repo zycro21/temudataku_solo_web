@@ -465,7 +465,10 @@ export default function ElearningSelection() {
   };
 
   return (
-    <section className="py-10 px-3 md:px-5 lg:px-6">
+    <section
+      id="elearning-selection"
+      className="py-10 px-3 md:px-5 lg:px-6 scroll-mt-24"
+    >
       <div className="max-w-7xl mx-auto">
         <SubscriptionStatusBanner />
 

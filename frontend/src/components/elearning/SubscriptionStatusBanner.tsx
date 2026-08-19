@@ -137,7 +137,7 @@ export default function SubscriptionStatusBanner() {
             <p className="text-[11px] sm:text-xs text-emerald-700/80 mt-0.5">
               Berlaku sampai {formattedEndDate}
               {stackedCount > 1
-                ? ` · Gabungan ${stackedCount} Paket Pembelian`
+                ? ` · Gabungan ${stackedCount} Paket Pembelian/Redeem`
                 : ""}
             </p>
           </div>

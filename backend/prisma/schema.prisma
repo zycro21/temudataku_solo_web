@@ -92,6 +92,295 @@ model AffiliatorProductConfig {
   @@map("affiliator_product_configs")
 }
 
+// ============================================================
+// ARTICLE
+// Arsitektur block/content-block-nya sengaja dibikin mirror dari
+// ELearningText -> ELearningTextBlock -> ELearningContentBlock,
+// cuma di sini nggak ada jenjang SubChapter/SubBab — block nempel
+// langsung ke Article karena artikel itu satu halaman konten, bukan
+// kurikulum berjenjang. Tipe konten (heading, paragraph, accordion,
+// carousel, content card, tab navigation, highlight, summary) dan
+// pola polymorphic one-to-one per tipe-nya disamain persis biar
+// komponen render di FE (accordion/paragraph/dll) bisa dipakai ulang
+// dari yang sudah ada di elearning. MediaType & AnchorPosition reuse
+// enum yang sudah ada (generik, bukan spesifik elearning).
+// ============================================================
+
+model Article {
+  id          String        @id @default(cuid())
+  authorId    String        @map("author_id")
+
+  title       String        @db.VarChar
+  slug        String        @unique
+  excerpt     String?
+  coverImage  String?       @map("cover_image")
+  category    String?       @db.VarChar
+  tags        String[]      @db.VarChar
+
+  status      ArticleStatus @default(DRAFT)
+  publishedAt DateTime?     @db.Timestamp(6) @map("published_at")
+
+  createdAt   DateTime?     @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt   DateTime?     @db.Timestamp(6) @map("updated_at")
+
+  // Relations
+  author      User          @relation(fields: [authorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  blocks      ArticleBlock[]
+
+  @@index([authorId])
+  @@index([status])
+  @@map("articles")
+}
+
+enum ArticleStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model ArticleBlock {
+  id          String    @id @default(cuid())
+  articleId   String    @map("article_id")
+  orderNumber Int?
+  createdAt   DateTime? @default(now())
+
+  article     Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  contentBlocks      ArticleContentBlock[]
+  additionalContents ArticleAdditionalContent[]
+
+  @@unique([articleId, orderNumber])
+  @@map("article_blocks")
+}
+
+model ArticleContentBlock {
+  id          String   @id @default(cuid())
+  blockId     String   @map("block_id")
+
+  type        ArticleContentBlockType
+  orderNumber Int?
+
+  createdAt   DateTime? @default(now())
+
+  block       ArticleBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+
+  headingContent     ArticleHeadingContent?
+  paragraphContent   ArticleParagraphContent?
+  accordionContent   ArticleAccordionContent?
+  carouselContent    ArticleCarouselContent?
+  contentCardContent ArticleContentCardContent?
+  tabContent         ArticleTabNavigationContent?
+  highlightContent   ArticleHighlightContent?
+  summaryContent     ArticleSummaryContent?
+
+  @@map("article_content_blocks")
+}
+
+enum ArticleContentBlockType {
+  HEADING
+  PARAGRAPH
+  ACCORDION
+  CAROUSEL
+  CONTENT_CARD
+  TAB_NAVIGATION
+  HIGHLIGHT
+  SUMMARY
+}
+
+model ArticleHeadingContent {
+  id        String @id @default(cuid())
+  contentId String @unique
+
+  level     Int
+  text      String @db.Text
+
+  content   ArticleContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+}
+
+model ArticleParagraphContent {
+  id        String @id @default(cuid())
+  contentId String @unique
+
+  text      String @db.Text
+
+  content   ArticleContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+}
+
+model ArticleHighlightContent {
+  id        String @id @default(cuid())
+  contentId String @unique
+
+  text      String @db.VarChar(1250)
+
+  content   ArticleContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+}
+
+// Accordion Content
+model ArticleAccordionContent {
+  id          String @id @default(cuid())
+  contentId   String @unique
+
+  title       String
+  description String?
+
+  items ArticleAccordionItem[]
+
+  content ArticleContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+}
+
+model ArticleAccordionItem {
+  id          String @id @default(cuid())
+  accordionId String
+
+  title       String
+  content     String
+  orderNumber Int
+
+  accordion ArticleAccordionContent @relation(fields: [accordionId], references: [id], onDelete: Cascade)
+}
+
+// Carousel Content
+model ArticleCarouselContent {
+  id            String @id @default(cuid())
+  contentId     String @unique
+
+  title         String
+  description   String?
+  cardsPerSlide Int?
+
+  items ArticleCarouselItem[]
+
+  content ArticleContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+}
+
+model ArticleCarouselItem {
+  id          String @id @default(cuid())
+  carouselId  String
+
+  title       String
+  image       String?
+  content     String?
+  orderNumber Int
+
+  carousel ArticleCarouselContent @relation(fields: [carouselId], references: [id], onDelete: Cascade)
+}
+
+// Content Card
+model ArticleContentCardContent {
+  id        String @id @default(cuid())
+  contentId String @unique
+
+  title       String
+  description String?
+
+  disableExpandableContent Boolean
+
+  items ArticleContentCardItem[]
+
+  content ArticleContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+}
+
+model ArticleContentCardItem {
+  id                String @id @default(cuid())
+  cardId            String
+
+  title             String
+  content           String
+  expandableContent String?
+
+  orderNumber       Int
+
+  card ArticleContentCardContent @relation(fields: [cardId], references: [id], onDelete: Cascade)
+}
+
+// Tab Navigation
+model ArticleTabNavigationContent {
+  id        String @id @default(cuid())
+  contentId String @unique
+
+  title       String
+  description String?
+
+  tabs ArticleTabItem[]
+
+  content ArticleContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+}
+
+model ArticleTabItem {
+  id          String @id @default(cuid())
+  tabId       String
+
+  title       String
+  content     String
+  orderNumber Int
+
+  tab ArticleTabNavigationContent @relation(fields: [tabId], references: [id], onDelete: Cascade)
+}
+
+// Summary
+model ArticleSummaryContent {
+  id        String @id @default(cuid())
+  contentId String @unique
+
+  comments ArticleSummaryComment[]
+
+  content ArticleContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+}
+
+model ArticleSummaryComment {
+  id          String @id @default(cuid())
+  summaryId   String
+
+  comment     String
+  orderNumber Int
+
+  summary ArticleSummaryContent @relation(fields: [summaryId], references: [id], onDelete: Cascade)
+}
+
+// Additional Content — nempel ke sebuah ArticleBlock dengan posisi
+// before/after/inline, dipakai buat gambar/video yang disisipkan di
+// antara konten teks (samain pola dengan ELearningAdditionalContent,
+// tapi cuma IMAGE_VIDEO yang relevan buat artikel — tipe kuis/matching/
+// interactive-code di elearning sengaja tidak di-mirror ke sini karena
+// itu fitur assessment pembelajaran, bukan konten artikel).
+model ArticleAdditionalContent {
+  id      String @id @default(cuid())
+
+  blockId String @map("block_id")
+
+  type      ArticleAdditionalContentType
+  position  AnchorPosition
+
+  orderNumber Int?
+
+  block ArticleBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+
+  imageVideo ArticleImageVideoContent?
+
+  @@map("article_additional_contents")
+}
+
+enum ArticleAdditionalContentType {
+  IMAGE_VIDEO
+}
+
+model ArticleImageVideoContent {
+  id                   String @id @default(cuid())
+  additionalContentId  String @unique
+  title                String?
+  caption              String?
+  description          String?
+  mediaType            MediaType
+  url                  String
+  thumbnailUrl         String?
+  durationSeconds      Int?
+  widthPercent         Int? @default(100)
+  createdAt            DateTime? @default(now())
+
+  additionalContent ArticleAdditionalContent @relation(fields: [additionalContentId], references: [id], onDelete: Cascade)
+  @@map("article_image_video_contents")
+}
+
 model AYCLBatch {
   id          String   @id @default(cuid())
   title       String
@@ -1014,6 +1303,7 @@ model ELearningSubscriptionPlan {
   updatedAt   DateTime?
 
   subscriptions ELearningSubscription[]
+  redeemCodes   RedeemCode[]
 
   @@map("e_learning_subscription_plans")
 }
@@ -1034,6 +1324,7 @@ model ELearningSubscription {
   payment       Payment?
   referralUsage ReferralUsage?  @relation("ReferralUsageELearningSubscription", fields: [referralUsageId], references: [id])
   voucherUsage  VoucherUsage?  @relation("VoucherUsageELearning")
+  redeemCodeUsage RedeemCodeUsage? @relation("RedeemCodeUsageSubscription")
 
   @@map("e_learning_subscriptions")
 }
@@ -1719,6 +2010,80 @@ enum ReviewStatus {
   REVISION_REQUIRED
 }
 
+// ============================================================
+// REDEEM CODE
+// Dipakai buat kasih akses ELearningSubscription tanpa lewat payment —
+// admin generate kode yang terikat ke satu ELearningSubscriptionPlan
+// spesifik (durasinya ikut plan itu), dengan maxUses (berapa kali kode
+// ini boleh dipakai total) dan expiresAt (kapan kode itu sendiri basi).
+// Redeem yang berhasil bikin ELearningSubscription baru dengan
+// payment: null (karena memang nggak lewat pembayaran), dan dicatat di
+// RedeemCodeUsage buat audit trail + cegah 1 user redeem kode yang sama
+// dua kali.
+// ============================================================
+
+model RedeemCode {
+  id          String   @id @default(cuid())
+  code        String   @unique @db.VarChar
+  planId      String   @map("plan_id")
+  createdById String   @map("created_by_id")
+
+  maxUses     Int      @default(1) @map("max_uses")
+  usedCount   Int      @default(0) @map("used_count")
+
+  expiresAt   DateTime @map("expires_at") @db.Timestamp(6)
+  // Saklar manual buat nonaktifin kode sebelum masa berlakunya habis
+  // (mis. kode ke-leak atau di-abuse) — terpisah dari expiresAt.
+  isActive    Boolean  @default(true) @map("is_active")
+
+  note        String?  // catatan internal admin, mis. "Giveaway IG Agustus 2026"
+
+  createdAt   DateTime  @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt   DateTime? @db.Timestamp(6) @map("updated_at")
+
+  // Relations
+  plan      ELearningSubscriptionPlan @relation(fields: [planId], references: [id])
+  createdBy User                      @relation("RedeemCodeCreatedBy", fields: [createdById], references: [id])
+  usages    RedeemCodeUsage[]
+
+  @@index([planId])
+  @@index([expiresAt])
+  @@index([isActive])
+  @@map("redeem_codes")
+}
+
+model RedeemCodeUsage {
+  id             String   @id @default(cuid())
+  redeemCodeId   String   @map("redeem_code_id")
+  userId         String   @map("user_id")
+  subscriptionId String   @unique @map("subscription_id")
+
+  redeemedAt     DateTime @default(now()) @map("redeemed_at")
+
+  // Relations
+  redeemCode   RedeemCode             @relation(fields: [redeemCodeId], references: [id], onDelete: Cascade)
+  user         User                   @relation("RedeemCodeUsageUser", fields: [userId], references: [id], onDelete: Cascade)
+  subscription ELearningSubscription  @relation("RedeemCodeUsageSubscription", fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  // Satu user cuma boleh redeem kode YANG SAMA sekali — biar nggak
+  // dobel klaim walau kodenya masih ada sisa kuota (maxUses > 1).
+  @@unique([redeemCodeId, userId])
+  @@index([userId])
+  @@map("redeem_code_usages")
+}
+
+model RedeemCodeAttempt {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  success   Boolean
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation("RedeemCodeAttemptUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, success, createdAt])
+  @@map("redeem_code_attempts")
+}
+
 model ReferralCommisions {
   id                String   @id @default(cuid())
   referralCodeId    String
@@ -1909,6 +2274,10 @@ model User {
   voucherUsages              VoucherUsage[]        @relation("VoucherUsageUser")
   eLearningAuditLogs         ELearningAuditLog[]
   affiliatorProfile          AffiliatorProfile? 
+  articles                   Article[] 
+  redeemCodesCreated  RedeemCode[]      @relation("RedeemCodeCreatedBy")
+  redeemCodeUsages    RedeemCodeUsage[] @relation("RedeemCodeUsageUser")
+  redeemCodeAttempts RedeemCodeAttempt[] @relation("RedeemCodeAttemptUser")
 
   @@map("users")
 }

@@ -404,6 +404,7 @@ export default function AdminLayout({
       "Mentor",
       "Kelola Mentoring",
       "E-Learning",
+      "Kode Redeem",
       "Transaksi",
       "Produk & Event",
       "History",
@@ -522,6 +523,12 @@ export default function AdminLayout({
           activeIcon: "/assets/dashboard/mentor/reportwhite.svg",
         },
       ],
+    },
+    {
+      name: "Kode Redeem",
+      href: "/admin/kode-redeem",
+      icon: "/assets/admin/voucher.svg",
+      activeIcon: "/assets/admin/voucheractive.svg",
     },
     {
       name: "AYCL",

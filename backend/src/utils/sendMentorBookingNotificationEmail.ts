@@ -228,7 +228,7 @@ export const sendMentorBookingNotificationEmail = async ({
       </div>
 
       <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">
-        Jika ada kendala, hubungi tim TemuDataku di <strong>0822-3452-9895 / 0853-3619-6913</strong>.
+        Jika ada kendala, hubungi tim TemuDataku di <strong>0851-5675-0480 / 0853-3619-6913</strong>.
       </p>
       <p style="margin:16px 0 0 0;color:#374151;font-size:14px;">
         Salam,<br/>

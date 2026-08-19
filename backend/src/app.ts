@@ -45,6 +45,9 @@ import ayclRoutes from "./routes/aycl.route.js";
 import ayclBookingRoutes from "./routes/aycl_booking.route.js";
 import websiteScrapRoutes from "./routes/websitescraping.route.js";
 import voucherRoutes from "./routes/voucher.route.js";
+import articleRoutes from "./routes/articles.route.js";
+import articleContentRoutes from "./routes/article_content.route.js";
+import redeemCodeRoutes from "./routes/redeemCode.route.js";
 import { redirectShortCodeController } from "./controllers/short_link.controller.js";
 import "./schedulers/cron.js";
 import { fileURLToPath } from "url";
@@ -119,6 +122,9 @@ app.use("/api/aycl", ayclRoutes);
 app.use("/api/ayclbooking", ayclBookingRoutes);
 app.use("/api/scrap", websiteScrapRoutes);
 app.use("/api/voucher", voucherRoutes);
+app.use("/api/article", articleRoutes);
+app.use("/api/articlecontent", articleContentRoutes);
+app.use("/api/redeemCode", redeemCodeRoutes);
 
 // Path Static untuk Images
 // Perbaikan di sini, mengganti __dirname dengan yang benar menggunakan import.meta.url

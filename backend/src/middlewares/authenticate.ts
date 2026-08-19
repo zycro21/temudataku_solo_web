@@ -1246,6 +1246,170 @@ export interface AuthenticatedRequestVoucher extends Request {
   };
 }
 
+export interface AuthenticatedRequestArticle extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+    fullName?: string;
+  };
+  validatedBody?: {
+    title?: string;
+    slug?: string;
+    excerpt?: string;
+    coverImage?: string;
+    category?: string;
+    tags?: string[];
+    status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  };
+  validatedParams?: {
+    id?: string;
+    slug?: string;
+  };
+  validatedQuery?: {
+    page?: number;
+    limit?: number;
+    category?: string;
+    tag?: string;
+    search?: string;
+  };
+  file?: Express.Multer.File;
+}
+
+export type ArticleBlockContentInput =
+  | {
+      type: "heading";
+      level: 1 | 2 | 3 | 4 | 5 | 6;
+      text: string;
+      orderNumber?: number;
+    }
+  | { type: "paragraph"; text: string; orderNumber?: number }
+  | { type: "highlight"; text: string; orderNumber?: number }
+  | {
+      type: "accordion";
+      title: string;
+      description?: string;
+      orderNumber?: number;
+      items: { title: string; content: string; orderNumber: number }[];
+    }
+  | {
+      type: "carousel";
+      title: string;
+      description?: string;
+      cardsPerSlide?: number;
+      orderNumber?: number;
+      items: {
+        title: string;
+        image?: string;
+        content?: string;
+        orderNumber: number;
+      }[];
+    }
+  | {
+      type: "content_card";
+      title: string;
+      description?: string;
+      disableExpandableContent: boolean;
+      orderNumber?: number;
+      items: {
+        title: string;
+        content: string;
+        expandableContent?: string;
+        orderNumber: number;
+      }[];
+    }
+  | {
+      type: "tab_navigation";
+      title: string;
+      description?: string;
+      orderNumber?: number;
+      tabs: { title: string; content: string; orderNumber: number }[];
+    }
+  | { type: "summary"; orderNumber?: number; comments: string[] };
+
+export type ArticleAdditionalContentInput = {
+  type: "image_video";
+  position: "BEFORE" | "AFTER" | "INLINE";
+  orderNumber?: number;
+  isNewUpload: boolean;
+  content: {
+    url?: string;
+    title?: string;
+    caption?: string;
+    description?: string;
+    mediaType: "IMAGE" | "VIDEO";
+    thumbnailUrl?: string;
+    durationSeconds?: number;
+    widthPercent?: number;
+  };
+};
+
+export type ArticleBlockInput = {
+  orderNumber: number;
+  contents?: ArticleBlockContentInput[];
+  additionalContents?: ArticleAdditionalContentInput[];
+};
+
+// Body buat create/update SATU block (bukan array blocks kayak bulk-replace)
+export type ArticleSingleBlockBody = {
+  orderNumber?: number;
+  contents?: ArticleBlockContentInput[];
+  additionalContents?: ArticleAdditionalContentInput[];
+};
+
+export interface AuthenticatedRequestArticleContent extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+    fullName?: string;
+  };
+  // PUT /articles/:id/content (bulk-replace) pakai { blocks: [...] }.
+  // POST/PATCH per-block pakai ArticleSingleBlockBody langsung.
+  // Controller masing-masing endpoint tahu bentuk mana yang berlaku.
+  validatedBody?: { blocks: ArticleBlockInput[] } | ArticleSingleBlockBody;
+  validatedParams?: { id?: string; blockId?: string };
+  validatedQuery?: any;
+}
+
+export interface AuthenticatedRequestRedeemCode extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+    fullName?: string;
+  };
+  validatedBody?: {
+    // POST /codes (create) & PATCH /codes/:id (update) share this shape —
+    // planId/code cuma dipakai saat create, isActive cuma dipakai saat update.
+    planId?: string;
+    code?: string;
+    maxUses?: number;
+    expiresAt?: string;
+    note?: string;
+    isActive?: boolean;
+    // POST /redeem
+    redeemCode?: string;
+  };
+  validatedParams?: { id?: string };
+  validatedQuery?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    planId?: string;
+    isActive?: boolean;
+    // Dual-role GET /usages
+    userId?: string;
+    redeemCodeId?: string;
+  };
+}
+
 export const authenticate = (
   req: AuthenticatedRequest,
   res: Response,

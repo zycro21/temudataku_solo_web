@@ -897,3 +897,119 @@ export const handleELearningTextFilesUpload = multer({
     maxCount: 50,
   },
 ]);
+
+// === Buat folder penyimpanan untuk cover artikel ===
+const articleCoverBasePath = path.join(__dirname, "../../images/articleCover");
+const normalizedArticleCoverPath = path.normalize(articleCoverBasePath);
+const correctArticleCoverPath = normalizedArticleCoverPath.replace(/^\\/, "");
+
+if (!fs.existsSync(correctArticleCoverPath)) {
+  fs.mkdirSync(correctArticleCoverPath, { recursive: true });
+}
+
+// === Middleware Upload Cover untuk Article (single file) ===
+export const handleArticleCoverUpload = (field: string = "coverImage") => {
+  const storage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, correctArticleCoverPath),
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname);
+
+      const rawTitle = (req as any).body?.title || "untitled";
+
+      const title = rawTitle
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9\-]/g, "")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
+
+      const now = new Date();
+      const dateString = `${now.getFullYear()}${(now.getMonth() + 1)
+        .toString()
+        .padStart(2, "0")}${now.getDate().toString().padStart(2, "0")}`;
+
+      const randomString = Math.random().toString(36).substring(2, 7);
+
+      // Format nama file: cover-article-[title]-[date]-[random]
+      const fileName = `cover-article-${title}-${dateString}-${randomString}${ext}`;
+
+      cb(null, fileName);
+    },
+  });
+
+  return multer({ storage }).single(field);
+};
+
+export { correctArticleCoverPath as articleCoverPath };
+
+// === Untuk Image/Video di konten artikel (additionalContents: image_video) ===
+const articleMediaPath = path.join(
+  __dirname,
+  "../../uploads/articleMediaContents",
+);
+
+const normalizedArticleMediaPath = path.normalize(articleMediaPath);
+const cleanArticleMediaPath = normalizedArticleMediaPath.replace(/^\\/, "");
+
+if (!fs.existsSync(cleanArticleMediaPath)) {
+  fs.mkdirSync(cleanArticleMediaPath, { recursive: true });
+}
+
+const mediaExtensions2 = [
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".gif",
+  ".webp",
+  ".mp4",
+  ".mov",
+  ".avi",
+  ".mkv",
+  ".webm",
+];
+
+export const handleArticleContentFilesUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, cleanArticleMediaPath);
+    },
+
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname);
+
+      const now = new Date();
+
+      const dateString = `${now.getFullYear()}${(now.getMonth() + 1)
+        .toString()
+        .padStart(2, "0")}${now.getDate().toString().padStart(2, "0")}`;
+
+      const random = Math.random().toString(36).substring(2, 8);
+
+      const safeName = file.originalname
+        .replace(ext, "")
+        .toLowerCase()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9-]/g, "");
+
+      cb(null, `media-article-${safeName}-${dateString}-${random}${ext}`);
+    },
+  }),
+
+  limits: {
+    files: 50,
+    fileSize: 100 * 1024 * 1024,
+  },
+
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+
+    if (!mediaExtensions2.includes(ext)) {
+      return cb(new Error("Format image/video tidak didukung"));
+    }
+
+    cb(null, true);
+  },
+}).array("mediaFiles", 50);
+
+export { cleanArticleMediaPath as articleMediaPath };

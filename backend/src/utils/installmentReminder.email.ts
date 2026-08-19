@@ -226,7 +226,7 @@ export const sendInstallmentReminderEmail = async ({
 
       <p style="margin:0 0 16px 0;color:#6b7280;font-size:13px;line-height:1.7;">
         Jika kamu sudah melakukan pembayaran, abaikan email ini.
-        Butuh bantuan? Hubungi kami di <strong>0822-3452-9895 / 0853-3619-6913</strong>.
+        Butuh bantuan? Hubungi kami di <strong>0851-5675-0480 / 0853-3619-6913</strong>.
       </p>
 
       <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">

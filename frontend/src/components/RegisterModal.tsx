@@ -46,6 +46,7 @@ export default function RegisterModal({
       ? "/elearning"
       : pathname === "/aycl" ||
           pathname === "/mentoring" ||
+          pathname === "/redeem" ||
           pathname.startsWith("/programs/")
         ? `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`
         : null;

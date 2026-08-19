@@ -47,6 +47,7 @@ export default function LoginModal({
       ? "/elearning"
       : pathname === "/aycl" ||
           pathname === "/mentoring" ||
+          pathname === "/redeem" ||
           pathname.startsWith("/programs/")
         ? `${pathname}${searchParams.toString() ? `?${searchParams}` : ""}`
         : null;
