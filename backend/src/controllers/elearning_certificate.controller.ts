@@ -10,7 +10,7 @@ import { logActivity } from "../utils/logActivtiy.js";
 export const generateCertificateManual = async (
   req: AuthenticatedRequestELearningCertificate,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     // 🔥 UBAH: courseId → subChapterId
@@ -33,10 +33,9 @@ export const generateCertificateManual = async (
 export const generateCertificateAuto = async (
   req: AuthenticatedRequestELearningCertificate,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
-    // 🔥 UBAH: courseId → subChapterId
     const subChapterId = req.params.id;
     const userId = req.user!.userId;
 
@@ -46,7 +45,18 @@ export const generateCertificateAuto = async (
     });
 
     res.status(201).json({ success: true, data: result });
-  } catch (err) {
+  } catch (err: any) {
+    // 🔥 BARU: belum eligible (skor) itu kondisi NORMAL, bukan error
+    // server — 422 biar FE bisa bedain dari error beneran dan nampilin
+    // pesan yang sesuai, bukan generic "terjadi kesalahan".
+    if (err?.code === "CERTIFICATE_NOT_ELIGIBLE") {
+      res.status(422).json({
+        success: false,
+        code: err.code,
+        message: err.message,
+      });
+      return;
+    }
     next(err);
   }
 };
@@ -54,7 +64,7 @@ export const generateCertificateAuto = async (
 export const getMyCertificates = async (
   req: AuthenticatedRequestELearningCertificate,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const result = await ElearningCertificateService.getCertificatesByUser({
@@ -71,7 +81,7 @@ export const getMyCertificates = async (
 export const getCertificateDetail = async (
   req: AuthenticatedRequestELearningCertificate,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const certificateId = req.validatedParams.id;
@@ -95,7 +105,7 @@ export const getCertificateDetail = async (
 export const deleteCertificate = async (
   req: AuthenticatedRequestELearningCertificate,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const certificateId = req.validatedParams.id;
@@ -114,7 +124,7 @@ export const deleteCertificate = async (
 export const getAllCertificates = async (
   req: AuthenticatedRequestELearningCertificate,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const q = req.validatedQuery || {};
@@ -139,7 +149,7 @@ export const getAllCertificates = async (
 export const updateCertificate = async (
   req: AuthenticatedRequestELearningCertificate,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const certificateId = req.validatedParams.id;
@@ -153,7 +163,7 @@ export const updateCertificate = async (
         status,
         note,
         verifiedBy: adminId,
-      }
+      },
     );
 
     res.json({
@@ -169,7 +179,7 @@ export const updateCertificate = async (
 export const markCertificateAsViewed = async (
   req: AuthenticatedRequestELearningCertificate,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const certificateId = req.validatedParams.id;
@@ -177,7 +187,7 @@ export const markCertificateAsViewed = async (
 
     const updated = await ElearningCertificateService.markCertificateAsViewed(
       certificateId,
-      userId
+      userId,
     );
 
     res.json({
@@ -193,7 +203,7 @@ export const markCertificateAsViewed = async (
 export const regenerateCertificate = async (
   req: AuthenticatedRequestELearningCertificate,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const certificateId = req.validatedParams.id;
@@ -201,7 +211,7 @@ export const regenerateCertificate = async (
 
     const result = await ElearningCertificateService.regenerateCertificate(
       certificateId,
-      adminId
+      adminId,
     );
 
     res.json({
@@ -217,7 +227,7 @@ export const regenerateCertificate = async (
 export const exportCertificates = async (
   req: AuthenticatedRequestELearningCertificate,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -256,12 +266,12 @@ export const verifyCertificate = async (
     const { certificateNumber } = req.validatedParams as {
       certificateNumber: string;
     };
- 
+
     const result =
       await ElearningCertificateService.verifyCertificateByNumber(
         certificateNumber,
       );
- 
+
     if (!result) {
       res.status(404).json({
         success: false,
@@ -269,7 +279,7 @@ export const verifyCertificate = async (
       });
       return;
     }
- 
+
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);
@@ -284,13 +294,13 @@ export const getMyCertificateForSubChapter = async (
   try {
     const { id: subChapterId } = req.validatedParams;
     const userId = req.user!.userId;
- 
+
     const result =
       await ElearningCertificateService.getMyCertificateForSubChapter({
         subChapterId,
         userId,
       });
- 
+
     // 🔥 SENGAJA selalu 200, walaupun `result` null — belum punya
     // sertifikat itu state normal (progress belum 100% / belum
     // di-generate), bukan error.

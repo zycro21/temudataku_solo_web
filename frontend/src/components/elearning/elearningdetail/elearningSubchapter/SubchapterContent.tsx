@@ -336,6 +336,13 @@ interface ModeProps {
   // lewat sini — itu dideteksi dari scroll di SubchapterDetail.tsx,
   // karena container yang scroll ada di luar komponen ini.
   onContentCompleted?: (textId: string) => void;
+  // 🔥 BARU: dipanggil tiap kali status "ada jawaban quiz/draft assignment
+  // yang belum disubmit" berubah — diteruskan apa adanya ke QuizRenderer/
+  // AssignmentRenderer (lihat propnya di masing-masing), dipakai parent
+  // (SubchapterDetail.tsx) buat mutuskan apakah perlu nampilin modal
+  // konfirmasi "yakin mau tinggalkan halaman ini?" sebelum navigasi ke
+  // materi lain / klik "Kembali".
+  onUnsavedChangesChange?: (hasUnsaved: boolean) => void;
 }
 
 /* ================= QUIZ ================= */
@@ -345,12 +352,17 @@ const QuizRenderer = ({
   onSubmitScore,
   onReset,
   onContentCompleted,
+  onUnsavedChangesChange,
 }: {
   quiz: any;
   textId?: string | null;
   onSubmitScore?: (score: number) => void;
   onReset?: () => void;
   onContentCompleted?: (textId: string) => void;
+  // 🔥 BARU: dipanggil tiap kali status "ada jawaban yang belum disubmit"
+  // berubah — dipakai parent (SubchapterDetail.tsx) buat mutuskan apakah
+  // perlu nampilin modal konfirmasi sebelum pindah halaman/materi lain.
+  onUnsavedChangesChange?: (hasUnsaved: boolean) => void;
 }) => {
   // 🔥 GUARD tambahan (di luar fix race di SubchapterDetail.tsx): kalau
   // karena alasan apa pun `quiz` yang sampai ke sini masih null/undefined
@@ -426,6 +438,59 @@ const QuizRenderer = ({
     if (isLoadingHistory || !latestAttempt || !textId) return;
     onContentCompleted?.(textId);
   }, [isLoadingHistory, latestAttempt, textId, onContentCompleted]);
+
+  // 🔥 BARU: peringatan browser kalau mentee coba refresh/nutup tab
+  // sementara masih ada jawaban quiz yang BELUM disubmit. Kondisinya:
+  // sudah pilih minimal 1 jawaban (`answers` nggak kosong) TAPI belum
+  // `submitted` — begitu quiz sudah disubmit (atau memang belum diisi
+  // sama sekali), listener ini otomatis lepas jadi refresh normal aja.
+  // Catatan: browser modern (Chrome/Firefox/Safari) SUDAH nggak nampilin
+  // teks custom di `e.returnValue` demi keamanan — pesannya diganti
+  // otomatis jadi teks bawaan browser ("Changes you made may not be
+  // saved" dsb). Tetap wajib di-set (string kosong pun cukup) supaya
+  // dialognya muncul sama sekali.
+  useEffect(() => {
+    const hasUnsavedAnswer = Object.keys(answers).length > 0 && !submitted;
+    if (!hasUnsavedAnswer) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [answers, submitted]);
+
+  // 🔥 BARU: laporkan status "ada jawaban belum disubmit" yang sama ke
+  // parent (bukan cuma browser lewat beforeunload di atas) — ini yang
+  // dipakai buat nge-guard navigasi DI DALAM app (klik sidebar/tombol
+  // "Kembali"/footer Selanjutnya-Sebelumnya), yang nggak ketangkep sama
+  // sekali oleh `beforeunload` karena itu cuma nyala buat refresh/nutup
+  // tab/URL baru, bukan navigasi client-side Next.js. Effect terpisah dari
+  // yang di atas (walau kondisinya sama) supaya selalu jalan tiap render,
+  // termasuk pas `hasUnsavedAnswer`-nya balik ke `false` (submit/reset) —
+  // effect `beforeunload` di atas sengaja early-return duluan kalau false,
+  // jadi nggak bisa dipakai buat kasus itu juga.
+  useEffect(() => {
+    const hasUnsavedAnswer = Object.keys(answers).length > 0 && !submitted;
+    onUnsavedChangesChange?.(hasUnsavedAnswer);
+  }, [answers, submitted, onUnsavedChangesChange]);
+
+  // 🔥 BARU: begitu QuizRenderer ini di-unmount (mis. mode berubah dari
+  // "quiz" ke konten lain setelah navigasi dikonfirmasi user), pastikan
+  // flag "ada perubahan belum tersimpan" di parent ikut di-reset. Tanpa
+  // ini, kalau sempat true lalu componentnya hilang begitu saja, parent
+  // bisa nyangkut mikir masih ada draft padahal komponennya sudah nggak
+  // ada.
+  useEffect(() => {
+    return () => {
+      onUnsavedChangesChange?.(false);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /* ================= LOGIC ================= */
 
@@ -541,8 +606,8 @@ const QuizRenderer = ({
     <div className="w-full max-w-6xl">
       {/* ================= STEP HEADER ================= */}
       {isStepMode && (
-        <section className="relative w-screen bg-[#F8FAFC] -mx-6 -mt-8">
-          <div className="pl-10 pt-10 pb-8 space-y-4">
+        <section className="relative bg-[#F8FAFC] -mx-6 -mt-8">
+          <div className="pl-10 pr-10 pt-10 pb-8 space-y-4">
             <p className="text-2xl font-bold text-black">
               Pertanyaan {currentStep + 1} dari {questions.length}
             </p>
@@ -551,6 +616,18 @@ const QuizRenderer = ({
               Silakan pilih jawaban yang paling tepat sebelum melanjutkan.
             </p>
 
+            {/* 🔥 FIX: sebelumnya section pembungkus pakai `w-screen`
+                (lebar = 100vw), padahal area konten sebenarnya sudah
+                menyempit karena ada sidebar (`w-[240px]`) di sebelah kiri.
+                Akibatnya baris nomor soal ini "berpikir" dia punya ruang
+                selebar layar penuh, jadi flex-wrap baru pecah baris
+                setelah selebar viewport → nomor soal yang banyak jadi
+                kepotong ke kanan & butuh scroll horizontal (lihat
+                screenshot). Sekarang section dibiarkan lebar defaultnya
+                (100% dari parent, tetap full-bleed lewat `-mx-6`), jadi
+                `flex-wrap` di bawah ini bekerja sesuai lebar asli yang
+                kelihatan di layar → otomatis turun ke baris baru kalau
+                nggak cukup. `pr-10` ditambah biar simetris dgn `pl-10`. */}
             <div className="flex flex-wrap gap-4 pt-3">
               {questions.map((question: any, idx: number) => {
                 const isActive = idx === currentStep;
@@ -648,7 +725,7 @@ const QuizRenderer = ({
 
               {/* OPTIONS */}
               <div className="pl-8 space-y-4 pt-4">
-                {q.options.map((opt: string) => {
+                {q.options.map((opt: string, optIdx: number) => {
                   const checked = currentAnswers.includes(opt);
                   const isCorrectOption = q.correctAnswers.includes(opt);
 
@@ -678,9 +755,18 @@ const QuizRenderer = ({
                     checkboxStyle = `w-6 h-6 bg-emerald-500 ${shapeClass} p-[3px]`;
                   }
 
+                  // 🔥 FIX: key SEBELUMNYA pakai teks opsi jawaban itu
+                  // sendiri (`key={opt}`). Ini bikin error "two children
+                  // with the same key" begitu ada 2 opsi dengan teks
+                  // identik di satu soal (misal data quiz testing yang
+                  // opsinya sama-sama "afafaf") — React nggak bisa bedain
+                  // 2 elemen dengan key sama, akibatnya render bisa
+                  // duplikat/ke-skip pas user klik jawaban. Key sekarang
+                  // dibikin dari `q.id` + index posisi opsi, jadi selalu
+                  // unik walau teks opsinya kebetulan sama.
                   return (
                     <label
-                      key={opt}
+                      key={`${q.id}-${optIdx}`}
                       className={`flex items-center gap-4 px-5 py-4 border rounded-xl cursor-pointer transition hover:bg-gray-50 ${borderStyle}`}
                     >
                       <input
@@ -1090,11 +1176,16 @@ function AssignmentRenderer({
   textId,
   onAssignmentScore,
   onContentCompleted,
+  onUnsavedChangesChange,
 }: {
   a: any;
   textId?: string | null;
   onAssignmentScore?: (score: number | null) => void;
   onContentCompleted?: (textId: string) => void;
+  // 🔥 BARU: sama seperti di QuizRenderer — laporkan status "ada draft
+  // belum dikumpulkan" ke parent, dipakai buat nge-guard navigasi
+  // internal (bukan cuma refresh lewat beforeunload).
+  onUnsavedChangesChange?: (hasUnsaved: boolean) => void;
 }) {
   // ================= INTEGRASI API SUBMISSION =================
   // 🔥 BARU: history submission (buat tau status/nilai/feedback terakhir
@@ -1129,6 +1220,44 @@ function AssignmentRenderer({
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [note, setNote] = useState("");
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+  // 🔥 BARU: sama seperti di QuizRenderer — peringatan browser kalau
+  // mentee coba refresh/nutup tab sementara masih ada file yang sudah
+  // di-upload dan/atau catatan yang sudah diketik TAPI belum di-"Kumpulkan"
+  // (submit). Begitu file di-upload/note diketik, `uploadedFiles`/`note`
+  // dicek isinya di sini; kosongin lagi (baik lewat submit sukses maupun
+  // `removeFile`/hapus manual) otomatis lepas peringatannya.
+  useEffect(() => {
+    const hasUnsavedDraft = uploadedFiles.length > 0 || note.trim() !== "";
+    if (!hasUnsavedDraft) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [uploadedFiles, note]);
+
+  // 🔥 BARU: laporkan status draft yang sama ke parent (lihat penjelasan
+  // di QuizRenderer) — dipakai buat guard navigasi internal (klik
+  // sidebar/tombol "Kembali"/footer).
+  useEffect(() => {
+    const hasUnsavedDraft = uploadedFiles.length > 0 || note.trim() !== "";
+    onUnsavedChangesChange?.(hasUnsavedDraft);
+  }, [uploadedFiles, note, onUnsavedChangesChange]);
+
+  // 🔥 BARU: reset flag di parent begitu AssignmentRenderer ini
+  // di-unmount (lihat penjelasan yang sama di QuizRenderer).
+  useEffect(() => {
+    return () => {
+      onUnsavedChangesChange?.(false);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // 🔥 BARU: true selama user lagi mengumpulkan REVISI (attempt ke-2) —
   // dipakai supaya form upload tampil kosong lagi walau `latestSubmission`
   // dari attempt pertama masih ada di hook.
@@ -2666,6 +2795,20 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
               >
                 <div
                   className={`flex select-none cursor-grab active:cursor-grabbing ${
+                    // 🔥 FIX: sebelumnya card SELALU dikasih lebar tetap
+                    // `100 / cardsPerSlide` (33.33%, karena cardsPerSlide
+                    // di-hardcode 3) — kalau admin cuma bikin 1 atau 2
+                    // card, total lebar isi flex row jadi cuma 33%/66%
+                    // dari container, dan karena flex default-nya
+                    // `justify-start`, sisa card numpuk rapat ke kiri
+                    // (persis kejadian di screenshot OLTP/OLAP). Begitu
+                    // totalItems <= cardsPerSlide, carousel juga nggak
+                    // ada gunanya digeser (maxIndex selalu 0, tombol
+                    // panah juga nggak dirender — lihat `totalItems > 3`
+                    // di atas), jadi aman ditambah `justify-center` biar
+                    // card-nya rata tengah, berapa pun jumlahnya (1/2/3).
+                    totalItems <= cardsPerSlide ? "justify-center" : ""
+                  } ${
                     isThisCardDragging
                       ? ""
                       : "transition-transform duration-500 ease-in-out"
@@ -4129,6 +4272,7 @@ export default function SubchapterContent({
   onQuizReset,
   onAssignmentScore,
   onContentCompleted,
+  onUnsavedChangesChange,
 }: ModeProps) {
   if (mode.type === "quiz")
     return (
@@ -4138,6 +4282,7 @@ export default function SubchapterContent({
         onSubmitScore={onQuizSubmitScore}
         onReset={onQuizReset}
         onContentCompleted={onContentCompleted}
+        onUnsavedChangesChange={onUnsavedChangesChange}
       />
     );
 
@@ -4148,6 +4293,7 @@ export default function SubchapterContent({
         textId={textId}
         onAssignmentScore={onAssignmentScore}
         onContentCompleted={onContentCompleted}
+        onUnsavedChangesChange={onUnsavedChangesChange}
       />
     );
 

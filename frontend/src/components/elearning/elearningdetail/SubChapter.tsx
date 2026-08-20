@@ -36,7 +36,7 @@ function resolveThumbnailImage(thumbnail: string | null | undefined) {
 const taskLabelMap: Record<string, string> = {
   QUIZ: "Quiz",
   PROJECT: "Projek",
-  QUIZ_AND_PROJECT: "Quiz & Projek",
+  QUIZ_AND_PROJECT: "Quiz & Pr..",
 };
 
 const levelLabelMap: Record<string, string> = {

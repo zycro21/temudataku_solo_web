@@ -74,3 +74,30 @@ export const articleListQuerySchema = z.object({
     search: z.string().optional(),
   }),
 });
+
+// 🔥 Khusus admin — beda dari articleListQuerySchema di atas (yang publik):
+// ada filter status & sorting, karena tabel admin nampilin semua status
+// sekaligus dan butuh sortable columns.
+// 🔥 FIX: max di-naikin dari 200 ke 1000 — ArtikelTable.tsx fetch dengan
+// limit: 1000 (fetch sekali, sort/filter/paginate di client, sama pola
+// StreamsTable), jadi kalau max-nya masih 200, Zod nolak duluan dan bikin
+// 400 di request paling awal (bug sama yang kejadian di redeemCode.validation.ts).
+export const adminArticleListQuerySchema = z.object({
+  query: z.object({
+    page: z.preprocess(
+      (val) => (typeof val === "string" ? Number(val) : val),
+      z.number().int().positive().optional().default(1),
+    ),
+    limit: z.preprocess(
+      (val) => (typeof val === "string" ? Number(val) : val),
+      z.number().int().positive().max(1000).optional().default(10),
+    ),
+    search: z.string().optional(),
+    status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).optional(),
+    sortBy: z
+      .enum(["title", "createdAt", "updatedAt", "status"])
+      .optional()
+      .default("createdAt"),
+    sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
+  }),
+});

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import SubchapterNavbar from "./SubchapterNavbar";
@@ -13,6 +13,7 @@ import SubchapterReviewModal from "./SubchapterReviewModal";
 import { useElearningSubChapterDetail } from "@/hooks/Useelearningsubchapterdetail";
 import { useElearningTextDetail } from "@/hooks/Useelearningtextdetail";
 import { useElearningCourseProgress } from "@/hooks/useElearningCourseProgress";
+import { useElearningSubChapterTextProgress } from "@/hooks/useElearningSubChapterTextProgress";
 import {
   useElearningTextProgress,
   type SubChapterProgressRecord,
@@ -27,6 +28,7 @@ import {
   Sparkles,
   ArrowLeft,
   ArrowRight,
+  AlertTriangle,
 } from "lucide-react";
 
 // ─── Font ──────────────────────────────────────────────────────────────────
@@ -113,12 +115,42 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
   const [progressOverride, setProgressOverride] =
     useState<SubChapterProgressRecord | null>(null);
 
-  const { markTextComplete, syncSubChapterProgress } = useElearningTextProgress(
-    (updated) => {
+  // 🔥 BARU: id-id ELearningText & ELearningSubBab yang sudah selesai —
+  // dipakai SubchapterSidebar buat render centang di tiap materi & di
+  // header modul. Di-refetch (lihat callback useElearningTextProgress di
+  // bawah) setiap kali satu item baru ditandai selesai, biar centangnya
+  // muncul SEKETIKA tanpa nunggu reload halaman.
+  const {
+    completedTextIds,
+    completedSubBabIds,
+    refetch: refetchTextChecklist,
+  } = useElearningSubChapterTextProgress(subChapterId);
+
+  // 🔥 FIX (loop kelap-kelip sertifikat): callback ini SEBELUMNYA inline
+  // arrow function langsung di argumen useElearningTextProgress(...) —
+  // artinya identity-nya berubah SETIAP render SubchapterDetail. Karena
+  // `syncSubChapterProgress` di dalam hook itu di-useCallback dengan
+  // dependency `[onProgressUpdated]`, identity syncSubChapterProgress ikut
+  // berubah tiap render juga — lalu itu jadi dependency di
+  // handleContentCompleted di bawah, yang jadi dependency lagi di effect
+  // quiz/assignment di SubchapterContent.tsx (via prop onContentCompleted)
+  // — rantai identity yang terus berubah ini yang bikin effect di sana
+  // re-run terus-terusan tiap render, manggil ensureCertificate berkali-
+  // kali, yang setiap kali setStatus() → trigger re-render → loop lagi.
+  // Fix: bungkus jadi useCallback yang STABIL (cuma berubah kalau
+  // subChapterId atau refetchTextChecklist beneran berubah).
+  const handleProgressUpdated = useCallback(
+    (updated: SubChapterProgressRecord) => {
       if (updated.subChapterId === subChapterId) {
         setProgressOverride(updated);
       }
+      refetchTextChecklist();
     },
+    [subChapterId, refetchTextChecklist],
+  );
+
+  const { markTextComplete, syncSubChapterProgress } = useElearningTextProgress(
+    handleProgressUpdated,
   );
 
   const displayProgressPercent =
@@ -175,15 +207,59 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
   const {
     certificate,
     status: certificateStatus,
+    notEligibleReason, // 🔥 BARU
     ensureCertificate,
   } = useElearningSubChapterCertificate();
 
   useEffect(() => {
     if (!subChapterId) return;
-    // 🔥 HANYA jalankan kalau progress sudah 100%
     if (displayProgressPercent < 100) return;
     ensureCertificate(subChapterId, displayProgressPercent);
   }, [displayProgressPercent, subChapterId, ensureCertificate]);
+
+  // 🔥 FIX (loop kelap-kelip sertifikat): handler ini SEBELUMNYA inline
+  // arrow function langsung di prop `onContentCompleted` <SubchapterContent
+  // />. Efek quiz/assignment di SubchapterContent.tsx (baris yang
+  // manggil `onContentCompleted?.(textId)`) punya `onContentCompleted`
+  // sebagai dependency effect — jadi kalau identity-nya berubah TIAP
+  // render (seperti inline arrow function), efek itu dianggap "berubah"
+  // dan re-run terus, manggil `ensureCertificate` berkali-kali. Setiap
+  // panggilan itu manggil `setStatus(...)` di dalam hook sertifikat →
+  // trigger re-render SubchapterDetail → onContentCompleted baru lagi →
+  // efek di SubchapterContent re-run lagi → LOOP TANPA HENTI (inilah
+  // yang bikin sidebar kelap-kelip: checking → generating → not-eligible
+  // → checking → ... terus-menerus).
+  //
+  // Fix: bungkus jadi useCallback yang STABIL — cuma berubah identity
+  // kalau salah satu dependency-nya BENERAN berubah (subChapterId,
+  // displayProgressPercent, atau syncSubChapterProgress/ensureCertificate
+  // — yang sekarang juga sudah stabil, lihat handleProgressUpdated di
+  // atas & fix di useElearningSubChapterCertificate.ts).
+  const handleContentCompleted = useCallback(
+    (completedTextId: string) => {
+      // Quiz & assignment TIDAK ditandai lewat markTextComplete (yang
+      // nulis ke ELearningTextProgress — cocoknya buat materi doang).
+      // Sumber kebenaran quiz/assignment ada di
+      // ELearningQuizAttempt/ELearningSubmission sendiri, jadi cukup
+      // minta backend hitung ULANG dari situ.
+      syncSubChapterProgress(subChapterId, completedTextId);
+
+      // Re-cek eligibility sertifikat di sini juga, bukan cuma
+      // mengandalkan effect `[displayProgressPercent]` — kalau progress
+      // SUDAH 100% sebelum ini (attempt quiz kedua, atau assignment yang
+      // baru selesai direview mentor di attempt kedua),
+      // `displayProgressPercent` tidak berubah nilainya sama sekali,
+      // sehingga effect itu TIDAK akan re-run. Panggil manual di sini
+      // supaya syarat skor yang BARU langsung dicek ulang.
+      ensureCertificate(subChapterId, displayProgressPercent);
+    },
+    [
+      subChapterId,
+      displayProgressPercent,
+      syncSubChapterProgress,
+      ensureCertificate,
+    ],
+  );
 
   // 🔥 Daftar materi ("submodule") per SubBab — text yang TIDAK punya
   // quiz/assignment dianggap materi biasa. Text yang punya quiz/assignment
@@ -249,6 +325,84 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
     return flow;
   }, [subChapter]);
 
+  // 🔥 BARU: urutan akses SEHARUSNYA — flat SEMUA ELearningText (materi
+  // + quiz + assignment) lintas SubBab, diurut PERSIS kayak yang
+  // dirender di sidebar: per SubBab (sesuai `orderNumber`), materinya
+  // dulu (sesuai `orderNumber`), baru quiz-nya (kalau ada), baru
+  // assignment-nya (kalau ada) — lanjut ke SubBab berikutnya, dst. Ini
+  // "kunci kebenaran" buat nentuin locked/unlocked, jadi sengaja
+  // dihitung terpisah dari `allTexts`/`taskFlow`/`navigationMeta`
+  // (yang masing-masing punya bentuk & kebutuhan beda) daripada
+  // ngerombak logic yang sudah jalan.
+  const globalFlow = useMemo(() => {
+    if (!subChapter) return [];
+
+    const flow: {
+      id: string;
+      kind: "submodule" | "quiz" | "assignment";
+      subBabId: string;
+    }[] = [];
+
+    subChapter.subBabs.forEach((subBab) => {
+      subBab.texts
+        .filter((t) => !t.quiz && !t.assignment)
+        .forEach((t) =>
+          flow.push({ id: t.id, kind: "submodule", subBabId: subBab.id }),
+        );
+
+      const quizText = subBab.texts.find((t) => t.quiz);
+      if (quizText)
+        flow.push({ id: quizText.id, kind: "quiz", subBabId: subBab.id });
+
+      const assignmentText = subBab.texts.find((t) => t.assignment);
+      if (assignmentText)
+        flow.push({
+          id: assignmentText.id,
+          kind: "assignment",
+          subBabId: subBab.id,
+        });
+    });
+
+    return flow;
+  }, [subChapter]);
+
+  // 🔥 BARU: Set berisi id ELearningText yang BOLEH diakses sekarang —
+  // sebuah entry di `globalFlow` cuma boleh diakses kalau SEMUA entry
+  // SEBELUM dia (bukan cuma satu sebelumnya) sudah completed
+  // (`completedTextIds`, dari useElearningSubChapterTextProgress di
+  // atas). Entry pertama selalu boleh diakses. Ini otomatis
+  // menangani SEMUA kasus yang diminta:
+  // - materi ke-3 butuh materi 1 & 2 SubBab yang sama selesai duluan
+  //   (keduanya entry SEBELUM materi ke-3 di flow ini).
+  // - quiz/assignment SubBab X butuh SEMUA materi SubBab X selesai
+  //   (materi-materinya persis entry SEBELUM quiz/assignment itu).
+  // - materi pertama SubBab berikutnya butuh SubBab sebelumnya (materi
+  //   + quiz/assignment-nya) selesai TOTAL duluan.
+  // Sengaja HANYA gate di sisi FE (bukan nambah validasi urutan di
+  // backend) — sesuai yang diminta, cukup "kalau mau lompat, kelock".
+  const unlockedTextIds = useMemo(() => {
+    const unlocked = new Set<string>();
+    let allPriorCompleted = true;
+
+    for (const entry of globalFlow) {
+      if (allPriorCompleted) unlocked.add(entry.id);
+      allPriorCompleted = allPriorCompleted && completedTextIds.has(entry.id);
+    }
+
+    return unlocked;
+  }, [globalFlow, completedTextIds]);
+
+  // 🔥 BARU: item PALING AWAL di `globalFlow` yang belum completed —
+  // ini "titik lanjut yang benar" buat tombol di pesan terkunci (lihat
+  // cabang `isActiveLocked` di CONTENT AREA di bawah & `goToFlowEntry`
+  // setelah state quiz/assignment). Karena `unlockedTextIds` dihitung
+  // dari urutan yang SAMA, item ini SELALU unlocked (kalaupun belum
+  // completed) — aman buat langsung dituju.
+  const resumeEntry = useMemo(
+    () => globalFlow.find((entry) => !completedTextIds.has(entry.id)) ?? null,
+    [globalFlow, completedTextIds],
+  );
+
   const moduleParam = searchParams.get("module");
   const subModuleParam = searchParams.get("submodule");
   const taskParam = searchParams.get("task");
@@ -256,6 +410,41 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
   const [contentMode, setContentMode] = useState<ContentMode>(null);
   const [navigationSource, setNavigationSource] = useState<"manual" | "footer">(
     "manual",
+  );
+
+  // 🔥 BARU: apakah quiz/assignment yang lagi aktif punya jawaban/draft
+  // yang BELUM disubmit — dilaporkan real-time oleh QuizRenderer/
+  // AssignmentRenderer di SubchapterContent.tsx lewat prop
+  // `onUnsavedChangesChange`. Dipakai buat mutuskan apa navigasi ke
+  // materi/task lain (klik sidebar, tombol "Kembali", footer
+  // Sebelumnya/Selanjutnya) perlu di-guard modal konfirmasi dulu, supaya
+  // mentee nggak nggak sadar kehilangan jawaban yang sudah diisi.
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // 🔥 BARU: nyimpen AKSI NAVIGASI yang sempat "ditahan" karena
+  // `hasUnsavedChanges` masih true saat diklik — begitu mentee konfirmasi
+  // "Ya, Tinggalkan" di modal, fungsi ini yang dijalankan. `null` berarti
+  // modal konfirmasi lagi tertutup.
+  const [pendingNavigation, setPendingNavigation] = useState<
+    (() => void) | null
+  >(null);
+
+  // 🔥 BARU: satu pintu buat SEMUA aksi navigasi user-triggered (pindah
+  // materi/quiz/assignment/sertifikat lewat sidebar, tombol "Kembali",
+  // "Lanjutkan dari Urutan yang Benar", footer Sebelumnya/Selanjutnya).
+  // Kalau lagi nggak ada draft belum tersimpan, aksinya langsung jalan
+  // seperti biasa. Kalau ADA, aksinya ditahan dulu di `pendingNavigation`
+  // dan modal konfirmasi muncul — baru dieksekusi kalau mentee pilih "Ya,
+  // Tinggalkan" (lihat modal-nya di JSX paling bawah).
+  const guardNavigation = useCallback(
+    (action: () => void) => {
+      if (hasUnsavedChanges) {
+        setPendingNavigation(() => action);
+        return;
+      }
+      action();
+    },
+    [hasUnsavedChanges],
   );
 
   // 🔥 Set mode awal begitu struktur subChapter selesai di-load, mengikuti
@@ -306,10 +495,27 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subChapter, allTexts, taskFlow]);
 
-  const activeTextId =
+  // 🔥 BARU: id yang lagi DIMINTA lewat `contentMode` — sumbernya BISA
+  // dari klik sidebar/footer (yang sudah di-guard duluan lewat
+  // `unlockedTextIds` di masing-masing handler), TAPI JUGA bisa
+  // LANGSUNG dari query param URL (`?module=&submodule=` / `?task=`)
+  // di effect bootstrap di atas — itu satu-satunya jalan "lompat" yang
+  // nggak lewat guard klik sama sekali (mis. refresh / ubah URL manual
+  // ke materi yang belum gilirannya).
+  const requestedTextId =
     contentMode && contentMode.type !== "certificate"
       ? contentMode.textId
       : null;
+
+  // 🔥 BARU: begitu ketauan textId yang diminta itu locked, JANGAN fetch
+  // detail text/quiz/assignment-nya sama sekali (`activeTextId` di-null-
+  // kan) — biar isinya nggak sempat ke-load ke browser cuma gara-gara
+  // orang ubah URL manual, dan biar area KONTEN (bukan cuma sidebar)
+  // nampilin pesan terkunci alih-alih render materinya (lihat cabang
+  // `isActiveLocked` di CONTENT AREA di bawah).
+  const isActiveLocked =
+    !!requestedTextId && !unlockedTextIds.has(requestedTextId);
+  const activeTextId = isActiveLocked ? null : requestedTextId;
   const { text: fullText, loading: textLoading } =
     useElearningTextDetail(activeTextId);
 
@@ -524,6 +730,17 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
         activeIndex < flow.length - 1 ? toNavItem(flow[activeIndex + 1]) : null,
     };
   }, [contentMode, subChapter]);
+
+  // 🔥 BARU: `navigationMeta.next` ADA (bukan materi/task terakhir),
+  // tapi belum boleh diakses (materi/task sebelumnya belum semuanya
+  // selesai) — beda kondisi dari `next === null` (memang sudah paling
+  // akhir). Dipakai SubchapterFooter buat nampilin tombol "Selanjutnya"
+  // dalam kondisi terkunci (ikon gembok + disabled + tooltip) alih-alih
+  // panah biasa. `next.id` di navigationMeta SELALU textId-nya (materi
+  // MAUPUN task, lihat `toNavItem` di atas), jadi cukup satu pengecekan
+  // ke `unlockedTextIds` yang sama dipakai buat sidebar.
+  const nextLocked =
+    !!navigationMeta.next && !unlockedTextIds.has(navigationMeta.next.id);
 
   /* ================= MODE UNTUK SubchapterContent ================= */
   const rendererMode = useMemo(() => {
@@ -852,6 +1069,48 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
     );
   }
 
+  // 🔥 BARU: navigasi ke satu entry `globalFlow` (materi/quiz/
+  // assignment) — dipakai tombol "Lanjutkan" di pesan terkunci (cabang
+  // `isActiveLocked` di CONTENT AREA di bawah). Logic-nya sama persis
+  // dengan `onSelectText`/`onSelectTask` yang dikirim ke
+  // SubchapterSidebar (set contentMode + sinkronkan query param URL),
+  // cuma bentuk parameternya beda (entry `globalFlow`, bukan objek dari
+  // sidebar). Sengaja ditaruh SETELAH guard `!subChapter` di atas (bukan
+  // di dekat state quiz/assignment) supaya TypeScript tahu `subChapter`
+  // di sini sudah pasti bukan null.
+  const goToFlowEntry = (entry: {
+    id: string;
+    kind: "submodule" | "quiz" | "assignment";
+    subBabId: string;
+  }) => {
+    guardNavigation(() => {
+      setNavigationSource("manual");
+      setQuizScore(null);
+      setIsQuizSubmitted(false);
+      setAssignmentScore(null);
+
+      if (entry.kind === "submodule") {
+        setContentMode({ type: "submodule", textId: entry.id });
+
+        const subBabIndex = subChapter.subBabs.findIndex(
+          (sb) => sb.id === entry.subBabId,
+        );
+        const textsInSubBab = allTexts.filter(
+          (t) => t.subBabId === entry.subBabId,
+        );
+        const textIndex = textsInSubBab.findIndex((t) => t.id === entry.id);
+
+        router.push(`?module=${subBabIndex + 1}&submodule=${textIndex + 1}`, {
+          scroll: false,
+        });
+        return;
+      }
+
+      setContentMode({ type: entry.kind, textId: entry.id });
+      router.push(`?task=${entry.kind}`, { scroll: false });
+    });
+  };
+
   return (
     <div
       className={`${jakartaSans.className} min-h-screen flex flex-col bg-white`}
@@ -868,35 +1127,61 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
           activeTaskTextId={activeTaskTextId}
           progressPercent={displayProgressPercent}
           lastActivityAt={displayLastActivityAt}
+          completedTextIds={completedTextIds}
+          completedSubBabIds={completedSubBabIds}
+          unlockedTextIds={unlockedTextIds}
           certificateStatus={certificateStatus}
           isCertificateActive={contentMode?.type === "certificate"}
           onSelectText={(text) => {
-            setNavigationSource("manual");
-            setQuizScore(null);
-            setIsQuizSubmitted(false);
-            setAssignmentScore(null);
-            setContentMode({ type: "submodule", textId: text.id });
+            // 🔥 BARU: jaga-jaga dobel dengan guard yang sudah ada di
+            // SubchapterSidebar.tsx sendiri (li onClick materi) — kalau
+            // ada pemanggil lain ke prop ini di masa depan, akses
+            // "lompat" ke materi yang masih terkunci tetap dicegah di
+            // sini juga.
+            if (!unlockedTextIds.has(text.id)) return;
 
-            const subBabIndex = subChapter.subBabs.findIndex(
-              (sb) => sb.id === text.subBabId,
-            );
-            const textsInSubBab = allTexts.filter(
-              (t) => t.subBabId === text.subBabId,
-            );
-            const textIndex = textsInSubBab.findIndex((t) => t.id === text.id);
+            // 🔥 BARU: kalau quiz/assignment yang lagi aktif masih ada
+            // jawaban/draft belum disubmit, tahan dulu aksi pindah
+            // materi ini — tampilkan modal konfirmasi (lihat
+            // `guardNavigation`/`pendingNavigation`). Begitu mentee
+            // konfirmasi, isi closure di bawah ini yang dijalankan.
+            guardNavigation(() => {
+              setNavigationSource("manual");
+              setQuizScore(null);
+              setIsQuizSubmitted(false);
+              setAssignmentScore(null);
+              setContentMode({ type: "submodule", textId: text.id });
 
-            router.push(
-              `?module=${subBabIndex + 1}&submodule=${textIndex + 1}`,
-              { scroll: false },
-            );
+              const subBabIndex = subChapter.subBabs.findIndex(
+                (sb) => sb.id === text.subBabId,
+              );
+              const textsInSubBab = allTexts.filter(
+                (t) => t.subBabId === text.subBabId,
+              );
+              const textIndex = textsInSubBab.findIndex(
+                (t) => t.id === text.id,
+              );
+
+              router.push(
+                `?module=${subBabIndex + 1}&submodule=${textIndex + 1}`,
+                { scroll: false },
+              );
+            });
           }}
           onSelectTask={(task) => {
-            setNavigationSource("manual");
-            setQuizScore(null);
-            setIsQuizSubmitted(false);
-            setAssignmentScore(null);
-            setContentMode({ type: task.type, textId: task.textId });
-            router.push(`?task=${task.type}`, { scroll: false });
+            // 🔥 BARU: sama seperti onSelectText — quiz/assignment cuma
+            // boleh diakses kalau SEMUA materi (dan penilaian SubBab
+            // sebelumnya) sudah selesai.
+            if (!unlockedTextIds.has(task.textId)) return;
+
+            guardNavigation(() => {
+              setNavigationSource("manual");
+              setQuizScore(null);
+              setIsQuizSubmitted(false);
+              setAssignmentScore(null);
+              setContentMode({ type: task.type, textId: task.textId });
+              router.push(`?task=${task.type}`, { scroll: false });
+            });
           }}
           onSelectCertificate={() => {
             // 🔥 BARU: buka sertifikat DI AREA KONTEN UTAMA — sama
@@ -904,13 +1189,18 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
             // fetch fullText apa pun (lihat rendering di bawah, cabang
             // `contentMode?.type === "certificate"` di-render LANGSUNG,
             // di luar alur textLoading/rendererMode).
-            setNavigationSource("manual");
-            setQuizScore(null);
-            setIsQuizSubmitted(false);
-            setAssignmentScore(null);
-            setContentMode({ type: "certificate" });
-            router.push(`?task=certificate`, { scroll: false });
+            guardNavigation(() => {
+              setNavigationSource("manual");
+              setQuizScore(null);
+              setIsQuizSubmitted(false);
+              setAssignmentScore(null);
+              setContentMode({ type: "certificate" });
+              router.push(`?task=certificate`, { scroll: false });
+            });
           }}
+          onBack={() =>
+            guardNavigation(() => router.push(`/elearning/${practiceId}`))
+          }
         />
 
         {/* 🔥 FIX (sidebar ikut menyempit kalau judul materi panjang):
@@ -952,16 +1242,62 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
           <main
             ref={mainRef}
             onScroll={handleContentScroll}
-            className="flex-1 overflow-y-auto px-6 py-8 pb-24 bg-white"
+            className="flex-1 overflow-y-auto px-15 py-8 pb-24 bg-white"
           >
             {contentMode?.type === "certificate" ? (
               <SubchapterCertificateContent
                 status={certificateStatus}
                 certificate={certificate}
+                notEligibleReason={notEligibleReason}
                 onRetry={() =>
                   ensureCertificate(subChapterId, displayProgressPercent)
                 }
               />
+            ) : isActiveLocked ? (
+              // 🔥 BARU: `contentMode` lagi nunjuk ke materi/quiz/
+              // assignment yang BELUM gilirannya — kejadian ini cuma bisa
+              // dari `?module=&submodule=` / `?task=` di URL yang diubah
+              // manual (refresh/bookmark/ketik langsung), karena semua
+              // jalur klik (sidebar & footer) sudah di-guard duluan.
+              // `activeTextId` sengaja sudah di-null-kan di atas (nggak
+              // fetch detail-nya sama sekali), jadi di sini TINGGAL kasih
+              // tau alasannya + tombol buat lanjut dari titik yang benar.
+              <div className="relative overflow-hidden flex flex-col items-center justify-center min-h-[40vh] px-6 py-12 text-center">
+                <div className="pointer-events-none absolute -top-16 -left-14 w-48 h-48 bg-slate-200/40 rounded-full blur-3xl" />
+                <div className="pointer-events-none absolute -bottom-16 -right-14 w-52 h-52 bg-gray-200/30 rounded-full blur-3xl" />
+
+                <div className="relative w-full max-w-sm">
+                  <div className="relative rounded-2xl border border-gray-200 bg-white/80 backdrop-blur-sm shadow-xl shadow-gray-900/5 px-6 py-9">
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 h-1.5 w-12 rounded-full bg-gradient-to-r from-gray-400 to-slate-500" />
+
+                    <div className="relative mx-auto mb-5 flex items-center justify-center w-16 h-16">
+                      <div className="relative w-11 h-11 rounded-full bg-gradient-to-br from-gray-500 to-slate-600 flex items-center justify-center shadow-lg shadow-gray-500/30">
+                        <Lock className="w-5 h-5 text-white" />
+                      </div>
+                    </div>
+
+                    <h3 className="text-base font-bold text-gray-900 mb-2">
+                      Materi Ini Masih Terkunci
+                    </h3>
+
+                    <p className="text-sm text-gray-500 leading-relaxed mb-6">
+                      Akses materi harus berurutan. Selesaikan dulu materi,
+                      quiz, atau tugas sebelumnya untuk membuka ini.
+                    </p>
+
+                    {resumeEntry && (
+                      <button
+                        type="button"
+                        onClick={() => goToFlowEntry(resumeEntry)}
+                        className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs sm:text-sm font-semibold px-5 py-2.5 shadow-lg shadow-emerald-500/25 transition-all hover:shadow-emerald-500/40 hover:-translate-y-0.5"
+                      >
+                        Lanjutkan dari Urutan yang Benar
+                        <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
             ) : !contentMode &&
               allTexts.length === 0 &&
               taskFlow.length === 0 ? (
@@ -1030,18 +1366,8 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
                 onAssignmentScore={(score) => {
                   setAssignmentScore(score);
                 }}
-                onContentCompleted={(completedTextId) => {
-                  // 🔥 FIX: quiz & assignment TIDAK lagi ditandai lewat
-                  // markTextComplete (yang nulis ke ELearningTextProgress
-                  // — cocoknya buat materi doang, bukan quiz/assignment).
-                  // Sumber kebenaran quiz/assignment ada di
-                  // ELearningQuizAttempt/ELearningSubmission sendiri, jadi
-                  // cukup minta backend hitung ULANG dari situ tiap kali
-                  // halaman quiz/assignment ini dibuka & dianggap selesai
-                  // — hasilnya selalu segar, nggak nyangkut di angka lama
-                  // kalau attempt/submission-nya berubah/dihapus.
-                  syncSubChapterProgress(subChapterId, completedTextId);
-                }}
+                onContentCompleted={handleContentCompleted}
+                onUnsavedChangesChange={setHasUnsavedChanges}
               />
             )}
           </main>
@@ -1051,36 +1377,50 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
       <SubchapterFooter
         prev={navigationMeta?.prev ?? null}
         next={navigationMeta?.next ?? null}
+        nextLocked={nextLocked}
         onNavigate={(item) => {
-          setNavigationSource("footer");
-          setQuizScore(null);
-          setIsQuizSubmitted(false);
-          setAssignmentScore(null);
+          // 🔥 BARU: footer "Selanjutnya/Sebelumnya" cuma nuju SATU
+          // langkah dari posisi sekarang, tapi kalau materi/task yang
+          // AKTIF sekarang belum completed, item "Selanjutnya" itu bisa
+          // saja masih terkunci (mis. quiz baru boleh diakses kalau
+          // SEMUA materi SubBab-nya selesai) — cek di sini juga.
+          const targetId = (item as any).__task
+            ? (item as any).__task.textId
+            : item.id;
+          if (!unlockedTextIds.has(targetId)) return;
 
-          // ================= TASK =================
-          if ((item as any).__task) {
-            const task = (item as any).__task;
-            setContentMode({ type: task.type, textId: task.textId });
-            router.push(`?task=${task.type}`, { scroll: false });
-            return;
-          }
+          guardNavigation(() => {
+            setNavigationSource("footer");
+            setQuizScore(null);
+            setIsQuizSubmitted(false);
+            setAssignmentScore(null);
 
-          // ================= SUBMODULE (Text) =================
-          const text = allTexts.find((t) => t.id === item.id);
-          if (!text) return;
+            // ================= TASK =================
+            if ((item as any).__task) {
+              const task = (item as any).__task;
+              setContentMode({ type: task.type, textId: task.textId });
+              router.push(`?task=${task.type}`, { scroll: false });
+              return;
+            }
 
-          setContentMode({ type: "submodule", textId: text.id });
+            // ================= SUBMODULE (Text) =================
+            const text = allTexts.find((t) => t.id === item.id);
+            if (!text) return;
 
-          const subBabIndex = subChapter.subBabs.findIndex(
-            (sb) => sb.id === text.subBabId,
-          );
-          const textsInSubBab = allTexts.filter(
-            (t) => t.subBabId === text.subBabId,
-          );
-          const textIndex = textsInSubBab.findIndex((t) => t.id === text.id);
+            setContentMode({ type: "submodule", textId: text.id });
 
-          router.push(`?module=${subBabIndex + 1}&submodule=${textIndex + 1}`, {
-            scroll: false,
+            const subBabIndex = subChapter.subBabs.findIndex(
+              (sb) => sb.id === text.subBabId,
+            );
+            const textsInSubBab = allTexts.filter(
+              (t) => t.subBabId === text.subBabId,
+            );
+            const textIndex = textsInSubBab.findIndex((t) => t.id === text.id);
+
+            router.push(
+              `?module=${subBabIndex + 1}&submodule=${textIndex + 1}`,
+              { scroll: false },
+            );
           });
         }}
       />
@@ -1099,6 +1439,58 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
           if (result) setReviewModalOpen(false);
         }}
       />
+
+      {/* ================= CONFIRM LEAVE MODAL ================= */}
+      {/* 🔥 BARU: muncul begitu mentee coba pindah materi/quiz/assignment
+          lain (klik sidebar, tombol "Kembali", "Lanjutkan dari Urutan yang
+          Benar", atau footer Sebelumnya/Selanjutnya) SEMENTARA quiz/
+          assignment yang lagi aktif masih ada jawaban/draft yang belum
+          disubmit (`hasUnsavedChanges`, dilaporkan dari
+          SubchapterContent.tsx). Ini pelengkap peringatan `beforeunload`
+          (yang cuma nangkep refresh/tutup tab) — navigasi DI DALAM app
+          (client-side routing Next.js) sama sekali nggak lewat
+          `beforeunload`, jadi butuh modal sendiri di sini. */}
+      {pendingNavigation && (
+        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center px-4">
+          <div className="bg-white rounded-2xl w-full max-w-md p-8 text-center space-y-4 shadow-2xl">
+            <div className="flex justify-center">
+              <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center">
+                <AlertTriangle className="w-8 h-8 text-amber-500" />
+              </div>
+            </div>
+
+            <h2 className="text-xl font-bold text-gray-900 mb-1">
+              Tinggalkan Halaman Ini?
+            </h2>
+
+            <p className="text-gray-700 text-base leading-relaxed">
+              Jawaban atau berkas yang sudah kamu isi belum dikirim/
+              dikumpulkan. Kalau pindah sekarang, semuanya akan hilang.
+            </p>
+
+            <div className="flex gap-4 pt-2">
+              <button
+                onClick={() => setPendingNavigation(null)}
+                className="flex-1 border border-emerald-500 text-emerald-600 py-3 rounded-lg font-semibold hover:bg-emerald-50 transition"
+              >
+                Batal, Kembali Isi
+              </button>
+
+              <button
+                onClick={() => {
+                  const action = pendingNavigation;
+                  setPendingNavigation(null);
+                  setHasUnsavedChanges(false);
+                  action?.();
+                }}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white py-3 rounded-lg font-semibold transition"
+              >
+                Ya, Tinggalkan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

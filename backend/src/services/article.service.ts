@@ -6,6 +6,7 @@ import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import { elearningThumbnailPath } from "../middlewares/uploadImage.js";
+import { articleCoverPath } from "../middlewares/uploadImage.js";
 
 const prisma = new PrismaClient();
 
@@ -17,6 +18,24 @@ function slugify(text: string): string {
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
+}
+
+// 🔥 Hapus file cover lama dari disk. Dipanggil setelah DB update/delete
+// berhasil (bukan sebelumnya), supaya kalau operasi DB gagal, file lama
+// tetap aman dan tidak ke-hapus sia-sia.
+function deleteCoverImageFile(coverImageUrl?: string | null) {
+  if (!coverImageUrl) return;
+
+  const filename = path.basename(coverImageUrl);
+  const filePath = path.join(articleCoverPath, filename);
+
+  fs.unlink(filePath, (err) => {
+    // ENOENT (file memang udah nggak ada) bukan masalah — selain itu, log aja
+    // biar ketahuan, tapi jangan sampai bikin request utamanya gagal.
+    if (err && (err as NodeJS.ErrnoException).code !== "ENOENT") {
+      console.error("Gagal menghapus file cover artikel lama:", err);
+    }
+  });
 }
 
 const articleDetailInclude = {
@@ -150,6 +169,70 @@ export default {
     };
   },
 
+  // 🔥 Admin-only (di-guard di route) — nampilin SEMUA status (bukan cuma
+  // PUBLISHED kayak getArticles publik di atas), dipakai tabel admin.
+  // stats-nya sengaja dihitung dari query TANPA filter where, jadi angkanya
+  // selalu total keseluruhan biarpun tabelnya lagi difilter search/status.
+  async getArticlesAdmin(query: {
+    page: number;
+    limit: number;
+    search?: string;
+    status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+    sortBy: "title" | "createdAt" | "updatedAt" | "status";
+    sortOrder: "asc" | "desc";
+  }) {
+    const { page, limit, search, status, sortBy, sortOrder } = query;
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (status) where.status = status;
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: "insensitive" } },
+        { excerpt: { contains: search, mode: "insensitive" } },
+        { category: { contains: search, mode: "insensitive" } },
+      ];
+    }
+
+    const [data, total, statusCounts] = await Promise.all([
+      prisma.article.findMany({
+        where,
+        orderBy: { [sortBy]: sortOrder },
+        skip,
+        take: limit,
+        include: {
+          author: {
+            select: { id: true, fullName: true, profilePicture: true },
+          },
+        },
+      }),
+      prisma.article.count({ where }),
+      prisma.article.groupBy({
+        by: ["status"],
+        _count: { _all: true },
+      }),
+    ]);
+
+    const countFor = (s: string) =>
+      statusCounts.find((row) => row.status === s)?._count._all ?? 0;
+
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+      stats: {
+        total: statusCounts.reduce((sum, row) => sum + row._count._all, 0),
+        draft: countFor("DRAFT"),
+        published: countFor("PUBLISHED"),
+        archived: countFor("ARCHIVED"),
+      },
+    };
+  },
+
   // 🔥 Admin-only (di-guard di route) — makanya nggak difilter status,
   // soalnya dipakai buat load draft/archived ke form edit di CMS.
   async getArticleById(id: string) {
@@ -216,6 +299,12 @@ export default {
       },
     });
 
+    // 🔥 Kalau cover diganti dengan yang baru (bukan sekadar nggak dikirim),
+    // hapus file cover lama dari disk — dipanggil SETELAH update DB sukses.
+    if (data.coverImage && data.coverImage !== existing.coverImage) {
+      deleteCoverImageFile(existing.coverImage);
+    }
+
     return updated;
   },
 
@@ -226,6 +315,10 @@ export default {
     // onDelete: Cascade di schema otomatis ngehapus semua
     // ArticleBlock/ArticleContentBlock/dst di bawah artikel ini.
     await prisma.article.delete({ where: { id } });
+
+    // 🔥 Hapus juga file cover-nya dari disk kalau ada, setelah row-nya
+    // sukses dihapus dari DB.
+    deleteCoverImageFile(existing.coverImage);
 
     return { id };
   },

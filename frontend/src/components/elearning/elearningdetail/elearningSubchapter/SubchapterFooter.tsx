@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Lock } from "lucide-react";
 
 interface NavItem {
   id: string;
@@ -12,9 +13,22 @@ interface Props {
   prev: NavItem | null;
   next: NavItem | null;
   onNavigate: (sm: any) => void;
+
+  // 🔥 BARU: true kalau `next` sebenarnya ADA tapi masih terkunci
+  // (belum boleh diakses — lihat `unlockedTextIds` di
+  // SubchapterDetail.tsx). Beda dari `next === null` (memang sudah
+  // materi/task TERAKHIR, nggak ada apa-apa lagi setelahnya) — di sini
+  // itemnya ADA, cuma belum "gilirannya". Tombol tetap kelihatan tapi
+  // di-disable, ikonnya ganti gembok, dan dikasih tooltip penjelasan.
+  nextLocked?: boolean;
 }
 
-export default function SubchapterFooter({ prev, next, onNavigate }: Props) {
+export default function SubchapterFooter({
+  prev,
+  next,
+  onNavigate,
+  nextLocked = false,
+}: Props) {
   return (
     <footer className="fixed bottom-0 left-0 right-0 h-16 bg-[#F8FAFC] border-t border-gray-200 z-50">
       <div className="h-full flex items-center justify-between px-6">
@@ -51,8 +65,13 @@ export default function SubchapterFooter({ prev, next, onNavigate }: Props) {
         {/* NEXT */}
         <Button
           variant="ghost"
-          disabled={!next}
-          onClick={() => next && onNavigate(next)}
+          disabled={!next || nextLocked}
+          onClick={() => next && !nextLocked && onNavigate(next)}
+          title={
+            next && nextLocked
+              ? "Selesaikan materi sebelumnya secara berurutan untuk membuka ini"
+              : undefined
+          }
           className="flex items-center gap-3 text-right disabled:opacity-40"
         >
           {/* TEXT */}
@@ -62,19 +81,27 @@ export default function SubchapterFooter({ prev, next, onNavigate }: Props) {
           </div>
 
           {/* ICON */}
-          <div className="w-8 h-8 flex items-center justify-center rounded-full border border-emerald-500">
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#10B981"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
+          <div
+            className={`w-8 h-8 flex items-center justify-center rounded-full border ${
+              next && nextLocked ? "border-gray-300" : "border-emerald-500"
+            }`}
+          >
+            {next && nextLocked ? (
+              <Lock size={13} strokeWidth={2.25} className="text-gray-400" />
+            ) : (
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#10B981"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            )}
           </div>
         </Button>
       </div>

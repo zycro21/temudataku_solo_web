@@ -1193,3 +1193,118 @@ export const upsertTextProgress = async ({
     },
   });
 };
+
+export const getSubChapterTextProgress = async ({
+  userId,
+  subChapterId,
+}: {
+  userId: string;
+  subChapterId: string;
+}) => {
+  const subChapter = await prisma.eLearningSubChapter.findUnique({
+    where: { id: subChapterId },
+    select: {
+      status: true,
+      course: { select: { isActive: true, status: true } },
+      subBabs: {
+        where: { status: "PUBLISHED" },
+        orderBy: { orderNumber: "asc" },
+        select: {
+          id: true,
+          texts: {
+            where: { status: "PUBLISHED" },
+            orderBy: { orderNumber: "asc" },
+            select: {
+              id: true,
+              quiz: { select: { id: true } },
+              assignment: { select: { id: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!subChapter) {
+    const err = new Error("Sub-chapter tidak ditemukan");
+    (err as any).statusCode = 404;
+    throw err;
+  }
+
+  if (
+    subChapter.status !== "PUBLISHED" ||
+    !subChapter.course.isActive ||
+    subChapter.course.status !== "PUBLISHED"
+  ) {
+    const err = new Error("Kursus ini tidak tersedia");
+    (err as any).statusCode = 403;
+    throw err;
+  }
+
+  const allTexts = subChapter.subBabs.flatMap((sb) => sb.texts);
+
+  const materiTextIds = allTexts
+    .filter((t) => !t.quiz && !t.assignment)
+    .map((t) => t.id);
+  const quizIds = allTexts.filter((t) => t.quiz).map((t) => t.quiz!.id);
+  const assignmentIds = allTexts
+    .filter((t) => t.assignment)
+    .map((t) => t.assignment!.id);
+
+  // 1) Materi: dari cache ELearningTextProgress
+  const materiDoneIds = new Set<string>();
+  if (materiTextIds.length > 0) {
+    const done = await prisma.eLearningTextProgress.findMany({
+      where: { userId, textId: { in: materiTextIds }, progress: { gte: 100 } },
+      select: { textId: true },
+    });
+    done.forEach((d) => materiDoneIds.add(d.textId));
+  }
+
+  // 2) Quiz: LIVE dari ELearningQuizAttempt
+  const quizDoneIds = new Set<string>();
+  if (quizIds.length > 0) {
+    const attempted = await prisma.eLearningQuizAttempt.findMany({
+      where: { userId, quizId: { in: quizIds } },
+      distinct: ["quizId"],
+      select: { quizId: true },
+    });
+    attempted.forEach((a) => quizDoneIds.add(a.quizId));
+  }
+
+  // 3) Assignment: LIVE dari ELearningSubmission, attempt terakhir REVIEWED
+  const assignmentDoneIds = new Set<string>();
+  if (assignmentIds.length > 0) {
+    const latestPerAssignment = await prisma.eLearningSubmission.findMany({
+      where: { userId, assignmentId: { in: assignmentIds } },
+      orderBy: { attemptNumber: "desc" },
+      distinct: ["assignmentId"],
+      select: { assignmentId: true, status: true },
+    });
+    latestPerAssignment.forEach((s) => {
+      if (s.status === "REVIEWED") assignmentDoneIds.add(s.assignmentId);
+    });
+  }
+
+  const textProgress = allTexts.map((t) => ({
+    textId: t.id,
+    completed: t.quiz
+      ? quizDoneIds.has(t.quiz.id)
+      : t.assignment
+        ? assignmentDoneIds.has(t.assignment.id)
+        : materiDoneIds.has(t.id),
+  }));
+
+  const textCompletedMap = new Map(
+    textProgress.map((t) => [t.textId, t.completed]),
+  );
+
+  const subBabProgress = subChapter.subBabs.map((sb) => ({
+    subBabId: sb.id,
+    completed:
+      sb.texts.length > 0 &&
+      sb.texts.every((t) => textCompletedMap.get(t.id) === true),
+  }));
+
+  return { subChapterId, subBabProgress, textProgress };
+};

@@ -1274,6 +1274,10 @@ export interface AuthenticatedRequestArticle extends Request {
     category?: string;
     tag?: string;
     search?: string;
+    // Khusus GET /articles/admin
+    status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+    sortBy?: "title" | "createdAt" | "updatedAt" | "status";
+    sortOrder?: "asc" | "desc";
   };
   file?: Express.Multer.File;
 }

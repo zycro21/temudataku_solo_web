@@ -87,3 +87,9 @@ export const recalculateSubChapterProgressSchema = z.object({
     id: z.string().min(1, "SubChapter ID wajib diisi"),
   }),
 });
+
+export const getSubChapterTextProgressSchema = z.object({
+  params: z.object({
+    id: z.string().min(1, "SubChapter ID wajib diisi"),
+  }),
+});

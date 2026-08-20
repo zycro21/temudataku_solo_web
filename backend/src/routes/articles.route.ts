@@ -1,18 +1,20 @@
-import express from "express";
+import { Router } from "express";
+// 🔥 Sesuaikan semua path import di bawah ini dengan struktur folder project kamu
 import { validate } from "../middlewares/validate.js";
 import { authenticate } from "../middlewares/authenticate.js";
 import { authorizeRoles } from "../middlewares/authorizeRole.js";
-import ArticleController from "../controllers/article.controller.js";
 import { handleArticleCoverUpload } from "../middlewares/uploadImage.js";
+import ArticleController from "../controllers/article.controller.js";
 import {
   createArticleSchema,
   updateArticleSchema,
   articleIdParamSchema,
   articleSlugParamSchema,
   articleListQuerySchema,
+  adminArticleListQuerySchema,
 } from "../validations/articles.validator.js";
 
-const router = express.Router();
+const router = Router();
 
 /**
  * @swagger
@@ -111,6 +113,62 @@ router.get(
   "/articles",
   validate(articleListQuerySchema),
   ArticleController.getArticles,
+);
+
+/**
+ * @swagger
+ * /api/article/articles/admin:
+ *   get:
+ *     summary: Admin melihat semua artikel apa pun statusnya (buat tabel admin), sekalian statistik jumlah per status
+ *     description:
+ *       - HARUS didaftarkan sebelum GET /articles/{id} di route, kalau tidak Express bakal salah nangkep "admin" sebagai nilai id.
+ *     tags: [Articles]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         example: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         example: 10
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [DRAFT, PUBLISHED, ARCHIVED]
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [title, createdAt, updatedAt, status]
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *     responses:
+ *       200:
+ *         description: Daftar artikel (semua status) + stats
+ *       403:
+ *         description: Hanya admin yang dapat mengakses endpoint ini
+ *       500:
+ *         description: Kesalahan server
+ */
+router.get(
+  "/articles/admin",
+  authenticate,
+  authorizeRoles("admin", "cm", "curdev"),
+  validate(adminArticleListQuerySchema),
+  ArticleController.getArticlesAdmin,
 );
 
 /**

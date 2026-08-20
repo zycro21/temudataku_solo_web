@@ -16,30 +16,19 @@ export interface ElearningSubChapterCertificateApiItem {
 }
 
 export type CertificateStatus =
-  | "idle" // belum dicek sama sekali / progress belum 100%
-  | "checking" // lagi GET .../certificate/me
-  | "generating" // lagi POST .../certificate/auto
-  | "ready" // sudah ada (baru dibuat / sudah ada sebelumnya)
+  | "idle"
+  | "checking"
+  | "generating"
+  | "not-eligible" // 🔥 BARU: progress 100%, tapi syarat skor belum terpenuhi
+  | "ready"
   | "error";
 
 interface UseElearningSubChapterCertificateResult {
   certificate: ElearningSubChapterCertificateApiItem | null;
   status: CertificateStatus;
-  /**
-   * Panggil ini tiap kali progress SubChapter berubah (sama seperti pola
-   * `checkMyReview` di SubchapterDetail.tsx). Aman dipanggil berkali-kali
-   * — kalau sudah "ready"/"checking"/"generating", panggilan berikutnya
-   * di-skip (tidak nembak API lagi).
-   *
-   * Alurnya:
-   * 1. GET /subchapters/{id}/certificate/me → cek apakah mentee sudah
-   *    punya sertifikat untuk course ini.
-   * 2. Kalau SUDAH ada → langsung tampilkan (status "ready"), SELESAI.
-   * 3. Kalau BELUM ada DAN progressPercent < 100 → status balik ke
-   *    "idle" (belum eligible, jangan generate).
-   * 4. Kalau BELUM ada DAN progressPercent >= 100 → POST
-   *    /subchapters/{id}/certificate/auto buat generate-nya sekarang.
-   */
+  // 🔥 BARU: alasan belum eligible, dari message backend — dipakai buat
+  // ditampilkan ke mentee di SubchapterCertificateContent.
+  notEligibleReason: string | null;
   ensureCertificate: (
     subChapterId: string,
     progressPercent: number,
@@ -50,32 +39,56 @@ export function useElearningSubChapterCertificate(): UseElearningSubChapterCerti
   const [certificate, setCertificate] =
     useState<ElearningSubChapterCertificateApiItem | null>(null);
   const [status, setStatus] = useState<CertificateStatus>("idle");
+  const [notEligibleReason, setNotEligibleReason] = useState<string | null>(
+    null,
+  );
 
-  // 🔥 Sama seperti `reviewCheckedRef` di SubchapterDetail.tsx — mencegah
-  // `ensureCertificate` nembak API berkali-kali tiap kali komponen
-  // re-render (mis. tiap kali progressPercent di-set ulang ke angka yang
-  // sama), cukup jalan sekali per mount sampai statusnya pasti
-  // (ready/error).
   const inFlightRef = useRef(false);
+
+  // 🔥 FIX (bug kelap-kelip di sidebar): sebelumnya `ensureCertificate`
+  // di-useCallback dengan dependency `[status]` — artinya function
+  // IDENTITY-nya berubah setiap kali status berubah. Karena SubchapterDetail
+  // punya effect `[displayProgressPercent, subChapterId, ensureCertificate]`,
+  // perubahan identity ini bikin effect itu jalan LAGI. Dan karena status
+  // "not-eligible" SENGAJA tidak masuk guard (biar bisa di-retry manual),
+  // effect yang re-run itu langsung manggil ensureCertificate lagi dari nol
+  // → checking → generating → not-eligible → identity berubah lagi → effect
+  // jalan lagi → LOOP TANPA HENTI (dan backend ke-spam POST /certificate/auto
+  // berkali-kali).
+  //
+  // Fix: baca status TERKINI lewat ref (bukan lewat closure/dependency),
+  // supaya identity ensureCertificate tetap STABIL (tidak pernah dibuat
+  // ulang) walau status-nya berubah-ubah. Effect di komponen pemanggil jadi
+  // cuma jalan saat subChapterId/progressPercent BENAR-BENAR berubah, bukan
+  // tiap render.
+  const statusRef = useRef<CertificateStatus>(status);
+  statusRef.current = status;
 
   const ensureCertificate = useCallback(
     async (subChapterId: string, progressPercent: number) => {
       if (!subChapterId) return;
-      // 🔥 Kalau progress belum 100%, jangan lakukan apa-apa (status idle)
       if (progressPercent < 100) {
         setStatus("idle");
         return;
       }
 
       if (inFlightRef.current) return;
-      if (status === "ready" || status === "generating") return;
+      // "not-eligible" & "error" SENGAJA tidak masuk guard ini — biar bisa
+      // di-retry lewat pemanggilan MANUAL (klik tombol "Cek Lagi", atau
+      // dipanggil ulang eksplisit setelah quiz/project di-attempt ulang di
+      // SubchapterDetail.tsx) — BUKAN lewat re-run otomatis effect.
+      if (
+        statusRef.current === "ready" ||
+        statusRef.current === "generating" ||
+        statusRef.current === "checking"
+      )
+        return;
 
       inFlightRef.current = true;
       setStatus("checking");
+      setNotEligibleReason(null);
 
       try {
-        // 1) Cek dulu — jangan asumsikan langsung generate, siapa tahu
-        // sertifikatnya sudah pernah dibuat di kunjungan sebelumnya.
         const checkRes = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/elearningCertificate/subchapters/${subChapterId}/certificate/me`,
           { withCredentials: true },
@@ -90,61 +103,63 @@ export function useElearningSubChapterCertificate(): UseElearningSubChapterCerti
           return;
         }
 
-        // 2) Belum ada. Kalau progress belum 100%, belum saatnya generate
-        // — balik ke idle dan diamkan (akan dicoba lagi lain kali
-        // `ensureCertificate` dipanggil dengan progressPercent baru).
-        if (progressPercent < 100) {
-          setStatus("idle");
-          return;
-        }
-
-        // 3) Progress sudah 100% dan belum ada sertifikat → generate
-        // sekarang (endpoint ini sendiri sudah menjaga idempoten: kalau
-        // ternyata di sisi server SUDAH ada, dia akan menolak dengan
-        // error "Certificate already exists...", ditangani di catch di
-        // bawah dengan mencoba GET ulang).
         setStatus("generating");
 
-        const generateRes = await axios.post(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/elearningCertificate/subchapters/${subChapterId}/certificate/auto`,
-          {},
-          { withCredentials: true },
-        );
-
-        setCertificate(generateRes.data?.data ?? null);
-        setStatus("ready");
-      } catch (err) {
-        // 🔥 Race condition: kalau dua tab/request nyaris bersamaan
-        // sama-sama lolos pengecekan "belum ada" lalu sama-sama generate,
-        // salah satu bakal gagal karena constraint unik di DB
-        // (`userId_subChapterId`). Daripada langsung nampilin error ke
-        // mentee, coba GET ulang sekali — kemungkinan besar sertifikatnya
-        // justru sudah berhasil dibuat oleh request yang satunya.
         try {
-          const retryRes = await axios.get(
-            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/elearningCertificate/subchapters/${subChapterId}/certificate/me`,
+          const generateRes = await axios.post(
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/elearningCertificate/subchapters/${subChapterId}/certificate/auto`,
+            {},
             { withCredentials: true },
           );
-          const existing: ElearningSubChapterCertificateApiItem | null =
-            retryRes.data?.data ?? null;
 
-          if (existing) {
-            setCertificate(existing);
-            setStatus("ready");
+          setCertificate(generateRes.data?.data ?? null);
+          setStatus("ready");
+        } catch (genErr: any) {
+          // 🔥 BARU: 422 + code CERTIFICATE_NOT_ELIGIBLE → bukan error,
+          // itu memang belum saatnya. Jangan masuk alur retry-GET/error
+          // di bawah, cukup simpan alasannya.
+          if (
+            genErr?.response?.status === 422 &&
+            genErr?.response?.data?.code === "CERTIFICATE_NOT_ELIGIBLE"
+          ) {
+            setNotEligibleReason(genErr.response.data.message ?? null);
+            setStatus("not-eligible");
             return;
           }
-        } catch {
-          // diamkan, jatuh ke status error di bawah
-        }
 
-        console.error("Gagal memuat/membuat sertifikat:", err);
+          // Race condition dua tab: coba GET ulang sekali dulu sebelum
+          // benar-benar dianggap error.
+          try {
+            const retryRes = await axios.get(
+              `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/elearningCertificate/subchapters/${subChapterId}/certificate/me`,
+              { withCredentials: true },
+            );
+            const existingRetry: ElearningSubChapterCertificateApiItem | null =
+              retryRes.data?.data ?? null;
+
+            if (existingRetry) {
+              setCertificate(existingRetry);
+              setStatus("ready");
+              return;
+            }
+          } catch {
+            // diamkan, jatuh ke status error di bawah
+          }
+
+          console.error("Gagal membuat sertifikat:", genErr);
+          setStatus("error");
+        }
+      } catch (err) {
+        console.error("Gagal memuat sertifikat:", err);
         setStatus("error");
       } finally {
         inFlightRef.current = false;
       }
     },
-    [status],
+    // 🔥 Dependency SENGAJA dikosongkan (bukan [status]) — lihat penjelasan
+    // statusRef di atas. Ini yang bikin identity function stabil.
+    [],
   );
 
-  return { certificate, status, ensureCertificate };
+  return { certificate, status, notEligibleReason, ensureCertificate };
 }

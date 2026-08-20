@@ -14,6 +14,7 @@ import {
   exportElearningProgressController,
   completeTextProgressController,
   recalculateSubChapterProgressController,
+  getSubChapterTextProgressController,
 } from "../controllers/elearning_progress.controller.js";
 import {
   getMyProgressSchema,
@@ -27,6 +28,7 @@ import {
   exportProgressSchema,
   completeTextProgressSchema,
   recalculateSubChapterProgressSchema,
+  getSubChapterTextProgressSchema,
 } from "../validations/elearning_progress.validation.js";
 
 const router = express.Router();
@@ -778,6 +780,14 @@ router.post(
   authorizeRoles("mentee"),
   validate(recalculateSubChapterProgressSchema),
   recalculateSubChapterProgressController
+);
+
+router.get(
+  "/subchapters/:id/text-progress",
+  authenticate,
+  authorizeRoles("mentee"),
+  validate(getSubChapterTextProgressSchema),
+  getSubChapterTextProgressController
 );
 
 export default router;

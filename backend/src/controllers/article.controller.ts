@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import { AuthenticatedRequestArticle} from "../middlewares/authenticate.js";
-import  ArticleService from "../services/article.service.js";
+import { AuthenticatedRequestArticle } from "../middlewares/authenticate.js";
+import ArticleService from "../services/article.service.js";
 
 const adminLikeRoles = ["admin", "cm", "curdev"];
 
@@ -69,6 +69,53 @@ export default {
         category: validatedQuery?.category,
         tag: validatedQuery?.tag,
         search: validatedQuery?.search,
+      });
+
+      res.status(200).json({
+        success: true,
+        data: result,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  // Admin-only — list SEMUA status (bukan cuma PUBLISHED), dipakai tabel admin
+  async getArticlesAdmin(
+    req: AuthenticatedRequestArticle,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const { validatedQuery, user } = req;
+
+      if (!user) {
+        res.status(400).json({
+          success: false,
+          message: "Data request tidak valid",
+        });
+        return;
+      }
+
+      const isAdminLike = user.roles?.some((role) =>
+        adminLikeRoles.includes(role),
+      );
+
+      if (!isAdminLike) {
+        res.status(403).json({
+          success: false,
+          message: "Hanya admin/cm/curdev yang dapat mengakses endpoint ini",
+        });
+        return;
+      }
+
+      const result = await ArticleService.getArticlesAdmin({
+        page: validatedQuery?.page ?? 1,
+        limit: validatedQuery?.limit ?? 10,
+        search: validatedQuery?.search,
+        status: validatedQuery?.status,
+        sortBy: validatedQuery?.sortBy ?? "createdAt",
+        sortOrder: validatedQuery?.sortOrder ?? "desc",
       });
 
       res.status(200).json({

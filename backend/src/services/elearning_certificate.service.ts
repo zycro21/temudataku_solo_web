@@ -132,8 +132,7 @@ function buildAssessmentRows(data: {
   const finalScore =
     components.length > 0
       ? Math.round(
-          components.reduce((sum, score) => sum + score, 0) /
-            components.length,
+          components.reduce((sum, score) => sum + score, 0) / components.length,
         )
       : 0;
 
@@ -276,6 +275,164 @@ async function generateCertificatePDF({
   });
 }
 
+// 🔥 BARU: syarat kelulusan berbasis skor assessment, terpisah dari
+// syarat progress 100%. Nilainya SENGAJA disamakan dengan konstanta di
+// FE (useElearningQuizAttempt.ts / useElearningAssignmentSubmission.ts)
+// — kalau salah satu diubah, ubah juga yang satunya biar FE & BE selalu
+// sepakat kapan mentee "eligible".
+const QUIZ_PASSING_SCORE = 100;
+const MAX_QUIZ_ATTEMPTS = 2;
+const ASSIGNMENT_PASSING_SCORE = 75;
+const MAX_ASSIGNMENT_ATTEMPTS = 2;
+
+// 🔥 BARU: error khusus buat "belum eligible" (BUKAN error server) —
+// dibedakan dari error generik lewat `.code`, supaya controller bisa
+// balikin status yang sesuai (422, bukan 500) dan FE bisa nampilin
+// pesan yang pas ke mentee, bukan "terjadi kesalahan".
+class CertificateNotEligibleError extends Error {
+  code = "CERTIFICATE_NOT_ELIGIBLE" as const;
+  constructor(message: string) {
+    super(message);
+    this.name = "CertificateNotEligibleError";
+  }
+}
+
+// 🔥 BARU: cek SEMUA quiz yang ada di subchapter ini (biasanya cuma 1,
+// tapi ditulis general kalau suatu saat ada lebih dari 1 Text ber-quiz
+// dalam 1 SubChapter) — attempt TERAKHIR tiap quiz harus skor sempurna
+// ATAU kesempatan sudah habis (attempt ke-2).
+async function isQuizAssessmentPassed(
+  subChapterId: string,
+  userId: string,
+): Promise<boolean> {
+  const quizzes = await prisma.eLearningQuiz.findMany({
+    where: { text: { subBab: { subChapterId } } },
+    select: { id: true },
+  });
+
+  // taskType bilang subchapter ini ada quiz-nya, tapi datanya kosong →
+  // jangan lolos begitu saja, ini kondisi nggak normal (misconfigurasi).
+  if (quizzes.length === 0) return false;
+
+  for (const quiz of quizzes) {
+    const latestAttempt = await prisma.eLearningQuizAttempt.findFirst({
+      where: { quizId: quiz.id, userId },
+      orderBy: { attemptNumber: "desc" },
+    });
+
+    if (!latestAttempt) return false;
+
+    const isPerfectScore =
+      typeof latestAttempt.score === "number" &&
+      latestAttempt.score >= QUIZ_PASSING_SCORE;
+    const attemptsExhausted = latestAttempt.attemptNumber >= MAX_QUIZ_ATTEMPTS;
+
+    if (!isPerfectScore && !attemptsExhausted) return false;
+  }
+
+  return true;
+}
+
+// 🔥 BARU: sama seperti quiz, tapi buat assignment (project) — DAN
+// wajib sudah direview mentor (`status !== "PENDING"`) sebelum attempt
+// ke-2 dianggap "menghabiskan kesempatan". Tanpa syarat ini, submission
+// attempt ke-2 yang masih nunggu direview (score masih null) bisa lolos
+// generate sertifikat padahal belum ada keputusan lolos/tidak.
+async function isProjectAssessmentPassed(
+  subChapterId: string,
+  userId: string,
+): Promise<boolean> {
+  const assignments = await prisma.eLearningAssignment.findMany({
+    where: { text: { subBab: { subChapterId } } },
+    select: { id: true },
+  });
+
+  if (assignments.length === 0) return false;
+
+  for (const assignment of assignments) {
+    const latestSubmission = await prisma.eLearningSubmission.findFirst({
+      where: { assignmentId: assignment.id, userId },
+      orderBy: { attemptNumber: "desc" },
+    });
+
+    if (!latestSubmission) return false;
+
+    const isReviewed = latestSubmission.status !== "PENDING";
+    const scorePassing =
+      typeof latestSubmission.score === "number" &&
+      latestSubmission.score >= ASSIGNMENT_PASSING_SCORE;
+    const attemptsExhausted =
+      latestSubmission.attemptNumber >= MAX_ASSIGNMENT_ATTEMPTS;
+
+    if (!isReviewed) return false;
+    if (!scorePassing && !attemptsExhausted) return false;
+  }
+
+  return true;
+}
+
+function buildNotEligibleMessage(
+  needsQuiz: boolean,
+  needsProject: boolean,
+  quizPassed: boolean,
+  projectPassed: boolean,
+): string {
+  const reasons: string[] = [];
+  if (needsQuiz && !quizPassed) {
+    reasons.push(
+      "Skor Quiz belum 100 dan kesempatan mengerjakan ulang masih tersisa (Jika nilai Quiz sudah 100 atau kesempatan habis baru akan muncul)",
+    );
+  }
+  if (needsProject && !projectPassed) {
+    reasons.push(
+      `Projek belum Direview atau skornya belum mencapai ${ASSIGNMENT_PASSING_SCORE} dan kesempatan mengumpulkan ulang masih tersisa (Jika nilai Quiz sudah >= 75 atau kesempatan habis baru akan muncul)`,
+    );
+  }
+  return `Belum memenuhi syarat kelulusan: ${reasons.join(" & ")}.`;
+}
+
+// 🔥 BARU: dipanggil SETELAH syarat progress 100% lolos, sebelum
+// benar-benar generate sertifikat. Membaca `taskType` sub-chapter buat
+// tau syarat mana yang berlaku (quiz saja / project saja / dua-duanya).
+async function checkAssessmentEligibility(
+  subChapterId: string,
+  userId: string,
+) {
+  const subChapter = await prisma.eLearningSubChapter.findUnique({
+    where: { id: subChapterId },
+    select: { taskType: true },
+  });
+
+  if (!subChapter) {
+    throw new Error("Sub-chapter not found");
+  }
+
+  const { taskType } = subChapter;
+
+  // 🔥 Data lama yang belum diisi taskType-nya → jangan diblokir,
+  // biarkan cuma syarat progress 100% yang berlaku (perilaku lama).
+  if (!taskType) return;
+
+  const needsQuiz = taskType === "QUIZ" || taskType === "QUIZ_AND_PROJECT";
+  const needsProject =
+    taskType === "PROJECT" || taskType === "QUIZ_AND_PROJECT";
+
+  const [quizPassed, projectPassed] = await Promise.all([
+    needsQuiz
+      ? isQuizAssessmentPassed(subChapterId, userId)
+      : Promise.resolve(true),
+    needsProject
+      ? isProjectAssessmentPassed(subChapterId, userId)
+      : Promise.resolve(true),
+  ]);
+
+  if (quizPassed && projectPassed) return;
+
+  throw new CertificateNotEligibleError(
+    buildNotEligibleMessage(needsQuiz, needsProject, quizPassed, projectPassed),
+  );
+}
+
 /* ==============================
    MAIN SERVICE
 ================================ */
@@ -411,14 +568,6 @@ export const generateCertificateAuto = async ({
   subChapterId: string;
   userId: string;
 }) => {
-  // 🔥 UBAH TOTAL: dulu ngitung manual (subBabCount vs completedCount
-  // dari ELearningProgress, di-scope lewat courseId). Sekarang tinggal
-  // baca LANGSUNG dari ELearningSubChapterProgress.progressPercent —
-  // itu satu-satunya sumber kebenaran progress yang sudah kita bangun
-  // (dan yang juga ditampilkan ke mentee di sidebar), jadi trigger
-  // sertifikat ini otomatis konsisten dengan apa yang mentee lihat
-  // sendiri. Nggak perlu hitung ulang dari ELearningProgress lagi (itu
-  // model lama yang sudah nggak jadi sumber progress yang aktif).
   const progress = await prisma.eLearningSubChapterProgress.findUnique({
     where: {
       userId_subChapterId: { userId, subChapterId },
@@ -429,6 +578,11 @@ export const generateCertificateAuto = async ({
   if (!progress || progress.progressPercent < 100) {
     throw new Error("Progress belum 100%");
   }
+
+  // 🔥 BARU: syarat kedua — skor assessment (quiz/project) sesuai
+  // taskType subchapter. Lempar CertificateNotEligibleError kalau belum
+  // memenuhi, ditangkap khusus di controller (bukan error 500 generik).
+  await checkAssessmentEligibility(subChapterId, userId);
 
   return generateCertificate({ subChapterId, userId });
 };

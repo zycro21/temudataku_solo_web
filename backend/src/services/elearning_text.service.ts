@@ -1613,6 +1613,41 @@ export class ELearningTextService {
         }
       }
 
+      // ── 6b. Sinkronkan taskType SubChapter berdasarkan keberadaan quiz/
+      // assignment TERKINI (setelah section 5 & 6 di atas dieksekusi) ──────
+      // Cuma perlu dihitung ulang kalau bagian quiz/assignment memang
+      // disentuh di request ini (quiz !== undefined || assignment !==
+      // undefined) — kalau cuma update title/blocks materi biasa, taskType
+      // subChapter nggak mungkin berubah, jadi skip biar hemat query.
+      if (quiz !== undefined || assignment !== undefined) {
+        const subChapterId = existing.subBab.subChapterId;
+
+        const [hasQuiz, hasAssignment] = await Promise.all([
+          tx.eLearningQuiz.findFirst({
+            where: { text: { subBab: { subChapterId } } },
+            select: { id: true },
+          }),
+          tx.eLearningAssignment.findFirst({
+            where: { text: { subBab: { subChapterId } } },
+            select: { id: true },
+          }),
+        ]);
+
+        const newTaskType =
+          hasQuiz && hasAssignment
+            ? "QUIZ_AND_PROJECT"
+            : hasQuiz
+              ? "QUIZ"
+              : hasAssignment
+                ? "PROJECT"
+                : null;
+
+        await tx.eLearningSubChapter.update({
+          where: { id: subChapterId },
+          data: { taskType: newTaskType as any },
+        });
+      }
+
       // ── 7a. Audit log ────────────────────────────────────────────────────
       const updater = await tx.user.findUnique({
         where: { id: user.userId },

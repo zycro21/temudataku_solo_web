@@ -404,13 +404,14 @@ export default function AdminLayout({
       "Mentor",
       "Kelola Mentoring",
       "E-Learning",
+      "Artikel",
       "Kode Redeem",
       "Transaksi",
       "Produk & Event",
       "History",
     ],
-    cm: ["E-Learning", "Produk & Event"],
-    curdev: ["E-Learning", "Produk & Event"],
+    cm: ["E-Learning", "Artikel", "Produk & Event"],
+    curdev: ["E-Learning", "Artikel", "Produk & Event"],
     guest: ["E-Learning"],
   };
 
@@ -525,10 +526,16 @@ export default function AdminLayout({
       ],
     },
     {
+      name: "Artikel",
+      href: "/admin/artikel",
+      icon: "/assets/dashboard/user/materi.svg",
+      activeIcon: "/assets/dashboard/user/whitemateri.svg",
+    },
+    {
       name: "Kode Redeem",
       href: "/admin/kode-redeem",
       icon: "/assets/admin/voucher.svg",
-      activeIcon: "/assets/admin/voucheractive.svg",
+      activeIcon: "/assets/admin/whitevoucher.svg",
     },
     {
       name: "AYCL",
@@ -656,9 +663,13 @@ export default function AdminLayout({
     return null;
   }
 
-  // 🔥 Restricted roles: hanya boleh mengakses /admin/elearning/* dan /admin/produk-event/*
+  // 🔥 Restricted roles: hanya boleh mengakses beberapa area tertentu
   if (isRestricted) {
-    const allowedPaths = ["/admin/elearning", "/admin/produk-event"];
+    const allowedPaths = [
+      "/admin/elearning",
+      "/admin/artikel",
+      "/admin/produk-event",
+    ];
     const isAllowed = allowedPaths.some((path) => pathname.startsWith(path));
     if (!isAllowed) {
       return null; // Akan redirect oleh useEffect di atas

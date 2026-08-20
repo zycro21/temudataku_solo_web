@@ -9,6 +9,7 @@ import type {
 interface Props {
   status: CertificateStatus;
   certificate: ElearningSubChapterCertificateApiItem | null;
+  notEligibleReason?: string | null; // 🔥 BARU
   onRetry?: () => void;
 }
 
@@ -28,6 +29,7 @@ interface Props {
 export default function SubchapterCertificateContent({
   status,
   certificate,
+  notEligibleReason,
   onRetry,
 }: Props) {
   if (status === "checking" || status === "generating") {
@@ -45,6 +47,36 @@ export default function SubchapterCertificateContent({
             sebentar.
           </p>
         </div>
+      </div>
+    );
+  }
+
+  // 🔥 BARU: belum eligible — beda tone dari "error". Ini kondisi
+  // normal, bukan kegagalan sistem.
+  if (status === "not-eligible") {
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 text-center px-6">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-50">
+          <Award className="h-6 w-6 text-amber-500" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-gray-800">
+            Belum Bisa Mengambil Sertifikat
+          </p>
+          <p className="mt-1 max-w-sm text-xs text-gray-500">
+            {notEligibleReason ??
+              "Selesaikan quiz/proyek sesuai syarat kelulusan dulu ya, baru sertifikatnya bisa diterbitkan."}
+          </p>
+        </div>
+        {onRetry && (
+          <button
+            onClick={onRetry}
+            className="mt-2 inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100"
+          >
+            <RotateCw size={14} />
+            Cek Lagi
+          </button>
+        )}
       </div>
     );
   }
