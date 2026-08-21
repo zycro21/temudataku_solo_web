@@ -1,6 +1,13 @@
 "use client";
 
-import { useMemo, useState, useEffect, useRef, useCallback } from "react";
+import {
+  useMemo,
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useCallback,
+} from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import SubchapterNavbar from "./SubchapterNavbar";
@@ -197,25 +204,39 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
     })();
   }, [displayProgressPercent, subChapterId, checkMyReview]);
 
-  // 🔥 BARU: sertifikat otomatis — begitu progress SubChapter ini 100%,
-  // cek dulu apakah mentee sudah punya sertifikatnya (bisa saja sudah,
-  // dari kunjungan sebelumnya), kalau belum langsung generate. Sengaja
-  // effect TERPISAH dari effect review modal di atas (beda concern, beda
-  // syarat retry) walau triggernya sama-sama `displayProgressPercent`.
-  // `ensureCertificate` sendiri yang menjaga supaya tidak nembak API
-  // berulang-ulang (lihat useElearningSubChapterCertificate.ts).
+  // 🔥 DIUBAH TOTAL: sertifikat TIDAK LAGI auto-generate. Begitu progress
+  // SubChapter ini 100%, effect ini cuma MENGECEK apakah mentee sudah
+  // punya sertifikatnya (bisa saja sudah, dari kunjungan sebelumnya) —
+  // kalau belum, statusnya jadi "not-generated" dan mentee sendiri yang
+  // menekan tombol cetak di area konten (lihat SubchapterCertificateContent
+  // + `handlePrintCertificate` di bawah). Sengaja effect TERPISAH dari
+  // effect review modal di atas (beda concern, beda syarat retry) walau
+  // triggernya sama-sama `displayProgressPercent`. `checkCertificate`
+  // sendiri yang menjaga supaya tidak nembak API berulang-ulang (lihat
+  // useElearningSubChapterCertificate.ts).
   const {
     certificate,
     status: certificateStatus,
-    notEligibleReason, // 🔥 BARU
-    ensureCertificate,
+    errorMessage: certificateErrorMessage, // 🔥 BARU
+    nextPrintAvailableAt, // 🔥 BARU
+    canPrintNow, // 🔥 BARU
+    checkCertificate,
+    printCertificate,
   } = useElearningSubChapterCertificate();
 
   useEffect(() => {
     if (!subChapterId) return;
     if (displayProgressPercent < 100) return;
-    ensureCertificate(subChapterId, displayProgressPercent);
-  }, [displayProgressPercent, subChapterId, ensureCertificate]);
+    checkCertificate(subChapterId, displayProgressPercent);
+  }, [displayProgressPercent, subChapterId, checkCertificate]);
+
+  // 🔥 BARU: satu-satunya tempat yang benar-benar memanggil POST cetak —
+  // dipicu HANYA dari klik tombol mentee di SubchapterCertificateContent,
+  // tidak pernah otomatis.
+  const handlePrintCertificate = useCallback(() => {
+    if (!subChapterId) return;
+    printCertificate(subChapterId);
+  }, [subChapterId, printCertificate]);
 
   // 🔥 FIX (loop kelap-kelip sertifikat): handler ini SEBELUMNYA inline
   // arrow function langsung di prop `onContentCompleted` <SubchapterContent
@@ -244,20 +265,21 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
       // minta backend hitung ULANG dari situ.
       syncSubChapterProgress(subChapterId, completedTextId);
 
-      // Re-cek eligibility sertifikat di sini juga, bukan cuma
-      // mengandalkan effect `[displayProgressPercent]` — kalau progress
-      // SUDAH 100% sebelum ini (attempt quiz kedua, atau assignment yang
-      // baru selesai direview mentor di attempt kedua),
-      // `displayProgressPercent` tidak berubah nilainya sama sekali,
-      // sehingga effect itu TIDAK akan re-run. Panggil manual di sini
-      // supaya syarat skor yang BARU langsung dicek ulang.
-      ensureCertificate(subChapterId, displayProgressPercent);
+      // 🔥 DIUBAH: cuma re-cek STATUS sertifikat (bukan generate) di sini
+      // juga, bukan cuma mengandalkan effect `[displayProgressPercent]` —
+      // kalau progress SUDAH 100% sebelum ini, `displayProgressPercent`
+      // tidak berubah nilainya sama sekali, sehingga effect itu TIDAK
+      // akan re-run. Panggil manual di sini supaya begitu progress baru
+      // saja tuntas 100%, status "not-generated" langsung muncul (tombol
+      // cetak). Ini TIDAK memicu generate PDF apa pun — itu murni aksi
+      // klik tombol mentee lewat `handlePrintCertificate`.
+      checkCertificate(subChapterId, displayProgressPercent);
     },
     [
       subChapterId,
       displayProgressPercent,
       syncSubChapterProgress,
-      ensureCertificate,
+      checkCertificate,
     ],
   );
 
@@ -420,6 +442,8 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
   // Sebelumnya/Selanjutnya) perlu di-guard modal konfirmasi dulu, supaya
   // mentee nggak nggak sadar kehilangan jawaban yang sudah diisi.
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  // 🔥 BARU: state untuk track apakah user sudah berinteraksi dengan konten
+  const [userInteracted, setUserInteracted] = useState(false);
 
   // 🔥 BARU: nyimpen AKSI NAVIGASI yang sempat "ditahan" karena
   // `hasUnsavedChanges` masih true saat diklik — begitu mentee konfirmasi
@@ -539,16 +563,37 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
   // ini sengaja no-op kalau `contentMode.type` bukan "submodule". Threshold
   // 32px dari bawah — nggak menuntut PERSIS mentok piksel terakhir (yang
   // gampang meleset gara-gara sub-pixel rounding di browser berbeda-beda).
+  // 🔥 BARU: flag untuk mencegah scroll event hantu
+  const isUserInteractingRef = useRef(false);
+
   const handleContentScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    // console.log(
+    //   "🟢 handleContentScroll called",
+    //   contentMode?.type,
+    //   activeTextId,
+    // );
+
     if (contentMode?.type !== "submodule" || !activeTextId) return;
 
     const el = e.currentTarget;
-    const SCROLL_BOTTOM_THRESHOLD_PX = 32;
+    const timeSinceMount = Date.now() - contentSettledAtRef.current;
+
+    // 🔥 FIX: abaikan scroll event kalau user belum interaksi SAMA SEKALI
+    if (!userInteracted && timeSinceMount < 1500) {
+      // console.log("⚠️ Ignoring scroll ghost - no user interaction yet");
+      return;
+    }
+
+    if (timeSinceMount < SCROLL_GRACE_MS) return;
+
     const reachedBottom =
-      el.scrollHeight - el.scrollTop - el.clientHeight <=
-      SCROLL_BOTTOM_THRESHOLD_PX;
+      el.scrollHeight - el.scrollTop - el.clientHeight <= 32;
 
     if (reachedBottom) {
+      // console.log(
+      //   "✅ Scroll reached bottom, marking complete for:",
+      //   activeTextId,
+      // );
       markTextComplete(activeTextId);
     }
   };
@@ -558,6 +603,61 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
   // sana kenapa effect-nya HARUS ditaruh setelah `rendererMode`
   // dideklarasikan).
   const mainRef = useRef<HTMLDivElement | null>(null);
+  const sentinelRef = useRef<HTMLDivElement | null>(null); // 🔥 BARU
+
+  // 🔥 FIX #1 (loop kelap-kelip / progress nambah sendiri padahal BELUM
+  // discroll sama sekali di materi yang baru dibuka): elemen
+  // `<main ref={mainRef}>` ini TIDAK di-unmount tiap pindah materi/quiz/
+  // assignment (cuma isinya yang diganti React) — jadi `scrollTop`-nya
+  // kebawa terus dari materi SEBELUMNYA. Reset ke 0 tiap kali
+  // `contentMode` berganti.
+  //
+  // 🔥 FIX #3 (BARU — root cause dari bug "progress nambah tanpa scroll"
+  // yang masih kejadian meski FIX #1/#2 sudah ada): `contentSettledAtRef`
+  // SEBELUMNYA di-update lewat `requestAnimationFrame` di effect terpisah
+  // (async, nunggu 1 frame) — begitu `contentMode` ganti, ada jeda event
+  // loop di mana ref ini masih menyimpan timestamp dari MATERI
+  // SEBELUMNYA. Kalau IntersectionObserver (lihat effect di bawah) fire
+  // duluan sebelum rAF itu sempat jalan, guard grace period jadi salah
+  // baca "sudah lama settle" padahal materinya baru saja dibuka — makanya
+  // beberapa materi ke-mark complete instan tanpa discroll sama sekali.
+  // Fix: reset `contentSettledAtRef` di SINI, SINKRON, bareng reset
+  // scrollTop — bukan lewat rAF terpisah lagi.
+  useLayoutEffect(() => {
+    const el = mainRef.current;
+    if (el) {
+      el.scrollTop = 0;
+      // 🔥 reset userInteracted BERSAMAAN dengan reset scrollTop
+      setUserInteracted(false);
+    }
+    // 🔥 BARU: reset sinkron, jadi begitu render commit, timestamp
+    // "settled" langsung fresh untuk materi yang baru dibuka — baik
+    // guard di handleContentScroll MAUPUN guard di IntersectionObserver
+    // (di bawah) langsung punya baseline yang benar.
+    contentSettledAtRef.current = Date.now();
+  }, [contentMode]);
+
+  // 🔥 FIX #2 (lanjutan #1 — TERNYATA belum cukup soal SCROLL): reset di
+  // atas kadang KALAH RACE — begitu React commit DOM konten baru (yang
+  // untuk SESAAT masih lebih pendek dari `scrollTop` lama, sebelum
+  // gambar/font selesai load), browser sendiri bisa langsung meng-clamp
+  // `scrollTop` DAN menembakkan native `scroll` event SAAT ITU JUGA
+  // (sebagai bagian dari commit/reflow), yaitu SEBELUM efek di atas
+  // sempat "terasa" pengaruhnya di UI. `handleContentScroll` yang
+  // ketangkep event "hantu" ini pun salah kebaca sebagai "user sudah
+  // scroll sampai bawah", padahal materi barunya belum kesentuh sama
+  // sekali.
+  //
+  // Fix tambahan yang lebih tahan banting: jangan percaya SAMA SEKALI
+  // event `scroll` apa pun yang muncul dalam jeda waktu pendek setelah
+  // `contentSettledAtRef` di-set (lihat useLayoutEffect di atas) — apa
+  // pun penyebabnya (clamp, scroll anchoring, font swap, dll), event
+  // dalam jeda ini diabaikan oleh `handleContentScroll`. User baca materi
+  // sungguhan pasti butuh waktu jauh lebih lama dari jeda ini buat
+  // benar-benar sampai scroll ke bawah, jadi ini nggak mengganggu
+  // pengalaman scroll asli sama sekali.
+  const contentSettledAtRef = useRef<number>(0);
+  const SCROLL_GRACE_MS = 700;
 
   /* ================= HERO META ================= */
   const heroMeta = useMemo(() => {
@@ -806,27 +906,88 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
   // layout render terbaru (kalau dicek di frame yang sama, `scrollHeight`
   // bisa masih kepakai nilai dari konten sebelumnya).
   //
-  // 🔥 FIX (TS2448/TS2454 "used before its declaration"): effect ini
-  // sengaja ditaruh DI SINI — SETELAH `rendererMode` (di atas) selesai
-  // didefinisikan — bukan lagi di dekat `handleContentScroll`/`mainRef`
-  // seperti sebelumnya. `rendererMode` dideklarasikan pakai `const` lewat
-  // `useMemo`, jadi dia kena temporal dead zone: dipakai di dependency
-  // array sebuah hook yang letaknya (secara tekstual di source, bukan
-  // urutan eksekusi runtime) SEBELUM baris deklarasinya → error di
-  // compile time. Ini murni soal urutan baris kode, bukan soal isi
-  // logic-nya — makanya cukup dipindah ke bawah sini, isinya sama persis.
+  // 🔥 FIX #2 (lanjutan): effect yang beneran ngisi `contentSettledAtRef`
+  // (dipakai `handleContentScroll` di atas buat jeda toleransi) — SENGAJA
+  // ditaruh di sini (setelah `rendererMode`), bukan di dekat deklarasi
+  // ref-nya, karena alasan TS2448 yang sama seperti effect "konten
+  // pendek" tepat di bawah ini.
+  // useEffect(() => {
+  //   if (contentMode?.type !== "submodule" || !activeTextId) return;
+  //   if (textLoading || !rendererMode) return;
+
+  //   // Ditandai "settled" setelah browser sempat commit + paint konten
+  //   // barunya (bukan langsung di awal render, biar jeda toleransinya
+  //   // beneran meng-cover momen-momen rawan clamp/adjust yang dijelaskan
+  //   // di atas).
+  //   const raf = requestAnimationFrame(() => {
+  //     contentSettledAtRef.current = Date.now();
+  //   });
+
+  //   return () => cancelAnimationFrame(raf);
+  // }, [contentMode, activeTextId, textLoading, rendererMode]);
+
+  // 🔥 BARU: effect "konten pendek" — kalau isinya nggak melebihi tinggi
+  // container (`scrollHeight <= clientHeight`), sentinel-nya memang akan
+  // langsung "intersecting" begitu di-observe — itu SENGAJA (biar materi
+  // pendek yang nggak ada apa pun buat di-scroll tetap bisa selesai).
+  // Yang TIDAK boleh adalah sentinel kebaca intersecting gara-gara layout
+  // belum final (gambar/embed belum load) — makanya observer di bawah
+  // pakai guard grace period yang SAMA seperti `handleContentScroll`.
   useEffect(() => {
     if (contentMode?.type !== "submodule" || !activeTextId) return;
     if (textLoading || !rendererMode) return;
+    const el = mainRef.current;
+    const sentinel = sentinelRef.current;
+    if (!el || !sentinel) return;
 
-    const raf = requestAnimationFrame(() => {
-      const el = mainRef.current;
-      if (!el) return;
-      const notScrollable = el.scrollHeight <= el.clientHeight + 4;
-      if (notScrollable) markTextComplete(activeTextId);
-    });
+    let io: IntersectionObserver | null = null;
+    let cancelled = false;
 
-    return () => cancelAnimationFrame(raf);
+    // 🔥 FIX (BARU): jangan langsung observe — tunda sampai grace period
+    // lewat (sama seperti guard di handleContentScroll). Sebelumnya kita
+    // observe dari awal lalu FILTER event-event ghost yang datang, tapi itu
+    // gak menjamin ada event SUSULAN setelah grace period berakhir —
+    // IntersectionObserver cuma re-fire kalau status intersection-nya
+    // BERUBAH. Untuk materi PANJANG itu aman (flip false→true kejadian
+    // natural pas user scroll beneran). Tapi untuk materi PENDEK (gak ada
+    // scroll sama sekali), sentinel-nya dari awal udah "true" dan gak akan
+    // pernah berubah status lagi — kalau event pertamanya di-reject sebagai
+    // ghost, materinya nyangkut gak pernah ke-mark complete.
+    //
+    // Fix-nya: baru mulai observe SETELAH grace period lewat, jadi callback
+    // PERTAMA yang diterima browser sudah pasti mencerminkan kondisi FINAL
+    // (settled) — entah itu true (materi pendek → langsung complete) atau
+    // false (materi panjang → nunggu scroll asli).
+    const timer = setTimeout(() => {
+      if (cancelled) return;
+
+      io = new IntersectionObserver(
+        ([entry]) => {
+          // console.log(
+          //   "🔵 IntersectionObserver triggered:",
+          //   entry.isIntersecting,
+          //   activeTextId,
+          // );
+          if (entry.isIntersecting) {
+            // console.log("✅ Marking complete for:", activeTextId);
+            markTextComplete(activeTextId);
+          }
+        },
+        {
+          root: el,
+          threshold: 0.1,
+          rootMargin: "0px 0px 50px 0px",
+        },
+      );
+
+      io.observe(sentinel);
+    }, SCROLL_GRACE_MS);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      io?.disconnect();
+    };
   }, [contentMode, activeTextId, textLoading, rendererMode, markTextComplete]);
 
   if (loading) {
@@ -1113,9 +1274,9 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
 
   return (
     <div
-      className={`${jakartaSans.className} min-h-screen flex flex-col bg-white`}
+      className={`${jakartaSans.className} h-screen overflow-hidden flex flex-col bg-white`}
     >
-      <div className="flex flex-1">
+      <div className="flex flex-1 min-h-0">
         <SubchapterSidebar
           subChapter={subChapter}
           courseId={practiceId}
@@ -1215,7 +1376,7 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
             `break-words` di wrapper judul HeroNavigation (lihat
             SubchapterHeroNavigation.tsx) sama-sama diperlukan supaya judul
             panjang WRAP ke bawah, bukan mendorong lebar ke samping. */}
-        <div className="flex-1 min-w-0 flex flex-col">
+        <div className="flex-1 min-w-0 min-h-0 flex flex-col">
           <SubchapterNavbar practiceId={practiceId} />
 
           {heroMeta && (
@@ -1242,16 +1403,22 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
           <main
             ref={mainRef}
             onScroll={handleContentScroll}
-            className="flex-1 overflow-y-auto px-15 py-8 pb-24 bg-white"
+            onWheel={() => setUserInteracted(true)}
+            onTouchStart={() => setUserInteracted(true)}
+            onMouseDown={() => setUserInteracted(true)}
+            className="flex-1 overflow-y-auto px-15 py-8 bg-white"
           >
             {contentMode?.type === "certificate" ? (
               <SubchapterCertificateContent
                 status={certificateStatus}
                 certificate={certificate}
-                notEligibleReason={notEligibleReason}
-                onRetry={() =>
-                  ensureCertificate(subChapterId, displayProgressPercent)
+                errorMessage={certificateErrorMessage}
+                nextPrintAvailableAt={nextPrintAvailableAt}
+                canPrintNow={canPrintNow}
+                onCheck={() =>
+                  checkCertificate(subChapterId, displayProgressPercent)
                 }
+                onPrint={handlePrintCertificate}
               />
             ) : isActiveLocked ? (
               // 🔥 BARU: `contentMode` lagi nunjuk ke materi/quiz/
@@ -1369,6 +1536,11 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
                 onContentCompleted={handleContentCompleted}
                 onUnsavedChangesChange={setHasUnsavedChanges}
               />
+            )}
+
+            {/* 🔥 BARU: sentinel buat deteksi "sudah mentok bawah" via IntersectionObserver */}
+            {contentMode?.type === "submodule" && (
+              <div ref={sentinelRef} aria-hidden className="h-px w-full" />
             )}
           </main>
         </div>

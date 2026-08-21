@@ -390,8 +390,11 @@ const QuizRenderer = ({
   const {
     isLoadingHistory,
     latestAttempt,
-    attemptsRemaining,
-    hasReachedMaxAttempts,
+    // 🔥 DIUBAH: tidak ada lagi batas total percobaan — sekarang berbasis
+    // jendela 24 jam. `canAttemptNow` = boleh mengerjakan sekarang,
+    // `nextAttemptAvailableAt` = kapan boleh lagi kalau lagi diblokir.
+    canAttemptNow,
+    nextAttemptAvailableAt,
     isPerfectScore,
     isSubmitting,
     submitAttempt,
@@ -423,7 +426,15 @@ const QuizRenderer = ({
 
     setAnswers(restored);
     setSubmitted(true);
-  }, [isLoadingHistory, latestAttempt, isRetrying]);
+
+    // 🔥 BARU: dulu `onSubmitScore` cuma dipanggil di handleSubmit (submit
+    // BARU saja) — jadi begitu halaman di-refresh, badge skor di
+    // SubchapterHeroNavigation.tsx (dikontrol state di SubchapterDetail.tsx)
+    // ikut hilang walau mentee sebenarnya SUDAH punya nilai tersimpan.
+    // Sekarang begitu attempt lama berhasil dimuat dari history, skornya
+    // langsung dilaporkan ke parent juga — sama seperti kalau baru submit.
+    onSubmitScore?.(latestAttempt.score ?? 0);
+  }, [isLoadingHistory, latestAttempt, isRetrying, onSubmitScore]);
 
   // 🔥 BARU: progress tracking — quiz dianggap "selesai" begitu ada
   // attempt yang sudah tersimpan di backend (attempt pertama ATAU hasil
@@ -553,9 +564,28 @@ const QuizRenderer = ({
     Math.round((localCorrectCount / questions.length) * 100);
   const isAllCorrect = isPerfectScore;
 
-  // 🔥 BARU: "Coba Lagi" cuma tersedia kalau belum dapat nilai sempurna
-  // DAN masih ada sisa kesempatan (max 2x percobaan).
-  const canRetry = submitted && !isAllCorrect && attemptsRemaining > 0;
+  // 🔥 DIUBAH: "Coba Lagi" sekarang tersedia kalau belum dapat nilai
+  // sempurna DAN jendela 24 jam masih mengizinkan attempt lagi (bukan
+  // lagi dibatasi total 2x seumur hidup — lihat useElearningQuizAttempt.ts).
+  const canRetry = submitted && !isAllCorrect && canAttemptNow;
+
+  // 🔥 BARU: format tanggal/jam Indonesia untuk pesan "boleh lagi mulai
+  // kapan" saat jendela 24 jam lagi penuh.
+  const formatNextAttemptTime = (iso: string | null) => {
+    if (!iso) return null;
+    try {
+      return (
+        new Date(iso).toLocaleString("id-ID", {
+          day: "2-digit",
+          month: "long",
+          hour: "2-digit",
+          minute: "2-digit",
+        }) + " WIB"
+      );
+    } catch {
+      return null;
+    }
+  };
 
   const handleSubmit = async () => {
     setShowConfirmModal(false);
@@ -1072,14 +1102,13 @@ const QuizRenderer = ({
                       tepat.
                     </p>
 
-                    {/* 🔥 BARU: keterangan sisa kesempatan, sekarang dalam
-                        bentuk badge/pill supaya lebih menonjol daripada
-                        teks polos. */}
+                    {/* 🔥 DIUBAH: keterangan kesempatan sekarang berbasis
+                        jendela 24 jam, bukan sisa dari total 2x tetap —
+                        mentee masih boleh coba lagi SEKARANG JUGA. */}
                     <span
                       className={`mt-4 inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold ${toneStyles.badgeBg}`}
                     >
-                      Kamu tinggal memiliki {attemptsRemaining} kali kesempatan
-                      untuk mengerjakan ulang.
+                      Kamu masih bisa mengerjakan ulang sekarang.
                     </span>
 
                     <div className="pt-6">
@@ -1093,15 +1122,27 @@ const QuizRenderer = ({
                   </>
                 ) : (
                   <>
-                    {/* 🔥 BARU: sudah 2x percobaan & masih belum 100 →
-                        nilai final apa adanya, tanpa tombol "Coba Lagi". */}
+                    {/* 🔥 DIUBAH: sudah 2x percobaan dalam 24 jam terakhir &
+                        masih belum 100 → nilai final apa adanya, tanpa
+                        tombol "Coba Lagi", plus kapan boleh lagi. */}
                     <h2 className={`text-2xl font-bold ${toneStyles.headline}`}>
                       Sayang Sekali..
                     </h2>
 
                     <p className="mt-2 text-gray-600">
                       Nilai terakhir yang kamu dapatkan adalah {score} poin.
-                      Kesempatan mengerjakan quiz ini sudah habis.
+                      Kamu sudah mengerjakan quiz ini 2 kali dalam 24 jam
+                      terakhir.
+                      {nextAttemptAvailableAt && (
+                        <>
+                          {" "}
+                          Kamu bisa mengerjakan ulang mulai{" "}
+                          <span className="font-semibold">
+                            {formatNextAttemptTime(nextAttemptAvailableAt)}
+                          </span>
+                          .
+                        </>
+                      )}
                     </p>
                   </>
                 )}
@@ -1216,6 +1257,19 @@ function AssignmentRenderer({
     if (isLoadingHistory || !textId) return;
     if (isApproved || isRejected) onContentCompleted?.(textId);
   }, [isLoadingHistory, isApproved, isRejected, textId, onContentCompleted]);
+
+  // 🔥 BARU: sama seperti fix di QuizRenderer — dulu `onAssignmentScore`
+  // cuma dipanggil di handleSubmit (submit BARU saja), jadi begitu halaman
+  // di-refresh, badge skor di SubchapterHeroNavigation.tsx ikut hilang
+  // walau mentee sebenarnya sudah punya submission lama yang ternilai.
+  // Begitu history submission selesai dimuat, skor attempt TERAKHIRnya
+  // (kalau sudah dinilai) langsung dilaporkan ke parent juga.
+  useEffect(() => {
+    if (isLoadingHistory) return;
+    if (typeof latestSubmission?.score === "number") {
+      onAssignmentScore?.(latestSubmission.score);
+    }
+  }, [isLoadingHistory, latestSubmission, onAssignmentScore]);
 
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [note, setNote] = useState("");

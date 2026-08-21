@@ -30,7 +30,7 @@ export default function SubchapterFooter({
   nextLocked = false,
 }: Props) {
   return (
-    <footer className="fixed bottom-0 left-0 right-0 h-16 bg-[#F8FAFC] border-t border-gray-200 z-50">
+    <footer className="h-16 shrink-0 bg-[#F8FAFC] border-t border-gray-200 z-50">
       <div className="h-full flex items-center justify-between px-6">
         {/* PREV */}
         <Button

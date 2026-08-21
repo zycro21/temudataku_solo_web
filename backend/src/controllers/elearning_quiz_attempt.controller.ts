@@ -40,7 +40,7 @@ export class ELearningQuizAttemptController {
       }
       if (
         err.message.includes("belum membeli") ||
-        err.message.includes("batas maksimal") || // 🔥 ganti dari "sudah mengerjakan"
+        err.message.includes("24 jam") || // 🔥 BARU: blokir jendela waktu
         err.message.includes("tidak valid") ||
         err.message.includes("Harus menjawab semua")
       ) {

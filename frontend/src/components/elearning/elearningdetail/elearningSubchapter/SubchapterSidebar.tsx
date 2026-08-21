@@ -793,7 +793,7 @@ ${
               if (
                 certificateStatus === "ready" ||
                 certificateStatus === "error" ||
-                certificateStatus === "not-eligible" // 🔥 BARU
+                certificateStatus === "not-generated" // 🔥 DIUBAH: dulu "not-eligible"
               ) {
                 onSelectCertificate?.();
               }
@@ -806,21 +806,14 @@ ${
 ${
   certificateStatus === "checking" || certificateStatus === "generating"
     ? "bg-white border-gray-100 text-gray-400 cursor-default"
-    : certificateStatus === "not-eligible" // 🔥 BARU: aksen amber sendiri —
-      ? // beda dari "ready", biar nggak ketuker kelihatan udah selesai
-        "bg-amber-50/60 border-amber-200 text-gray-800 hover:bg-amber-50 cursor-pointer"
-      : isCertificateActive
-        ? "bg-emerald-500 border-emerald-500 text-white cursor-pointer"
-        : "bg-white border-emerald-100 text-gray-800 hover:bg-emerald-50/60 cursor-pointer"
+    : isCertificateActive
+      ? "bg-emerald-500 border-emerald-500 text-white cursor-pointer"
+      : "bg-white border-emerald-100 text-gray-800 hover:bg-emerald-50/60 cursor-pointer"
 }`}
           >
             <div
               className={`flex items-center justify-center w-7 h-7 rounded-full shrink-0 ${
-                certificateStatus === "not-eligible"
-                  ? "bg-amber-100"
-                  : isCertificateActive
-                    ? "bg-white/20"
-                    : "bg-emerald-50"
+                isCertificateActive ? "bg-white/20" : "bg-emerald-50"
               }`}
             >
               {certificateStatus === "checking" ||
@@ -830,11 +823,7 @@ ${
                 <Award
                   size={13}
                   className={
-                    certificateStatus === "not-eligible"
-                      ? "text-amber-500"
-                      : isCertificateActive
-                        ? "text-white"
-                        : "text-emerald-500"
+                    isCertificateActive ? "text-white" : "text-emerald-500"
                   }
                 />
               )}
@@ -843,11 +832,7 @@ ${
               <p className="text-[10px] font-bold">Sertifikat</p>
               <p
                 className={`text-[9px] truncate ${
-                  certificateStatus === "not-eligible"
-                    ? "text-amber-700/80"
-                    : isCertificateActive
-                      ? "text-white/80"
-                      : "text-gray-500"
+                  isCertificateActive ? "text-white/80" : "text-gray-500"
                 }`}
               >
                 {certificateStatus === "generating"
@@ -856,8 +841,8 @@ ${
                     ? "Memeriksa..."
                     : certificateStatus === "error"
                       ? "Gagal memuat, klik untuk coba lagi"
-                      : certificateStatus === "not-eligible" // 🔥 BARU
-                        ? "Belum lolos syarat kelulusan, klik untuk detail"
+                      : certificateStatus === "not-generated" // 🔥 DIUBAH
+                        ? "Kelas selesai, klik untuk cetak sertifikatmu"
                         : "Kelas selesai, lihat sertifikatmu"}
               </p>
             </div>

@@ -46,17 +46,28 @@ export const generateCertificateAuto = async (
 
     res.status(201).json({ success: true, data: result });
   } catch (err: any) {
-    // 🔥 BARU: belum eligible (skor) itu kondisi NORMAL, bukan error
-    // server — 422 biar FE bisa bedain dari error beneran dan nampilin
-    // pesan yang sesuai, bukan generic "terjadi kesalahan".
-    if (err?.code === "CERTIFICATE_NOT_ELIGIBLE") {
+    // 🔥 BARU: cetak ulang diblokir masa cooldown — bukan error server,
+    // sertifikat LAMA tetap valid & tetap bisa dilihat/diunduh mentee.
+    // FE (useElearningSubChapterCertificate.ts) baca `code` ini buat
+    // tetap nampilin sertifikat yang ada + pesan kapan boleh cetak ulang,
+    // bukan nge-throw ke state error.
+    if (err?.code === "CERTIFICATE_COOLDOWN") {
       res.status(422).json({
         success: false,
         code: err.code,
         message: err.message,
+        nextAllowedAt: err.nextAllowedAt,
       });
       return;
     }
+
+    // Progress belum 100% — kondisi normal (mentee belum selesai kelas),
+    // bukan error server.
+    if (err.message?.includes("Progress belum 100%")) {
+      res.status(400).json({ success: false, message: err.message });
+      return;
+    }
+
     next(err);
   }
 };

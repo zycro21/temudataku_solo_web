@@ -6,12 +6,16 @@ import { toast } from "sonner";
 
 export const MAX_ASSIGNMENT_ATTEMPTS = 2;
 
-// 🔥 BARU: ambang batas skor kelulusan yang berlaku KHUSUS di attempt
-// terakhir (attempt ke-MAX_ASSIGNMENT_ATTEMPTS). Di attempt terakhir,
-// admin/curdev tidak lagi bisa menandai "perlu revisi" (karena memang
-// sudah tidak ada kesempatan mengumpulkan ulang), jadi lolos/tidaknya
-// mentee ditentukan otomatis dari skor terhadap ambang batas ini.
-export const PASSING_SCORE_THRESHOLD = 75;
+// 🔥 DIUBAH: ambang batas skor kelulusan dinaikkan dari 75 → 80. Berlaku
+// KHUSUS di attempt terakhir (attempt ke-MAX_ASSIGNMENT_ATTEMPTS). Di
+// attempt terakhir, admin/curdev tidak lagi bisa menandai "perlu revisi"
+// (karena memang sudah tidak ada kesempatan mengumpulkan ulang), jadi
+// lolos/tidaknya mentee ditentukan otomatis dari skor terhadap ambang
+// batas ini. ⚠️ Nilai ini HARUS disamakan dengan konstanta yang sama di
+// backend (ASSIGNMENT_PASSING_SCORE, dulu ada di
+// elearningCertificate.service.ts — kalau logic kelulusan assignment ada
+// juga di service progress/submission lain, samakan di sana juga).
+export const PASSING_SCORE_THRESHOLD = 80;
 
 export type SubmissionStatus =
   | "PENDING"

@@ -15,56 +15,94 @@ export interface ElearningSubChapterCertificateApiItem {
   };
 }
 
+// 🔥 DIUBAH TOTAL: sertifikat SEKARANG dicetak manual oleh mentee (tombol
+// di area konten), bukan auto-generate berdasarkan syarat skor quiz/
+// assignment lagi. Syarat progress 100% TETAP berlaku (dicek backend),
+// tapi begitu 100%, mentee yang menentukan KAPAN mau cetak — termasuk
+// cetak ULANG kalau nilainya membaik setelah attempt baru (dibatasi
+// cooldown 1x per 30 hari, lihat `nextPrintAvailableAt`).
+//
+// State machine baru:
+// - "idle"          → progress belum 100%, sertifikat belum relevan sama
+//                      sekali.
+// - "checking"       → sedang mengecek apakah mentee SUDAH PERNAH cetak
+//                      sertifikat untuk subchapter ini (GET saja, TIDAK
+//                      generate apa pun).
+// - "not-generated"  → progress 100%, tapi belum pernah dicetak. Area
+//                      konten akan menampilkan tombol "Cetak Sertifikat".
+// - "generating"     → proses cetak (pertama kali ATAU cetak ulang)
+//                      sedang berjalan di backend.
+// - "ready"          → sertifikat sudah ada & bisa dilihat/diunduh (juga
+//                      dipakai untuk kondisi "sudah ada, ingin cetak
+//                      ulang" — lihat `canPrintNow`/`nextPrintAvailableAt`
+//                      untuk tahu apakah tombol cetak ulang aktif).
+// - "error"          → gagal memeriksa/mencetak karena error beneran
+//                      (bukan cooldown, bukan progress belum 100%).
 export type CertificateStatus =
   | "idle"
   | "checking"
+  | "not-generated"
   | "generating"
-  | "not-eligible" // 🔥 BARU: progress 100%, tapi syarat skor belum terpenuhi
   | "ready"
   | "error";
 
 interface UseElearningSubChapterCertificateResult {
   certificate: ElearningSubChapterCertificateApiItem | null;
   status: CertificateStatus;
-  // 🔥 BARU: alasan belum eligible, dari message backend — dipakai buat
-  // ditampilkan ke mentee di SubchapterCertificateContent.
-  notEligibleReason: string | null;
-  ensureCertificate: (
+  // Pesan terakhir dari backend — dipakai buat kondisi "error" (alasan
+  // gagal) MAUPUN kondisi cooldown saat mentee mencoba cetak ulang lebih
+  // cepat dari jadwalnya (status tetap "ready", pesan ini yang kasih tahu
+  // alasannya + kapan boleh cetak ulang).
+  errorMessage: string | null;
+  // Kapan mentee boleh cetak ULANG — `null` kalau belum pernah cetak sama
+  // sekali (cetak PERTAMA selalu boleh selama progress 100%, tidak kena
+  // cooldown ini).
+  nextPrintAvailableAt: string | null;
+  // Ringkasan siap-pakai: true kalau tombol "Cetak Sertifikat" /
+  // "Cetak Ulang" boleh AKTIF sekarang.
+  canPrintNow: boolean;
+  // Cuma MENGECEK (GET) — dipanggil begitu progress nyentuh 100%, BUKAN
+  // men-generate apa pun. Aman dipanggil berkali-kali (di-guard, lihat
+  // catatan di dalam).
+  checkCertificate: (
     subChapterId: string,
     progressPercent: number,
   ) => Promise<void>;
+  // Betul-betul MENCETAK (POST) — HANYA dipanggil lewat aksi eksplisit
+  // mentee (klik tombol "Cetak Sertifikat" / "Cetak Ulang"), tidak pernah
+  // dipanggil otomatis dari effect mana pun.
+  printCertificate: (subChapterId: string) => Promise<void>;
 }
+
+// 🔥 BARU: cetak ulang dibatasi 1x per 30 hari, dihitung dari `issuedAt`
+// sertifikat yang lagi aktif sekarang (SAMA persis sama yang dihitung di
+// backend — lihat CERTIFICATE_PRINT_COOLDOWN_DAYS di
+// elearningCertificate.service.ts. Kalau salah satu diubah, ubah juga
+// yang satunya biar FE & BE selalu sepakat).
+const PRINT_COOLDOWN_DAYS = 30;
 
 export function useElearningSubChapterCertificate(): UseElearningSubChapterCertificateResult {
   const [certificate, setCertificate] =
     useState<ElearningSubChapterCertificateApiItem | null>(null);
   const [status, setStatus] = useState<CertificateStatus>("idle");
-  const [notEligibleReason, setNotEligibleReason] = useState<string | null>(
-    null,
-  );
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const inFlightRef = useRef(false);
 
-  // 🔥 FIX (bug kelap-kelip di sidebar): sebelumnya `ensureCertificate`
-  // di-useCallback dengan dependency `[status]` — artinya function
-  // IDENTITY-nya berubah setiap kali status berubah. Karena SubchapterDetail
-  // punya effect `[displayProgressPercent, subChapterId, ensureCertificate]`,
-  // perubahan identity ini bikin effect itu jalan LAGI. Dan karena status
-  // "not-eligible" SENGAJA tidak masuk guard (biar bisa di-retry manual),
-  // effect yang re-run itu langsung manggil ensureCertificate lagi dari nol
-  // → checking → generating → not-eligible → identity berubah lagi → effect
-  // jalan lagi → LOOP TANPA HENTI (dan backend ke-spam POST /certificate/auto
-  // berkali-kali).
-  //
-  // Fix: baca status TERKINI lewat ref (bukan lewat closure/dependency),
-  // supaya identity ensureCertificate tetap STABIL (tidak pernah dibuat
-  // ulang) walau status-nya berubah-ubah. Effect di komponen pemanggil jadi
-  // cuma jalan saat subChapterId/progressPercent BENAR-BENAR berubah, bukan
-  // tiap render.
+  // 🔥 Pola sama seperti versi lama (statusRef) — MENJAGA identity
+  // checkCertificate/printCertificate tetap STABIL walau status/certificate
+  // berubah-ubah, supaya effect di SubchapterDetail.tsx yang bergantung ke
+  // fungsi-fungsi ini TIDAK re-run berulang kali (lihat catatan panjang di
+  // versi sebelumnya soal loop kelap-kelip sidebar — root cause-nya persis
+  // ini kalau dilanggar).
   const statusRef = useRef<CertificateStatus>(status);
   statusRef.current = status;
+  const certificateRef = useRef<ElearningSubChapterCertificateApiItem | null>(
+    certificate,
+  );
+  certificateRef.current = certificate;
 
-  const ensureCertificate = useCallback(
+  const checkCertificate = useCallback(
     async (subChapterId: string, progressPercent: number) => {
       if (!subChapterId) return;
       if (progressPercent < 100) {
@@ -73,93 +111,113 @@ export function useElearningSubChapterCertificate(): UseElearningSubChapterCerti
       }
 
       if (inFlightRef.current) return;
-      // "not-eligible" & "error" SENGAJA tidak masuk guard ini — biar bisa
-      // di-retry lewat pemanggilan MANUAL (klik tombol "Cek Lagi", atau
-      // dipanggil ulang eksplisit setelah quiz/project di-attempt ulang di
-      // SubchapterDetail.tsx) — BUKAN lewat re-run otomatis effect.
+      // Begitu status SUDAH DIKETAHUI (ready / not-generated) atau lagi
+      // diproses (checking / generating), tidak perlu cek ulang otomatis.
+      // "error" & "idle" SENGAJA tidak masuk guard ini — biar bisa
+      // di-retry (baik manual lewat tombol, maupun lewat pemanggilan
+      // ulang effect di SubchapterDetail.tsx setelah progress berubah).
       if (
         statusRef.current === "ready" ||
-        statusRef.current === "generating" ||
-        statusRef.current === "checking"
+        statusRef.current === "not-generated" ||
+        statusRef.current === "checking" ||
+        statusRef.current === "generating"
       )
         return;
 
       inFlightRef.current = true;
       setStatus("checking");
-      setNotEligibleReason(null);
+      setErrorMessage(null);
 
       try {
-        const checkRes = await axios.get(
+        const res = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/elearningCertificate/subchapters/${subChapterId}/certificate/me`,
           { withCredentials: true },
         );
 
         const existing: ElearningSubChapterCertificateApiItem | null =
-          checkRes.data?.data ?? null;
+          res.data?.data ?? null;
 
         if (existing) {
           setCertificate(existing);
           setStatus("ready");
-          return;
-        }
-
-        setStatus("generating");
-
-        try {
-          const generateRes = await axios.post(
-            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/elearningCertificate/subchapters/${subChapterId}/certificate/auto`,
-            {},
-            { withCredentials: true },
-          );
-
-          setCertificate(generateRes.data?.data ?? null);
-          setStatus("ready");
-        } catch (genErr: any) {
-          // 🔥 BARU: 422 + code CERTIFICATE_NOT_ELIGIBLE → bukan error,
-          // itu memang belum saatnya. Jangan masuk alur retry-GET/error
-          // di bawah, cukup simpan alasannya.
-          if (
-            genErr?.response?.status === 422 &&
-            genErr?.response?.data?.code === "CERTIFICATE_NOT_ELIGIBLE"
-          ) {
-            setNotEligibleReason(genErr.response.data.message ?? null);
-            setStatus("not-eligible");
-            return;
-          }
-
-          // Race condition dua tab: coba GET ulang sekali dulu sebelum
-          // benar-benar dianggap error.
-          try {
-            const retryRes = await axios.get(
-              `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/elearningCertificate/subchapters/${subChapterId}/certificate/me`,
-              { withCredentials: true },
-            );
-            const existingRetry: ElearningSubChapterCertificateApiItem | null =
-              retryRes.data?.data ?? null;
-
-            if (existingRetry) {
-              setCertificate(existingRetry);
-              setStatus("ready");
-              return;
-            }
-          } catch {
-            // diamkan, jatuh ke status error di bawah
-          }
-
-          console.error("Gagal membuat sertifikat:", genErr);
-          setStatus("error");
+        } else {
+          setStatus("not-generated");
         }
       } catch (err) {
-        console.error("Gagal memuat sertifikat:", err);
+        console.error("Gagal memeriksa status sertifikat:", err);
         setStatus("error");
+        setErrorMessage("Gagal memeriksa status sertifikat kamu.");
       } finally {
         inFlightRef.current = false;
       }
     },
-    // 🔥 Dependency SENGAJA dikosongkan (bukan [status]) — lihat penjelasan
-    // statusRef di atas. Ini yang bikin identity function stabil.
     [],
   );
 
-  return { certificate, status, notEligibleReason, ensureCertificate };
+  const printCertificate = useCallback(async (subChapterId: string) => {
+    if (!subChapterId) return;
+    if (inFlightRef.current) return;
+
+    inFlightRef.current = true;
+    setStatus("generating");
+    setErrorMessage(null);
+
+    try {
+      const res = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/elearningCertificate/subchapters/${subChapterId}/certificate/auto`,
+        {},
+        { withCredentials: true },
+      );
+
+      setCertificate(res.data?.data ?? null);
+      setStatus("ready");
+    } catch (err: any) {
+      const code = err?.response?.data?.code;
+      const message: string =
+        err?.response?.data?.message ??
+        "Gagal mencetak sertifikat, silakan coba lagi.";
+
+      if (code === "CERTIFICATE_COOLDOWN") {
+        // Sertifikat yang lama TETAP berlaku & tidak hilang — balik ke
+        // "ready" kalau kita sudah punya cache-nya. Kalau belum (edge
+        // case: reprint dipanggil sebelum checkCertificate pernah
+        // sukses), fallback ke "not-generated" supaya UI tidak nyangkut
+        // di "generating" selamanya — SubchapterDetail.tsx akan
+        // menampilkan pesan cooldown ini tanpa data sertifikat.
+        setStatus(certificateRef.current ? "ready" : "not-generated");
+        setErrorMessage(message);
+      } else if (code === "CERTIFICATE_PROGRESS_INCOMPLETE") {
+        setStatus("not-generated");
+        setErrorMessage(message);
+      } else {
+        setStatus("error");
+        setErrorMessage(message);
+      }
+    } finally {
+      inFlightRef.current = false;
+    }
+  }, []);
+
+  const nextPrintAvailableAt = (() => {
+    if (!certificate?.issuedAt) return null;
+    const issued = new Date(certificate.issuedAt);
+    const next = new Date(issued);
+    next.setDate(next.getDate() + PRINT_COOLDOWN_DAYS);
+    return next.toISOString();
+  })();
+
+  const canPrintNow =
+    status === "not-generated" ||
+    (status === "ready" &&
+      (!nextPrintAvailableAt || new Date() >= new Date(nextPrintAvailableAt)));
+
+  return {
+    certificate,
+    status,
+    errorMessage,
+    nextPrintAvailableAt,
+    canPrintNow,
+    checkCertificate,
+    printCertificate,
+  };
 }

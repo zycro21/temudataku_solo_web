@@ -22,8 +22,7 @@ const __dirname = path.dirname(__filename);
 // ⚠️ Ganti ini pakai domain frontend production kamu, atau (lebih baik)
 // taruh di .env sebagai FRONTEND_URL supaya gampang beda-beda per
 // environment (dev/staging/prod) tanpa perlu redeploy code.
-const FRONTEND_URL =
-  process.env.FRONTEND_URL ?? "https://elearning.temudataku.com";
+const FRONTEND_URL = process.env.FRONTEND_URL ?? "https://temudataku.com";
 
 // ID internal, dipakai buat nama file PDF & path di URL verifikasi QR.
 // SENGAJA dibikin aman-URL/aman-filesystem (nggak ada karakter "/"),
@@ -225,8 +224,8 @@ async function generateCertificatePDF({
   });
 
   // 🔥 UBAH: QR sekarang mengarah ke `verifyUrl` yang dikirim dari
-  // `generateCertificate` (halaman detail sertifikat di frontend),
-  // bukan di-generate ulang di sini.
+  // `generateCertificate`/`generateOrRegenerateCertificate` (halaman
+  // detail sertifikat di frontend), bukan di-generate ulang di sini.
   const qrBuffer = await generateQRCodeBuffer(verifyUrl);
 
   return new Promise<void>((resolve, reject) => {
@@ -275,168 +274,46 @@ async function generateCertificatePDF({
   });
 }
 
-// 🔥 BARU: syarat kelulusan berbasis skor assessment, terpisah dari
-// syarat progress 100%. Nilainya SENGAJA disamakan dengan konstanta di
-// FE (useElearningQuizAttempt.ts / useElearningAssignmentSubmission.ts)
-// — kalau salah satu diubah, ubah juga yang satunya biar FE & BE selalu
-// sepakat kapan mentee "eligible".
-const QUIZ_PASSING_SCORE = 100;
-const MAX_QUIZ_ATTEMPTS = 2;
-const ASSIGNMENT_PASSING_SCORE = 75;
-const MAX_ASSIGNMENT_ATTEMPTS = 2;
+// 🔥 DIHAPUS (dulu ada di sini): QUIZ_PASSING_SCORE, MAX_QUIZ_ATTEMPTS,
+// ASSIGNMENT_PASSING_SCORE, MAX_ASSIGNMENT_ATTEMPTS, class
+// CertificateNotEligibleError, isQuizAssessmentPassed(),
+// isProjectAssessmentPassed(), buildNotEligibleMessage(),
+// checkAssessmentEligibility(). Semua logic "syarat skor quiz/assignment
+// sebelum boleh cetak sertifikat" itu SUDAH TIDAK ADA — sertifikat
+// sekarang dicetak MANUAL oleh mentee, syaratnya cukup progress
+// SubChapter = 100% (progress itu sendiri sudah mensyaratkan quiz pernah
+// disubmit / assignment sudah direview & tidak revisi — logic itu ada di
+// service progress, bukan di file ini).
 
-// 🔥 BARU: error khusus buat "belum eligible" (BUKAN error server) —
-// dibedakan dari error generik lewat `.code`, supaya controller bisa
-// balikin status yang sesuai (422, bukan 500) dan FE bisa nampilin
-// pesan yang pas ke mentee, bukan "terjadi kesalahan".
-class CertificateNotEligibleError extends Error {
-  code = "CERTIFICATE_NOT_ELIGIBLE" as const;
-  constructor(message: string) {
+// 🔥 BARU: error khusus buat "belum boleh cetak ULANG karena masih dalam
+// masa cooldown" — dibedakan dari error generik lewat `.code`, supaya
+// controller bisa balikin status yang sesuai (422, bukan 500) dan FE
+// bisa nampilin pesan yang pas (tanpa menghilangkan sertifikat lama yang
+// masih berlaku).
+class CertificateCooldownError extends Error {
+  code = "CERTIFICATE_COOLDOWN" as const;
+  nextAllowedAt: Date;
+  constructor(message: string, nextAllowedAt: Date) {
     super(message);
-    this.name = "CertificateNotEligibleError";
+    this.name = "CertificateCooldownError";
+    this.nextAllowedAt = nextAllowedAt;
   }
 }
 
-// 🔥 BARU: cek SEMUA quiz yang ada di subchapter ini (biasanya cuma 1,
-// tapi ditulis general kalau suatu saat ada lebih dari 1 Text ber-quiz
-// dalam 1 SubChapter) — attempt TERAKHIR tiap quiz harus skor sempurna
-// ATAU kesempatan sudah habis (attempt ke-2).
-async function isQuizAssessmentPassed(
-  subChapterId: string,
-  userId: string,
-): Promise<boolean> {
-  const quizzes = await prisma.eLearningQuiz.findMany({
-    where: { text: { subBab: { subChapterId } } },
-    select: { id: true },
-  });
-
-  // taskType bilang subchapter ini ada quiz-nya, tapi datanya kosong →
-  // jangan lolos begitu saja, ini kondisi nggak normal (misconfigurasi).
-  if (quizzes.length === 0) return false;
-
-  for (const quiz of quizzes) {
-    const latestAttempt = await prisma.eLearningQuizAttempt.findFirst({
-      where: { quizId: quiz.id, userId },
-      orderBy: { attemptNumber: "desc" },
-    });
-
-    if (!latestAttempt) return false;
-
-    const isPerfectScore =
-      typeof latestAttempt.score === "number" &&
-      latestAttempt.score >= QUIZ_PASSING_SCORE;
-    const attemptsExhausted = latestAttempt.attemptNumber >= MAX_QUIZ_ATTEMPTS;
-
-    if (!isPerfectScore && !attemptsExhausted) return false;
-  }
-
-  return true;
-}
-
-// 🔥 BARU: sama seperti quiz, tapi buat assignment (project) — DAN
-// wajib sudah direview mentor (`status !== "PENDING"`) sebelum attempt
-// ke-2 dianggap "menghabiskan kesempatan". Tanpa syarat ini, submission
-// attempt ke-2 yang masih nunggu direview (score masih null) bisa lolos
-// generate sertifikat padahal belum ada keputusan lolos/tidak.
-async function isProjectAssessmentPassed(
-  subChapterId: string,
-  userId: string,
-): Promise<boolean> {
-  const assignments = await prisma.eLearningAssignment.findMany({
-    where: { text: { subBab: { subChapterId } } },
-    select: { id: true },
-  });
-
-  if (assignments.length === 0) return false;
-
-  for (const assignment of assignments) {
-    const latestSubmission = await prisma.eLearningSubmission.findFirst({
-      where: { assignmentId: assignment.id, userId },
-      orderBy: { attemptNumber: "desc" },
-    });
-
-    if (!latestSubmission) return false;
-
-    const isReviewed = latestSubmission.status !== "PENDING";
-    const scorePassing =
-      typeof latestSubmission.score === "number" &&
-      latestSubmission.score >= ASSIGNMENT_PASSING_SCORE;
-    const attemptsExhausted =
-      latestSubmission.attemptNumber >= MAX_ASSIGNMENT_ATTEMPTS;
-
-    if (!isReviewed) return false;
-    if (!scorePassing && !attemptsExhausted) return false;
-  }
-
-  return true;
-}
-
-function buildNotEligibleMessage(
-  needsQuiz: boolean,
-  needsProject: boolean,
-  quizPassed: boolean,
-  projectPassed: boolean,
-): string {
-  const reasons: string[] = [];
-  if (needsQuiz && !quizPassed) {
-    reasons.push(
-      "Skor Quiz belum 100 dan kesempatan mengerjakan ulang masih tersisa (Jika nilai Quiz sudah 100 atau kesempatan habis baru akan muncul)",
-    );
-  }
-  if (needsProject && !projectPassed) {
-    reasons.push(
-      `Projek belum Direview atau skornya belum mencapai ${ASSIGNMENT_PASSING_SCORE} dan kesempatan mengumpulkan ulang masih tersisa (Jika nilai Quiz sudah >= 75 atau kesempatan habis baru akan muncul)`,
-    );
-  }
-  return `Belum memenuhi syarat kelulusan: ${reasons.join(" & ")}.`;
-}
-
-// 🔥 BARU: dipanggil SETELAH syarat progress 100% lolos, sebelum
-// benar-benar generate sertifikat. Membaca `taskType` sub-chapter buat
-// tau syarat mana yang berlaku (quiz saja / project saja / dua-duanya).
-async function checkAssessmentEligibility(
-  subChapterId: string,
-  userId: string,
-) {
-  const subChapter = await prisma.eLearningSubChapter.findUnique({
-    where: { id: subChapterId },
-    select: { taskType: true },
-  });
-
-  if (!subChapter) {
-    throw new Error("Sub-chapter not found");
-  }
-
-  const { taskType } = subChapter;
-
-  // 🔥 Data lama yang belum diisi taskType-nya → jangan diblokir,
-  // biarkan cuma syarat progress 100% yang berlaku (perilaku lama).
-  if (!taskType) return;
-
-  const needsQuiz = taskType === "QUIZ" || taskType === "QUIZ_AND_PROJECT";
-  const needsProject =
-    taskType === "PROJECT" || taskType === "QUIZ_AND_PROJECT";
-
-  const [quizPassed, projectPassed] = await Promise.all([
-    needsQuiz
-      ? isQuizAssessmentPassed(subChapterId, userId)
-      : Promise.resolve(true),
-    needsProject
-      ? isProjectAssessmentPassed(subChapterId, userId)
-      : Promise.resolve(true),
-  ]);
-
-  if (quizPassed && projectPassed) return;
-
-  throw new CertificateNotEligibleError(
-    buildNotEligibleMessage(needsQuiz, needsProject, quizPassed, projectPassed),
-  );
-}
+// 🔥 BARU: cetak ulang dibatasi 1x per 30 hari, dihitung dari `issuedAt`
+// sertifikat yang lagi aktif. ⚠️ SAMAKAN dengan PRINT_COOLDOWN_DAYS di FE
+// (useElearningSubChapterCertificate.ts).
+const CERTIFICATE_PRINT_COOLDOWN_DAYS = 30;
 
 /* ==============================
    MAIN SERVICE
 ================================ */
 
+// TIDAK DIUBAH — tetap dipakai eksklusif oleh endpoint admin manual
+// (`POST /subchapters/:id/certificate`), TETAP throw kalau sertifikat
+// sudah ada. Alur cetak-manual MENTEE pakai fungsi terpisah di bawah
+// (`generateOrRegenerateCertificate` via `generateCertificateAuto`),
+// supaya perilaku admin tidak ikut berubah.
 export const generateCertificate = async ({
   subChapterId,
   userId,
@@ -561,6 +438,131 @@ export const generateCertificate = async ({
   return certificate;
 };
 
+// 🔥 BARU: dipakai KHUSUS oleh alur cetak-manual mentee. Beda dari
+// `generateCertificate` (admin) yang throw kalau sertifikat sudah ada —
+// fungsi ini UPSERT: kalau belum ada, buat baru (nomor sertifikat baru).
+// Kalau SUDAH ada (mentee cetak ULANG), update record YANG SAMA
+// (certificateNumber & displayNumber dipertahankan — dianggap sertifikat
+// yang sama, cuma direvisi datanya/skornya, BUKAN sertifikat baru yang
+// terpisah), cuma PDF + issuedAt + certificateUrl yang diperbarui.
+const generateOrRegenerateCertificate = async ({
+  subChapterId,
+  userId,
+  isReprint,
+}: {
+  subChapterId: string;
+  userId: string;
+  isReprint: boolean;
+}) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { fullName: true },
+  });
+
+  const subChapter = await prisma.eLearningSubChapter.findUnique({
+    where: { id: subChapterId },
+    select: { title: true },
+  });
+
+  if (!user || !subChapter) {
+    throw new Error("User or sub-chapter not found");
+  }
+
+  const existing = await prisma.eLearningCertificate.findUnique({
+    where: { userId_subChapterId: { userId, subChapterId } },
+  });
+
+  const certificateNumber =
+    existing?.certificateNumber ?? generateCertificateNumber();
+  const displayNumber =
+    existing?.displayNumber ?? (await generateDisplayCertificateNumber());
+
+  const uploadDir = path.join(__dirname, "../../uploads/elearning_certificate");
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+
+  const fileName = `${certificateNumber}.pdf`;
+  const pdfPath = path.join(uploadDir, fileName);
+  const verifyUrl = `${FRONTEND_URL}/certificates/${certificateNumber}`;
+
+  // Skor yang dipakai SELALU dari attempt/submission PALING TERAKHIR —
+  // ini sudah jadi perilaku generateCertificatePDF() (orderBy
+  // attemptNumber "desc") — TIDAK PERLU diubah, otomatis ambil nilai
+  // terbaru tiap kali fungsi ini dipanggil (baik cetak pertama maupun
+  // cetak ulang).
+  await generateCertificatePDF({
+    certificateNumber,
+    displayNumber,
+    userName: user.fullName,
+    subChapterTitle: subChapter.title,
+    issueDate: new Date(),
+    pdfPath,
+    userId,
+    subChapterId,
+    verifyUrl,
+  });
+
+  const uploadedFile = await uploadToGoogleDrive(
+    pdfPath,
+    fileName,
+    "16dqTiqyEhFhrfzfoX5upUkgkNoUGNnI9",
+  );
+
+  console.log("Uploaded to Google Drive:", uploadedFile.webViewLink);
+
+  if (!uploadedFile?.webViewLink) {
+    throw new Error("Failed to upload certificate to Google Drive");
+  }
+
+  const now = new Date();
+  const note = isReprint ? "Dicetak ulang oleh mentee" : undefined;
+
+  const certificate = await prisma.eLearningCertificate.upsert({
+    where: { userId_subChapterId: { userId, subChapterId } },
+    create: {
+      subChapterId,
+      userId,
+      certificateNumber,
+      displayNumber,
+      certificateUrl: uploadedFile.webViewLink,
+      certificatePath: `/uploads/elearning_certificate/${fileName}`,
+      issuedAt: now,
+      status: "generated",
+      note,
+    },
+    update: {
+      certificateUrl: uploadedFile.webViewLink,
+      certificatePath: `/uploads/elearning_certificate/${fileName}`,
+      issuedAt: now,
+      status: "generated",
+      note,
+    },
+    select: {
+      certificateNumber: true,
+      displayNumber: true,
+      certificateUrl: true,
+      issuedAt: true,
+      status: true,
+      certificatePath: true,
+      subChapter: {
+        select: {
+          title: true,
+          course: { select: { title: true } },
+        },
+      },
+    },
+  });
+
+  return certificate;
+};
+
+// 🔥 DIUBAH TOTAL: dulu auto-generate berdasarkan progress 100% +
+// checkAssessmentEligibility() (syarat skor quiz/assignment). Sekarang
+// ini adalah endpoint "CETAK MANUAL" yang dipicu klik tombol mentee —
+// syaratnya cukup progress 100%, TIDAK ADA LAGI pengecekan skor. Kalau
+// sertifikat sudah pernah ada sebelumnya, ini jadi permintaan CETAK
+// ULANG yang dibatasi cooldown 30 hari.
 export const generateCertificateAuto = async ({
   subChapterId,
   userId,
@@ -579,12 +581,36 @@ export const generateCertificateAuto = async ({
     throw new Error("Progress belum 100%");
   }
 
-  // 🔥 BARU: syarat kedua — skor assessment (quiz/project) sesuai
-  // taskType subchapter. Lempar CertificateNotEligibleError kalau belum
-  // memenuhi, ditangkap khusus di controller (bukan error 500 generik).
-  await checkAssessmentEligibility(subChapterId, userId);
+  const existing = await prisma.eLearningCertificate.findUnique({
+    where: { userId_subChapterId: { userId, subChapterId } },
+  });
 
-  return generateCertificate({ subChapterId, userId });
+  // 🔥 BARU: kalau sudah pernah cetak sebelumnya, ini dianggap
+  // permintaan CETAK ULANG — dibatasi cooldown 30 hari dari `issuedAt`
+  // terakhir. Sertifikat LAMA tetap valid & tetap bisa dilihat/diunduh
+  // selama masa cooldown ini (tidak dihapus/diubah apa pun).
+  if (existing?.issuedAt) {
+    const nextAllowedAt = new Date(existing.issuedAt);
+    nextAllowedAt.setDate(
+      nextAllowedAt.getDate() + CERTIFICATE_PRINT_COOLDOWN_DAYS,
+    );
+
+    if (new Date() < nextAllowedAt) {
+      throw new CertificateCooldownError(
+        `Kamu baru bisa cetak ulang sertifikat pada ${nextAllowedAt.toLocaleDateString(
+          "id-ID",
+          { day: "2-digit", month: "long", year: "numeric" },
+        )}.`,
+        nextAllowedAt,
+      );
+    }
+  }
+
+  return generateOrRegenerateCertificate({
+    subChapterId,
+    userId,
+    isReprint: !!existing,
+  });
 };
 
 export const getCertificatesByUser = async ({

@@ -4,7 +4,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 
-export const MAX_QUIZ_ATTEMPTS = 2;
+// 🔥 DIUBAH: tidak ada lagi batas total percobaan seumur hidup. Sekarang
+// mentee bebas mengulang quiz KAPAN SAJA, dibatasi cuma lewat JENDELA
+// WAKTU: maksimal QUIZ_ATTEMPTS_PER_WINDOW kali dalam
+// QUIZ_ATTEMPT_WINDOW_HOURS jam, dihitung mulai dari attempt PERTAMA di
+// jendela yang lagi aktif. Begitu QUIZ_ATTEMPT_WINDOW_HOURS jam lewat
+// sejak attempt pertama itu, jendela otomatis reset (attempt berikutnya
+// jadi awal jendela baru). Nilai ini SENGAJA disamakan dengan konstanta
+// di backend (elearningQuizAttempt.service.ts) — kalau salah satu
+// diubah, ubah juga yang satunya.
+export const QUIZ_ATTEMPT_WINDOW_HOURS = 24;
+export const QUIZ_ATTEMPTS_PER_WINDOW = 4;
 
 export interface QuizAttemptRecord {
   id: string;
@@ -16,6 +26,10 @@ export interface QuizAttemptRecord {
   startedAt: string | null;
   completedAt: string | null;
   quiz?: { id: string; title: string };
+  // 🔥 BARU: cuma diisi backend di response POST /attempts (submitAttempt),
+  // state jendela 24 jam SETELAH attempt ini tersimpan.
+  attemptsInWindow?: number;
+  nextAttemptAvailableAt?: string | null;
 }
 
 interface UseElearningQuizAttemptResult {
@@ -23,9 +37,18 @@ interface UseElearningQuizAttemptResult {
   isLoadingHistory: boolean;
   latestAttempt: QuizAttemptRecord | null;
   attemptsUsed: number;
-  attemptsRemaining: number;
-  hasReachedMaxAttempts: boolean;
   isPerfectScore: boolean;
+
+  // 🔥 BARU: pengganti attemptsRemaining/hasReachedMaxAttempts lama —
+  // sekarang berbasis jendela waktu, bukan batas total. Nilai ini
+  // diturunkan dari `attemptsInWindow`/`nextAttemptAvailableAt` yang
+  // dikirim balik backend di response GET /attempts/me (lihat
+  // ElearningQuizAttemptService.getAttemptsByRole).
+  attemptsInWindow: number;
+  canAttemptNow: boolean;
+  // Kapan boleh mengerjakan lagi kalau `canAttemptNow` false. `null`
+  // kalau memang masih boleh sekarang.
+  nextAttemptAvailableAt: string | null;
 
   // submit
   isSubmitting: boolean;
@@ -84,6 +107,10 @@ export function useElearningQuizAttempt(
     null,
   );
   const [attemptsUsed, setAttemptsUsed] = useState(0);
+  const [attemptsInWindow, setAttemptsInWindow] = useState(0);
+  const [nextAttemptAvailableAt, setNextAttemptAvailableAt] = useState<
+    string | null
+  >(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // supaya response fetch yang "telat" (mis. quizId sudah ganti duluan)
@@ -108,7 +135,14 @@ export function useElearningQuizAttempt(
           withCredentials: true,
           params: {
             page: 1,
-            limit: MAX_QUIZ_ATTEMPTS,
+            // 🔥 DIUBAH: dulu dibatasi `MAX_QUIZ_ATTEMPTS` (total percobaan
+            // seumur hidup, sekarang dihapus — tidak ada lagi batas
+            // total). FE cuma butuh attempt PALING TERAKHIR untuk
+            // ditampilkan (`rows[0]`); info jendela 24 jam sendiri dihitung
+            // backend dari SELURUH histori dan dikirim terpisah lewat
+            // `attemptsInWindow`/`nextAttemptAvailableAt` di root response
+            // (tidak tergantung `limit` ini).
+            limit: 1,
             sortBy: "startedAt",
             order: "desc",
           },
@@ -122,6 +156,14 @@ export function useElearningQuizAttempt(
 
       setAttemptsUsed(total);
       setLatestAttempt(rows[0] ?? null);
+
+      // 🔥 BARU: field jendela waktu dikirim backend di root response
+      // (bukan di dalam `data`), khusus untuk role mentee — lihat
+      // ElearningQuizAttemptService.getAttemptsByRole. Fallback aman
+      // (0 attempt / boleh attempt sekarang) kalau field belum ada,
+      // misal saat dipanggil oleh admin/mentor.
+      setAttemptsInWindow(res.data?.attemptsInWindow ?? 0);
+      setNextAttemptAvailableAt(res.data?.nextAttemptAvailableAt ?? null);
     } catch (err: any) {
       if (activeQuizIdRef.current !== quizId) return;
 
@@ -133,6 +175,8 @@ export function useElearningQuizAttempt(
       }
       setLatestAttempt(null);
       setAttemptsUsed(0);
+      setAttemptsInWindow(0);
+      setNextAttemptAvailableAt(null);
     } finally {
       if (activeQuizIdRef.current === quizId) setIsLoadingHistory(false);
     }
@@ -157,6 +201,13 @@ export function useElearningQuizAttempt(
         const attempt: QuizAttemptRecord = res.data?.data;
         setLatestAttempt(attempt);
         setAttemptsUsed((prev) => prev + 1);
+        // 🔥 BARU: backend ikut mengirim balik state jendela TERBARU
+        // setelah attempt ini tersimpan (lihat payload di
+        // ELearningQuizAttemptService.startQuizAttempt).
+        if (typeof attempt?.attemptsInWindow === "number") {
+          setAttemptsInWindow(attempt.attemptsInWindow);
+        }
+        setNextAttemptAvailableAt(attempt?.nextAttemptAvailableAt ?? null);
         return attempt;
       } catch (err: any) {
         toast.error(extractErrorMessage(err));
@@ -170,12 +221,19 @@ export function useElearningQuizAttempt(
 
   const isPerfectScore = (latestAttempt?.score ?? -1) >= 100;
 
+  // 🔥 BARU: "boleh attempt sekarang" ditentukan backend lewat
+  // `nextAttemptAvailableAt` (null = boleh). FE tidak menghitung ulang
+  // jendela 24 jam sendiri — cukup percaya nilai dari backend supaya
+  // tidak ada celah selisih jam client vs server.
+  const canAttemptNow = !nextAttemptAvailableAt;
+
   return {
     isLoadingHistory,
     latestAttempt,
     attemptsUsed,
-    attemptsRemaining: Math.max(MAX_QUIZ_ATTEMPTS - attemptsUsed, 0),
-    hasReachedMaxAttempts: attemptsUsed >= MAX_QUIZ_ATTEMPTS,
+    attemptsInWindow,
+    canAttemptNow,
+    nextAttemptAvailableAt,
     isPerfectScore,
     isSubmitting,
     submitAttempt,

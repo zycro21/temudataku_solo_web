@@ -590,8 +590,8 @@ export default function GradeSubmissionModal({
                     </label>
                     <p className="-mt-2 text-xs text-gray-400">
                       Ini attempt {submission.attemptNumber} dari{" "}
-                      {MAX_ASSIGNMENT_ATTEMPTS} — mentee masih punya kesempatan
-                      mengumpulkan ulang. Kalau tidak dicentang, mentee langsung
+                      {MAX_ASSIGNMENT_ATTEMPTS} - mentee masih punya kesempatan
+                      mengumpulkan ulang. Kalau Revisi tidak dicentang, mentee langsung
                       dinyatakan{" "}
                       <span className="font-semibold text-emerald-600">
                         Lolos

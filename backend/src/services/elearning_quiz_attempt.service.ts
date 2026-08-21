@@ -9,11 +9,74 @@ import path from "path";
 
 const prisma = new PrismaClient();
 
+// ================================================================
+// 🔥 BARU: Helper untuk jendela 24 jam (maks 2x attempt per 24 jam)
+// ================================================================
+const QUIZ_ATTEMPT_WINDOW_HOURS = 24;
+const QUIZ_ATTEMPTS_PER_WINDOW = 4;
+
+interface QuizAttemptWindowState {
+  windowStart: Date | null;
+  attemptsInWindow: number;
+  nextAttemptAvailableAt: Date | null;
+}
+
+function computeQuizAttemptWindowState(
+  attemptsAsc: { startedAt: Date | null }[],
+  now: Date = new Date(),
+): QuizAttemptWindowState {
+  const windowMs = QUIZ_ATTEMPT_WINDOW_HOURS * 60 * 60 * 1000;
+
+  let windowStart: Date | null = null;
+  let count = 0;
+
+  for (const att of attemptsAsc) {
+    if (!att.startedAt) continue;
+    if (
+      !windowStart ||
+      att.startedAt.getTime() - windowStart.getTime() >= windowMs
+    ) {
+      windowStart = att.startedAt;
+      count = 1;
+    } else {
+      count++;
+    }
+  }
+
+  if (!windowStart) {
+    return {
+      windowStart: null,
+      attemptsInWindow: 0,
+      nextAttemptAvailableAt: null,
+    };
+  }
+
+  const elapsed = now.getTime() - windowStart.getTime();
+
+  if (elapsed >= windowMs) {
+    return { windowStart, attemptsInWindow: 0, nextAttemptAvailableAt: null };
+  }
+
+  if (count < QUIZ_ATTEMPTS_PER_WINDOW) {
+    return {
+      windowStart,
+      attemptsInWindow: count,
+      nextAttemptAvailableAt: null,
+    };
+  }
+
+  return {
+    windowStart,
+    attemptsInWindow: count,
+    nextAttemptAvailableAt: new Date(windowStart.getTime() + windowMs),
+  };
+}
+
 export class ELearningQuizAttemptService {
   static async startQuizAttempt(
     quizId: string,
     user: { userId: string; roles: string[] },
-    answers: Record<string, string | string[]>, // 🔥 diubah
+    answers: Record<string, string | string[]>,
   ) {
     return await prisma.$transaction(async (tx) => {
       const quiz = await tx.eLearningQuiz.findUnique({
@@ -59,15 +122,27 @@ export class ELearningQuizAttemptService {
         }
       }
 
-      const MAX_ATTEMPTS = 2;
-      const attemptCount = await tx.eLearningQuizAttempt.count({
+      // ================================================================
+      // 🔥 BARU: Validasi jendela 24 jam (maks 2x attempt per 24 jam)
+      // GANTI blok MAX_ATTEMPTS yang lama dengan ini
+      // ================================================================
+      const existingAttempts = await tx.eLearningQuizAttempt.findMany({
         where: { quizId, userId: user.userId },
+        orderBy: { startedAt: "asc" },
+        select: { startedAt: true },
       });
-      if (attemptCount >= MAX_ATTEMPTS) {
+
+      const windowState = computeQuizAttemptWindowState(existingAttempts);
+
+      if (windowState.nextAttemptAvailableAt) {
         throw new Error(
-          "Kamu sudah mencapai batas maksimal 2 kali percobaan untuk quiz ini",
+          `Kamu sudah mengerjakan quiz ini 4 kali dalam 24 jam terakhir. ` +
+            `Kamu bisa mengerjakan lagi mulai ${windowState.nextAttemptAvailableAt.toISOString()}`,
         );
       }
+
+      // attemptCount di sini CUMA dipakai buat penomoran attemptNumber
+      const attemptCount = existingAttempts.length;
 
       // ===== Validasi jawaban lengkap =====
       const totalQuestions = quiz.questions.length;
@@ -77,11 +152,7 @@ export class ELearningQuizAttemptService {
         );
       }
 
-      // 🔥 BARU: helper buat normalisasi jawaban (string tunggal ATAU array)
-      // jadi Set, supaya soal single-answer & multi-answer bisa dinilai
-      // dengan logika yang sama — dianggap benar kalau set jawaban yang
-      // dikirim user PERSIS SAMA (bukan subset/superset) dengan set
-      // correctAnswers.
+      // Helper normalisasi jawaban
       const toAnswerSet = (
         value: string | string[] | undefined,
       ): Set<string> => {
@@ -129,7 +200,7 @@ export class ELearningQuizAttemptService {
           userId: user.userId,
           attemptNumber: attemptCount + 1,
           score,
-          answers, // Json — otomatis nyimpen campuran string/array apa adanya
+          answers,
           startedAt: now,
           completedAt: now,
           gradedAt: now,
@@ -162,6 +233,14 @@ export class ELearningQuizAttemptService {
         },
       });
 
+      // ================================================================
+      // 🔥 BARU: recompute window SETELAH attempt baru disimpan
+      // ================================================================
+      const windowStateAfter = computeQuizAttemptWindowState([
+        ...existingAttempts,
+        { startedAt: attempt.startedAt },
+      ]);
+
       return {
         id: attempt.id,
         quizId: attempt.quizId,
@@ -171,7 +250,10 @@ export class ELearningQuizAttemptService {
         correctAnswers: correctCount,
         totalQuestions,
         attemptNumber: attempt.attemptNumber,
-        attemptsRemaining: Math.max(MAX_ATTEMPTS - attempt.attemptNumber, 0),
+        // 🔥 GANTI: attemptsRemaining diganti dengan attemptsInWindow + nextAttemptAvailableAt
+        attemptsInWindow: windowStateAfter.attemptsInWindow,
+        nextAttemptAvailableAt:
+          windowStateAfter.nextAttemptAvailableAt?.toISOString() ?? null,
         startedAt: attempt.startedAt,
         completedAt: attempt.completedAt,
         gradedAt: attempt.gradedAt,
@@ -350,15 +432,25 @@ export class ELearningQuizAttemptService {
         }),
       ]);
 
-      // 🔥 FIX: belum pernah mengerjakan itu kondisi NORMAL (baru pertama
-      // kali buka quiz), bukan error — biarkan balik 200 dengan data
-      // kosong, bukan throw. Ini juga yang bikin GET /attempts/me kena
-      // 500 begitu quiz belum pernah dikerjakan sama sekali.
+      // ================================================================
+      // 🔥 BARU: info jendela 24 jam untuk FE
+      // ================================================================
+      const allAttemptsAsc = await prisma.eLearningQuizAttempt.findMany({
+        where: { quizId, userId: user.userId },
+        orderBy: { startedAt: "asc" },
+        select: { startedAt: true },
+      });
+      const windowState = computeQuizAttemptWindowState(allAttemptsAsc);
+
       return {
         total,
         page,
         totalPages: Math.ceil(total / limit),
         data,
+        // 🔥 field baru untuk FE
+        attemptsInWindow: windowState.attemptsInWindow,
+        nextAttemptAvailableAt:
+          windowState.nextAttemptAvailableAt?.toISOString() ?? null,
       };
     }
 
