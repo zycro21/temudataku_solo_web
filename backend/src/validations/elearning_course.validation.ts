@@ -165,3 +165,9 @@ export const getCourseHistorySchema = z.object({
     })
     .optional(),
 });
+
+export const recordStreamClickSchema = z.object({
+  params: z.object({
+    courseId: z.string().min(1, "courseId wajib diisi"),
+  }),
+});

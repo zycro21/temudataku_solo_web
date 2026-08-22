@@ -537,4 +537,35 @@ export const ELearningCourseController = {
       next(err);
     }
   },
+
+  async recordStreamClick(
+    req: AuthenticatedRequestElearning,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const { validatedParams, user } = req;
+
+      if (!validatedParams?.courseId || !user) {
+        res.status(400).json({
+          success: false,
+          message: "elarningcourseId atau user tidak valid",
+        });
+        return;
+      }
+
+      const result = await ELearningCourseService.recordStreamClick(
+        validatedParams.courseId,
+        user.userId,
+      );
+
+      res.status(200).json({
+        success: true,
+        message: "Stream click berhasil dicatat",
+        data: result,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
 };

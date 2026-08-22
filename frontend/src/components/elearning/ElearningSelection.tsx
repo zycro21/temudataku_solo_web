@@ -23,9 +23,9 @@ import {
   getDisplayedRating,
 } from "@/hooks/useElearningCourses";
 import {
-  useElearningSubscriberCount,
-  getDisplayedParticipantCount,
-} from "@/hooks/useElearningSubscriberCount";
+  recordElearningStreamClick,
+  getDisplayedStreamCount,
+} from "@/hooks/useElearningStreamClick";
 import SubscriptionStatusBanner from "./SubscriptionStatusBanner";
 
 // Practice utama
@@ -364,7 +364,6 @@ function StarRating({ rating }: { rating: number }) {
 
 export default function ElearningSelection() {
   const { courses, loading, errorType } = useElearningCourses();
-  const totalSubscribers = useElearningSubscriberCount();
 
   const [selectedCategory, setSelectedCategory] = useState("Semua");
   const [searchQuery, setSearchQuery] = useState("");
@@ -603,6 +602,7 @@ export default function ElearningSelection() {
                 key={course.id}
                 href={`/elearning/${course.id}?from=elearning`}
                 className="block"
+                onClick={() => recordElearningStreamClick(course.id)}
               >
                 <Card className="group rounded-xl border border-gray-200 hover:shadow-lg transition-all p-0 cursor-pointer hover:-translate-y-1 duration-300">
                   {/* Image Section */}
@@ -698,9 +698,9 @@ export default function ElearningSelection() {
                           <div className="flex items-center gap-1 text-gray-500">
                             <Users className="w-3.5 h-3.5" />
                             <span className="font-medium">
-                              {getDisplayedParticipantCount(
+                              {getDisplayedStreamCount(
                                 course.id,
-                                totalSubscribers,
+                                course.totalStreamCount ?? 0,
                               )}{" "}
                               peserta
                             </span>

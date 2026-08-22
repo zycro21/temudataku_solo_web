@@ -21,6 +21,10 @@ export interface ElearningCourseApiItem {
   totalEstimatedMinutes: number;
   averageRating?: number;
   reviewCount?: number;
+  // 🔥 Jumlah klik "stream" asli dari DB (SUM semua akun, tiap akun sudah
+  // di-cap maksimal 10 di backend) — dipakai buat badge "peserta" di card,
+  // menggantikan rumus acak berbasis total subscriber yang lama.
+  totalStreamCount?: number;
   mentorProfile?: {
     user?: {
       fullName: string;

@@ -694,6 +694,7 @@ model ELearningCourse {
   mentorProfile     MentorProfile       @relation("MentorCourses", fields: [mentorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   subChapters       ELearningSubChapter[]
   discussions       ELearningDiscussion[]
+  streamCounts      ELearningCourseStreamCount[]
 
   @@map("e_learning_courses")
 }
@@ -702,6 +703,31 @@ enum CourseStatus {
   DRAFT
   PUBLISHED
   ARCHIVED
+}
+
+model ELearningCourseStreamCount {
+  id          String    @id @default(cuid())
+  courseId    String    @map("course_id")
+  userId      String    @map("user_id")
+
+  // Jumlah klik "stream" akun ini untuk course ini. Di-cap MAX 10 di
+  // level service (bukan di DB) — begitu sampai 10, klik berikutnya dari
+  // akun yang sama tidak lagi menambah angka ini (no-op), supaya 1 akun
+  // tidak bisa nge-spam angka "peserta" jadi tidak wajar.
+  streamCount Int       @default(0) @map("stream_count")
+
+  createdAt   DateTime? @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt   DateTime? @updatedAt @db.Timestamp(6) @map("updated_at")
+
+  course ELearningCourse @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user   User            @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  // 1 baris per (course, user) — inilah yang bikin "maksimal dihitung
+  // untuk akun yang sama" gampang di-enforce: upsert ke baris yang sama,
+  // bukan bikin baris baru tiap klik.
+  @@unique([courseId, userId])
+  @@index([courseId])
+  @@map("e_learning_course_stream_counts")
 }
 
 model ELearningSubChapter {
@@ -2278,6 +2304,7 @@ model User {
   redeemCodesCreated  RedeemCode[]      @relation("RedeemCodeCreatedBy")
   redeemCodeUsages    RedeemCodeUsage[] @relation("RedeemCodeUsageUser")
   redeemCodeAttempts RedeemCodeAttempt[] @relation("RedeemCodeAttemptUser")
+  eLearningCourseStreamCounts ELearningCourseStreamCount[]
 
   @@map("users")
 }

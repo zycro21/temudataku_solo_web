@@ -17,6 +17,7 @@ import {
   exportProductEventSchema,
   duplicateCourseSchema,
   getCourseHistorySchema,
+  recordStreamClickSchema,
 } from "../validations/elearning_course.validation.js";
 import { handleElearningThumbnailUpload } from "../middlewares/uploadImage.js";
 
@@ -633,5 +634,39 @@ router.get(
   validate(getCourseHistorySchema),
   ELearningCourseController.getCourseHistory,
 );
+
+/**
+ * @swagger
+ * /api/elearningCourse/courses/{courseId}/stream-click:
+ *   post:
+ *     summary: Mencatat 1 klik "stream" course oleh user yang sedang login. Dihitung maksimal 10 kali per akun per course.
+ *     tags: [E-Learning Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: courseId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID course e-learning
+ *     responses:
+ *       200:
+ *         description: Berhasil mencatat klik stream (atau sudah mentok cap 10 untuk akun ini)
+ *       400:
+ *         description: Request tidak valid
+ *       404:
+ *         description: Course tidak ditemukan
+ *       500:
+ *         description: Kesalahan server
+ */
+router.post(
+  "/courses/:courseId/stream-click",
+  authenticate,
+  authorizeRoles("admin", "mentor", "mentee", "cm", "curdev", "guest"),
+  validate(recordStreamClickSchema),
+  ELearningCourseController.recordStreamClick,
+);
+ 
 
 export default router;

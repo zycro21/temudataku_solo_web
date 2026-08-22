@@ -37,6 +37,8 @@ function generateTextId() {
     .toUpperCase()}`;
 }
 
+const MAX_STREAM_COUNT_PER_USER = 1000;
+
 export const ELearningCourseService = {
   async getAllCourses(
     filters: any,
@@ -169,6 +171,19 @@ export const ELearningCourseService = {
       }),
     ]);
 
+    // 🔥 BARU: ambil total stream click (SUM semua akun, tiap akun sudah
+    // di-cap max 10 di recordStreamClick) per course, sekali query pakai
+    // groupBy — biar tidak N+1 query per course.
+    const streamCountGroups = await prisma.eLearningCourseStreamCount.groupBy({
+      by: ["courseId"],
+      where: { courseId: { in: courses.map((c) => c.id) } },
+      _sum: { streamCount: true },
+    });
+
+    const streamCountMap = new Map(
+      streamCountGroups.map((g) => [g.courseId, g._sum.streamCount ?? 0]),
+    );
+
     // TAMBAHAN: hitung courses, modules, materials per course
     const dataWithCounts = courses.map((course) => {
       const coursesCount = course.subChapters.length;
@@ -225,6 +240,10 @@ export const ELearningCourseService = {
         totalEstimatedMinutes,
         averageRating,
         reviewCount,
+        // 🔥 BARU: angka asli dari DB (SUM stream click semua akun, tiap
+        // akun sudah di-cap max 10), menggantikan rumus acak berbasis total
+        // subscriber yang lama. 0 kalau belum pernah ada yang klik.
+        totalStreamCount: streamCountMap.get(course.id) ?? 0,
       };
     });
 
@@ -234,6 +253,53 @@ export const ELearningCourseService = {
       limit,
       totalPages: Math.ceil(total / limit),
       data: dataWithCounts,
+    };
+  },
+
+  async recordStreamClick(courseId: string, userId: string) {
+    const course = await prisma.eLearningCourse.findUnique({
+      where: { id: courseId },
+      select: { id: true },
+    });
+
+    if (!course) {
+      throw { status: 404, message: "Course tidak ditemukan" };
+    }
+
+    const existing = await prisma.eLearningCourseStreamCount.findUnique({
+      where: {
+        courseId_userId: { courseId, userId },
+      },
+    });
+
+    let record;
+
+    if (!existing) {
+      // Klik pertama akun ini untuk course ini.
+      record = await prisma.eLearningCourseStreamCount.create({
+        data: { courseId, userId, streamCount: 1 },
+      });
+    } else if (existing.streamCount < MAX_STREAM_COUNT_PER_USER) {
+      // Masih di bawah cap 10 → tambah 1.
+      record = await prisma.eLearningCourseStreamCount.update({
+        where: { id: existing.id },
+        data: { streamCount: { increment: 1 } },
+      });
+    } else {
+      // 🔥 Sudah mentok 10 untuk akun ini — no-op, jangan ditambah lagi.
+      record = existing;
+    }
+
+    const aggregate = await prisma.eLearningCourseStreamCount.aggregate({
+      where: { courseId },
+      _sum: { streamCount: true },
+    });
+
+    return {
+      courseId,
+      userStreamCount: record.streamCount,
+      capped: record.streamCount >= MAX_STREAM_COUNT_PER_USER,
+      totalStreamCount: aggregate._sum.streamCount ?? 0,
     };
   },
 
