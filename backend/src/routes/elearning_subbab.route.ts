@@ -346,7 +346,7 @@ router.delete(
 router.patch(
   "/subchapters/:subChapterId/reorder",
   authenticate,
-  authorizeRoles("admin"), // hanya admin
+  authorizeRoles("admin", "cm", "curdev"),
   validate(reorderSubBabSchema),
   ELearningSubBabController.reorderSubBabs
 );

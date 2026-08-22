@@ -373,7 +373,7 @@ router.delete(
 router.put(
   "/subbabs/:subBabId/texts/reorder",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "cm", "curdev"),
   validate(reorderTextSchema),
   ELearningTextController.reorderTexts,
 );

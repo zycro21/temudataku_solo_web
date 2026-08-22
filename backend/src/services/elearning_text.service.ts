@@ -1914,7 +1914,7 @@ export class ELearningTextService {
     orders: { id: string; orderNumber: number }[],
     user: { userId: string; roles: string[] },
   ) {
-    if (!user.roles.includes("admin")) {
+    if (!user.roles.some((r) => ["admin", "cm", "curdev"].includes(r))) {
       throw new Error("FORBIDDEN");
     }
 

@@ -525,12 +525,12 @@ export default function AdminLayout({
         },
       ],
     },
-    // {
-    //   name: "Artikel",
-    //   href: "/admin/artikel",
-    //   icon: "/assets/dashboard/user/materi.svg",
-    //   activeIcon: "/assets/dashboard/user/whitemateri.svg",
-    // },
+    {
+      name: "Artikel",
+      href: "/admin/artikel",
+      icon: "/assets/dashboard/user/materi.svg",
+      activeIcon: "/assets/dashboard/user/whitemateri.svg",
+    },
     {
       name: "Kode Redeem",
       href: "/admin/kode-redeem",

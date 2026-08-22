@@ -3,7 +3,7 @@
 import axios from "axios";
 import { useParams, useRouter } from "next/navigation";
 import StatusBadge from "../streams/StatusBadge";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, type DragEvent } from "react";
 import { toast } from "sonner";
 import {
   MoreVertical,
@@ -168,6 +168,11 @@ export default function ModulesTable({
   } | null>(null);
   const [duplicateVisible, setDuplicateVisible] = useState(false);
   const [duplicateLoading, setDuplicateLoading] = useState(false);
+
+  // ─── Drag & Drop reorder ─────────────────────────────────────────────────
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [reorderLoading, setReorderLoading] = useState(false);
 
   // ─── History modal ───────────────────────────────────────────────────────
   const [historyModal, setHistoryModal] = useState<{
@@ -461,18 +466,47 @@ export default function ModulesTable({
     if (!editModal) return;
     setEditLoading(true);
     try {
-      await axios.put(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/elearningSubBab/subbabs/${editModal.moduleId}`,
-        {
-          ...(editForm.name && { title: editForm.name }),
-          ...(editForm.duration && { estimatedTime: editForm.duration }),
-          ...(editForm.orderNumber && {
-            orderNumber: parseInt(editForm.orderNumber, 10),
-          }),
-          ...(editForm.status && { status: editForm.status }),
-        },
-        { withCredentials: true },
-      );
+      // Field selain orderNumber tetap lewat endpoint update biasa
+      const updatePayload: Record<string, any> = {};
+      if (editForm.name && editForm.name !== editModal.name) {
+        updatePayload.title = editForm.name;
+      }
+      if (editForm.duration && editForm.duration !== editModal.duration) {
+        updatePayload.estimatedTime = editForm.duration;
+      }
+      if (editForm.status && editForm.status !== editModal.status) {
+        updatePayload.status = editForm.status;
+      }
+
+      if (Object.keys(updatePayload).length > 0) {
+        await axios.put(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/elearningSubBab/subbabs/${editModal.moduleId}`,
+          updatePayload,
+          { withCredentials: true },
+        );
+      }
+
+      // orderNumber pakai endpoint reorder supaya urutan module lain
+      // otomatis bergeser (tidak ada duplikasi orderNumber)
+      const orderChanged =
+        editForm.orderNumber.trim() !== "" &&
+        editForm.orderNumber !== editModal.orderNumber;
+
+      if (orderChanged) {
+        await axios.patch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/elearningSubBab/subchapters/${courseId}/reorder`,
+          {
+            updates: [
+              {
+                subBabId: editModal.moduleId,
+                newOrderNumber: parseInt(editForm.orderNumber, 10),
+              },
+            ],
+          },
+          { withCredentials: true },
+        );
+      }
+
       setEditVisible(false);
       setTimeout(() => {
         setEditModal(null);
@@ -609,6 +643,74 @@ export default function ModulesTable({
     }
   };
 
+  // ── Reorder (drag & drop + edit modal) ────────────────────────────────────
+  // Endpoint reorder butuh subChapterId — di halaman ini variabel `courseId`
+  // dari param route sebenarnya adalah subChapterId (lihat fetchModules di atas).
+  const persistReorder = async (
+    updates: { subBabId: string; newOrderNumber: number }[],
+  ) => {
+    if (!courseId || updates.length === 0) return;
+    setReorderLoading(true);
+    try {
+      await axios.patch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/elearningSubBab/subchapters/${courseId}/reorder`,
+        { updates },
+        { withCredentials: true },
+      );
+      toast.success("Urutan module berhasil diperbarui");
+      setInternalRefreshKey((prev) => prev + 1);
+      onModuleUpdated?.();
+    } catch (err: any) {
+      toast.error(
+        err?.response?.data?.message ?? "Gagal mengubah urutan module",
+      );
+    } finally {
+      setReorderLoading(false);
+    }
+  };
+
+  // Drag & drop hanya diaktifkan saat tabel dalam urutan default (orderNumber
+  // asc), karena posisi drop dihitung dari orderNumber asli tiap module.
+  const dragReorderEnabled = !sortKey;
+
+  const handleDragStart = (e: DragEvent, mod: SubBab) => {
+    if (!dragReorderEnabled) return;
+    setDraggingId(mod.id);
+    e.dataTransfer.effectAllowed = "move";
+    // Diperlukan agar Firefox mau memicu event drag
+    e.dataTransfer.setData("text/plain", mod.id);
+  };
+
+  const handleDragOverRow = (e: DragEvent, mod: SubBab) => {
+    if (!dragReorderEnabled || !draggingId || draggingId === mod.id) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverId(mod.id);
+  };
+
+  const handleDragLeaveRow = (mod: SubBab) => {
+    setDragOverId((prev) => (prev === mod.id ? null : prev));
+  };
+
+  const handleDropRow = (e: DragEvent, targetMod: SubBab) => {
+    e.preventDefault();
+    setDragOverId(null);
+    const sourceId = draggingId;
+    setDraggingId(null);
+    if (!dragReorderEnabled || !sourceId || sourceId === targetMod.id) return;
+
+    const targetOrderNumber =
+      targetMod.orderNumber ??
+      pagedModules.findIndex((m) => m.id === targetMod.id) + 1;
+
+    persistReorder([{ subBabId: sourceId, newOrderNumber: targetOrderNumber }]);
+  };
+
+  const handleDragEnd = () => {
+    setDraggingId(null);
+    setDragOverId(null);
+  };
+
   return (
     <div className="bg-white rounded-xl border overflow-visible mb-20">
       <table className="w-full text-sm">
@@ -679,22 +781,55 @@ export default function ModulesTable({
               const { date, time } = formatDateTime(mod.createdAt);
               const materialsCount = mod.texts?.length ?? 0;
 
+              const isDragging = draggingId === mod.id;
+              const isDragOver = dragOverId === mod.id && draggingId !== mod.id;
+
               return (
                 <tr
                   key={mod.id}
                   onClick={() => {
-                    if (openMenu || editModal || actionModal || deleteModal)
+                    if (
+                      openMenu ||
+                      editModal ||
+                      actionModal ||
+                      deleteModal ||
+                      draggingId
+                    )
                       return;
                     router.push(
                       `/admin/elearning/streams/${streamId}/courses/${courseId}/modules/${mod.id}/materials`,
                     );
                   }}
-                  className="border-t hover:bg-gray-50 transition cursor-pointer"
+                  onDragOver={(e) => handleDragOverRow(e, mod)}
+                  onDragLeave={() => handleDragLeaveRow(mod)}
+                  onDrop={(e) => handleDropRow(e, mod)}
+                  className={`border-t hover:bg-gray-50 transition cursor-pointer ${
+                    isDragging ? "opacity-40" : ""
+                  } ${
+                    isDragOver
+                      ? "border-t-2 border-t-emerald-500 bg-emerald-50/60"
+                      : ""
+                  }`}
                 >
                   {/* Drag handle + orderNumber */}
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <span className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 transition">
+                      <span
+                        draggable={dragReorderEnabled}
+                        onDragStart={(e) => handleDragStart(e, mod)}
+                        onDragEnd={handleDragEnd}
+                        onClick={(e) => e.stopPropagation()}
+                        title={
+                          dragReorderEnabled
+                            ? "Drag untuk mengubah urutan"
+                            : "Nonaktifkan sorting kolom lain untuk drag & drop"
+                        }
+                        className={`text-gray-400 hover:text-gray-600 transition ${
+                          dragReorderEnabled
+                            ? "cursor-grab active:cursor-grabbing"
+                            : "cursor-not-allowed opacity-40"
+                        } ${reorderLoading ? "pointer-events-none opacity-50" : ""}`}
+                      >
                         <DragHandle />
                       </span>
                       <span className="text-[12px] text-gray-500 tabular-nums">
@@ -945,9 +1080,12 @@ export default function ModulesTable({
 
               {/* Order Number */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Order Number
                 </label>
+                <p className="text-xs text-gray-400 mb-3">
+                  Module lain akan otomatis bergeser mengikuti posisi baru.
+                </p>
                 <input
                   type="number"
                   min={1}

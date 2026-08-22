@@ -671,8 +671,10 @@ export const ELearningSubBabService = {
     updates: { subBabId: string; newOrderNumber: number }[],
     user: { userId: string; roles: string[] },
   ) {
-    if (!user.roles.includes("admin")) {
-      throw new Error("Akses ditolak: hanya admin yang dapat mengubah urutan");
+    if (!user.roles.some((r) => ["admin", "cm", "curdev"].includes(r))) {
+      throw new Error(
+        "Akses ditolak: hanya admin, cm, atau curdev yang dapat mengubah urutan",
+      );
     }
 
     return await prisma.$transaction(async (prismaTx) => {

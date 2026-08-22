@@ -2,7 +2,7 @@
 
 import axios from "axios";
 import { useRouter, useParams } from "next/navigation";
-import { useState, useRef, useEffect, memo } from "react";
+import { useState, useRef, useEffect, memo, type DragEvent } from "react";
 import { toast } from "sonner";
 import {
   MoreVertical,
@@ -185,6 +185,11 @@ export default function MaterialsTable({
   const [historyTotalPages, setHistoryTotalPages] = useState(1);
   const [selectedLog, setSelectedLog] = useState<AuditLogItem | null>(null);
   const [selectedLogVisible, setSelectedLogVisible] = useState(false);
+
+  // ─── Drag & Drop reorder ─────────────────────────────────────────────────
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [reorderLoading, setReorderLoading] = useState(false);
 
   const fetchHistory = async (materialId: string, page: number) => {
     setHistoryLoading(true);
@@ -441,6 +446,109 @@ export default function MaterialsTable({
     setTimeout(() => setShowEditSuccess(false), 250);
   };
 
+  // ── Reorder (drag & drop) ─────────────────────────────────────────────────
+  // Endpoint reorder mewajibkan payload berisi SELURUH text yang ada di
+  // sub-bab (bukan cuma yang tampil di halaman pagination saat ini),
+  // jadi kita ambil dulu daftar lengkapnya, hitung ulang posisinya di
+  // client (mirip logika splice/insert), baru kirim semua ke backend.
+  const persistReorder = async (movedId: string, targetOrderNumber: number) => {
+    if (!moduleId) return;
+    setReorderLoading(true);
+    try {
+      const fullRes = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/elearningText/subbabs/${moduleId}/texts`,
+        {
+          withCredentials: true,
+          params: {
+            page: 1,
+            limit: 9999,
+            sortBy: "orderNumber",
+            sortOrder: "asc",
+          },
+        },
+      );
+      const fullList: ELearningText[] = fullRes.data.data ?? [];
+
+      const reordered = [...fullList].sort(
+        (a, b) => (a.orderNumber ?? 0) - (b.orderNumber ?? 0),
+      );
+      const fromIndex = reordered.findIndex((t) => t.id === movedId);
+      if (fromIndex === -1) {
+        toast.error("Material tidak ditemukan, coba muat ulang halaman");
+        return;
+      }
+
+      const [movedItem] = reordered.splice(fromIndex, 1);
+      const targetIndex = Math.max(
+        0,
+        Math.min(targetOrderNumber - 1, reordered.length),
+      );
+      reordered.splice(targetIndex, 0, movedItem);
+
+      const orders = reordered.map((t, i) => ({
+        id: t.id,
+        orderNumber: i + 1,
+      }));
+
+      await axios.put(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/elearningText/subbabs/${moduleId}/texts/reorder`,
+        { orders },
+        { withCredentials: true },
+      );
+
+      toast.success("Urutan material berhasil diperbarui");
+      setInternalRefreshKey((prev) => prev + 1);
+      onMaterialUpdated?.();
+    } catch (err: any) {
+      toast.error(
+        err?.response?.data?.message ?? "Gagal mengubah urutan material",
+      );
+    } finally {
+      setReorderLoading(false);
+    }
+  };
+
+  // Drag & drop hanya diaktifkan saat tabel dalam urutan default (orderNumber
+  // asc); kalau sedang di-sort kolom lain, posisi target jadi tidak relevan.
+  const dragReorderEnabled = !sortKey;
+
+  const handleDragStart = (e: DragEvent, mat: ELearningText) => {
+    if (!dragReorderEnabled) return;
+    setDraggingId(mat.id);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", mat.id);
+  };
+
+  const handleDragOverRow = (e: DragEvent, mat: ELearningText) => {
+    if (!dragReorderEnabled || !draggingId || draggingId === mat.id) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverId(mat.id);
+  };
+
+  const handleDragLeaveRow = (mat: ELearningText) => {
+    setDragOverId((prev) => (prev === mat.id ? null : prev));
+  };
+
+  const handleDropRow = (e: DragEvent, targetMat: ELearningText) => {
+    e.preventDefault();
+    setDragOverId(null);
+    const sourceId = draggingId;
+    setDraggingId(null);
+    if (!dragReorderEnabled || !sourceId || sourceId === targetMat.id) return;
+
+    const targetOrderNumber =
+      targetMat.orderNumber ??
+      pagedMaterials.findIndex((m) => m.id === targetMat.id) + 1;
+
+    persistReorder(sourceId, targetOrderNumber);
+  };
+
+  const handleDragEnd = () => {
+    setDraggingId(null);
+    setDragOverId(null);
+  };
+
   // ── Publish/Unpublish helpers ─────────────────────────────────────────────
   const openActionModal = (
     type: "publish" | "unpublish",
@@ -612,14 +720,40 @@ export default function MaterialsTable({
                   })
                 : "";
 
+              const isDragging = draggingId === mat.id;
+              const isDragOver = dragOverId === mat.id && draggingId !== mat.id;
+
               return (
                 <tr
                   key={mat.id}
-                  className="border-t hover:bg-gray-50 transition"
+                  onDragOver={(e) => handleDragOverRow(e, mat)}
+                  onDragLeave={() => handleDragLeaveRow(mat)}
+                  onDrop={(e) => handleDropRow(e, mat)}
+                  className={`border-t hover:bg-gray-50 transition ${
+                    isDragging ? "opacity-40" : ""
+                  } ${
+                    isDragOver
+                      ? "border-t-2 border-t-emerald-500 bg-emerald-50/60"
+                      : ""
+                  }`}
                 >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <span className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 transition">
+                      <span
+                        draggable={dragReorderEnabled}
+                        onDragStart={(e) => handleDragStart(e, mat)}
+                        onDragEnd={handleDragEnd}
+                        title={
+                          dragReorderEnabled
+                            ? "Drag untuk mengubah urutan"
+                            : "Nonaktifkan sorting kolom lain untuk drag & drop"
+                        }
+                        className={`text-gray-400 hover:text-gray-600 transition ${
+                          dragReorderEnabled
+                            ? "cursor-grab active:cursor-grabbing"
+                            : "cursor-not-allowed opacity-40"
+                        } ${reorderLoading ? "pointer-events-none opacity-50" : ""}`}
+                      >
                         <DragHandle />
                       </span>
                       <span className="text-[12px] text-gray-500 tabular-nums">

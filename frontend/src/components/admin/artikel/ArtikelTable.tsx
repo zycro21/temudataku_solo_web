@@ -12,11 +12,12 @@ import {
   ChevronRight,
   X,
   CheckCircle2,
-  PenLine,
   Archive,
+  FileText,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
+import { ARTICLE_CATEGORIES } from "./articleCategories";
 
 // ─── Type dari API ────────────────────────────────────────────────────────────
 interface ArticleFromAPI {
@@ -448,8 +449,18 @@ export default function ArtikelTable({
     }
   };
 
-  // Status lain yang belum aktif — dipakai buat quick action di dropdown
-  // (maksimal 2 item non-aktif ditampilkan, biar menu-nya nggak kepanjangan).
+  // 🔥 BARU: "Edit Konten" — nanti diarahkan ke halaman konten artikel
+  // (belum dibuat). Untuk sekarang cuma placeholder biar aksinya sudah ada
+  // di menu; begitu halaman kontennya jadi, tinggal ganti isi fungsi ini
+  // jadi router.push(`/admin/artikel/${article.id}/konten`) atau semacamnya.
+  const handleEditContent = (article: ArticleFromAPI) => {
+    toast.info("Fitur edit konten akan segera hadir");
+  };
+
+  // Status lain yang belum aktif — dipakai buat quick action di dropdown.
+  // 🔥 DIUBAH: "Jadikan Draft" DIHAPUS dari sini — status DRAFT tetap ada
+  // sebagai opsi di form "Edit Data" (dropdown status di modal edit), tapi
+  // tidak lagi tersedia sebagai quick action satu-klik di menu tabel.
   const otherStatuses = (
     current: ArticleFromAPI["status"],
   ): { status: ArticleFromAPI["status"]; label: string; icon: any }[] => {
@@ -459,7 +470,6 @@ export default function ArtikelTable({
       icon: any;
     }[] = [
       { status: "PUBLISHED", label: "Publikasikan", icon: CheckCircle2 },
-      { status: "DRAFT", label: "Jadikan Draft", icon: PenLine },
       { status: "ARCHIVED", label: "Arsipkan", icon: Archive },
     ];
     return all.filter((s) => s.status !== current);
@@ -526,6 +536,11 @@ export default function ArtikelTable({
               return (
                 <tr
                   key={article.id}
+                  // 🔥 CATATAN: klik baris tetap jalan pintas ke "Edit Data"
+                  // (bukan "Edit Konten"), karena halaman edit konten belum
+                  // dibuat. Kalau nanti halaman kontennya sudah ada dan mau
+                  // klik baris diarahkan ke sana, cukup ganti baris di bawah
+                  // ini jadi handleEditContent(article).
                   onClick={() => {
                     if (openMenu || deleteModal || editModal) return;
                     openEditModal(article);
@@ -611,6 +626,24 @@ export default function ArtikelTable({
                               : "top-full mt-2"
                           }`}
                         >
+                          {/* 🔥 DIUBAH: dulu satu tombol "Edit" langsung buka
+                              modal metadata. Sekarang dipecah dua: "Edit
+                              Konten" (nanti masuk ke halaman konten artikel,
+                              belum dibuat) dan "Edit Data" (modal metadata
+                              yang sudah ada — judul, slug, excerpt, tags,
+                              cover, status, dst). */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenMenu(null);
+                              handleEditContent(article);
+                            }}
+                            className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-100 text-gray-700"
+                          >
+                            <FileText size={15} />
+                            Edit Konten
+                          </button>
+
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -620,7 +653,7 @@ export default function ArtikelTable({
                             className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-100 text-gray-700"
                           >
                             <Pencil size={15} />
-                            Edit
+                            Edit Data
                           </button>
 
                           {otherStatuses(article.status).map((s) => {
@@ -844,7 +877,7 @@ export default function ArtikelTable({
           >
             <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 shrink-0">
               <h2 className="text-lg font-semibold text-gray-800">
-                Edit Artikel
+                Edit Data Artikel
               </h2>
               <button
                 onClick={closeEditModal}
@@ -906,14 +939,36 @@ export default function ArtikelTable({
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Kategori
                 </label>
-                <input
-                  type="text"
+                {/* 🔥 DIUBAH: dulu input teks bebas — sekarang dropdown dari
+                    daftar kategori tetap (lihat articleCategories.ts). Kalau
+                    artikel lama sudah punya kategori custom yang BUKAN dari
+                    daftar ini (peninggalan sebelum ada dropdown), kategori
+                    itu tetap ditampilkan sebagai opsi tambahan di sini biar
+                    datanya nggak diam-diam berubah/hilang saat modal dibuka
+                    — admin yang pilih sendiri kalau mau gantikan ke kategori
+                    baku. */}
+                <select
                   value={editModal.category}
                   onChange={(e) =>
                     setEditModal({ ...editModal, category: e.target.value })
                   }
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-400"
-                />
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                >
+                  <option value="">Tanpa kategori</option>
+                  {editModal.category &&
+                    !ARTICLE_CATEGORIES.includes(
+                      editModal.category as (typeof ARTICLE_CATEGORIES)[number],
+                    ) && (
+                      <option value={editModal.category}>
+                        {editModal.category} (kategori lama)
+                      </option>
+                    )}
+                  {ARTICLE_CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Tags */}
@@ -983,21 +1038,39 @@ export default function ArtikelTable({
                   />
                 </div>
 
-                <div className="mt-3 border border-gray-200 rounded-lg p-2 w-fit">
-                  <img
-                    src={
-                      editCoverPreview ||
-                      (editModal.coverImage
-                        ? `${process.env.NEXT_PUBLIC_API_BASE_URL}${editModal.coverImage}`
-                        : "")
-                    }
-                    alt="Cover preview"
-                    className="w-28 h-20 object-cover rounded-md bg-gray-100"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                  />
-                </div>
+                {/* 🔥 FIX: dulu fallback-nya string kosong ("") kalau belum
+                    ada preview file baru MAUPUN cover lama — itu yang bikin
+                    console warning "empty string passed to src". Sekarang
+                    src dihitung dulu ke variabel, dan <img> cuma dirender
+                    kalau src-nya benar-benar ada. */}
+                {(() => {
+                  const editCoverSrc =
+                    editCoverPreview ||
+                    (editModal.coverImage
+                      ? `${process.env.NEXT_PUBLIC_API_BASE_URL}${editModal.coverImage}`
+                      : null);
+
+                  if (!editCoverSrc) {
+                    return (
+                      <div className="mt-3 flex h-20 w-28 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50 text-[11px] text-gray-400">
+                        Belum ada cover
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="mt-3 border border-gray-200 rounded-lg p-2 w-fit">
+                      <img
+                        src={editCoverSrc}
+                        alt="Cover preview"
+                        className="w-28 h-20 object-cover rounded-md bg-gray-100"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    </div>
+                  );
+                })()}
                 {editCoverFile && (
                   <p className="text-[11px] text-amber-600 mt-1.5">
                     Cover lama akan dihapus otomatis kalau perubahan ini
