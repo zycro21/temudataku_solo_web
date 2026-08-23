@@ -39,6 +39,15 @@ async function main() {
       roleName: "guest",
       description: "Guest with VIEW access to e-learning dashboard in admin",
     },
+    // 🔥 BARU: role Content Writer (cw) — punya akses ke endpoint & dashboard
+    // admin artikel (CRUD artikel), setara admin khusus untuk modul artikel.
+    // id "8" dipakai karena id 1-7 sudah terpakai di atas.
+    {
+      id: "8",
+      roleName: "cw",
+      description:
+        "Content Writer who manages articles (create, edit, publish)",
+    },
   ];
 
   for (const role of roles) {
