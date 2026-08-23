@@ -21,7 +21,7 @@ export default function DashboardHeaderMentor() {
       try {
         const res = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/me`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
         setUser(res.data.data);
       } catch (err: any) {
@@ -72,41 +72,41 @@ export default function DashboardHeaderMentor() {
 
   const role = user?.userRoles?.[0]?.role?.roleName
     ? user.userRoles[0].role.roleName.replace(/^\w/, (c: string) =>
-        c.toUpperCase()
+        c.toUpperCase(),
       )
     : "Mentor";
 
   return (
     <>
-      <header className="flex items-center justify-between h-20 px-6 bg-white">
+      <header className="flex items-center justify-between h-16 px-6 bg-white">
         {/* Search Bar */}
-        <div className="relative w-132">
+        <div className="relative w-full max-w-sm">
           <input
             type="text"
             placeholder="Masukkan kata kunci pencarian..."
-            className="w-full rounded-lg border border-gray-300 bg-gray-50 pl-11 pr-4 py-2 text-sm focus:border-emerald-500 focus:ring-emerald-500"
+            className="w-full rounded-lg border border-gray-300 bg-gray-50 pl-10 pr-4 py-2 text-sm focus:border-emerald-500 focus:ring-emerald-500"
           />
           <Image
             src="/assets/dashboard/user/search-icon.svg"
             alt="Search"
-            width={12}
-            height={12}
-            className="absolute left-4 top-1/2 -translate-y-1/2"
+            width={14}
+            height={14}
+            className="absolute left-3.5 top-1/2 -translate-y-1/2"
           />
         </div>
 
         {/* Right Section */}
-        <div className="flex items-center gap-6 pr-6">
+        <div className="flex items-center gap-4 pr-2">
           {/* Notification */}
-          <button className="relative flex items-center justify-center w-12 h-12 rounded-full border border-gray-300 bg-white">
+          {/* <button className="relative flex items-center justify-center w-10 h-10 rounded-full border border-gray-300 bg-white">
             <Image
               src="/assets/dashboard/user/bell-icon.svg"
               alt="Notification"
-              width={12}
-              height={12}
+              width={14}
+              height={14}
             />
-            <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-red-500"></span>
-          </button>
+            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500"></span>
+          </button> */}
 
           {/* User Info + Dropdown */}
           <div className="relative" ref={dropdownRef}>
@@ -117,8 +117,8 @@ export default function DashboardHeaderMentor() {
               <Image
                 src={avatarUrl}
                 alt="User Avatar"
-                width={36}
-                height={36}
+                width={32}
+                height={32}
                 unoptimized
                 className="rounded-full object-cover"
               />
@@ -137,12 +137,12 @@ export default function DashboardHeaderMentor() {
             </button>
 
             {open && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-2 z-50">
+              <div className="absolute right-0 mt-2 w-44 bg-white rounded-md shadow-lg border border-gray-200 py-1.5 z-50">
                 <button
                   onClick={handleOpenProfile}
-                  className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-emerald-500 hover:text-white transition cursor-pointer"
+                  className="flex items-center gap-2 w-full text-left px-3.5 py-2 text-sm font-medium text-gray-700 hover:bg-emerald-500 hover:text-white transition cursor-pointer"
                 >
-                  <User size={16} />
+                  <User size={14} />
                   Lihat Profil
                 </button>
               </div>

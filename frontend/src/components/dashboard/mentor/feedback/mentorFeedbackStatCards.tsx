@@ -81,7 +81,7 @@ export default function MentorFeedbackStatCards() {
       try {
         const res = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/feedback/mentor/feedbacks?limit=1000`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
 
         const { data } = res.data;
@@ -89,7 +89,7 @@ export default function MentorFeedbackStatCards() {
         setFeedbackCount(data.length);
 
         const newThisWeek = data.filter((f: any) =>
-          isThisWeek(new Date(f.submittedDate))
+          isThisWeek(new Date(f.submittedDate)),
         );
         setFeedbackChange(newThisWeek.length);
       } catch (error) {
@@ -137,17 +137,17 @@ export default function MentorFeedbackStatCards() {
         r >= starValue
           ? 100
           : r > starValue - 1
-          ? (r - (starValue - 1)) * 100
-          : 0;
+            ? (r - (starValue - 1)) * 100
+            : 0;
 
       return (
-        <div key={idx} className="relative w-6 h-6" aria-hidden>
-          <FaStar className="text-gray-300 absolute top-0 left-0 w-6 h-6" />
+        <div key={idx} className="relative w-5 h-5" aria-hidden>
+          <FaStar className="text-gray-300 absolute top-0 left-0 w-5 h-5" />
           <div
-            className="overflow-hidden absolute top-0 left-0 h-6"
+            className="overflow-hidden absolute top-0 left-0 h-5"
             style={{ width: `${fill}%` }}
           >
-            <FaStar className="text-amber-400 w-6 h-6" />
+            <FaStar className="text-amber-400 w-5 h-5" />
           </div>
         </div>
       );
@@ -155,7 +155,7 @@ export default function MentorFeedbackStatCards() {
   };
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {stats.map((item, idx) => {
         const raw = item.value;
         const parsed =
@@ -165,11 +165,11 @@ export default function MentorFeedbackStatCards() {
         return (
           <Card
             key={idx}
-            className="w-full flex flex-col px-0 py-3 pb-2 shadow-md rounded-lg border border-gray-200 bg-white"
+            className="w-full flex flex-col px-0 py-2 pb-2 shadow-md rounded-lg border border-gray-200 bg-white"
           >
             {/* Header */}
-            <CardHeader className="flex items-center justify-between px-6 pt-2 pb-0">
-              <div className="flex items-center gap-3">
+            <CardHeader className="flex items-center justify-between px-4 pt-2 pb-0">
+              <div className="flex items-center gap-2">
                 <Image
                   src={item.image}
                   alt={item.title}
@@ -177,24 +177,24 @@ export default function MentorFeedbackStatCards() {
                   height={12}
                   className="object-contain opacity-90 relative top-[-0.6px]"
                 />
-                <CardTitle className="text-base font-semibold text-gray-700">
+                <CardTitle className="text-sm font-semibold text-gray-700">
                   {item.title}
                 </CardTitle>
               </div>
               <CardAction className="text-gray-500">
-                <ChevronRight className="h-5 w-5" />
+                <ChevronRight className="h-4 w-4" />
               </CardAction>
             </CardHeader>
 
             {/* Content */}
-            <CardContent className="px-6 pt-1 pb-4">
+            <CardContent className="px-4 pt-1 pb-3">
               {item.title === "Jumlah Feedback" && (
-                <div className="flex items-center gap-4">
-                  <h3 className="text-4xl font-bold text-gray-900">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-2xl font-bold text-gray-900">
                     {item.value}
                   </h3>
                   {item.change && (
-                    <span className="inline-block text-sm font-semibold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full">
+                    <span className="inline-block text-xs font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
                       {item.change}
                     </span>
                   )}
@@ -203,11 +203,11 @@ export default function MentorFeedbackStatCards() {
 
               {item.title === "Rating Feedback" && (
                 <div>
-                  <div className="flex items-center gap-3">
-                    <h3 className="text-4xl font-bold text-gray-900">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-2xl font-bold text-gray-900">
                       {ratingNum.toFixed(1)}
                     </h3>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       {renderStars(ratingNum)}
                     </div>
                   </div>
@@ -215,11 +215,11 @@ export default function MentorFeedbackStatCards() {
               )}
 
               {item.title === "Kata Kunci Feedback" && (
-                <div className="flex flex-wrap gap-2 mt-2">
+                <div className="flex flex-wrap gap-1.5 mt-1">
                   {item.keywords?.map((kw) => (
                     <span
                       key={kw}
-                      className="px-3 py-1 bg-white border border-black text-black text-sm font-semibold rounded-md"
+                      className="px-2 py-0.5 bg-white border border-black text-black text-xs font-semibold rounded-md"
                     >
                       {kw}
                     </span>

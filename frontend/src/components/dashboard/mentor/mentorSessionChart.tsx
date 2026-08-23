@@ -34,7 +34,7 @@ export default function MentorSessionChart() {
       try {
         const res = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/booking/mentorStat/bookings`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
 
         const apiData = res.data.data as {
@@ -105,10 +105,10 @@ export default function MentorSessionChart() {
       x: {
         ticks: {
           color: "#000000",
-          font: { weight: "bold" },
+          font: { weight: "bold", size: 11 },
           maxRotation: 0,
           minRotation: 0,
-          padding: 10,
+          padding: 8,
           callback: function (val, index) {
             const labels = [
               ["Mentoring", "1 on 1"],
@@ -134,7 +134,7 @@ export default function MentorSessionChart() {
       y: {
         ticks: {
           color: "#000000",
-          font: { weight: "normal" },
+          font: { weight: "normal", size: 11 },
           stepSize: 15,
           padding: 6,
         },
@@ -157,9 +157,9 @@ export default function MentorSessionChart() {
           usePointStyle: true,
           boxWidth: 6,
           boxHeight: 6,
-          padding: 12,
+          padding: 10,
           font: {
-            size: 11,
+            size: 10,
           },
         },
       },
@@ -167,8 +167,8 @@ export default function MentorSessionChart() {
   };
 
   return (
-    <Card className="w-full h-full px-0 py-2 flex flex-col justify-between hover:shadow-md transition-all duration-200 rounded-md">
-      <CardHeader className="flex items-center justify-between px-6 pt-4 pb-0">
+    <Card className="w-full h-full px-0 py-2 flex flex-col hover:shadow-md transition-all duration-200 rounded-md">
+      <CardHeader className="flex items-center justify-between px-6 pt-4 pb-0 shrink-0">
         <div className="flex items-center gap-2">
           <Image
             src="/assets/dashboard/mentor/person.svg"
@@ -177,14 +177,14 @@ export default function MentorSessionChart() {
             height={12}
             className="relative top-[-1px]"
           />
-          <CardTitle className="text-md font-medium text-gray-500 leading-none">
+          <CardTitle className="text-sm font-medium text-gray-500 leading-none">
             Rekapitulasi Sesi dan Mentee
           </CardTitle>
         </div>
       </CardHeader>
 
-      <CardContent className="px-6 py-4 pt-0">
-        <div className="w-full h-[282px]">
+      <CardContent className="px-6 py-4 pt-0 flex-1 flex flex-col min-h-0">
+        <div className="w-full flex-1 min-h-[240px]">
           <Bar data={data} options={options} />
         </div>
       </CardContent>

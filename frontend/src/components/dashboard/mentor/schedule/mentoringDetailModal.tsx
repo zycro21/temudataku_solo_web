@@ -87,9 +87,9 @@ export default function MentoringDetailModal({
         ) : (
           <>
             {/* Header */}
-            <DialogHeader className="flex flex-row items-center justify-between border-b px-6 py-4">
+            <DialogHeader className="flex flex-row items-center justify-between border-b px-5 py-3.5">
               <div>
-                <DialogTitle className="text-lg font-semibold text-gray-800">
+                <DialogTitle className="text-base font-semibold text-gray-800">
                   {parseDbDate(event.date).toLocaleDateString("id-ID", {
                     weekday: "long",
                     day: "numeric",
@@ -104,22 +104,22 @@ export default function MentoringDetailModal({
             </DialogHeader>
 
             {/* Body */}
-            <div className="px-6 py-4 pt-1 space-y-6 max-h-[75vh] overflow-y-auto">
+            <div className="px-5 py-3.5 pt-1 space-y-5 max-h-[75vh] overflow-y-auto">
               {/* Jadwal */}
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <Image
                     src="/assets/dashboard/mentor/calendar.svg"
                     alt="Jadwal"
-                    width={11}
-                    height={11}
+                    width={12}
+                    height={12}
                     className="relative top-[-0.5px]"
                   />
-                  <h4 className="font-semibold text-gray-800 text-base">
+                  <h4 className="font-semibold text-gray-800 text-sm">
                     Jadwal Mentoring
                   </h4>
                 </div>
-                <div className="pl-6">
+                <div className="pl-5">
                   <p className="text-sm text-gray-600">
                     {parseDbDate(event.date).toLocaleDateString("id-ID", {
                       weekday: "long",
@@ -138,15 +138,15 @@ export default function MentoringDetailModal({
                   <Image
                     src="/assets/dashboard/mentor/modalschedule/1.svg"
                     alt="Jenis"
-                    width={11}
-                    height={11}
+                    width={12}
+                    height={12}
                     className="relative top-[-0.5px]"
                   />
-                  <h4 className="font-semibold text-gray-800 text-base">
+                  <h4 className="font-semibold text-gray-800 text-sm">
                     Jenis Mentoring
                   </h4>
                 </div>
-                <div className="pl-6">
+                <div className="pl-5">
                   <p className="text-sm text-gray-600">
                     {typeLabels[event.type]}
                   </p>
@@ -160,15 +160,15 @@ export default function MentoringDetailModal({
                     <Image
                       src="/assets/dashboard/mentor/modalschedule/2.svg"
                       alt="Jumlah Mentee"
-                      width={11}
-                      height={11}
+                      width={12}
+                      height={12}
                       className="relative top-[-0.5px]"
                     />
-                    <h4 className="font-semibold text-gray-800 text-base">
+                    <h4 className="font-semibold text-gray-800 text-sm">
                       Jumlah Mentee
                     </h4>
                   </div>
-                  <div className="pl-6">
+                  <div className="pl-5">
                     <p className="text-sm text-gray-600">
                       {event.mentees.length} peserta
                     </p>
@@ -183,15 +183,15 @@ export default function MentoringDetailModal({
                     <Image
                       src="/assets/dashboard/mentor/modalschedule/3.svg"
                       alt="Daftar Mentee"
-                      width={11}
-                      height={11}
+                      width={12}
+                      height={12}
                       className="relative top-[-0.5px]"
                     />
-                    <h4 className="font-semibold text-gray-800 text-base">
+                    <h4 className="font-semibold text-gray-800 text-sm">
                       Daftar Mentee
                     </h4>
                   </div>
-                  <div className="pl-5 space-y-3">
+                  <div className="pl-4 space-y-2.5">
                     {event.mentees.map((mentee, idx) => (
                       <div key={idx} className="flex items-center gap-3">
                         <Image
@@ -223,15 +223,15 @@ export default function MentoringDetailModal({
                   <Image
                     src="/assets/dashboard/mentor/modalschedule/4.svg"
                     alt="Materi"
-                    width={11}
-                    height={11}
+                    width={12}
+                    height={12}
                     className="relative top-[-0.5px]"
                   />
-                  <h4 className="font-semibold text-gray-800 text-base">
+                  <h4 className="font-semibold text-gray-800 text-sm">
                     Materi yang Diinginkan
                   </h4>
                 </div>
-                <div className="pl-6">
+                <div className="pl-5">
                   <p className="text-sm text-gray-600">
                     {event.material || "-"}
                   </p>
@@ -244,15 +244,15 @@ export default function MentoringDetailModal({
                   <Image
                     src="/assets/dashboard/mentor/modalschedule/5.svg"
                     alt="Catatan"
-                    width={11}
-                    height={11}
+                    width={12}
+                    height={12}
                     className="relative top-[-0.5px]"
                   />
-                  <h4 className="font-semibold text-gray-800 text-base">
+                  <h4 className="font-semibold text-gray-800 text-sm">
                     Catatan atau Permintaan Khusus untuk Mentor
                   </h4>
                 </div>
-                <div className="pl-6">
+                <div className="pl-5">
                   <p className="text-sm text-gray-600">{event.notes || "-"}</p>
                 </div>
               </div>
@@ -263,15 +263,15 @@ export default function MentoringDetailModal({
                   <Image
                     src="/assets/dashboard/mentor/modalschedule/6.svg"
                     alt="Zoom Link"
-                    width={11}
-                    height={11}
+                    width={12}
+                    height={12}
                     className="relative top-[-0.5px]"
                   />
-                  <h4 className="font-semibold text-gray-800 text-base">
+                  <h4 className="font-semibold text-gray-800 text-sm">
                     Link Zoom Meeting
                   </h4>
                 </div>
-                <div className="pl-6">
+                <div className="pl-5">
                   {event.zoomLink ? (
                     <a
                       href={event.zoomLink}
@@ -292,15 +292,15 @@ export default function MentoringDetailModal({
                   <Image
                     src="/assets/dashboard/mentor/modalschedule/7.svg"
                     alt="Meeting ID"
-                    width={11}
-                    height={11}
+                    width={12}
+                    height={12}
                     className="relative top-[-0.5px]"
                   />
-                  <h4 className="font-semibold text-gray-800 text-base">
+                  <h4 className="font-semibold text-gray-800 text-sm">
                     Meeting ID
                   </h4>
                 </div>
-                <div className="pl-6">
+                <div className="pl-5">
                   <p className="text-sm text-gray-600">
                     {event.meetingId || "-"}
                   </p>
@@ -313,15 +313,15 @@ export default function MentoringDetailModal({
                   <Image
                     src="/assets/dashboard/mentor/modalschedule/8.svg"
                     alt="Passcode"
-                    width={11}
-                    height={11}
+                    width={12}
+                    height={12}
                     className="relative top-[-0.5px]"
                   />
-                  <h4 className="font-semibold text-gray-800 text-base">
+                  <h4 className="font-semibold text-gray-800 text-sm">
                     Meeting Passcode
                   </h4>
                 </div>
-                <div className="pl-6">
+                <div className="pl-5">
                   <p className="text-sm text-gray-600">
                     {event.passcode || "-"}
                   </p>

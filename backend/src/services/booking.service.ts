@@ -2358,7 +2358,13 @@ export const getBookingParticipants = async (
 export const getMentorEarnings = async (params: { mentorId: string }) => {
   const { mentorId } = params;
 
-  const allowedServiceTypes = ["one-on-one", "group", "bootcamp"];
+  // 🔥 DIUBAH: "Total Pendapatan" mentor sekarang CUMA menghitung booking
+  // one-on-one & group (yang pakai sistem revenue sharing 60%). Bootcamp
+  // sengaja DIKELUARKAN sama sekali dari total ini — bukan cuma di-set
+  // rate 100% seperti sebelumnya — supaya angka yang ditampilkan ke mentor
+  // konsisten dan nggak bikin bingung (card ini fokus ke earnings sharing,
+  // bukan revenue bootcamp yang modelnya beda).
+  const allowedServiceTypes = ["one-on-one", "group"];
 
   const now = new Date();
 
@@ -2369,13 +2375,34 @@ export const getMentorEarnings = async (params: { mentorId: string }) => {
   const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
 
   // ======================================================
-  // FUNCTION HITUNG TOTAL PAYMENT BERHASIL
+  // REVENUE SHARING MENTOR
+  // ======================================================
+  // Untuk 1-on-1 & Group mentoring, mentor cuma dapat 60% dari nominal
+  // yang BENAR-BENAR DIBAYAR mentee (payment.amount) — bukan harga asli
+  // service. Jadi kalau mentee kena diskon/voucher/referral, 60%-nya
+  // otomatis dihitung dari harga setelah diskon itu, karena payment.amount
+  // memang sudah mencerminkan nominal final yang dibayar.
+  const MENTOR_SHARE_RATE: Record<string, number> = {
+    "one-on-one": 0.6,
+    group: 0.6,
+  };
+
+  const getMentorShareRate = (serviceType?: string | null) => {
+    if (!serviceType) return 1;
+    return MENTOR_SHARE_RATE[serviceType] ?? 1;
+  };
+
+  // ======================================================
+  // FUNCTION HITUNG TOTAL PAYMENT BERHASIL (SUDAH DIPOTONG SHARE MENTOR)
   // ======================================================
 
   const calculateTotalPayments = (
     bookings: Array<{
       invoice: {
         payments: Payment[];
+      } | null;
+      mentoringService: {
+        serviceType: string | null;
       } | null;
     }>,
   ) => {
@@ -2392,8 +2419,54 @@ export const getMentorEarnings = async (params: { mentorId: string }) => {
         0,
       );
 
-      return sum + bookingTotal;
+      const shareRate = getMentorShareRate(
+        booking.mentoringService?.serviceType,
+      );
+
+      // Dibulatkan per booking (bukan di akhir) supaya konsisten dengan
+      // cara pembulatan nominal rupiah di tempat lain (mis. installment).
+      return sum + Math.round(bookingTotal * shareRate);
     }, 0);
+  };
+
+  // ======================================================
+  // 🔥 BARU: JUMLAH BOOKING PER TIPE (UNTUK PIE CHART DI DASHBOARD)
+  // ======================================================
+  // Dulu pie chart di dashboard ambil data dari endpoint terpisah (jumlah
+  // SERVICE di katalog mentor), yang beda konsep sama sekali dari jumlah
+  // BOOKING/transaksi yang dihitung di sini — bikin bingung karena kedua
+  // angka itu nggak seharusnya sama. Sekarang breakdown-nya dihitung dari
+  // booking yang SAMA PERSIS dipakai buat total earnings di atas (booking
+  // confirmed/completed DAN punya minimal 1 payment yang confirmed/
+  // completed juga), supaya keduanya selalu konsisten.
+  const calculateBookingCountByType = (
+    bookings: Array<{
+      invoice: {
+        payments: Payment[];
+      } | null;
+      mentoringService: {
+        serviceType: string | null;
+      } | null;
+    }>,
+  ) => {
+    const counts: Record<string, number> = {};
+
+    for (const booking of bookings) {
+      const hasPaidPayment = (booking.invoice?.payments || []).some((payment) =>
+        ["confirmed", "completed"].includes(
+          (payment.status || "").toLowerCase(),
+        ),
+      );
+
+      if (!hasPaidPayment) continue;
+
+      const serviceType = booking.mentoringService?.serviceType;
+      if (!serviceType) continue;
+
+      counts[serviceType] = (counts[serviceType] || 0) + 1;
+    }
+
+    return counts;
   };
 
   // ======================================================
@@ -2422,10 +2495,16 @@ export const getMentorEarnings = async (params: { mentorId: string }) => {
           payments: true,
         },
       },
+      mentoringService: {
+        select: {
+          serviceType: true,
+        },
+      },
     },
   });
 
   const totalAllTime = calculateTotalPayments(allEarningsRaw);
+  const bookingCountByType = calculateBookingCountByType(allEarningsRaw);
 
   // ======================================================
   // BULAN INI
@@ -2454,6 +2533,11 @@ export const getMentorEarnings = async (params: { mentorId: string }) => {
       invoice: {
         include: {
           payments: true,
+        },
+      },
+      mentoringService: {
+        select: {
+          serviceType: true,
         },
       },
     },
@@ -2491,6 +2575,11 @@ export const getMentorEarnings = async (params: { mentorId: string }) => {
           payments: true,
         },
       },
+      mentoringService: {
+        select: {
+          serviceType: true,
+        },
+      },
     },
   });
 
@@ -2507,9 +2596,47 @@ export const getMentorEarnings = async (params: { mentorId: string }) => {
         : 0
       : ((totalThisMonth - totalLastMonth) / totalLastMonth) * 100;
 
+  const roundedGrowthPercent = Math.round(growthPercent);
+
+  // ======================================================
+  // 🔥 BARU: SIMPAN HASIL KE TABEL mentor_earning_summaries
+  // ======================================================
+  // Logic perhitungan di atas TIDAK berubah sama sekali (masih 60% untuk
+  // one-on-one/group dari nominal yang beneran dibayar mentee). Ini cuma
+  // nulis ulang hasil akhirnya ke DB tiap kali fungsi ini dipanggil, jadi
+  // datanya kesimpan (bukan cuma hasil hitung on-the-fly) dan bisa dibaca
+  // ulang kapan aja tanpa hitung ulang. Dibungkus try-catch supaya kalau
+  // gagal nulis (misal race condition ringan), response earnings ke
+  // frontend tetap jalan seperti biasa — nulis ke summary sifatnya cuma
+  // "menambah pencatatan", bukan bagian kritikal dari alur utama.
+  try {
+    await prisma.mentorEarningSummary.upsert({
+      where: { mentorProfileId: mentorId },
+      update: {
+        totalEarnings: totalAllTime,
+        totalThisMonth,
+        totalLastMonth,
+        growthPercent: roundedGrowthPercent,
+      },
+      create: {
+        mentorProfileId: mentorId,
+        totalEarnings: totalAllTime,
+        totalThisMonth,
+        totalLastMonth,
+        growthPercent: roundedGrowthPercent,
+      },
+    });
+  } catch (err) {
+    console.error(
+      `Gagal menyimpan MentorEarningSummary untuk mentor ${mentorId}:`,
+      err,
+    );
+  }
+
   return {
     total: totalAllTime,
-    growthPercent: Math.round(growthPercent),
+    growthPercent: roundedGrowthPercent,
+    bookingCountByType,
   };
 };
 

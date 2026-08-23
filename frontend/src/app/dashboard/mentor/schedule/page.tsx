@@ -11,14 +11,14 @@ export default function ScheduleDashboardMentorPage() {
     <div className="flex mb-8">
       <MentorSidebar />
       {/* Konten sebelah kanan */}
-      <div className="flex-1 flex flex-col ml-72">
+      <div className="flex-1 flex flex-col ml-64">
         <DashboardAffHeader />
 
         {/* Main content */}
-        <main className="flex-1 p-6 pl-7 bg-gray-50 overflow-x-hidden">
+        <main className="flex-1 p-5 pl-6 bg-gray-50 overflow-x-hidden">
           {/* Title & description */}
-          <h1 className="text-2xl font-semibold text-gray-800">Schedule</h1>
-          <p className="mt-0 mb-8 text-gray-500">
+          <h1 className="text-xl font-semibold text-gray-800">Schedule</h1>
+          <p className="mt-0 mb-6 text-sm text-gray-500">
             Halaman ini menampilkan jadwal sesi mentoring, bootcamp, dan
             shortclass Anda, baik yang akan datang maupun yang telah
             berlangsung.
@@ -30,11 +30,11 @@ export default function ScheduleDashboardMentorPage() {
           </div>
 
           {/* Section: Calendar & Day Events */}
-          <div className="p-6 pl-0 mb-6">
-            <div className="grid grid-cols-1 lg:grid-cols-[60%_40%] gap-6">
+          <div className="p-5 pl-0 mb-5">
+            <div className="grid grid-cols-1 lg:grid-cols-[60%_40%] gap-5">
               {/* Kiri: Kalender */}
               <div>
-                <h2 className="text-xl font-bold text-gray-800 mb-4">
+                <h2 className="text-base font-semibold text-gray-800 mb-3">
                   Kalender Sesi
                 </h2>
                 {/* Kirim events ke Calendar */}
@@ -43,7 +43,7 @@ export default function ScheduleDashboardMentorPage() {
 
               {/* Kanan: Jadwal Hari Ini */}
               <div>
-                <h2 className="text-xl font-bold text-gray-800 mb-4">
+                <h2 className="text-base font-semibold text-gray-800 mb-3">
                   Jadwal Sesi
                 </h2>
                 {/* Kirim events ke DayEvents */}

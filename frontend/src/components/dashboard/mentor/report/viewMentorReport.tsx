@@ -39,12 +39,12 @@ export default function ShowMentorReportModal({
         onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <DialogTitle className="text-2xl font-semibold">
+          <DialogTitle className="text-lg font-semibold">
             Laporan Mentor
           </DialogTitle>
           {program && (
             <div>
-              <p className="text-base font-bold text-gray-800">{program}</p>
+              <p className="text-sm font-semibold text-gray-800">{program}</p>
               {date && time && (
                 <p className="text-sm text-gray-600 mt-1 mb-3">
                   {date} pukul {time}
@@ -55,7 +55,7 @@ export default function ShowMentorReportModal({
         </DialogHeader>
 
         {/* Konten scrollable */}
-        <div className="max-h-[60vh] overflow-y-auto pr-1 space-y-6 text-sm">
+        <div className="max-h-[60vh] overflow-y-auto pr-1 space-y-5 text-sm">
           {/* Pemahaman Mentee */}
           <div>
             <p className="font-medium mb-2">

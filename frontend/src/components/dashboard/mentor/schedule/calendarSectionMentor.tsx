@@ -56,7 +56,7 @@ export default function CalendarSectionMentor() {
       try {
         const res = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentoringSession/mentor/own-mentoring-sessions`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
 
         const data = res.data;
@@ -116,18 +116,18 @@ export default function CalendarSectionMentor() {
 
   const calendarDays = getCalendarDays(
     currentDate.getFullYear(),
-    currentDate.getMonth()
+    currentDate.getMonth(),
   );
 
   const goToPrevMonth = () => {
     setCurrentDate(
-      new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)
+      new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1),
     );
   };
 
   const goToNextMonth = () => {
     setCurrentDate(
-      new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)
+      new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1),
     );
   };
 
@@ -138,7 +138,7 @@ export default function CalendarSectionMentor() {
 
   const isWithinBorderRange = (date: Date) => {
     const diffDays = Math.floor(
-      (date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+      (date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
     );
     return diffDays >= -5 && diffDays <= 3;
   };
@@ -146,7 +146,7 @@ export default function CalendarSectionMentor() {
   // Hitung jumlah sesi otomatis
   const totalSessions = Object.values(events).reduce(
     (sum, dayEvents) => sum + dayEvents.length,
-    0
+    0,
   );
 
   if (loading) {
@@ -154,37 +154,37 @@ export default function CalendarSectionMentor() {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
+    <div className="bg-white rounded-lg shadow-sm p-5">
       {/* Navigasi bulan/tahun */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-3">
           <button
             onClick={goToPrevMonth}
-            className="p-2 rounded-md hover:bg-gray-100"
+            className="p-1.5 rounded-md hover:bg-gray-100"
           >
-            <ChevronLeft className="w-6 h-6 text-gray-700 font-bold" />
+            <ChevronLeft className="w-5 h-5 text-gray-700" />
           </button>
-          <span className="text-lg font-semibold text-gray-800">
+          <span className="text-base font-semibold text-gray-800">
             {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
           </span>
           <button
             onClick={goToNextMonth}
-            className="p-2 rounded-md hover:bg-gray-100"
+            className="p-1.5 rounded-md hover:bg-gray-100"
           >
-            <ChevronRight className="w-6 h-6 text-gray-700 font-bold" />
+            <ChevronRight className="w-5 h-5 text-gray-700" />
           </button>
         </div>
-        <span className="text-md font-semibold text-gray-600">
+        <span className="text-sm font-semibold text-gray-600">
           Jumlah Sesi: {totalSessions}
         </span>
       </div>
 
       {/* Hari */}
-      <div className="grid grid-cols-7 text-center mb-4">
+      <div className="grid grid-cols-7 text-center mb-3">
         {daysOfWeek.map((day, idx) => (
           <div
             key={day}
-            className={`text-sm font-semibold py-2 ${
+            className={`text-xs font-semibold py-1.5 ${
               idx === 0 ? "text-emerald-400" : "text-emerald-600"
             }`}
           >
@@ -197,18 +197,18 @@ export default function CalendarSectionMentor() {
       <div className="grid grid-cols-7 gap-1">
         {calendarDays.map((date, idx) => {
           const formattedDate = `${date.getFullYear()}-${String(
-            date.getMonth() + 1
+            date.getMonth() + 1,
           ).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
           const dayEvents = events[formattedDate] || [];
           const uniqueEvents = Array.from(
-            new Set(dayEvents.map((e) => e.type))
+            new Set(dayEvents.map((e) => e.type)),
           );
 
           return (
             <div
               key={idx}
-              className={`h-16 flex flex-col items-center justify-center text-sm rounded-md py-1 relative
+              className={`h-14 flex flex-col items-center justify-center text-xs rounded-md py-1 relative
                 ${
                   date.getMonth() === currentDate.getMonth()
                     ? "text-gray-800"
@@ -250,13 +250,13 @@ export default function CalendarSectionMentor() {
       </div>
 
       {/* Legend */}
-      <div className="mt-8 text-sm">
-        <p className="text-xl text-gray-700 font-bold mb-2">Keterangan:</p>
-        <div className="flex flex-col gap-3">
+      <div className="mt-6 text-sm">
+        <p className="text-sm text-gray-700 font-semibold mb-2">Keterangan:</p>
+        <div className="flex flex-col gap-2.5">
           <div className="flex items-center gap-2">
             <img
               src="/assets/dashboard/mentor/sesimentoring.svg"
-              className="w-5 h-5"
+              className="w-4 h-4"
               alt="mentoring"
             />
             <span className="text-gray-600">Sesi Mentoring</span>
@@ -264,7 +264,7 @@ export default function CalendarSectionMentor() {
           <div className="flex items-center gap-2">
             <img
               src="/assets/dashboard/mentor/sesishortclass.svg"
-              className="w-5 h-5"
+              className="w-4 h-4"
               alt="shortclass"
             />
             <span className="text-gray-600">Sesi Shortclass / Liveclass</span>
@@ -272,7 +272,7 @@ export default function CalendarSectionMentor() {
           <div className="flex items-center gap-2">
             <img
               src="/assets/dashboard/mentor/sesibootcamp.svg"
-              className="w-5 h-5"
+              className="w-4 h-4"
               alt="bootcamp"
             />
             <span className="text-gray-600">Sesi Bootcamp</span>

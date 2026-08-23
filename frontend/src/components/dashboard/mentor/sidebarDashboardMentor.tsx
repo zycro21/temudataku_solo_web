@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useLogout } from "@/hooks/useLogout"; 
+import { useLogout } from "@/hooks/useLogout";
 
 const menuItems = [
   {
@@ -43,11 +43,11 @@ export default function Sidebar() {
   const logout = useLogout(); // pakai hook logout
 
   return (
-    <aside className="fixed top-0 left-0 w-72 h-screen bg-white border-r flex flex-col justify-between">
+    <aside className="fixed top-0 left-0 w-64 h-screen bg-white border-r flex flex-col justify-between">
       {/* Top - Logo & Menu */}
       <div className="mt-2">
         {/* Logo */}
-        <div className="pl-8 pb-8">
+        <div className="pl-6 pb-6">
           <Link href="/dashboard/mentor">
             <Image
               src="/assets/dashboard/user/Navbar_logo.png"
@@ -62,7 +62,7 @@ export default function Sidebar() {
         </div>
 
         {/* Menu List */}
-        <nav className="space-y-1 px-6">
+        <nav className="space-y-1 px-4">
           {menuItems.map((item) => {
             const isActive =
               item.href === "/dashboard/mentor"
@@ -73,7 +73,7 @@ export default function Sidebar() {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center gap-x-4 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`flex items-center gap-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   isActive
                     ? "bg-emerald-500 text-white"
                     : "text-gray-600 hover:bg-emerald-50 hover:text-emerald-600"
@@ -82,8 +82,8 @@ export default function Sidebar() {
                 <Image
                   src={isActive ? item.activeIcon : item.icon}
                   alt={item.name}
-                  width={18}
-                  height={18}
+                  width={16}
+                  height={16}
                 />
                 <span>{item.name}</span>
               </Link>
@@ -93,28 +93,28 @@ export default function Sidebar() {
       </div>
 
       {/* Footer */}
-      <div className="px-6 mb-16 space-y-2">
-        <Link
+      <div className="px-4 mb-8 space-y-1.5">
+        {/* <Link
           href="/bantuan"
-          className="flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-emerald-50 hover:text-emerald-600"
+          className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-emerald-50 hover:text-emerald-600"
         >
           <Image
             src="/assets/dashboard/user/butuhbantuan.svg"
             alt="Bantuan"
-            width={18}
-            height={18}
+            width={16}
+            height={16}
           />
           Butuh bantuan?
-        </Link>
+        </Link> */}
         <button
           onClick={() => logout("/")} // ganti pakai hook logout
-          className="flex items-center gap-3 px-4 py-2 w-full rounded-lg text-sm font-medium text-gray-600 hover:bg-red-50 hover:text-red-600"
+          className="flex items-center gap-2.5 px-3 py-2 w-full rounded-lg text-sm font-medium text-gray-600 hover:bg-red-50 hover:text-red-600"
         >
           <Image
             src="/assets/dashboard/user/logout.svg"
             alt="Logout"
-            width={18}
-            height={18}
+            width={16}
+            height={16}
           />
           Logout
         </button>

@@ -29,7 +29,7 @@ export default function SuccessCardAddReportModal({
         showCloseButton={false}
         onInteractOutside={(e) => e.preventDefault()}
       >
-        <div className="flex flex-col items-center gap-6">
+        <div className="flex flex-col items-center gap-5">
           {/* Icon sukses */}
           <div className="flex items-center justify-center">
             <Image

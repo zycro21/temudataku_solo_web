@@ -26,7 +26,7 @@ interface MentorSessionListProps {
 
 // Mapping status API -> UI
 const mapStatus = (
-  status: string
+  status: string,
 ): "Selesai" | "Belum Lengkap" | "Terjadwal" | null => {
   switch (status) {
     case "scheduled":
@@ -78,7 +78,7 @@ export default function MentorSessionList({
           {
             // params: { page: 1, limit: 1000 },
             withCredentials: true,
-          }
+          },
         );
 
         const mapped: Session[] = res.data
@@ -156,7 +156,7 @@ export default function MentorSessionList({
   const startIdx = (currentPage - 1) * itemsPerPage;
   const paginatedSessions = filteredSessions.slice(
     startIdx,
-    startIdx + itemsPerPage
+    startIdx + itemsPerPage,
   );
   const totalPages = Math.ceil(filteredSessions.length / itemsPerPage);
 
@@ -188,7 +188,7 @@ export default function MentorSessionList({
 
   return (
     <div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {loading ? (
           <div className="col-span-full text-center text-gray-600 py-10">
             <p>Loading...</p>
@@ -218,13 +218,13 @@ export default function MentorSessionList({
           paginatedSessions.map((s) => (
             <Card
               key={s.id}
-              className="p-6 pb-3 flex flex-col justify-between border rounded-lg text-base"
+              className="p-5 pb-3 flex flex-col justify-between border rounded-lg text-sm"
             >
-              <CardContent className="p-0 mb-4 flex justify-between items-center">
+              <CardContent className="p-0 mb-3 flex justify-between items-center">
                 <div>
                   <div
-                    className={`flex items-center mb-3 ${getStatusColor(
-                      s.status
+                    className={`flex items-center mb-2.5 ${getStatusColor(
+                      s.status,
                     )}`}
                   >
                     <Image
@@ -237,7 +237,7 @@ export default function MentorSessionList({
                     <span className="font-semibold">{s.status}</span>
                   </div>
 
-                  <h3 className="text-xl font-bold text-gray-800 mb-4">
+                  <h3 className="text-base font-semibold text-gray-800 mb-3">
                     {s.program} - {s.title}
                   </h3>
 
@@ -275,7 +275,7 @@ export default function MentorSessionList({
                   </div>
                 </div>
 
-                <CardFooter className="flex flex-col gap-3 p-0 items-end justify-center">
+                <CardFooter className="flex flex-col gap-2.5 p-0 items-end justify-center">
                   <Button
                     variant="outline"
                     className="w-36 border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white"
@@ -287,7 +287,7 @@ export default function MentorSessionList({
                     variant="default"
                     onClick={() =>
                       router.push(
-                        `/dashboard/mentor/services/project?serviceId=${s.serviceId}`
+                        `/dashboard/mentor/services/project?serviceId=${s.serviceId}`,
                       )
                     }
                     className="w-36 bg-emerald-500 text-white hover:bg-white hover:text-emerald-600 hover:border hover:border-emerald-500"
@@ -303,7 +303,7 @@ export default function MentorSessionList({
 
       {/* Pagination */}
       {filteredSessions.length > 0 && !loading && (
-        <div className="flex justify-between items-center mt-6 text-sm text-gray-600">
+        <div className="flex justify-between items-center mt-5 text-sm text-gray-600">
           <p>
             Menampilkan {startIdx + 1} -{" "}
             {Math.min(startIdx + itemsPerPage, filteredSessions.length)} dari{" "}
@@ -355,7 +355,7 @@ export default function MentorSessionList({
                   <span key={idx} className="px-2">
                     {num}
                   </span>
-                )
+                ),
               );
             })()}
 

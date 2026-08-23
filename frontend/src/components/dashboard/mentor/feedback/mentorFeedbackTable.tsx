@@ -75,7 +75,7 @@ export default function MentorFeedbackTable({
 
         const res = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/feedback/mentor/feedbacks?${queryString}`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
 
         const data = res.data?.data || [];
@@ -127,8 +127,8 @@ export default function MentorFeedbackTable({
           prev.direction === "default"
             ? "asc"
             : prev.direction === "asc"
-            ? "desc"
-            : "default";
+              ? "desc"
+              : "default";
         return { key, direction: nextDirection };
       }
       return { key, direction: "asc" };
@@ -173,7 +173,7 @@ export default function MentorFeedbackTable({
   // 🧭 LOADING STATE
   if (loading) {
     return (
-      <div className="text-center py-10 text-gray-500">
+      <div className="text-center py-8 text-sm text-gray-500">
         Memuat data feedback...
       </div>
     );
@@ -188,7 +188,7 @@ export default function MentorFeedbackTable({
               <tr className="bg-gray-50 text-left text-gray-600 font-medium">
                 <th
                   onClick={() => handleSort("mentee")}
-                  className={`px-4 py-3 cursor-pointer select-none ${
+                  className={`px-3 py-2 cursor-pointer select-none ${
                     sortConfig.key === "mentee" &&
                     sortConfig.direction !== "default"
                       ? "text-emerald-600 font-semibold"
@@ -200,13 +200,13 @@ export default function MentorFeedbackTable({
                     (sortConfig.direction === "asc"
                       ? "↑"
                       : sortConfig.direction === "desc"
-                      ? "↓"
-                      : "")}
+                        ? "↓"
+                        : "")}
                 </th>
 
                 <th
                   onClick={() => handleSort("program")}
-                  className={`px-4 py-3 cursor-pointer select-none ${
+                  className={`px-3 py-2 cursor-pointer select-none ${
                     sortConfig.key === "program" &&
                     sortConfig.direction !== "default"
                       ? "text-emerald-600 font-semibold"
@@ -218,13 +218,13 @@ export default function MentorFeedbackTable({
                     (sortConfig.direction === "asc"
                       ? "↑"
                       : sortConfig.direction === "desc"
-                      ? "↓"
-                      : "")}
+                        ? "↓"
+                        : "")}
                 </th>
 
                 <th
                   onClick={() => handleSort("rating")}
-                  className={`px-4 py-3 cursor-pointer select-none ${
+                  className={`px-3 py-2 cursor-pointer select-none ${
                     sortConfig.key === "rating" &&
                     sortConfig.direction !== "default"
                       ? "text-emerald-600 font-semibold"
@@ -236,13 +236,13 @@ export default function MentorFeedbackTable({
                     (sortConfig.direction === "asc"
                       ? "↑"
                       : sortConfig.direction === "desc"
-                      ? "↓"
-                      : "")}
+                        ? "↓"
+                        : "")}
                 </th>
 
                 <th
                   onClick={() => handleSort("comment")}
-                  className={`px-4 py-3 cursor-pointer select-none ${
+                  className={`px-3 py-2 cursor-pointer select-none ${
                     sortConfig.key === "comment" &&
                     sortConfig.direction !== "default"
                       ? "text-emerald-600 font-semibold"
@@ -254,13 +254,13 @@ export default function MentorFeedbackTable({
                     (sortConfig.direction === "asc"
                       ? "↑"
                       : sortConfig.direction === "desc"
-                      ? "↓"
-                      : "")}
+                        ? "↓"
+                        : "")}
                 </th>
 
                 <th
                   onClick={() => handleSort("date")}
-                  className={`px-4 py-3 cursor-pointer select-none ${
+                  className={`px-3 py-2 cursor-pointer select-none ${
                     sortConfig.key === "date" &&
                     sortConfig.direction !== "default"
                       ? "text-emerald-600 font-semibold"
@@ -272,11 +272,11 @@ export default function MentorFeedbackTable({
                     (sortConfig.direction === "asc"
                       ? "↑"
                       : sortConfig.direction === "desc"
-                      ? "↓"
-                      : "")}
+                        ? "↓"
+                        : "")}
                 </th>
 
-                <th className="px-4 py-3 text-center">Aksi</th>
+                <th className="px-3 py-2 text-center">Aksi</th>
               </tr>
             </thead>
 
@@ -287,19 +287,19 @@ export default function MentorFeedbackTable({
                     key={f.id}
                     className="border-t hover:bg-gray-50 transition-colors"
                   >
-                    <td className="px-4 py-3">{f.mentee}</td>
-                    <td className="px-4 py-3">{f.program}</td>
-                    <td className="px-4 py-3">{f.rating}</td>
-                    <td className="px-4 py-3 text-gray-600">
+                    <td className="px-3 py-2">{f.mentee}</td>
+                    <td className="px-3 py-2">{f.program}</td>
+                    <td className="px-3 py-2">{f.rating}</td>
+                    <td className="px-3 py-2 text-gray-600">
                       {truncate(f.comment, 65)}{" "}
                     </td>
-                    <td className="px-4 py-3">{f.date}</td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-3 py-2">{f.date}</td>
+                    <td className="px-3 py-2 text-center">
                       <button
                         className="p-1 hover:bg-blue-50 rounded transition cursor-pointer"
                         onClick={() => {
                           const globalIndex = sortedData.findIndex(
-                            (d) => d.id === f.id
+                            (d) => d.id === f.id,
                           );
                           setSelectedIndex(globalIndex);
                           setDialogOpen(true);
@@ -308,8 +308,8 @@ export default function MentorFeedbackTable({
                         <Image
                           src="/assets/dashboard/mentor/service/show.svg"
                           alt="Detail"
-                          width={20}
-                          height={20}
+                          width={16}
+                          height={16}
                         />
                       </button>
                     </td>
@@ -317,7 +317,7 @@ export default function MentorFeedbackTable({
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="text-center py-6 text-gray-500">
+                  <td colSpan={6} className="text-center py-5 text-gray-500">
                     Tidak ada data ditemukan
                   </td>
                 </tr>
@@ -328,14 +328,14 @@ export default function MentorFeedbackTable({
 
         {/* Pagination */}
         {filteredData.length > 0 && (
-          <div className="flex justify-between items-center mt-4 text-sm text-gray-600">
+          <div className="flex justify-between items-center mt-3 text-xs text-gray-600">
             <p>
               Menampilkan {startIdx + 1} -{" "}
               {Math.min(startIdx + itemsPerPage, filteredData.length)} dari{" "}
               {filteredData.length} data
             </p>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <button
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
@@ -348,13 +348,13 @@ export default function MentorFeedbackTable({
                 .filter(
                   (num) =>
                     num >= Math.max(1, currentPage - 2) &&
-                    num <= Math.min(totalPages, currentPage + 2)
+                    num <= Math.min(totalPages, currentPage + 2),
                 )
                 .map((num) => (
                   <button
                     key={num}
                     onClick={() => setCurrentPage(num)}
-                    className={`px-3 py-1 border rounded ${
+                    className={`px-2.5 py-1 border rounded ${
                       currentPage === num
                         ? "bg-emerald-500 text-white"
                         : "hover:bg-gray-100"
@@ -375,7 +375,7 @@ export default function MentorFeedbackTable({
               </button>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <span>Tampilkan per halaman</span>
               <select
                 value={itemsPerPage}
@@ -383,7 +383,7 @@ export default function MentorFeedbackTable({
                   setItemsPerPage(Number(e.target.value));
                   setCurrentPage(1);
                 }}
-                className="border rounded px-2 py-1 text-sm"
+                className="border rounded px-1.5 py-1 text-xs"
               >
                 <option value={5}>5</option>
                 <option value={10}>10</option>

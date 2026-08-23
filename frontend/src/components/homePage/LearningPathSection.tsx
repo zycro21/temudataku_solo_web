@@ -57,7 +57,7 @@ const DURATION_META: Record<
     discountAmount: 100000,
     features: [
       "100+ materi video Data Science & AI",
-      "Materi video interaktif",
+      "Materi teks interaktif",
       "Sertifikat Tiap Materi",
       "Akses grup komunitas",
       "Akses challenge kompetisi data berhadiah",
@@ -69,7 +69,7 @@ const DURATION_META: Record<
     discountAmount: 50000,
     features: [
       "100+ materi video Data Science & AI",
-      "Materi video interaktif",
+      "Materi teks interaktif",
       "Sertifikat Tiap Materi",
       "Akses grup komunitas",
       "Akses challenge kompetisi data berhadiah",
@@ -81,7 +81,7 @@ const DURATION_META: Record<
     discountAmount: 50000,
     features: [
       "100+ materi video Data Science & AI",
-      "Materi video interaktif",
+      "Materi teks interaktif",
       "Sertifikat Tiap Materi",
       "Akses grup komunitas",
       "FREE akses Live Class",
@@ -541,7 +541,6 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
         "Tanya apapun permasalahan dalam bidang data science",
         "Rekaman sesi mentoring",
         "Garansi kepuasan*",
-        "Dapatkan akses ke praktik data science**",
       ],
       image: "/assets/mentoringPage/mentoring1on1.svg",
     },
@@ -555,7 +554,6 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
         "Tanya apapun permasalahan dalam bidang data science",
         "Rekaman sesi mentoring",
         "Garansi kepuasan*",
-        "Dapatkan akses ke praktik data science**",
       ],
       image: "/assets/mentoringPage/mentoringgroup.svg",
     },

@@ -45,29 +45,29 @@ export default function MentorStatCards() {
       try {
         const res = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentoringSession/mentor/own-mentoring-sessions?page=1&limit=1000`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
 
         const sessions = res.data;
 
         const completed = sessions.filter((s: any) => s.status === "completed");
         const notCompleted = sessions.filter(
-          (s: any) => s.status === "ongoing" || s.status === "scheduled"
+          (s: any) => s.status === "ongoing" || s.status === "scheduled",
         );
         const cancelled = sessions.filter((s: any) => s.status === "cancelled");
 
         // weekly change pakai createdAt
         const newThisWeek = sessions.filter((s: any) =>
-          isThisWeek(new Date(s.createdAt))
+          isThisWeek(new Date(s.createdAt)),
         );
         const completedThisWeek = completed.filter((s: any) =>
-          isThisWeek(new Date(s.createdAt))
+          isThisWeek(new Date(s.createdAt)),
         );
         const notCompletedThisWeek = notCompleted.filter((s: any) =>
-          isThisWeek(new Date(s.createdAt))
+          isThisWeek(new Date(s.createdAt)),
         );
         const cancelledThisWeek = cancelled.filter((s: any) =>
-          isThisWeek(new Date(s.createdAt))
+          isThisWeek(new Date(s.createdAt)),
         );
 
         setStats({
@@ -124,7 +124,7 @@ export default function MentorStatCards() {
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-5">
       {statsConfig.map((item, idx) => (
         <Card
           key={idx}
@@ -132,33 +132,33 @@ export default function MentorStatCards() {
                      shadow-sm rounded-md"
         >
           {/* Header */}
-          <CardHeader className="flex items-center justify-between px-6 pt-2 pb-0">
+          <CardHeader className="flex items-center justify-between px-5 pt-2 pb-0">
             <div className="flex items-center gap-2">
               <Image
                 src={item.image}
                 alt={item.title}
-                width={28}
-                height={28}
+                width={20}
+                height={20}
                 className="w-5 h-5 object-contain opacity-90 relative top-[-1px]"
               />
-              <CardTitle className="text-base font-medium text-gray-500">
+              <CardTitle className="text-sm font-medium text-gray-500">
                 {item.title}
               </CardTitle>
             </div>
 
             <CardAction className="text-gray-600">
-              <ChevronRight className="h-5 w-5" />
+              <ChevronRight className="h-4 w-4" />
             </CardAction>
           </CardHeader>
 
           {/* Value */}
-          <CardContent className="px-6 pt-0 pb-3">
+          <CardContent className="px-5 pt-0 pb-3">
             <div className="flex items-center gap-2">
-              <h3 className={`text-3xl font-semibold ${item.color}`}>
+              <h3 className={`text-2xl font-semibold ${item.color}`}>
                 {item.value}
               </h3>
               {item.showChange && (
-                <span className="inline-block text-sm font-medium text-emerald-700 bg-green-200 ml-1 px-3 py-1 rounded-full">
+                <span className="inline-block text-xs font-medium text-emerald-700 bg-green-200 ml-1 px-2.5 py-1 rounded-full">
                   {item.change}
                 </span>
               )}

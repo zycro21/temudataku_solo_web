@@ -25,7 +25,7 @@ export default function MentorTasks() {
       try {
         const res = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentoringSession/mentor/own-mentoring-sessions`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
 
         if (res.data) {
@@ -40,7 +40,7 @@ export default function MentorTasks() {
 
           const sessionsThisWeek = res.data.filter(
             (s: any) =>
-              new Date(s.date) >= startOfWeek && new Date(s.date) <= endOfWeek
+              new Date(s.date) >= startOfWeek && new Date(s.date) <= endOfWeek,
           );
 
           setWeekSessions(sessionsThisWeek.length);
@@ -62,11 +62,11 @@ export default function MentorTasks() {
         const [sessionsRes, reportsRes] = await Promise.all([
           axios.get(
             `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentoringSession/mentor/own-mentoring-sessions`,
-            { withCredentials: true }
+            { withCredentials: true },
           ),
           axios.get(
             `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentorReports/mentor/reports?limit=1000`,
-            { withCredentials: true }
+            { withCredentials: true },
           ),
         ]);
 
@@ -75,7 +75,7 @@ export default function MentorTasks() {
 
         const reportedSessionIds = new Set(reports.map((r) => r.sessionId));
         const pending = sessions.filter(
-          (s) => !reportedSessionIds.has(s.id)
+          (s) => !reportedSessionIds.has(s.id),
         ).length;
 
         setPendingReports(pending);
@@ -96,7 +96,7 @@ export default function MentorTasks() {
         setLoadingProjects(true);
         const projectsRes = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/project/mentor/projects`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
 
         const projects: any[] = projectsRes.data.data || [];
@@ -105,8 +105,8 @@ export default function MentorTasks() {
         const submissionsPromises = projects.map((p) =>
           axios.get(
             `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/project/mentorsProjects/${p.id}/submissions`,
-            { withCredentials: true }
-          )
+            { withCredentials: true },
+          ),
         );
 
         const submissionsResults = await Promise.all(submissionsPromises);
@@ -116,7 +116,7 @@ export default function MentorTasks() {
         submissionsResults.forEach((res) => {
           const submissions: any[] = res.data.data || [];
           pendingCount += submissions.filter(
-            (s) => s.isReviewed === false
+            (s) => s.isReviewed === false,
           ).length;
         });
 
@@ -139,8 +139,8 @@ export default function MentorTasks() {
       description: loadingSessions
         ? "Memuat sesi..."
         : weekSessions && weekSessions > 0
-        ? `Terdapat ${weekSessions} sesi mentoring Anda pada minggu ini`
-        : "Tidak Ada sesi mentoring Anda pada minggu ini",
+          ? `Terdapat ${weekSessions} sesi mentoring Anda pada minggu ini`
+          : "Tidak Ada sesi mentoring Anda pada minggu ini",
       icon: "/assets/dashboard/mentor/sesi.svg",
       link: "/dashboard/mentor/services",
     },
@@ -150,8 +150,8 @@ export default function MentorTasks() {
       description: loadingReports
         ? "Memuat laporan..."
         : pendingReports && pendingReports > 0
-        ? `Terdapat ${pendingReports} sesi yang belum Anda isi laporan mentornya`
-        : "Semua laporan mentor sudah terisi",
+          ? `Terdapat ${pendingReports} sesi yang belum Anda isi laporan mentornya`
+          : "Semua laporan mentor sudah terisi",
       icon: "/assets/dashboard/mentor/laporanhijau.svg",
       link: "/dashboard/mentor/report",
     },
@@ -161,8 +161,8 @@ export default function MentorTasks() {
       description: loadingProjects
         ? "Memuat proyek..."
         : pendingProjects && pendingProjects > 0
-        ? `Terdapat ${pendingProjects} proyek mentee yang belum Anda review`
-        : "Semua proyek mentee sudah direview",
+          ? `Terdapat ${pendingProjects} proyek mentee yang belum Anda review`
+          : "Semua proyek mentee sudah direview",
       icon: "/assets/dashboard/mentor/proyek.svg",
       link: "/dashboard/mentor/services/project",
     },
@@ -179,7 +179,7 @@ export default function MentorTasks() {
         </span>
       ) : (
         <span key={i}>{part}</span>
-      )
+      ),
     );
   };
 
@@ -194,31 +194,33 @@ export default function MentorTasks() {
             height={12}
             className="relative top-[-1px]"
           />
-          <CardTitle className="text-md font-medium text-gray-500 leading-none">
+          <CardTitle className="text-sm font-medium text-gray-500 leading-none">
             Tanggungan Mentor
           </CardTitle>
         </div>
       </CardHeader>
 
       <CardContent className="px-6 pt-0 pb-6">
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-3">
           {tasks.map((task) => (
             <div
               key={task.id}
-              className="w-full border rounded-lg px-5 py-6 flex items-center justify-between gap-4"
+              className="w-full border rounded-lg px-4 py-3.5 flex items-center justify-between gap-4"
             >
               <div className="flex-1">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   <Image
                     src={task.icon}
                     alt={task.title}
                     width={14}
                     height={14}
                   />
-                  <h3 className="font-medium text-gray-800">{task.title}</h3>
+                  <h3 className="text-sm font-medium text-gray-800">
+                    {task.title}
+                  </h3>
                 </div>
 
-                <p className="text-sm text-gray-500 mt-3 leading-relaxed">
+                <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
                   {formatDescription(task.description)}
                 </p>
               </div>
@@ -226,7 +228,7 @@ export default function MentorTasks() {
               <div className="flex items-center self-stretch">
                 <Button
                   variant="outline"
-                  className="text-emerald-600 border-emerald-600 hover:bg-emerald-50 hover:text-emerald-900 text-sm px-3 py-1.5"
+                  className="text-emerald-600 border-emerald-600 hover:bg-emerald-50 hover:text-emerald-900 text-xs px-3 py-1.5"
                   onClick={() => router.push(task.link)}
                 >
                   Lihat Detail

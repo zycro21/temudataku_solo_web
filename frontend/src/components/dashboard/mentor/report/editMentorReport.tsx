@@ -96,12 +96,12 @@ export default function EditMentorReportModal({
           onInteractOutside={(e) => e.preventDefault()}
         >
           <DialogHeader>
-            <DialogTitle className="text-2xl font-semibold">
+            <DialogTitle className="text-lg font-semibold">
               Edit Laporan Mentor
             </DialogTitle>
             {program && (
               <div>
-                <p className="text-base font-bold text-gray-800">{program}</p>
+                <p className="text-sm font-semibold text-gray-800">{program}</p>
                 {date && time && (
                   <p className="text-sm text-gray-600 mt-1">
                     {date} pukul {time}
@@ -112,7 +112,7 @@ export default function EditMentorReportModal({
           </DialogHeader>
 
           {/* Konten scrollable */}
-          <div className="max-h-[60vh] overflow-y-auto pr-1 space-y-6 text-sm">
+          <div className="max-h-[60vh] overflow-y-auto pr-1 space-y-5 text-sm">
             {/* Pemahaman Mentee */}
             <div>
               <p className="font-medium mb-2">
@@ -261,14 +261,14 @@ export default function EditMentorReportModal({
             <Button
               variant="outline"
               onClick={handleAttemptClose}
-              className="w-1/2 py-3 text-base"
+              className="w-1/2 py-2.5 text-sm"
             >
               Batal
             </Button>
             <Button
               onClick={handleSubmit}
               disabled={!isFormValid}
-              className="w-1/2 py-3 text-base bg-emerald-500 hover:bg-emerald-600 text-white disabled:opacity-50"
+              className="w-1/2 py-2.5 text-sm bg-emerald-500 hover:bg-emerald-600 text-white disabled:opacity-50"
             >
               Simpan Perubahan
             </Button>

@@ -20,7 +20,7 @@ export default function MainDashboardMentorPage() {
       try {
         const res = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/me`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
         setUser(res.data.data);
       } catch (err) {
@@ -50,25 +50,25 @@ export default function MainDashboardMentorPage() {
     <div className="flex mb-8">
       <MentorSidebar />
       {/* Konten sebelah kanan */}
-      <div className="flex-1 flex flex-col ml-72">
+      <div className="flex-1 flex flex-col ml-64">
         <DashboardAffHeader />
         {/* Main content */}
-        <main className="flex-1 p-6 pl-7 bg-gray-50 overflow-x-hidden">
+        <main className="flex-1 p-5 pl-6 bg-gray-50 overflow-x-hidden">
           {/* Welcome Section */}
-          <div className="flex flex-row gap-5 items-center mb-10">
+          <div className="flex flex-row gap-4 items-center mb-8">
             <Image
               src={avatarUrl}
               alt="User Avatar"
-              width={50}
-              height={50}
+              width={44}
+              height={44}
               unoptimized
               className="rounded-full relative top-[-0.5px]"
             />
             <div>
-              <h1 className="text-2xl font-semibold text-gray-800">
+              <h1 className="text-xl font-semibold text-gray-800">
                 Selamat Datang Kembali, {firstName}!
               </h1>
-              <p className="text-md text-gray-500 tracking-wide">
+              <p className="text-sm text-gray-500 tracking-wide">
                 Senang melihatmu lagi. Siap memulai sesi mentoring hari ini?
               </p>
             </div>
@@ -80,13 +80,13 @@ export default function MainDashboardMentorPage() {
           </div>
 
           {/* Section: Performance + Earnings */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 max-w-[100%]">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-5 max-w-[100%]">
             <MentorPerformance />
             <MentorEarnings />
           </div>
 
           {/* Section: Session Chart + Tasks */}
-          <div className="flex flex-col lg:flex-row gap-6 mt-6 max-w-[100%]">
+          <div className="flex flex-col lg:flex-row gap-5 mt-5 max-w-[100%]">
             <div className="lg:basis-[55%]">
               <MentorSessionChart />
             </div>

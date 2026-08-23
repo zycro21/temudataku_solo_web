@@ -150,7 +150,7 @@ export default function EditProfileMentorModal({
         >
           {/* Header */}
           <DialogHeader className="flex justify-between items-start">
-            <DialogTitle>Edit Mentor</DialogTitle>
+            <DialogTitle className="text-base">Edit Mentor</DialogTitle>
             <DialogClose />
           </DialogHeader>
 
@@ -158,20 +158,21 @@ export default function EditProfileMentorModal({
 
           {/* Foto Mentor */}
           <div>
-            <p className="text-base font-bold text-gray-800 mb-2 ml-1">
+            <p className="text-sm font-bold text-gray-800 mb-1.5 ml-1">
               Foto Mentor
             </p>
-            <div className="flex items-center gap-4">
-              <div className="w-[80px] h-[80px] rounded-full overflow-hidden bg-gray-100">
+            <div className="flex items-center gap-3">
+              <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100">
                 <Image
                   src={preview}
                   alt="Foto Mentor"
-                  width={80}
-                  height={80}
+                  width={64}
+                  height={64}
+                  unoptimized
                   className="object-cover w-full h-full"
                 />
               </div>
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1.5">
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={handleUploadClick}>
                     Unggah Foto
@@ -201,56 +202,56 @@ export default function EditProfileMentorModal({
           </div>
 
           {/* Form */}
-          <div className="grid grid-cols-2 gap-4 mt-6">
+          <div className="grid grid-cols-2 gap-3 mt-4">
             <div className="col-span-2">
-              <label className="text-sm font-medium">Nama Lengkap</label>
+              <label className="text-xs font-medium">Nama Lengkap</label>
               <input
                 type="text"
                 value={mentorData?.fullName || "-"}
                 disabled
-                className="w-full mt-1 px-3 py-2 border rounded-md text-sm bg-gray-100 cursor-not-allowed"
+                className="w-full mt-1 px-3 py-1.5 border rounded-md text-sm bg-gray-100 cursor-not-allowed"
               />
             </div>
             <div className="col-span-2">
-              <label className="text-sm font-medium">Nomor Telepon</label>
+              <label className="text-xs font-medium">Nomor Telepon</label>
               <input
                 type="text"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
-                className="w-full mt-1 px-3 py-2 border rounded-md text-sm"
+                className="w-full mt-1 px-3 py-1.5 border rounded-md text-sm"
               />
             </div>
             <div className="col-span-2">
-              <label className="text-sm font-medium">Email</label>
+              <label className="text-xs font-medium">Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full mt-1 px-3 py-2 border rounded-md text-sm"
+                className="w-full mt-1 px-3 py-1.5 border rounded-md text-sm"
               />
             </div>
             <div>
-              <label className="text-sm font-medium">Peran</label>
+              <label className="text-xs font-medium">Peran</label>
               <input
                 type="text"
                 value={mentorData?.userRoles?.[0]?.role?.roleName || "-"}
                 disabled
-                className="w-full mt-1 px-3 py-2 border rounded-md text-sm bg-gray-100 cursor-not-allowed"
+                className="w-full mt-1 px-3 py-1.5 border rounded-md text-sm bg-gray-100 cursor-not-allowed"
               />
             </div>
             <div>
-              <label className="text-sm font-medium">Status Akun</label>
+              <label className="text-xs font-medium">Status Akun</label>
               <input
                 type="text"
                 value={mentorData?.isActive ? "Aktif" : "Nonaktif"}
                 disabled
-                className="w-full mt-1 px-3 py-2 border rounded-md text-sm bg-gray-100 cursor-not-allowed"
+                className="w-full mt-1 px-3 py-1.5 border rounded-md text-sm bg-gray-100 cursor-not-allowed"
               />
             </div>
           </div>
 
           {/* Footer */}
-          <div className="flex gap-4 mt-6 justify-center">
+          <div className="flex gap-3 mt-4 justify-center">
             <Button
               variant="outline"
               className="flex-1 max-w-[200px] border-emerald-500 text-emerald-500 hover:bg-emerald-50"

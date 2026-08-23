@@ -104,7 +104,7 @@ export default function MentorFeedbackGrid({
 
         const res = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/feedback/mentor/feedbacks?${queryString}`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
 
         const data = res.data?.data || [];
@@ -168,7 +168,7 @@ export default function MentorFeedbackGrid({
 
   if (loading) {
     return (
-      <div className="text-center py-10 text-gray-500">
+      <div className="text-center py-8 text-sm text-gray-500">
         Memuat data feedback...
       </div>
     );
@@ -177,26 +177,26 @@ export default function MentorFeedbackGrid({
   return (
     <div>
       {/* Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {currentRows.length > 0 ? (
           currentRows.map((f) => {
             const keywords = extractKeywords(f.comment);
             return (
               <div
                 key={f.id}
-                className="bg-gray-100 rounded-lg shadow border border-black p-5 flex flex-col justify-between"
+                className="bg-gray-100 rounded-lg shadow border border-black p-4 flex flex-col justify-between"
               >
                 {/* Comment */}
-                <p className="text-gray-700 mb-3 leading-relaxed text-sm">
+                <p className="text-gray-700 mb-2 leading-relaxed text-sm">
                   "{f.comment}"
                 </p>
 
                 {/* Keywords */}
-                <div className="flex flex-wrap gap-2 mb-4">
+                <div className="flex flex-wrap gap-1.5 mb-3">
                   {keywords.map((kw, i) => (
                     <span
                       key={i}
-                      className="bg-white border border-black text-black font-semibold px-3 py-1 rounded-full text-sm"
+                      className="bg-white border border-black text-black font-semibold px-2 py-0.5 rounded-full text-xs"
                     >
                       {kw.charAt(0).toUpperCase() + kw.slice(1)}
                     </span>
@@ -205,8 +205,8 @@ export default function MentorFeedbackGrid({
 
                 {/* Footer */}
                 <div className="flex items-center justify-between mt-auto">
-                  <div className="flex items-center gap-3">
-                    <div className="relative w-12 h-12 rounded-full overflow-hidden">
+                  <div className="flex items-center gap-2">
+                    <div className="relative w-10 h-10 rounded-full overflow-hidden">
                       <Image
                         src={f.avatarUrl || "/assets/dashboard/user/avatar.png"}
                         alt={f.mentee}
@@ -215,20 +215,20 @@ export default function MentorFeedbackGrid({
                       />
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-800 text-base">
+                      <p className="font-semibold text-gray-800 text-sm">
                         {f.mentee}
                       </p>
-                      <p className="text-sm text-gray-600">{f.program}</p>
+                      <p className="text-xs text-gray-600">{f.program}</p>
                     </div>
                   </div>
-                  <p className="text-sm font-medium text-gray-700">{f.date}</p>
+                  <p className="text-xs font-medium text-gray-700">{f.date}</p>
                 </div>
               </div>
             );
           })
         ) : (
-          <div className="col-span-full flex justify-center items-center py-10">
-            <p className="text-gray-500 text-lg font-medium">
+          <div className="col-span-full flex justify-center items-center py-8">
+            <p className="text-gray-500 text-sm font-medium">
               Tidak ada data ditemukan
             </p>
           </div>
@@ -237,14 +237,14 @@ export default function MentorFeedbackGrid({
 
       {/* Pagination */}
       {filteredData.length > 0 && (
-        <div className="flex justify-between items-center mt-4 text-sm text-gray-600">
+        <div className="flex justify-between items-center mt-3 text-xs text-gray-600">
           <p>
             Menampilkan {startIdx + 1} -{" "}
             {Math.min(startIdx + itemsPerPage, filteredData.length)} dari{" "}
             {filteredData.length} data
           </p>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             {/* Prev */}
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
@@ -258,13 +258,13 @@ export default function MentorFeedbackGrid({
               .filter(
                 (num) =>
                   num >= Math.max(1, currentPage - 2) &&
-                  num <= Math.min(totalPages, currentPage + 2)
+                  num <= Math.min(totalPages, currentPage + 2),
               )
               .map((num) => (
                 <button
                   key={num}
                   onClick={() => setCurrentPage(num)}
-                  className={`px-3 py-1 border rounded ${
+                  className={`px-2.5 py-1 border rounded ${
                     currentPage === num
                       ? "bg-emerald-500 text-white"
                       : "hover:bg-gray-100"
@@ -285,7 +285,7 @@ export default function MentorFeedbackGrid({
           </div>
 
           {/* Select per halaman */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <span>Tampilkan per halaman</span>
             <select
               value={itemsPerPage}
@@ -293,7 +293,7 @@ export default function MentorFeedbackGrid({
                 setItemsPerPage(Number(e.target.value));
                 setCurrentPage(1);
               }}
-              className="border rounded px-2 py-1 text-sm"
+              className="border rounded px-1.5 py-1 text-xs"
             >
               <option value={6}>6</option>
               <option value={10}>10</option>

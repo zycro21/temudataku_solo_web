@@ -41,7 +41,7 @@ interface FlattenedEvent extends Event {
 export default function DayEventsSectionMentor() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<FlattenedEvent | null>(
-    null
+    null,
   );
   const [filter, setFilter] = useState<"today" | "week" | "month">("today");
   const [activeSessions, setActiveSessions] = useState<string[]>([]);
@@ -58,7 +58,7 @@ export default function DayEventsSectionMentor() {
         setLoading(true);
         const res = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentoringSession/mentor/own-mentoring-sessions`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
 
         const sessions = res.data;
@@ -120,7 +120,7 @@ export default function DayEventsSectionMentor() {
         ...e,
         title: e.title?.trim() ? e.title : `(${e.type})`,
         date, // pastikan konsisten pakai key
-      }))
+      })),
   );
 
   // Filter
@@ -128,7 +128,7 @@ export default function DayEventsSectionMentor() {
     const eventDate = new Date(event.date);
     eventDate.setHours(0, 0, 0, 0);
     const diffDays = Math.floor(
-      (eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+      (eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
     );
 
     if (filter === "today") return diffDays === 0;
@@ -141,15 +141,15 @@ export default function DayEventsSectionMentor() {
   const sortedEvents = (() => {
     if (filter === "today") {
       return filteredEvents.sort((a, b) =>
-        a.startTime.localeCompare(b.startTime)
+        a.startTime.localeCompare(b.startTime),
       );
     }
 
     const todayEvents = filteredEvents.filter(
-      (e) => new Date(e.date).toDateString() === today.toDateString()
+      (e) => new Date(e.date).toDateString() === today.toDateString(),
     );
     const upcomingEvents = filteredEvents.filter(
-      (e) => new Date(e.date) > today
+      (e) => new Date(e.date) > today,
     );
     const pastEvents = filteredEvents.filter((e) => new Date(e.date) < today);
 
@@ -168,7 +168,7 @@ export default function DayEventsSectionMentor() {
   })();
 
   const uniqueEvents = Array.from(
-    new Map(sortedEvents.map((e) => [e.id, e])).values()
+    new Map(sortedEvents.map((e) => [e.id, e])).values(),
   );
 
   // Helper label waktu relatif
@@ -176,7 +176,7 @@ export default function DayEventsSectionMentor() {
     const eventDate = new Date(date);
     eventDate.setHours(0, 0, 0, 0);
     const diffDays = Math.floor(
-      (eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+      (eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
     );
     if (diffDays === 0)
       return {
@@ -185,8 +185,8 @@ export default function DayEventsSectionMentor() {
           <Image
             src="/assets/dashboard/mentor/redwarning.svg"
             alt="Hari ini"
-            width={10}
-            height={10}
+            width={12}
+            height={12}
           />
         ),
       };
@@ -197,8 +197,8 @@ export default function DayEventsSectionMentor() {
           <Image
             src="/assets/dashboard/mentor/greencalendar.svg"
             alt="Upcoming"
-            width={8}
-            height={8}
+            width={12}
+            height={12}
           />
         ),
       };
@@ -208,8 +208,8 @@ export default function DayEventsSectionMentor() {
         <Image
           src="/assets/dashboard/mentor/greencalendar.svg"
           alt="Sudah lewat"
-          width={8}
-          height={8}
+          width={12}
+          height={12}
         />
       ),
     };
@@ -281,7 +281,7 @@ export default function DayEventsSectionMentor() {
 
       const res = await axios.get(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentoringSession/mentor/mentoring-sessions/${sessionId}`,
-        { withCredentials: true }
+        { withCredentials: true },
       );
 
       const s = res.data;
@@ -341,12 +341,12 @@ export default function DayEventsSectionMentor() {
     <>
       <div className="bg-white rounded-lg shadow-sm p-4">
         {/* Tabs */}
-        <div className="grid grid-cols-3 mb-4 gap-2 w-full">
+        <div className="grid grid-cols-3 mb-3 gap-2 w-full">
           {["today", "week", "month"].map((tab) => (
             <button
               key={tab}
               onClick={() => setFilter(tab as any)}
-              className={`w-full py-3 rounded-md text-sm font-medium transition-colors
+              className={`w-full py-2.5 rounded-md text-sm font-medium transition-colors
         ${
           filter === tab
             ? "bg-emerald-500 text-white"
@@ -356,14 +356,14 @@ export default function DayEventsSectionMentor() {
               {tab === "today"
                 ? "Hari ini"
                 : tab === "week"
-                ? "Minggu ini"
-                : "Bulan ini"}
+                  ? "Minggu ini"
+                  : "Bulan ini"}
             </button>
           ))}
         </div>
 
         {/* Event List */}
-        <div className="space-y-4 max-h-[420px] overflow-y-auto pr-2 scroll-thin">
+        <div className="space-y-3 max-h-[420px] overflow-y-auto pr-2 scroll-thin">
           {uniqueEvents.length > 0 ? (
             uniqueEvents.map((event) => {
               const rel = getRelativeLabel(event.date);
@@ -372,25 +372,25 @@ export default function DayEventsSectionMentor() {
               return (
                 <div
                   key={event.id}
-                  className="border border-gray-200 rounded-lg p-4 flex gap-4"
+                  className="border border-gray-200 rounded-lg p-3.5 flex gap-3"
                 >
                   {/* Left */}
-                  <div className="flex-1 flex flex-col gap-2">
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <div className="flex-1 flex flex-col gap-1.5">
+                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
                       {rel.icon}
                       <span>{rel.label}</span>
                     </div>
 
-                    <h3 className="text-lg font-semibold text-gray-800">
+                    <h3 className="text-base font-semibold text-gray-800">
                       {event.title}
                     </h3>
 
-                    <div className="flex items-center gap-2 text-gray-600 text-xs">
+                    <div className="flex items-center gap-1.5 text-gray-600 text-xs">
                       <Image
                         src="/assets/dashboard/mentor/calendar.svg"
                         alt="Tanggal"
-                        width={10}
-                        height={10}
+                        width={12}
+                        height={12}
                       />
                       <span>
                         {new Date(event.date).toLocaleDateString("id-ID", {
@@ -401,19 +401,19 @@ export default function DayEventsSectionMentor() {
                         })}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 text-gray-600 text-xs">
+                    <div className="flex items-center gap-1.5 text-gray-600 text-xs">
                       <Image
                         src="/assets/dashboard/mentor/time.svg"
                         alt="Waktu"
-                        width={10}
-                        height={10}
+                        width={12}
+                        height={12}
                       />
                       {event.startTime} - {event.endTime} WIB
                     </div>
                   </div>
 
                   {/* Right */}
-                  <div className="flex flex-col gap-3 justify-center items-stretch">
+                  <div className="flex flex-col gap-2.5 justify-center items-stretch">
                     <button
                       disabled={
                         button.label === "Mulai Sesi" ? !button.enabled : true
@@ -421,19 +421,19 @@ export default function DayEventsSectionMentor() {
                       onClick={() =>
                         button.label === "Mulai Sesi" && handleStart(event.id)
                       }
-                      className={`px-4 py-2 rounded-md text-sm font-medium ${
+                      className={`px-3.5 py-2 rounded-md text-sm font-medium ${
                         button.style === "start"
                           ? "bg-emerald-500 text-white hover:bg-emerald-600"
                           : button.style === "end"
-                          ? "bg-red-500 text-white cursor-not-allowed"
-                          : "bg-gray-300 text-gray-600 cursor-not-allowed"
+                            ? "bg-red-500 text-white cursor-not-allowed"
+                            : "bg-gray-300 text-gray-600 cursor-not-allowed"
                       }`}
                     >
                       {button.label}
                     </button>
 
                     <button
-                      className="border border-emerald-500 text-emerald-500 px-4 py-2 rounded-md text-sm font-medium hover:bg-emerald-50"
+                      className="border border-emerald-500 text-emerald-500 px-3.5 py-2 rounded-md text-sm font-medium hover:bg-emerald-50"
                       onClick={() => handleOpenDetail(event.id)}
                     >
                       Lihat Detail

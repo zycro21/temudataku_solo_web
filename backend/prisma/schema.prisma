@@ -1541,8 +1541,26 @@ model MentorProfile {
   practices            Practice[]
   reports              MentorReport[]
   courses              ELearningCourse[]       @relation("MentorCourses")
+  earningSummary       MentorEarningSummary?
 
   @@map("mentor_profiles")
+}
+
+model MentorEarningSummary {
+  id               String    @id @default(cuid())
+  mentorProfileId  String    @unique @map("mentor_profile_id")
+
+  totalEarnings    Decimal   @db.Decimal @map("total_earnings")     // all-time, sudah dipotong share
+  totalThisMonth   Decimal   @db.Decimal @map("total_this_month")   // sudah dipotong share
+  totalLastMonth   Decimal   @db.Decimal @map("total_last_month")   // sudah dipotong share
+  growthPercent    Int       @map("growth_percent")
+
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  mentorProfile    MentorProfile @relation(fields: [mentorProfileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("mentor_earning_summaries")
 }
 
 model MentorReport {

@@ -127,18 +127,18 @@ export default function EditProfileMentorModal({
           onInteractOutside={(e) => e.preventDefault()}
         >
           {/* Header sticky dengan padding lebih nyaman */}
-          <DialogHeader className="flex justify-between items-start p-6 pt-5 pb-1">
-            <DialogTitle>Edit Profil Mentor</DialogTitle>
+          <DialogHeader className="flex justify-between items-start p-5 pt-4 pb-1">
+            <DialogTitle className="text-base">Edit Profil Mentor</DialogTitle>
             <DialogClose />
           </DialogHeader>
 
           <div className="border-b border-gray-200 my-0" />
 
           {/* Konten scrollable */}
-          <div className="flex-1 overflow-y-auto p-4 pt-2 pb-1 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="flex-1 overflow-y-auto p-3 pt-2 pb-1 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
-                <label className="text-sm font-medium">
+                <label className="text-xs font-medium">
                   Keahlian / Expertise
                 </label>
                 <input
@@ -146,34 +146,34 @@ export default function EditProfileMentorModal({
                   value={expertise}
                   onChange={(e) => setExpertise(e.target.value)}
                   placeholder="UI/UX Design"
-                  className="w-full mt-1 px-3 py-2 border rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                  className="w-full mt-1 px-3 py-1.5 border rounded-md text-sm focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
               <div className="col-span-2">
-                <label className="text-sm font-medium">Bio</label>
+                <label className="text-xs font-medium">Bio</label>
                 <textarea
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
                   placeholder="Creative designer focused on user-centered design principles."
-                  className="w-full mt-1 px-3 py-2 border rounded-md text-sm focus:outline-none focus:border-emerald-500 resize-none"
+                  className="w-full mt-1 px-3 py-1.5 border rounded-md text-sm focus:outline-none focus:border-emerald-500 resize-none"
                   rows={3}
                 ></textarea>
               </div>
 
               <div className="col-span-2">
-                <label className="text-sm font-medium">Pengalaman</label>
+                <label className="text-xs font-medium">Pengalaman</label>
                 <textarea
                   value={experience}
                   onChange={(e) => setExperience(e.target.value)}
                   placeholder="5 years"
-                  className="w-full mt-1 px-3 py-2 border rounded-md text-sm focus:outline-none focus:border-emerald-500 resize-none"
+                  className="w-full mt-1 px-3 py-1.5 border rounded-md text-sm focus:outline-none focus:border-emerald-500 resize-none"
                   rows={2}
                 ></textarea>
               </div>
 
               <div className="col-span-2">
-                <label className="text-sm font-medium">Rate per Jam</label>
+                <label className="text-xs font-medium">Rate per Jam</label>
                 <input
                   type="text"
                   value={hourlyRate === 0 ? "" : hourlyRate}
@@ -182,16 +182,16 @@ export default function EditProfileMentorModal({
                     setHourlyRate(val ? Number(val) : 0);
                   }}
                   placeholder="85, Mean: 85000"
-                  className="w-full mt-1 px-3 py-2 border rounded-md text-sm focus:outline-none focus:border-emerald-500 
+                  className="w-full mt-1 px-3 py-1.5 border rounded-md text-sm focus:outline-none focus:border-emerald-500 
       [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
               </div>
 
               <div className="col-span-2">
-                <label className="text-sm font-medium">
+                <label className="text-xs font-medium">
                   Jadwal Ketersediaan
                 </label>
-                <div className="space-y-3 mt-2 border rounded-md p-3">
+                <div className="space-y-2 mt-2 border rounded-md p-2.5">
                   {[
                     "monday",
                     "tuesday",
@@ -201,12 +201,14 @@ export default function EditProfileMentorModal({
                     "saturday",
                     "sunday",
                   ].map((day) => (
-                    <div key={day} className="flex items-start gap-3">
+                    <div key={day} className="flex items-start gap-2">
                       {/* Nama hari */}
-                      <span className="w-28 capitalize font-medium">{day}</span>
+                      <span className="w-24 capitalize font-medium text-sm">
+                        {day}
+                      </span>
 
                       {/* Slot jadwal */}
-                      <div className="flex-1 flex flex-wrap gap-2">
+                      <div className="flex-1 flex flex-wrap gap-1.5">
                         {(availabilitySchedule[day] || []).map((slot, i) => (
                           <div
                             key={i}
@@ -221,7 +223,7 @@ export default function EditProfileMentorModal({
                                 setAvailabilitySchedule(newSchedule);
                               }}
                               placeholder="08.00 - 10.00"
-                              className="border-none p-0 w-28 text-sm focus:ring-0 bg-transparent"
+                              className="border-none p-0 w-24 text-xs focus:ring-0 bg-transparent"
                             />
                             <button
                               type="button"
@@ -230,7 +232,7 @@ export default function EditProfileMentorModal({
                                 newSchedule[day].splice(i, 1);
                                 setAvailabilitySchedule(newSchedule);
                               }}
-                              className="text-red-500 font-bold"
+                              className="text-red-500 font-bold text-sm"
                             >
                               &times;
                             </button>
@@ -244,7 +246,7 @@ export default function EditProfileMentorModal({
                             newSchedule[day].push("");
                             setAvailabilitySchedule(newSchedule);
                           }}
-                          className="text-emerald-600 text-sm font-medium hover:underline"
+                          className="text-emerald-600 text-xs font-medium hover:underline"
                         >
                           + Add
                         </button>
@@ -257,7 +259,7 @@ export default function EditProfileMentorModal({
           </div>
 
           {/* Footer sticky di bawah modal */}
-          <div className="flex gap-4 mt-2 p-4 py-6 justify-center border-t border-gray-200">
+          <div className="flex gap-3 mt-1.5 p-3 py-4 justify-center border-t border-gray-200">
             <Button
               variant="outline"
               className="flex-1 max-w-[200px] border-emerald-500 text-emerald-500 hover:bg-emerald-50"

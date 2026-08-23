@@ -80,7 +80,7 @@ export default function FeedbackDialog({
   const current = feedbacks[index];
   const keywords = useMemo(
     () => (current ? extractKeywords(current.comment) : []),
-    [current]
+    [current],
   );
 
   const handlePrev = () => {
@@ -96,21 +96,21 @@ export default function FeedbackDialog({
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent
-        className="max-w-2xl bg-white rounded-xl shadow-lg p-6"
+        className="max-w-2xl bg-white rounded-xl shadow-lg p-5"
         onInteractOutside={(e) => e.preventDefault()}
       >
         {/* Header dengan prev / next */}
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-2">
           <button
             onClick={handlePrev}
             disabled={index === 0}
-            className="p-2 rounded-full hover:bg-gray-100 disabled:opacity-30"
+            className="p-1.5 rounded-full hover:bg-gray-100 disabled:opacity-30"
           >
-            <ChevronLeft className="h-6 w-6" />
+            <ChevronLeft className="h-5 w-5" />
           </button>
 
           <DialogTitle asChild>
-            <h2 className="text-lg font-semibold text-center flex-1">
+            <h2 className="text-base font-semibold text-center flex-1">
               Lihat Umpan Balik ({index + 1}/{feedbacks.length})
             </h2>
           </DialogTitle>
@@ -118,42 +118,44 @@ export default function FeedbackDialog({
           <button
             onClick={handleNext}
             disabled={index === feedbacks.length - 1}
-            className="p-2 rounded-full hover:bg-gray-100 disabled:opacity-30"
+            className="p-1.5 rounded-full hover:bg-gray-100 disabled:opacity-30"
           >
-            <ChevronRight className="h-6 w-6" />
+            <ChevronRight className="h-5 w-5" />
           </button>
         </div>
 
         {/* Konten feedback */}
-        <div className="space-y-5">
+        <div className="space-y-4">
           {/* Avatar + Nama */}
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200">
+          <div className="flex items-center gap-2">
+            <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200">
               <Image
                 src={current.avatarUrl || "/assets/dashboard/user/avatar.png"}
                 alt={current.mentee}
-                width={48}
-                height={48}
+                width={40}
+                height={40}
                 className="object-cover"
               />
             </div>
             <div>
-              <p className="font-semibold text-gray-800">
+              <p className="font-semibold text-sm text-gray-800">
                 {current.mentee || "Anonim"}
               </p>
-              <p className="text-sm text-gray-500">{current.program}</p>
+              <p className="text-xs text-gray-500">{current.program}</p>
             </div>
           </div>
 
           {/* Komentar */}
-          <p className="text-gray-700 leading-relaxed text-sm">“{current.comment}”</p>
+          <p className="text-gray-700 leading-relaxed text-sm">
+            “{current.comment}”
+          </p>
 
           {/* Keywords dari extractKeywords */}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {keywords.map((kw, i) => (
               <span
                 key={i}
-                className="bg-white border border-black text-black font-semibold px-3 py-1 rounded-full text-sm"
+                className="bg-white border border-black text-black font-semibold px-2 py-0.5 rounded-full text-xs"
               >
                 {kw.charAt(0).toUpperCase() + kw.slice(1)}
               </span>
@@ -161,7 +163,7 @@ export default function FeedbackDialog({
           </div>
 
           {/* Tanggal */}
-          <p className="text-sm text-gray-600">
+          <p className="text-xs text-gray-600">
             <strong>Tanggal Upload:</strong> {current.date}
           </p>
         </div>

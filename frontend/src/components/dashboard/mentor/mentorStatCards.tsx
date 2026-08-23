@@ -47,7 +47,7 @@ export default function MentorStatCards() {
       try {
         const res = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentoringSession/mentor/own-mentoring-sessions`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
 
         const sessions = res.data;
@@ -55,7 +55,7 @@ export default function MentorStatCards() {
 
         // weekly change pakai createdAt
         const newThisWeek = sessions.filter((s: any) =>
-          isThisWeek(new Date(s.createdAt))
+          isThisWeek(new Date(s.createdAt)),
         );
         setSessionChange(newThisWeek.length);
       } catch (error) {
@@ -67,14 +67,14 @@ export default function MentorStatCards() {
       try {
         const res = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/project/mentor/projects?page=1&limit=1000`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
 
         const { data, pagination } = res.data;
         setProjectCount(pagination.total);
 
         const newThisWeek = data.filter((p: any) =>
-          isThisWeek(new Date(p.createdAt))
+          isThisWeek(new Date(p.createdAt)),
         );
         setProjectChange(newThisWeek.length);
       } catch (error) {
@@ -86,14 +86,14 @@ export default function MentorStatCards() {
       try {
         const res = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentorReports/mentor/reports?page=1&limit=1000`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
 
         const { data, pagination } = res.data;
         setReportCount(pagination.total);
 
         const newThisWeek = data.filter((r: any) =>
-          isThisWeek(new Date(r.createdAt))
+          isThisWeek(new Date(r.createdAt)),
         );
         setReportChange(newThisWeek.length);
       } catch (error) {
@@ -105,14 +105,14 @@ export default function MentorStatCards() {
       try {
         const res = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/feedback/mentor/feedbacks?limit=1000`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
 
         const { data } = res.data;
         setFeedbackCount(data.length);
 
         const newThisWeek = data.filter((f: any) =>
-          isThisWeek(new Date(f.submittedDate))
+          isThisWeek(new Date(f.submittedDate)),
         );
         setFeedbackChange(newThisWeek.length);
       } catch (error) {
@@ -158,7 +158,7 @@ export default function MentorStatCards() {
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
       {stats.map((item, idx) => (
         <Link key={idx} href={item.link}>
           <Card
@@ -166,31 +166,31 @@ export default function MentorStatCards() {
                        shadow-sm hover:shadow-md hover:-translate-y-1 transform transition-all duration-200
                        cursor-pointer rounded-md"
           >
-            <CardHeader className="flex items-center justify-between px-6 pt-2 pb-0">
+            <CardHeader className="flex items-center justify-between px-5 pt-3 pb-0">
               <div className="flex items-center gap-2">
                 <Image
                   src={item.image}
                   alt={item.title}
                   width={28}
                   height={28}
-                  className="w-5 h-5 object-contain opacity-90"
+                  className="w-4 h-4 object-contain opacity-90"
                 />
-                <CardTitle className="text-base font-medium text-gray-500">
+                <CardTitle className="text-sm font-medium text-gray-500">
                   {item.title}
                 </CardTitle>
               </div>
 
               <CardAction className="text-gray-600">
-                <ChevronRight className="h-5 w-5" />
+                <ChevronRight className="h-4 w-4" />
               </CardAction>
             </CardHeader>
 
-            <CardContent className="px-6 pt-1 pb-3">
+            <CardContent className="px-5 pt-1 pb-3">
               <div className="flex items-center gap-2">
-                <h3 className="text-3xl font-semibold text-gray-900">
+                <h3 className="text-2xl font-semibold text-gray-900">
                   {item.value}
                 </h3>
-                <span className="inline-block text-sm font-medium text-emerald-700 bg-green-200 px-3 py-1 rounded-full">
+                <span className="inline-block text-xs font-medium text-emerald-700 bg-green-200 px-2 py-0.5 rounded-full">
                   {item.change}
                 </span>
               </div>

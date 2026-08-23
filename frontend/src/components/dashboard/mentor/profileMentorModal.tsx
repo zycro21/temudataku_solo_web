@@ -81,7 +81,7 @@ export default function ProfileMentorModal({
         >
           {/* Header */}
           <DialogHeader className="flex justify-between items-start">
-            <DialogTitle>Detail Mentor</DialogTitle>
+            <DialogTitle className="text-base">Detail Mentor</DialogTitle>
             <DialogClose />
           </DialogHeader>
 
@@ -89,53 +89,60 @@ export default function ProfileMentorModal({
 
           {/* Foto Mentor */}
           <div>
-            <p className="text-sm font-medium text-gray-600 mb-2">
+            <p className="text-xs font-medium text-gray-600 mb-1.5">
               Foto Mentor
             </p>
-            <div className="w-full h-[220px] rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
+            <div className="w-full h-[180px] rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
               <Image
                 src={avatarUrl}
                 alt="Foto Mentor"
                 width={400}
                 height={250}
+                unoptimized
                 className="object-cover w-full h-full"
               />
             </div>
           </div>
 
           {/* Detail */}
-          <div className="grid grid-cols-2 gap-6 text-sm mt-6">
+          <div className="grid grid-cols-2 gap-4 text-xs mt-4">
             {/* Kiri */}
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div>
                 <p className="font-medium text-gray-600">ID Mentor</p>
-                <p className="font-semibold">{currentUser?.id || "-"}</p>
+                <p className="font-semibold text-sm">
+                  {currentUser?.id || "-"}
+                </p>
               </div>
               <div>
                 <p className="font-medium text-gray-600">No Telepon</p>
-                <p className="font-semibold">{phoneDisplay}</p>
+                <p className="font-semibold text-sm">{phoneDisplay}</p>
               </div>
               <div>
                 <p className="font-medium text-gray-600">Peran</p>
-                <p className="font-semibold">
+                <p className="font-semibold text-sm">
                   {currentUser?.userRoles?.[0]?.role?.roleName || "-"}
                 </p>
               </div>
             </div>
 
             {/* Kanan */}
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div>
                 <p className="font-medium text-gray-600">Nama Lengkap</p>
-                <p className="font-semibold">{currentUser?.fullName || "-"}</p>
+                <p className="font-semibold text-sm">
+                  {currentUser?.fullName || "-"}
+                </p>
               </div>
               <div>
                 <p className="font-medium text-gray-600">Email</p>
-                <p className="font-semibold">{currentUser?.email || "-"}</p>
+                <p className="font-semibold text-sm">
+                  {currentUser?.email || "-"}
+                </p>
               </div>
               <div>
                 <p className="font-medium text-gray-600">Status Akun</p>
-                <p className="font-semibold">
+                <p className="font-semibold text-sm">
                   {currentUser?.isActive ? "Aktif" : "Tidak Aktif"}
                 </p>
               </div>
@@ -143,7 +150,7 @@ export default function ProfileMentorModal({
           </div>
 
           {/* Footer */}
-          <div className="flex gap-4 mt-6">
+          <div className="flex gap-3 mt-4">
             {/* Tombol Edit Biasa */}
             <Button
               onClick={handleEditClick}
@@ -168,7 +175,10 @@ export default function ProfileMentorModal({
       <EditProfileModal open={editOpen} onOpenChange={setEditOpen} />
 
       {/* Modal Edit Profil Mentor */}
-      <EditProfileMentorModal open={editProfileMentorOpen} onOpenChange={setEditProfileMentorOpen} />
+      <EditProfileMentorModal
+        open={editProfileMentorOpen}
+        onOpenChange={setEditProfileMentorOpen}
+      />
     </>
   );
 }

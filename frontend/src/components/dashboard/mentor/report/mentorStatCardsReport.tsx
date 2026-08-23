@@ -45,14 +45,14 @@ export default function MentorStatCards() {
         // Ambil semua laporan mentor
         const reportRes = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentorReports/mentor/reports?page=1&limit=1000`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
         const reports = reportRes.data.data || [];
 
         // 2️⃣ Ambil semua sesi mentor
         const sessionRes = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentoringSession/mentor/own-mentoring-sessions`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
 
         const sessions = Array.isArray(sessionRes.data)
@@ -67,7 +67,7 @@ export default function MentorStatCards() {
             r.challenges &&
             r.commonQuestions &&
             r.nextFocus &&
-            r.additionalNotes
+            r.additionalNotes,
         );
 
         const incompleteReports = reports.filter(
@@ -77,18 +77,18 @@ export default function MentorStatCards() {
             !r.challenges ||
             !r.commonQuestions ||
             !r.nextFocus ||
-            !r.additionalNotes
+            !r.additionalNotes,
         );
 
         // 4️⃣ Cek sesi yang belum ada laporan
         const reportedSessionIds = reports.map((r: any) => r.sessionId);
         const notReportedSessions = sessions.filter(
-          (s: any) => !reportedSessionIds.includes(s.id)
+          (s: any) => !reportedSessionIds.includes(s.id),
         );
 
         // 5️⃣ Hitung laporan minggu ini
         const newThisWeek = reports.filter((r: any) =>
-          isThisWeek(new Date(r.createdAt))
+          isThisWeek(new Date(r.createdAt)),
         );
 
         // 6️⃣ Update state
@@ -145,7 +145,7 @@ export default function MentorStatCards() {
   };
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-5">
       {loading
         ? // ⏳ Skeleton Loading State
           Array(4)
@@ -155,18 +155,18 @@ export default function MentorStatCards() {
                 key={idx}
                 className="max-w-[360px] w-full flex flex-col justify-between px-0 py-2 shadow-sm rounded-md animate-pulse"
               >
-                <CardHeader className="flex items-center justify-between px-6 pt-2 pb-0">
+                <CardHeader className="flex items-center justify-between px-5 pt-2 pb-0">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 bg-gray-200 rounded-full" />
-                    <div className="h-4 w-24 bg-gray-200 rounded" />
+                    <div className="w-5 h-5 bg-gray-200 rounded-full" />
+                    <div className="h-3.5 w-24 bg-gray-200 rounded" />
                   </div>
-                  <div className="w-5 h-5 bg-gray-200 rounded" />
+                  <div className="w-4 h-4 bg-gray-200 rounded" />
                 </CardHeader>
 
-                <CardContent className="px-6 pt-0 pb-3">
+                <CardContent className="px-5 pt-0 pb-3">
                   <div className="flex items-center gap-3">
-                    <div className="h-8 w-12 bg-gray-200 rounded" />
-                    <div className="h-5 w-24 bg-gray-200 rounded-full" />
+                    <div className="h-7 w-10 bg-gray-200 rounded" />
+                    <div className="h-4 w-20 bg-gray-200 rounded-full" />
                   </div>
                 </CardContent>
               </Card>
@@ -178,37 +178,37 @@ export default function MentorStatCards() {
               className="max-w-[360px] w-full flex flex-col justify-between px-0 py-2 shadow-sm rounded-md"
             >
               {/* Header */}
-              <CardHeader className="flex items-center justify-between px-6 pt-2 pb-0">
+              <CardHeader className="flex items-center justify-between px-5 pt-2 pb-0">
                 <div className="flex items-center gap-2">
                   <Image
                     src={item.image}
                     alt={item.title}
-                    width={28}
-                    height={28}
+                    width={20}
+                    height={20}
                     className="w-5 h-5 object-contain opacity-90 relative top-[-1px]"
                   />
-                  <CardTitle className="text-base font-medium text-gray-500">
+                  <CardTitle className="text-sm font-medium text-gray-500">
                     {item.title}
                   </CardTitle>
                 </div>
                 <CardAction className="text-gray-600">
-                  <ChevronRight className="h-5 w-5" />
+                  <ChevronRight className="h-4 w-4" />
                 </CardAction>
               </CardHeader>
 
               {/* Value */}
-              <CardContent className="px-6 pt-0 pb-3">
+              <CardContent className="px-5 pt-0 pb-3">
                 <div className="flex items-center gap-2">
                   <h3
-                    className={`text-3xl font-semibold ${getValueClass(
-                      item.title
+                    className={`text-2xl font-semibold ${getValueClass(
+                      item.title,
                     )}`}
                   >
                     {item.value}
                   </h3>
 
                   {item.title === "Jumlah Report" && item.change && (
-                    <span className="inline-block text-sm font-medium text-emerald-700 bg-green-200 px-3 py-1 rounded-full">
+                    <span className="inline-block text-xs font-medium text-emerald-700 bg-green-200 px-2.5 py-1 rounded-full">
                       {item.change}
                     </span>
                   )}

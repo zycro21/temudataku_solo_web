@@ -18,30 +18,35 @@ export default function MentorEarnings() {
 
   // state untuk chart
   const [chartData, setChartData] = useState<{ name: string; value: number }[]>(
-    []
+    [],
   );
 
-  const SERVICE_TYPES = [
-    "one-on-one",
-    "group",
-    "bootcamp",
-    "shortclass",
-    "live class",
-  ];
+  // 🔥 DIUBAH: chart di card ini cuma nampilin one-on-one & group, sesuai
+  // dengan "Total Pendapatan" yang sekarang juga cuma hitung dua tipe ini
+  // (booking_service.ts -> getMentorEarnings). Bootcamp & live class
+  // sengaja dihilangkan dari sini biar nggak bikin bingung — angka
+  // Rupiah di kiri hanya merepresentasikan dua tipe ini.
+  const SERVICE_TYPES = ["one-on-one", "group"];
 
-  const COLORS = ["#065F46", "#059669", "#22C55E", "#14B8A6", "#0d9488"];
+  const COLORS = ["#065F46", "#059669"];
 
-  // fetch API earnings
+  // fetch API earnings — 🔥 DIUBAH: dulu ada fetchServices terpisah yang
+  // ambil dari /api/mentorService/mentor/mentoring-services (jumlah
+  // SERVICE di katalog, bukan jumlah booking) — bikin pie chart nggak
+  // konsisten sama angka Total Pendapatan. Sekarang chart-nya diisi dari
+  // `bookingCountByType` yang dikirim bareng response earnings ini juga,
+  // jadi sumber datanya PERSIS SAMA dengan yang dipakai buat hitung
+  // Rp-nya. fetchServices sudah dihapus total, tidak dipanggil lagi.
   useEffect(() => {
     const fetchEarnings = async () => {
       try {
         const res = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/booking/mentor/earnings`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
 
         if (res.data?.data) {
-          const { total, growthPercent } = res.data.data;
+          const { total, growthPercent, bookingCountByType } = res.data.data;
 
           // format ke Rupiah tanpa spasi
           const formattedTotal =
@@ -52,6 +57,17 @@ export default function MentorEarnings() {
 
           setTotalEarnings(formattedTotal);
           setGrowthPercent(`${growthPercent}%`);
+
+          // Susun chartData dari bookingCountByType (jumlah booking
+          // confirmed/completed & sudah dibayar, per serviceType) —
+          // sumber sama persis dengan perhitungan total di atas.
+          const counts: Record<string, number> = bookingCountByType || {};
+          const chartArr = SERVICE_TYPES.map((type) => ({
+            name: type,
+            value: counts[type] || 0,
+          }));
+
+          setChartData(chartArr);
         }
       } catch (err) {
         console.error("Gagal fetch earnings:", err);
@@ -60,39 +76,7 @@ export default function MentorEarnings() {
       }
     };
 
-    const fetchServices = async () => {
-      try {
-        const res = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentorService/mentor/mentoring-services`,
-          { withCredentials: true }
-        );
-
-        if (res.data?.data) {
-          const services = res.data.data;
-
-          // Group by serviceType
-          const grouped: Record<string, number> = {};
-          services.forEach((svc: any) => {
-            const type = svc.serviceType?.toLowerCase() || "unknown";
-            if (!grouped[type]) grouped[type] = 0;
-            grouped[type] += 1;
-          });
-
-          // Pastikan semua SERVICE_TYPES ada (kalau ga ada → value=0)
-          const chartArr = SERVICE_TYPES.map((type) => ({
-            name: type,
-            value: grouped[type] || 0,
-          }));
-
-          setChartData(chartArr);
-        }
-      } catch (err) {
-        console.error("Gagal fetch services:", err);
-      }
-    };
-
     fetchEarnings();
-    fetchServices();
   }, []);
 
   return (
@@ -112,7 +96,7 @@ export default function MentorEarnings() {
             height={14}
             className="relative top-[-1px]"
           />
-          <CardTitle className="text-md font-medium text-gray-500 leading-none">
+          <CardTitle className="text-sm font-medium text-gray-500 leading-none">
             Total Pendapatan
           </CardTitle>
         </div>
@@ -123,10 +107,10 @@ export default function MentorEarnings() {
       <CardContent className="px-6 py-4 pt-0 grid grid-cols-2 gap-4 items-center">
         {/* Left: Earnings Text */}
         <div>
-          <h2 className="text-4xl font-extrabold text-gray-900">
+          <h2 className="text-3xl font-extrabold text-gray-900">
             {loading ? "Loading..." : totalEarnings}
           </h2>
-          <p className="text-sm text-gray-500 mt-3">
+          <p className="text-xs text-gray-500 mt-2 leading-relaxed">
             Akumulasi total yang telah diperoleh sejak sebulan ini,{" "}
             <span className="text-emerald-600 font-semibold">
               meningkat {loading ? "..." : growthPercent} dari bulan lalu.
@@ -158,10 +142,10 @@ export default function MentorEarnings() {
                   formatter={(value, name) => {
                     const total = chartData.reduce(
                       (sum, item) => sum + item.value,
-                      0
+                      0,
                     );
                     const percent = ((Number(value) / total) * 100).toFixed(1);
-                    return [`${value} Service/Layanan (${percent}%)`, name];
+                    return [`${value} Booking (${percent}%)`, name];
                   }}
                   contentStyle={{
                     fontSize: "11px",
@@ -183,7 +167,7 @@ export default function MentorEarnings() {
           </div>
 
           {/* Manual Legend */}
-          <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+          <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
             {chartData.map((item, idx) => (
               <div key={idx} className="flex items-center gap-1">
                 <span

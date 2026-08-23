@@ -28,30 +28,31 @@ export default function FeedbackDashboardMentorPage() {
   return (
     <div className="flex mb-8">
       <MentorSidebar />
-      <div className="flex-1 flex flex-col ml-72">
+      {/* Konten sebelah kanan */}
+      <div className="flex-1 flex flex-col ml-64">
         <DashboardAffHeader />
         <main className="flex-1 p-6 pl-7 bg-gray-50 overflow-x-hidden">
           {/* Title + Deskripsi */}
-          <h1 className="text-2xl font-semibold text-gray-800">
+          <h1 className="text-xl font-semibold text-gray-800">
             Umpan Balik Mentee
           </h1>
-          <p className="mt-0 mb-8 text-gray-500">
+          <p className="mt-0 mb-6 text-sm text-gray-500">
             Halaman ini menampilkan umpan balik yang diberikan mentee setelah
             sesi mentoring, bootcamp, dan short class. Gunakan ini untuk
             mengevaluasi pembelajaran Anda.
           </p>
 
           {/* Section Cards */}
-          <div className="max-w-[85%] mb-6">
+          <div className="max-w-[85%] mb-4">
             <MentorFeedbackStatCards />
           </div>
 
           {/* Section Filters + Table */}
           <div>
-            <h2 className="text-xl font-bold text-gray-800 mb-4">
+            <h2 className="text-lg font-semibold text-gray-800 mb-3">
               Riwayat Umpan Balik
             </h2>
-            <div className="bg-white rounded-lg shadow-sm p-6 pb-2">
+            <div className="bg-white rounded-lg shadow-sm p-5 pb-2">
               {/* Section Filters */}
               <section className="mb-2">
                 <MentorFeedbackFilters
@@ -66,7 +67,7 @@ export default function FeedbackDashboardMentorPage() {
                 />
               </section>
 
-              <section className="mb-4">
+              <section className="mb-3">
                 {viewMode === "table" ? (
                   <MentorFeedbackTable
                     programFilter={programFilter}

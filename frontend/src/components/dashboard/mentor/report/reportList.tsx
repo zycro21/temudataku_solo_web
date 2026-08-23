@@ -122,10 +122,10 @@ export default function ReportList({
   const [currentPage, setCurrentPage] = useState(1);
   const [openModal, setOpenModal] = useState(false);
   const [modalType, setModalType] = useState<"add" | "edit" | "view" | null>(
-    null
+    null,
   );
   const [selectedReport, setSelectedReport] = useState<CombinedReport | null>(
-    null
+    null,
   );
   const [detailedReport, setDetailedReport] = useState<any | null>(null);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -145,21 +145,21 @@ export default function ReportList({
         // 1️⃣ Ambil semua laporan mentor
         const reportRes = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentorReports/mentor/reports?page=1&limit=1000`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
         const reports = reportRes.data.data || [];
 
         // 2️⃣ Ambil semua sesi mentor
         const sessionRes = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentoringSession/mentor/own-mentoring-sessions`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
         const sessions = sessionRes.data || [];
 
         // 3️⃣ Gabungkan data
         const merged: CombinedReport[] = sessions.map((session: Session) => {
           const report = reports.find(
-            (r: ReportData) => r.sessionId === session.id
+            (r: ReportData) => r.sessionId === session.id,
           );
 
           const isIncomplete = (r?: ReportData) => {
@@ -173,7 +173,7 @@ export default function ReportList({
             ];
             return keys.some(
               (k) =>
-                !r[k as keyof ReportData] || r[k as keyof ReportData] === ""
+                !r[k as keyof ReportData] || r[k as keyof ReportData] === "",
             );
           };
 
@@ -238,7 +238,7 @@ export default function ReportList({
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentData = filteredReports.slice(
     startIndex,
-    startIndex + itemsPerPage
+    startIndex + itemsPerPage,
   );
 
   // ============================
@@ -302,7 +302,7 @@ export default function ReportList({
             setModalType("add");
             setOpenModal(true);
           }}
-          className="px-6 py-3 text-base font-medium bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 cursor-pointer"
+          className="px-5 py-2.5 text-sm font-medium bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 cursor-pointer"
         >
           Isi Laporan
         </button>
@@ -316,7 +316,7 @@ export default function ReportList({
             setModalType("edit");
             setOpenModal(true);
           }}
-          className="px-6 py-3 text-base font-medium bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 cursor-pointer"
+          className="px-5 py-2.5 text-sm font-medium bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 cursor-pointer"
         >
           Edit Laporan
         </button>
@@ -332,7 +332,7 @@ export default function ReportList({
 
             const res = await axios.get(
               `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentorReports/mentor/reports/${report.reportData?.id}`,
-              { withCredentials: true }
+              { withCredentials: true },
             );
 
             setDetailedReport(res.data.data); // simpan hasil detail laporan
@@ -344,7 +344,7 @@ export default function ReportList({
             setLoading(false);
           }
         }}
-        className="px-6 py-3 text-base font-medium bg-white text-emerald-600 border border-emerald-600 rounded-lg hover:bg-emerald-50 cursor-pointer"
+        className="px-5 py-2.5 text-sm font-medium bg-white text-emerald-600 border border-emerald-600 rounded-lg hover:bg-emerald-50 cursor-pointer"
       >
         Lihat Laporan
       </button>
@@ -355,16 +355,16 @@ export default function ReportList({
     <>
       <div>
         {/* List */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           {currentData.map((report) => (
             <div
               key={report.id}
-              className="flex items-center justify-between border rounded-lg p-6 hover:shadow-sm transition"
+              className="flex items-center justify-between border rounded-lg p-5 hover:shadow-sm transition"
             >
               <div className="flex flex-col gap-2">
                 {renderStatusBadge(report.status)}
 
-                <h2 className="font-semibold text-gray-800 text-xl mt-1">
+                <h2 className="font-semibold text-gray-800 text-base mt-1">
                   {report.program}
                 </h2>
 
@@ -414,7 +414,7 @@ export default function ReportList({
 
         {/* Pagination */}
         {totalPages >= 1 && (
-          <div className="flex justify-between items-center mt-6 text-sm text-gray-600">
+          <div className="flex justify-between items-center mt-5 text-sm text-gray-600">
             <p>
               Menampilkan {startIndex + 1} -{" "}
               {Math.min(startIndex + itemsPerPage, filteredReports.length)} dari{" "}
@@ -468,7 +468,7 @@ export default function ReportList({
                     <span key={idx} className="px-2">
                       {num}
                     </span>
-                  )
+                  ),
                 );
               })()}
 

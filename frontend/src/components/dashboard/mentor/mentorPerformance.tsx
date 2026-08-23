@@ -46,7 +46,7 @@ const extractTopKeywords = (comments: string[], topN: number = 3): string[] => {
       .filter(
         (word) =>
           word.length > 2 && // minimal 3 huruf
-          !STOPWORDS.includes(word)
+          !STOPWORDS.includes(word),
       );
 
     words.forEach((word) => {
@@ -72,7 +72,7 @@ export default function MentorPerformance() {
       try {
         const res = await axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/feedback/mentor/feedbacks`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
 
         const feedbacks = res.data.data || [];
@@ -80,7 +80,7 @@ export default function MentorPerformance() {
         if (feedbacks.length > 0) {
           const totalRating = feedbacks.reduce(
             (sum: number, f: any) => sum + (Number(f.rating) || 0),
-            0
+            0,
           );
           const avgRating = totalRating / feedbacks.length;
           setFeedbackCount(feedbacks.length);
@@ -123,17 +123,17 @@ export default function MentorPerformance() {
         safeRating >= starValue
           ? 100
           : safeRating > starValue - 1
-          ? (safeRating - (starValue - 1)) * 100
-          : 0;
+            ? (safeRating - (starValue - 1)) * 100
+            : 0;
 
       return (
-        <div key={idx} className="relative w-6 h-6">
-          <FaStar className="text-gray-300 absolute top-0 left-0 w-6 h-6" />
+        <div key={idx} className="relative w-5 h-5">
+          <FaStar className="text-gray-300 absolute top-0 left-0 w-5 h-5" />
           <div
-            className="overflow-hidden absolute top-0 left-0 h-6"
+            className="overflow-hidden absolute top-0 left-0 h-5"
             style={{ width: `${fill}%` }}
           >
-            <FaStar className="text-yellow-400 w-6 h-6" />
+            <FaStar className="text-yellow-400 w-5 h-5" />
           </div>
         </div>
       );
@@ -151,7 +151,7 @@ export default function MentorPerformance() {
       <CardHeader className="flex items-center justify-between px-6 pt-3 pb-0">
         <div className="flex items-center gap-2">
           <FaStar className="text-gray-400 w-4 h-4 opacity-70 relative top-[-1px]" />
-          <CardTitle className="text-md font-medium text-gray-500 leading-none">
+          <CardTitle className="text-sm font-medium text-gray-500 leading-none">
             Performa Mentor
           </CardTitle>
         </div>
@@ -162,7 +162,7 @@ export default function MentorPerformance() {
       <CardContent className="px-6 py-4 pt-0 grid grid-cols-2 gap-4 items-center">
         <div>
           <div className="flex items-baseline gap-2">
-            <h2 className="text-6xl font-extrabold text-gray-900">
+            <h2 className="text-4xl font-extrabold text-gray-900">
               {isNaN(rating) ? 0 : rating}
             </h2>
 
@@ -171,12 +171,12 @@ export default function MentorPerformance() {
           <div className="flex items-center gap-1 mt-2">
             {renderStars(rating)}
           </div>
-          <div className="flex gap-2 mt-4 flex-wrap">
+          <div className="flex gap-2 mt-3 flex-wrap">
             {tags.length > 0 ? (
               tags.map((tag, idx) => (
                 <span
                   key={idx}
-                  className="text-xs font-bold px-3 py-1 rounded-full bg-white border border-gray-300 text-black"
+                  className="text-xs font-bold px-2.5 py-1 rounded-full bg-white border border-gray-300 text-black"
                 >
                   {tag}
                 </span>
@@ -189,12 +189,14 @@ export default function MentorPerformance() {
           </div>
         </div>
 
-        <div className="text-right text-sm space-y-2">
+        <div className="text-right text-sm space-y-1.5">
           <p className="text-gray-700">Anda mendapatkan</p>
           <p className="text-emerald-600 font-bold">
             {rating}/5 dari mentee bulan ini.
           </p>
-          <p className="text-gray-500">{getFeedbackMessage(rating)}</p>
+          <p className="text-gray-500 text-xs leading-relaxed">
+            {getFeedbackMessage(rating)}
+          </p>
         </div>
       </CardContent>
     </Card>
