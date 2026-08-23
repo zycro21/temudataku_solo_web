@@ -11,6 +11,31 @@ export default function HeroSection() {
       ?.scrollIntoView({ behavior: "smooth" });
   };
 
+  // 🔥 BARU: klik "Konsultasi Gratis" langsung buka chat WhatsApp
+  // TemuDataku di tab baru.
+  const openWhatsApp = () => {
+    window.open("https://wa.me/6285156750480", "_blank", "noopener,noreferrer");
+  };
+
+  // 🔥 BARU: klik "Apa yang mereka katakan?" auto scroll ke section
+  // testimoni (AlumniSays.tsx, id="alumni-says"). Posisi scroll dikurangi
+  // NAVBAR_OFFSET supaya section-nya nggak ketutup Navbar sticky di atas
+  // (sama seperti fix serupa di HeroSection halaman /programs & /mentoring).
+  const NAVBAR_OFFSET = 64; // px — sesuaikan kalau tinggi Navbar berubah
+
+  const scrollToAlumniSays = () => {
+    const section = document.getElementById("alumni-says");
+    if (!section) return;
+
+    const top =
+      section.getBoundingClientRect().top + window.scrollY - NAVBAR_OFFSET;
+
+    window.scrollTo({
+      top,
+      behavior: "smooth",
+    });
+  };
+
   // Sample mentor data - in real app this would come from props or API
   const mentors = [
     {
@@ -45,7 +70,7 @@ export default function HeroSection() {
     },
   ];
   return (
-    <section className="bg-gradient-to-br py-8 px-3 md:px-5 lg:px-6 relative overflow-hidden">
+    <section className="bg-gradient-to-br pt-12 pb-32 px-3 md:px-5 lg:px-6 relative overflow-hidden">
       <Image
         src="/assets/mentoringPage/vectorHeroSection.svg"
         alt="vector background"
@@ -81,8 +106,8 @@ export default function HeroSection() {
 
               {/* Description */}
               <p className="text-sm md:text-base text-gray-600 leading-relaxed max-w-xl">
-                Skill itu tumbuh kalau dipraktikkan. Yuk, tonton video
-                pembelajaran dan coba sendiri langkah-langkahnya!
+                Skill itu tumbuh kalau dipraktikkan. Yuk, pelajari materi
+                interaktif dan coba sendiri langkah-langkahnya!
               </p>
             </div>
 
@@ -112,6 +137,7 @@ export default function HeroSection() {
               <Button
                 variant="outline"
                 size="lg"
+                onClick={openWhatsApp}
                 className="
       border-emerald-600 
       text-emerald-600 
@@ -152,6 +178,7 @@ export default function HeroSection() {
               {/* Testimonial Link */}
               <div className="pt-1">
                 <button
+                  onClick={scrollToAlumniSays}
                   className="
       text-sm
       text-gray-500 

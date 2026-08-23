@@ -1018,6 +1018,14 @@ export default function ArtikelTable({
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Cover
                 </label>
+                {/* 🔥 BARU: keterangan rasio & ukuran cover yang disarankan,
+                    supaya admin yang upload tahu ukuran idealnya (dulu tidak
+                    ada info sama sekali, cuma accept="image/*" polos) —
+                    16:9 dipilih karena ini rasio standar untuk cover/thumbnail
+                    artikel & juga aman dipakai sebagai og:image share preview. */}
+                <p className="text-[11px] text-gray-400 mb-2">
+                  Disarankan rasio 16:9 (mis. 1200x675px), maks 2MB.
+                </p>
                 <div className="flex items-center gap-3">
                   <button
                     type="button"

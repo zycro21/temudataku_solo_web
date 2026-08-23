@@ -76,7 +76,7 @@ export default function AlumniSays() {
   }, [api]);
 
   return (
-    <section className="py-6 md:py-12">
+    <section id="alumni-says" className="py-6 md:py-12">
       <div className="max-w-[1000px] mx-auto px-3 sm:px-5 lg:px-6">
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start mb-6 md:mb-10">

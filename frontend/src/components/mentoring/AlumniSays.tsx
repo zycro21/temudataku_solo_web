@@ -82,7 +82,7 @@ export default function AlumniSays() {
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start mb-8">
           <div className="mb-6 lg:mb-0 lg:max-w-md">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-4 leading-tight">
-              Apa Kata Alumni Tentang Bootcamp di TemuDataku?
+              Apa Kata mereka yang pernah Mentoring di TemuDataku
             </h2>
           </div>
           <div className="lg:max-w-md lg:text-right">

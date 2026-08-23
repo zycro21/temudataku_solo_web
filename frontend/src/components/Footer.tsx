@@ -112,9 +112,9 @@ export default function Footer() {
             </h3>
             <div className="space-y-2.5 sm:space-y-3 text-sm text-center md:text-left">
               <p className="text-blue-100 leading-relaxed">
-                Kelurahan Karangbesuki,
+                Kelurahan Banjarbendo,
                 <br />
-                Kecamatan Sukun, Kota Malang
+                Kecamatan Sidoarjo, Kabupaten Sidoarjo
               </p>
               <p className="text-blue-100">+62 851-5675-0480</p>
               <p className="text-blue-100">temudataku@gmail.com</p>

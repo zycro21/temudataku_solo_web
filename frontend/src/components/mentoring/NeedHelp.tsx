@@ -1,8 +1,16 @@
+"use client";
+
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Instagram, Linkedin } from "lucide-react";
 
 export default function NeedHelp() {
+  // 🔥 BARU: klik "Konsultasi Gratis" langsung buka chat WhatsApp
+  // TemuDataku di tab baru — sama seperti tombol serupa di HeroSection.
+  const openWhatsApp = () => {
+    window.open("https://wa.me/6285156750480", "_blank", "noopener,noreferrer");
+  };
+
   return (
     <section className="py-6 md:py-12 bg-gray-50">
       <div className="max-w-[1100px] mx-auto px-3 sm:px-5 lg:px-6">
@@ -22,6 +30,7 @@ export default function NeedHelp() {
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4">
               <Button
+                onClick={openWhatsApp}
                 className="text-brand-color-primary border-emerald-600 hover:bg-emerald-50 px-4 py-2 h-[36px] rounded-md font-medium text-sm"
                 variant="outline"
               >

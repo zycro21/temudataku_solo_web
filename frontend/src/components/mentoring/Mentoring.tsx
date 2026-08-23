@@ -14,13 +14,32 @@ export default function Mentoring() {
   const alumniSaysRef = useRef<HTMLDivElement>(null);
   const helpRef = useRef<HTMLDivElement>(null);
 
-  // Fungsi scroll halus
+  // 🔥 FIX: dulu pakai ref.current.scrollIntoView() polos — hasilnya
+  // section kepotong/ketutup Navbar yang sticky di atas. Sekarang posisi
+  // scroll dihitung manual lalu dikurangi tinggi Navbar (NAVBAR_OFFSET)
+  // supaya section berhenti dengan jarak aman di bawah Navbar.
+  const NAVBAR_OFFSET = 64; // px — sesuaikan kalau tinggi Navbar berubah
+
+  const scrollToSectionWithOffset = (
+    ref: React.RefObject<HTMLDivElement | null>,
+  ) => {
+    const el = ref.current;
+    if (!el) return;
+
+    const top = el.getBoundingClientRect().top + window.scrollY - NAVBAR_OFFSET;
+
+    window.scrollTo({
+      top,
+      behavior: "smooth",
+    });
+  };
+
   const scrollToChooseSession = () => {
-    chooseSessionRef.current?.scrollIntoView({ behavior: "smooth" });
+    scrollToSectionWithOffset(chooseSessionRef);
   };
 
   const scrollToAlumniSays = () => {
-    alumniSaysRef.current?.scrollIntoView({ behavior: "smooth" });
+    scrollToSectionWithOffset(alumniSaysRef);
   };
 
   const scrollToHelp = () => {

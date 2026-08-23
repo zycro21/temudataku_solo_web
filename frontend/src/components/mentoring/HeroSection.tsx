@@ -63,6 +63,14 @@ export default function HeroSection({
     "bg-sky-100 text-sky-700",
   ];
 
+  // 🔥 BARU: klik "Konsultasi Gratis" langsung buka chat WhatsApp
+  // TemuDataku di tab baru — sebelumnya cuma scroll ke section NeedHelp
+  // (onScrollToHelp) yang bikin redundant karena section itu sendiri
+  // juga punya tombol serupa yang sama-sama scroll.
+  const openWhatsApp = () => {
+    window.open("https://wa.me/6285156750480", "_blank", "noopener,noreferrer");
+  };
+
   return (
     <section className="bg-gradient-to-br py-18 px-3 md:px-5 lg:px-6 relative overflow-hidden">
       <Image
@@ -117,7 +125,7 @@ export default function HeroSection({
               </Button>
               <Button
                 variant="outline"
-                onClick={onScrollToHelp}
+                onClick={openWhatsApp}
                 size="lg"
                 className="border-emerald-600 text-emerald-600 hover:bg-emerald-50 px-4 py-3 h-[38px] text-sm font-medium hover:cursor-pointer"
               >

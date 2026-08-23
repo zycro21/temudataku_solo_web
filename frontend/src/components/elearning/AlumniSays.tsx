@@ -9,49 +9,70 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import type { CarouselApi } from "@/components/ui/carousel";
-import Image from "next/image";
+import { User } from "lucide-react";
 
-/* =======================
-   ALUMNI DATA (MAPPING)
-======================= */
+// 🔥 DIUBAH: format card disamakan dengan AlumniSays di halaman
+// /mentoring & /programs (avatar ikon + testimoni teks), yang tadinya
+// berbasis foto (image) diganti supaya konsisten satu gaya di semua
+// halaman. Konten testimoninya disesuaikan untuk konteks pengguna
+// E-Learning (bukan Bootcamp/Mentoring).
 const alumni = [
   {
     id: 1,
-    name: "John Drake Lane",
-    role: "Alumni Group Mentoring",
+    name: "Alfiansyah",
+    role: "Data Analyst Pemula",
     status: "Mahasiswa Aktif",
-    image: "/assets/elearning/4.png",
+    color: "text-emerald-500",
+    testimonial:
+      "Materinya bisa diulang kapan aja, jadi enak buat belajar sambil kuliah tanpa keteteran.",
   },
   {
     id: 2,
-    name: "John Drake Lane",
-    role: "Alumni Group Mentoring",
-    status: "Mahasiswa Aktif",
-    image: "/assets/elearning/1.jpg",
+    name: "Siti Aisyah Ramadhani",
+    role: "Staff Administrasi",
+    status: "Career Switcher",
+    color: "text-sky-500",
+    testimonial:
+      "Studi kasusnya relevan sama kerjaan sehari-hari, jadi langsung kepake pas praktik di kantor.",
   },
   {
     id: 3,
-    name: "John Drake Lane",
-    role: "Alumni Group Mentoring",
-    status: "Mahasiswa Aktif",
-    image: "/assets/elearning/3.jpg",
+    name: "Bagus Setiawan",
+    role: "Junior Data Analyst",
+    status: "Fresh Graduate",
+    color: "text-violet-500",
+    testimonial:
+      "Kuis dan tantangan di tiap materi bikin belajar nggak ngebosenin dan lebih nempel.",
   },
   {
     id: 4,
-    name: "John Drake Lane",
-    role: "Alumni Group Mentoring",
-    status: "Mahasiswa Aktif",
-    image: "/assets/elearning/4.png",
+    name: "Clarissa Amelia Putri",
+    role: "Marketing Staff",
+    status: "Full-time Employee",
+    color: "text-rose-500",
+    testimonial:
+      "Suka banget karena materinya terus di-update, jadi ilmunya nggak ketinggalan zaman.",
+  },
+  {
+    id: 5,
+    name: "Reza Firmansyah",
+    role: "Freelance Data Enthusiast",
+    status: "Remote Worker",
+    color: "text-amber-500",
+    testimonial:
+      "Penjelasan dari mentornya gampang dicerna walau materinya termasuk berat buat pemula.",
   },
 ];
 
 export default function AlumniSays() {
   const [api, setApi] = React.useState<CarouselApi>();
   const [current, setCurrent] = React.useState(0);
+  const [count, setCount] = React.useState(0);
 
   React.useEffect(() => {
     if (!api) return;
 
+    setCount(api.scrollSnapList().length);
     setCurrent(api.selectedScrollSnap());
 
     api.on("select", () => {
@@ -60,94 +81,83 @@ export default function AlumniSays() {
   }, [api]);
 
   return (
-    <section className="py-8 md:py-12 w-full overflow-hidden bg-white">
-      {/* ===== HEADER ===== */}
-      <div className="max-w-[1100px] mx-auto px-4 mb-0 md:mb-8">
-        <div className="flex flex-col lg:flex-row lg:items-center gap-3">
-          <h2 className="text-lg md:text-xl font-bold text-gray-900 max-w-md leading-snug">
-            Apa kata Pengguna E-Learning di TemuDataku?
-          </h2>
-
-          <p className="text-sm md:text-base text-gray-800 leading-relaxed lg:flex-1 lg:text-right">
-            E-learning ini bikin kamu nggak cuma ngerti konsep, tapi juga pede
-            nunjukin hasil kerjamu ke dunia. Skill naik, karier mantap, masa
-            depan terbuka. Latihan hari ini, peluang besok.
-          </p>
+    <section id="alumni-says" className="py-8 md:py-16">
+      <div className="max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start mb-8">
+          <div className="mb-6 lg:mb-0 lg:max-w-md">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-4 leading-tight">
+              Apa Kata Pengguna E-Learning di TemuDataku?
+            </h2>
+          </div>
+          <div className="lg:max-w-md lg:text-right">
+            <p className="text-base md:text-lg text-gray-700 leading-relaxed">
+              E-learning ini bikin kamu nggak cuma ngerti konsep, tapi juga pede
+              nunjukin hasil kerjamu ke dunia. Skill naik, karier mantap, masa
+              depan terbuka. Latihan hari ini, peluang besok.
+            </p>
+          </div>
         </div>
-      </div>
 
-      {/* ===== CAROUSEL ===== */}
-      <div className="max-w-[1100px] mx-auto px-4 relative">
-        <Carousel
-          setApi={setApi}
-          className="w-full"
-          opts={{
-            align: "start",
-            loop: false,
-          }}
-        >
-          <CarouselContent className="gap-4">
-            {alumni.map((person) => (
-              <CarouselItem
-                key={person.id}
-                className="basis-full sm:basis-1/2 lg:basis-1/3"
-              >
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-lg">
-                  {/* IMAGE */}
-                  <div className="relative h-56">
-                    <Image
-                      src={person.image}
-                      alt={person.name}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
+        {/* Carousel */}
+        <div className="relative">
+          <Carousel
+            setApi={setApi}
+            className="w-full"
+            opts={{
+              align: "start",
+              loop: true,
+              dragFree: false,
+            }}
+          >
+            <CarouselContent className="-ml-4">
+              {alumni.map((person) => (
+                <CarouselItem
+                  key={person.id}
+                  className="pl-4 basis-[85%] sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
+                >
+                  <div className="bg-white rounded-xl shadow-md hover:shadow-2xl hover:-translate-y-3 transition-all duration-300 h-full flex flex-col p-6 border border-transparent hover:border-emerald-200">
+                    <div className="flex justify-center mb-6">
+                      <div className="w-28 h-28 rounded-full bg-gray-100 flex items-center justify-center">
+                        <User className={`w-14 h-14 ${person.color}`} />
+                      </div>
+                    </div>
 
-                  {/* INFO */}
-                  <div className="p-3 flex items-center gap-2.5 bg-gray-50">
-                    <Image
-                      src={person.image}
-                      alt={person.name}
-                      width={32}
-                      height={32}
-                      className="rounded-full object-cover"
-                    />
-
-                    <div className="min-w-0">
-                      <h3 className="text-xs font-bold text-gray-900 truncate">
+                    <div className="text-center flex-1 flex flex-col">
+                      <h3 className="text-base font-bold text-gray-900 mb-1">
                         {person.name}
                       </h3>
-                      <p className="text-[11px] text-gray-600 truncate">
-                        {person.role}
-                      </p>
-                      <p className="text-[11px] text-gray-500 truncate mt-0.5">
+                      <p className="text-sm text-gray-600">{person.role}</p>
+                      <p className="text-xs text-gray-500 mb-4">
                         {person.status}
+                      </p>
+
+                      <p className="text-sm text-gray-700 leading-relaxed mt-auto">
+                        "{person.testimonial}"
                       </p>
                     </div>
                   </div>
-                </div>
-              </CarouselItem>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+
+            <CarouselPrevious className="hidden md:flex -left-10 bg-white border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-400 shadow-md" />
+            <CarouselNext className="hidden md:flex -right-10 bg-white border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-400 shadow-md" />
+          </Carousel>
+
+          <div className="flex justify-center mt-8 gap-3">
+            {Array.from({ length: count }).map((_, index) => (
+              <button
+                key={index}
+                onClick={() => api?.scrollTo(index)}
+                className={`transition-all duration-300 rounded-full ${
+                  index === current
+                    ? "w-8 h-3 bg-emerald-500"
+                    : "w-3 h-3 bg-gray-300 hover:bg-emerald-300"
+                }`}
+              />
             ))}
-          </CarouselContent>
-
-          {/* ARROWS */}
-          <CarouselPrevious className="hidden md:flex -left-10 border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 transition-all" />
-          <CarouselNext className="hidden md:flex -right-10 border border-emerald-500 bg-white text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all" />
-        </Carousel>
-
-        {/* DOTS */}
-        <div className="flex justify-center mt-4 gap-1.5">
-          {alumni.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => api?.scrollTo(index)}
-              className={`w-2 h-2 rounded-full transition-colors ${
-                current === index
-                  ? "bg-emerald-500"
-                  : "bg-gray-300 hover:bg-gray-400"
-              }`}
-            />
-          ))}
+          </div>
         </div>
       </div>
     </section>

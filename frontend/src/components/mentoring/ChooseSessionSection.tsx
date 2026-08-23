@@ -29,7 +29,6 @@ export default function ChooseSessionSection() {
     "Tanya apapun permasalahan dalam bidang data science",
     "Rekaman sesi mentoring",
     "Garansi kepuasan*",
-    "Dapatkan akses ke praktik data science**",
   ];
 
   const groupFeatures = [
@@ -37,7 +36,6 @@ export default function ChooseSessionSection() {
     "Tanya apapun permasalahan dalam bidang data science",
     "Rekaman sesi mentoring",
     "Garansi kepuasan*",
-    "Dapatkan akses ke praktik data science**",
   ];
 
   const handleSelectService = async (type: ServiceType) => {
@@ -191,19 +189,6 @@ export default function ChooseSessionSection() {
               </Button>
             </CardContent>
           </Card>
-        </div>
-
-        {/* Disclaimers */}
-        <div className="mt-8 text-start space-y-1">
-          <p className="text-[11px] md:text-xs text-gray-600 leading-snug">
-            * Garansi kepuasan bisa didapatkan jika peserta tidak puas dan
-            mengisi form untuk melakukan klaim garansi serta memberikan bukti
-            valid.
-          </p>
-          <p className="text-[11px] md:text-xs text-gray-600 leading-snug">
-            ** Untuk peserta yang pertama kali mengikuti mentoring akan
-            mendapatkan akses ke praktik data science.
-          </p>
         </div>
 
         {/* Modal */}

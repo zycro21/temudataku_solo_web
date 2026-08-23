@@ -12,9 +12,9 @@ export default function WhySection() {
 
           <p className="text-xs md:text-sm text-gray-600 max-w-xl mx-auto text-end leading-relaxed py-1">
             E-Learning TemuDataku dirancang untuk membekali Anda dengan
-            keterampilan praktis. Setiap materi disajikan melalui video
+            keterampilan praktis. Setiap materi disajikan melalui teks
             interaktif, studi kasus nyata, hingga simulasi kerja agar Anda siap
-            menghadapi tantangan profesional
+            menghadapi tantangan profesional.
           </p>
         </div>
 
@@ -38,7 +38,7 @@ export default function WhySection() {
                 Belajar Sesuai Ritme Kamu
               </h3>
               <p className="text-sm text-gray-600 leading-relaxed">
-                Video pembelajaran bisa diakses kapan aja, jadi kamu bisa
+                Materi pembelajaran bisa diakses kapan aja, jadi kamu bisa
                 belajar tanpa terburu-buru dan ulang materi kapan perlu.
               </p>
             </div>
@@ -62,7 +62,7 @@ export default function WhySection() {
                 Materi Terupdate
               </h3>
               <p className="text-sm text-gray-600 leading-relaxed">
-                Konten video selalu diperbarui sesuai tren dan kebutuhan
+                Konten pembelajaran selalu diperbarui sesuai tren dan kebutuhan
                 industri terbaru, biar skill kamu tetap relevan.
               </p>
             </div>
@@ -86,8 +86,8 @@ export default function WhySection() {
                 Interaktif dan Seru
               </h3>
               <p className="text-sm text-gray-600 leading-relaxed">
-                Video dilengkapi kuis dan tantangan singkat supaya belajar jadi
-                lebih aktif dan nggak bosen.
+                Materi dilengkapi kuis, aktivitas interaktif, dan tantangan
+                singkat supaya belajar jadi lebih aktif dan nggak bosen.
               </p>
             </div>
           </div>
@@ -110,7 +110,7 @@ export default function WhySection() {
                 Penjelasan Langsung dari Ahlinya
               </h3>
               <p className="text-sm text-gray-600 leading-relaxed">
-                Setiap video dibuat sama pakar yang berpengalaman, biar kamu
+                Setiap materi disusun oleh pakar yang berpengalaman, biar kamu
                 paham konsepnya, bukan cuma hafalan.
               </p>
             </div>

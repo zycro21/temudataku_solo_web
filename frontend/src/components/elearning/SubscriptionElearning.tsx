@@ -29,7 +29,7 @@ const DURATION_META: Record<
     discountAmount: 100000,
     features: [
       "100+ materi video Data Science & AI",
-      "Materi video interaktif",
+      "Materi teks interaktif",
       "Sertifikat Tiap Materi",
       "Akses grup komunitas",
       "Akses challenge kompetisi data berhadiah",
@@ -41,7 +41,7 @@ const DURATION_META: Record<
     discountAmount: 50000,
     features: [
       "100+ materi video Data Science & AI",
-      "Materi video interaktif",
+      "Materi teks interaktif",
       "Sertifikat Tiap Materi",
       "Akses grup komunitas",
       "Akses challenge kompetisi data berhadiah",
@@ -53,7 +53,7 @@ const DURATION_META: Record<
     discountAmount: 50000,
     features: [
       "100+ materi video Data Science & AI",
-      "Materi video interaktif",
+      "Materi teks interaktif",
       "Sertifikat Tiap Materi",
       "Akses grup komunitas",
       "FREE akses Live Class",

@@ -51,6 +51,34 @@ export default function HeroSection() {
     }
   };
 
+  // 🔥 BARU: klik "Konsultasi Gratis" langsung buka chat WhatsApp
+  // TemuDataku di tab baru.
+  const openWhatsApp = () => {
+    window.open("https://wa.me/6285156750480", "_blank", "noopener,noreferrer");
+  };
+
+  // 🔥 BARU: klik "Apa yang mereka katakan?" auto scroll ke section
+  // testimoni alumni (AlumniSays.tsx, id="alumni-says").
+  // Sengaja TIDAK pakai section.scrollIntoView() polos, karena hasilnya
+  // section mepet/ketutup Navbar yang sticky di atas — jadi posisi scroll
+  // dihitung manual lalu dikurangi tinggi Navbar (NAVBAR_OFFSET) supaya
+  // ada jarak aman di atas section saat berhenti scroll.
+  const NAVBAR_OFFSET = 72; // px — sesuaikan kalau tinggi Navbar berubah
+
+  const scrollToAlumniSays = () => {
+    const section = document.getElementById("alumni-says");
+
+    if (section) {
+      const top =
+        section.getBoundingClientRect().top + window.scrollY - NAVBAR_OFFSET;
+
+      window.scrollTo({
+        top,
+        behavior: "smooth",
+      });
+    }
+  };
+
   const avatarColors = [
     "bg-emerald-100 text-emerald-700",
     "bg-blue-100 text-blue-700",
@@ -123,6 +151,7 @@ export default function HeroSection() {
                 <Button
                   variant="outline"
                   size="sm"
+                  onClick={openWhatsApp}
                   className="border-emerald-600 text-emerald-600 hover:bg-emerald-50 px-5 py-3.5 text-base font-medium"
                 >
                   Konsultasi Gratis
@@ -150,7 +179,10 @@ export default function HeroSection() {
 
                 {/* Link */}
                 <div className="pt-2">
-                  <button className="text-sm text-secondary-text-color hover:text-emerald-700 font-medium underline underline-offset-2 transition-colors">
+                  <button
+                    onClick={scrollToAlumniSays}
+                    className="text-sm text-secondary-text-color hover:text-emerald-700 font-medium underline underline-offset-2 transition-colors"
+                  >
                     Apa yang mereka katakan?
                   </button>
                 </div>
