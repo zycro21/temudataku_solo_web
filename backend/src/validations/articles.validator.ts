@@ -3,6 +3,15 @@ import { z } from "zod";
 // slug cuma boleh huruf kecil, angka, dan strip — biar aman dipakai di URL
 const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
+// 🔥 Dipakai buat field boolean yang dikirim lewat multipart/form-data
+// (createArticle/updateArticle pakai handleArticleCoverUpload -> multer),
+// di mana boolean selalu nyampe sebagai string "true"/"false", bukan
+// boolean asli — sama kayak pola preprocess yang dipakai buat `tags`.
+const booleanFromForm = z.preprocess((val) => {
+  if (typeof val === "string") return val === "true";
+  return val;
+}, z.boolean());
+
 export const createArticleSchema = z.object({
   body: z.object({
     title: z.string().min(1, "Judul wajib diisi"),
@@ -24,6 +33,7 @@ export const createArticleSchema = z.object({
       .enum(["DRAFT", "PUBLISHED", "ARCHIVED"])
       .optional()
       .default("DRAFT"),
+    isRecommended: booleanFromForm.optional().default(false),
   }),
 });
 
@@ -44,6 +54,9 @@ export const updateArticleSchema = z.object({
       z.array(z.string()).optional(),
     ),
     status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).optional(),
+    // sengaja nggak ada .default() — kalau nggak dikirim, service
+    // mempertahankan nilai isRecommended yang lama (lihat updateArticle).
+    isRecommended: booleanFromForm.optional(),
   }),
 });
 
@@ -59,6 +72,13 @@ export const articleSlugParamSchema = z.object({
   }),
 });
 
+// 🔥 Query string (bukan form-data) — booleannya "true"/"false" juga
+// datang sebagai string, makanya tetap butuh preprocess yang sama.
+const booleanFromQuery = z.preprocess((val) => {
+  if (typeof val === "string") return val === "true";
+  return val;
+}, z.boolean());
+
 export const articleListQuerySchema = z.object({
   query: z.object({
     page: z.preprocess(
@@ -72,6 +92,7 @@ export const articleListQuerySchema = z.object({
     category: z.string().optional(),
     tag: z.string().optional(),
     search: z.string().optional(),
+    isRecommended: booleanFromQuery.optional(),
   }),
 });
 
@@ -94,10 +115,36 @@ export const adminArticleListQuerySchema = z.object({
     ),
     search: z.string().optional(),
     status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).optional(),
+    isRecommended: booleanFromQuery.optional(),
     sortBy: z
       .enum(["title", "createdAt", "updatedAt", "status"])
       .optional()
       .default("createdAt"),
     sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
+  }),
+});
+
+// 🔥 BARU — favorite elemen konten artikel per-user (sidebar "Content
+// Elements"). Daftar 9 elemen ini SENGAJA di-hardcode di sini (bukan
+// nge-reuse enum ArticleContentBlockType), karena IMAGE & VIDEO itu
+// konsepnya ArticleAdditionalContentType di backend, sementara di
+// sidebar dia tampil sejajar sebagai "elemen" biasa. Kalau nanti nambah
+// elemen baru di sidebar, tambahkan juga di sini SEKALIGUS di enum
+// ArticleElementType (schema.prisma).
+export const articleElementTypeEnum = z.enum([
+  "HEADING",
+  "PARAGRAPH",
+  "IMAGE",
+  "VIDEO",
+  "TABLE",
+  "HIGHLIGHT",
+  "DIVIDER",
+  "LINK",
+  "TABLE_OF_CONTENT",
+]);
+
+export const toggleElementFavoriteSchema = z.object({
+  body: z.object({
+    elementType: articleElementTypeEnum,
   }),
 });

@@ -45,7 +45,7 @@ type MenuItem =
     };
 
 // ─── Routes yang tidak perlu sidebar + navbar admin ───────────────────────────
-const FULLSCREEN_ROUTES = [/\/materials\/create$/];
+const FULLSCREEN_ROUTES = [/\/materials\/create$/, /^\/admin\/artikel\/[^/]+$/];
 
 function isFullscreenRoute(pathname: string): boolean {
   return FULLSCREEN_ROUTES.some((pattern) => pattern.test(pathname));
@@ -525,12 +525,12 @@ export default function AdminLayout({
         },
       ],
     },
-    // {
-    //   name: "Artikel",
-    //   href: "/admin/artikel",
-    //   icon: "/assets/dashboard/user/materi.svg",
-    //   activeIcon: "/assets/dashboard/user/whitemateri.svg",
-    // },
+    {
+      name: "Kelola Artikel",
+      href: "/admin/artikel",
+      icon: "/assets/dashboard/user/materi.svg",
+      activeIcon: "/assets/dashboard/user/whitemateri.svg",
+    },
     {
       name: "Kode Redeem",
       href: "/admin/kode-redeem",

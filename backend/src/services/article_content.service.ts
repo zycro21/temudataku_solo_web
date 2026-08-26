@@ -9,59 +9,87 @@ import { elearningThumbnailPath } from "../middlewares/uploadImage.js";
 
 const prisma = new PrismaClient();
 
+// ─── Tipe konten (disesuaikan dengan revisi skema) ──────────────────────────
+// Dihapus: accordion, carousel, content_card, tab_navigation, summary.
+// Ditambahkan: divider, table, link, table_of_content.
+//
+// `key` (opsional di SEMUA tipe, termasuk image_video) dan
+// `targetKey`/`targetContentBlockId` (target content) atau
+// `targetMediaKey`/`targetAdditionalContentId` (target gambar/video) di
+// link & table_of_content adalah mekanisme buat nge-resolve target —
+// lihat comment di createContentBlockShells/finalizePendingContents di
+// bawah buat penjelasan lengkap.
+
+type HeadingContentInput = {
+  type: "heading";
+  key?: string;
+  level: 1 | 2 | 3 | 4 | 5 | 6;
+  text: string;
+  orderNumber?: number;
+};
+type ParagraphContentInput = {
+  type: "paragraph";
+  key?: string;
+  text: string;
+  orderNumber?: number;
+};
+type HighlightContentInput = {
+  type: "highlight";
+  key?: string;
+  text: string;
+  orderNumber?: number;
+};
+type DividerContentInput = {
+  type: "divider";
+  key?: string;
+  style?: "SOLID" | "DASHED";
+  orderNumber?: number;
+};
+type TableContentInput = {
+  type: "table";
+  key?: string;
+  orderNumber?: number;
+  columns: { header: string }[];
+  rows: { cells: (string | null | undefined)[] }[];
+};
+type LinkContentInput = {
+  type: "link";
+  key?: string;
+  orderNumber?: number;
+  linkText: string;
+  linkType: "external_url" | "article_section";
+  externalUrl?: string;
+  targetKey?: string;
+  targetContentBlockId?: string;
+  targetMediaKey?: string;
+  targetAdditionalContentId?: string;
+};
+type TableOfContentContentInput = {
+  type: "table_of_content";
+  key?: string;
+  orderNumber?: number;
+  items: {
+    label: string;
+    orderNumber: number;
+    targetKey?: string;
+    targetContentBlockId?: string;
+    targetMediaKey?: string;
+    targetAdditionalContentId?: string;
+  }[];
+};
+
 type BlockContentInput =
-  | {
-      type: "heading";
-      level: 1 | 2 | 3 | 4 | 5 | 6;
-      text: string;
-      orderNumber?: number;
-    }
-  | { type: "paragraph"; text: string; orderNumber?: number }
-  | { type: "highlight"; text: string; orderNumber?: number }
-  | {
-      type: "accordion";
-      title: string;
-      description?: string;
-      orderNumber?: number;
-      items: { title: string; content: string; orderNumber: number }[];
-    }
-  | {
-      type: "carousel";
-      title: string;
-      description?: string;
-      cardsPerSlide?: number;
-      orderNumber?: number;
-      items: {
-        title: string;
-        image?: string;
-        content?: string;
-        orderNumber: number;
-      }[];
-    }
-  | {
-      type: "content_card";
-      title: string;
-      description?: string;
-      disableExpandableContent: boolean;
-      orderNumber?: number;
-      items: {
-        title: string;
-        content: string;
-        expandableContent?: string;
-        orderNumber: number;
-      }[];
-    }
-  | {
-      type: "tab_navigation";
-      title: string;
-      description?: string;
-      orderNumber?: number;
-      tabs: { title: string; content: string; orderNumber: number }[];
-    }
-  | { type: "summary"; orderNumber?: number; comments: string[] };
+  | HeadingContentInput
+  | ParagraphContentInput
+  | HighlightContentInput
+  | DividerContentInput
+  | TableContentInput
+  | LinkContentInput
+  | TableOfContentContentInput;
 
 type AdditionalContentInput = {
   type: "image_video";
+  key?: string;
   position: "BEFORE" | "AFTER" | "INLINE";
   orderNumber?: number;
   isNewUpload: boolean;
@@ -102,20 +130,19 @@ const blockDetailInclude = {
       headingContent: true,
       paragraphContent: true,
       highlightContent: true,
-      accordionContent: {
+      dividerContent: true,
+      linkContent: true,
+      tableContent: {
+        include: {
+          columns: { orderBy: { orderNumber: "asc" as const } },
+          rows: {
+            orderBy: { orderNumber: "asc" as const },
+            include: { cells: true },
+          },
+        },
+      },
+      tableOfContentContent: {
         include: { items: { orderBy: { orderNumber: "asc" as const } } },
-      },
-      carouselContent: {
-        include: { items: { orderBy: { orderNumber: "asc" as const } } },
-      },
-      contentCardContent: {
-        include: { items: { orderBy: { orderNumber: "asc" as const } } },
-      },
-      tabContent: {
-        include: { tabs: { orderBy: { orderNumber: "asc" as const } } },
-      },
-      summaryContent: {
-        include: { comments: { orderBy: { orderNumber: "asc" as const } } },
       },
     },
   },
@@ -132,21 +159,127 @@ const articleContentDetailInclude = {
   },
 };
 
-// ─── Helper bersama: bikin contents + additionalContents untuk SATU block ──
-// Dipakai oleh updateArticleContent (bulk-replace), createArticleBlock, dan
-// updateArticleBlock — supaya switch-case per tipe konten nggak diduplikat
-// di 3 tempat berbeda. Mengembalikan index mediaFiles terakhir yang sudah
-// terpakai, buat dilanjutkan kalau ada block berikutnya dalam loop yang sama.
-async function createBlockContents(
+// ─── Target resolution (Link & Table of Content) ────────────────────────────
+// Target boleh nunjuk ke 2 macam hal:
+//   1. Content block lain (heading/paragraph/table/divider/dll)
+//   2. Additional content — gambar/video (ArticleAdditionalContent)
+// masing-masing punya jalur "key" (target di request yang sama) dan
+// "id" (target yang sudah ada di DB) sendiri-sendiri, makanya ada 2 pasang
+// keyMap+validTargetIds yang jalan paralel: satu buat content block, satu
+// buat media.
+//
+// Proses create-nya tetap 2 tahap sama kayak sebelumnya:
+//   Tahap 1 (createContentBlockShells + createAdditionalContents) — bikin
+//     SEMUA ArticleContentBlock & ArticleAdditionalContent (termasuk detail
+//     heading/paragraph/table/divider/image_video-nya), KECUALI detail
+//     link & table_of_content yang ditunda ke Tahap 2. Tiap content/media
+//     yang punya `key` didaftarkan ke keyMap masing-masing.
+//   Tahap 2 (finalizePendingContents) — baru bikin detail link & TOC,
+//     resolve target-nya lewat salah satu dari 2 pasang keyMap/validIds
+//     di atas, tergantung field target mana yang diisi client.
+
+type PendingContent =
+  | { kind: "link"; contentBlockId: string; input: LinkContentInput }
+  | { kind: "toc"; contentBlockId: string; input: TableOfContentContentInput };
+
+type TargetMaps = {
+  contentKeyMap: Map<string, string>;
+  mediaKeyMap: Map<string, string>;
+  validContentTargetIds: Set<string>;
+  validMediaTargetIds: Set<string>;
+};
+
+function createEmptyTargetMaps(): TargetMaps {
+  return {
+    contentKeyMap: new Map(),
+    mediaKeyMap: new Map(),
+    validContentTargetIds: new Set(),
+    validMediaTargetIds: new Set(),
+  };
+}
+
+// "Isi salah satu pasangan" — content ATAU media, bukan dua-duanya/kosong.
+// Sudah divalidasi di Zod juga, tapi tetap dicek di sini sebagai jaga-jaga
+// terakhir sebelum nyentuh DB.
+function resolveTarget(
+  maps: TargetMaps,
+  input: {
+    targetKey?: string;
+    targetContentBlockId?: string;
+    targetMediaKey?: string;
+    targetAdditionalContentId?: string;
+  },
+): {
+  targetContentBlockId: string | null;
+  targetAdditionalContentId: string | null;
+} {
+  const wantsContent = !!(input.targetKey || input.targetContentBlockId);
+  const wantsMedia = !!(
+    input.targetMediaKey || input.targetAdditionalContentId
+  );
+
+  if (wantsContent === wantsMedia) {
+    throw new Error(
+      "Target wajib diisi salah satu: content block (targetKey/targetContentBlockId) atau media (targetMediaKey/targetAdditionalContentId), tidak boleh dua-duanya atau kosong",
+    );
+  }
+
+  if (wantsContent) {
+    const id = input.targetKey
+      ? maps.contentKeyMap.get(input.targetKey)
+      : input.targetContentBlockId;
+
+    if (!id || !maps.validContentTargetIds.has(id)) {
+      throw new Error(
+        `Target content "${input.targetKey ?? input.targetContentBlockId}" tidak ditemukan`,
+      );
+    }
+    return { targetContentBlockId: id, targetAdditionalContentId: null };
+  }
+
+  const mediaId = input.targetMediaKey
+    ? maps.mediaKeyMap.get(input.targetMediaKey)
+    : input.targetAdditionalContentId;
+
+  if (!mediaId || !maps.validMediaTargetIds.has(mediaId)) {
+    throw new Error(
+      `Target media "${input.targetMediaKey ?? input.targetAdditionalContentId}" tidak ditemukan`,
+    );
+  }
+  return { targetContentBlockId: null, targetAdditionalContentId: mediaId };
+}
+
+async function getExistingContentBlockIds(
+  tx: any,
+  articleId: string,
+): Promise<Set<string>> {
+  const rows = await tx.articleContentBlock.findMany({
+    where: { block: { articleId } },
+    select: { id: true },
+  });
+  return new Set(rows.map((r: { id: string }) => r.id));
+}
+
+async function getExistingAdditionalContentIds(
+  tx: any,
+  articleId: string,
+): Promise<Set<string>> {
+  const rows = await tx.articleAdditionalContent.findMany({
+    where: { block: { articleId } },
+    select: { id: true },
+  });
+  return new Set(rows.map((r: { id: string }) => r.id));
+}
+
+// ─── Tahap 1: bikin content block + detailnya (kecuali link & TOC) ─────────
+
+async function createContentBlockShells(
   tx: any,
   articleBlockId: string,
   contents: BlockContentInput[],
-  additionalContents: AdditionalContentInput[],
-  mediaFiles: Express.Multer.File[],
-  startMediaFileIndex: number,
-): Promise<number> {
-  let mediaFileIndex = startMediaFileIndex;
-
+  maps: TargetMaps,
+  pending: PendingContent[],
+): Promise<void> {
   for (const content of contents) {
     const contentBlock = await tx.articleContentBlock.create({
       data: {
@@ -155,6 +288,9 @@ async function createBlockContents(
         orderNumber: content.orderNumber,
       },
     });
+
+    maps.validContentTargetIds.add(contentBlock.id);
+    if (content.key) maps.contentKeyMap.set(content.key, contentBlock.id);
 
     switch (content.type) {
       case "heading":
@@ -179,114 +315,157 @@ async function createBlockContents(
         });
         break;
 
-      case "accordion": {
-        const acc = await tx.articleAccordionContent.create({
-          data: {
-            contentId: contentBlock.id,
-            title: content.title,
-            description: content.description,
-          },
+      case "divider":
+        await tx.articleDividerContent.create({
+          data: { contentId: contentBlock.id, style: content.style ?? "SOLID" },
         });
-        for (const item of content.items) {
-          await tx.articleAccordionItem.create({
-            data: {
-              accordionId: acc.id,
-              title: item.title,
-              content: item.content,
-              orderNumber: item.orderNumber,
-            },
-          });
-        }
         break;
-      }
 
-      case "carousel": {
-        const car = await tx.articleCarouselContent.create({
-          data: {
-            contentId: contentBlock.id,
-            title: content.title,
-            description: content.description,
-            cardsPerSlide: content.cardsPerSlide,
-          },
-        });
-        for (const item of content.items) {
-          await tx.articleCarouselItem.create({
-            data: {
-              carouselId: car.id,
-              title: item.title,
-              image: item.image,
-              content: item.content,
-              orderNumber: item.orderNumber,
-            },
-          });
-        }
-        break;
-      }
-
-      case "content_card": {
-        const card = await tx.articleContentCardContent.create({
-          data: {
-            contentId: contentBlock.id,
-            title: content.title,
-            description: content.description,
-            disableExpandableContent: content.disableExpandableContent,
-          },
-        });
-        for (const item of content.items) {
-          await tx.articleContentCardItem.create({
-            data: {
-              cardId: card.id,
-              title: item.title,
-              content: item.content,
-              expandableContent: item.expandableContent,
-              orderNumber: item.orderNumber,
-            },
-          });
-        }
-        break;
-      }
-
-      case "tab_navigation": {
-        const tab = await tx.articleTabNavigationContent.create({
-          data: {
-            contentId: contentBlock.id,
-            title: content.title,
-            description: content.description,
-          },
-        });
-        for (const item of content.tabs) {
-          await tx.articleTabItem.create({
-            data: {
-              tabId: tab.id,
-              title: item.title,
-              content: item.content,
-              orderNumber: item.orderNumber,
-            },
-          });
-        }
-        break;
-      }
-
-      case "summary": {
-        const summary = await tx.articleSummaryContent.create({
+      case "table": {
+        const table = await tx.articleTableContent.create({
           data: { contentId: contentBlock.id },
         });
-        for (let i = 0; i < content.comments.length; i++) {
-          await tx.articleSummaryComment.create({
+
+        const columnIds: string[] = [];
+        for (let i = 0; i < content.columns.length; i++) {
+          const col = await tx.articleTableColumn.create({
             data: {
-              summaryId: summary.id,
-              comment: content.comments[i],
+              tableId: table.id,
+              header: content.columns[i].header,
               orderNumber: i + 1,
             },
           });
+          columnIds.push(col.id);
+        }
+
+        for (let r = 0; r < content.rows.length; r++) {
+          const row = await tx.articleTableRow.create({
+            data: { tableId: table.id, orderNumber: r + 1 },
+          });
+
+          const cells = content.rows[r].cells;
+          for (let c = 0; c < columnIds.length; c++) {
+            await tx.articleTableCell.create({
+              data: {
+                rowId: row.id,
+                columnId: columnIds[c],
+                value: cells[c] ?? null,
+              },
+            });
+          }
         }
         break;
       }
+
+      // Ditunda ke Tahap 2 — belum bikin detailnya di sini, cuma "ngaku"
+      // ArticleContentBlock shell-nya sudah ada (biar bisa jadi target
+      // link/TOC lain juga kalau perlu).
+      case "link":
+        pending.push({
+          kind: "link",
+          contentBlockId: contentBlock.id,
+          input: content,
+        });
+        break;
+
+      case "table_of_content":
+        pending.push({
+          kind: "toc",
+          contentBlockId: contentBlock.id,
+          input: content,
+        });
+        break;
     }
   }
+}
+
+// ─── Tahap 2: baru bikin detail link & table_of_content, target sudah bisa
+// di-resolve karena SEMUA content block & media (termasuk dari block lain
+// di request yang sama) sudah kebentuk di Tahap 1 ──────────────────────────
+
+async function finalizePendingContents(
+  tx: any,
+  articleId: string,
+  pending: PendingContent[],
+  maps: TargetMaps,
+): Promise<void> {
+  for (const item of pending) {
+    if (item.kind === "link") {
+      const { input, contentBlockId } = item;
+
+      let targetContentBlockId: string | null = null;
+      let targetAdditionalContentId: string | null = null;
+
+      if (input.linkType === "article_section") {
+        const resolved = resolveTarget(maps, input);
+        targetContentBlockId = resolved.targetContentBlockId;
+        targetAdditionalContentId = resolved.targetAdditionalContentId;
+      } else if (!input.externalUrl) {
+        throw new Error(
+          `externalUrl wajib diisi untuk link "${input.linkText}" bertipe external_url`,
+        );
+      }
+
+      await tx.articleLinkContent.create({
+        data: {
+          contentId: contentBlockId,
+          linkText: input.linkText,
+          linkType: input.linkType.toUpperCase() as any,
+          externalUrl:
+            input.linkType === "external_url" ? input.externalUrl : null,
+          targetContentBlockId,
+          targetAdditionalContentId,
+        },
+      });
+    } else {
+      const { input, contentBlockId } = item;
+
+      let toc;
+      try {
+        toc = await tx.articleTableOfContentContent.create({
+          data: { contentId: contentBlockId, articleId },
+        });
+      } catch (err: any) {
+        if (err.code === "P2002") {
+          throw new Error(
+            "Artikel ini sudah punya Table of Content — hapus/ubah yang lama dulu sebelum menambahkan yang baru",
+          );
+        }
+        throw err;
+      }
+
+      for (const tocItem of input.items) {
+        const { targetContentBlockId, targetAdditionalContentId } =
+          resolveTarget(maps, tocItem);
+
+        await tx.articleTableOfContentItem.create({
+          data: {
+            tocId: toc.id,
+            label: tocItem.label,
+            orderNumber: tocItem.orderNumber,
+            targetContentBlockId,
+            targetAdditionalContentId,
+          },
+        });
+      }
+    }
+  }
+}
+
+// ─── additionalContents (image_video) — sekarang ikut daftarin `key`-nya
+// ke mediaKeyMap, biar bisa jadi target Link/TOC juga ─────────────────────
+
+async function createAdditionalContents(
+  tx: any,
+  articleBlockId: string,
+  additionalContents: AdditionalContentInput[],
+  maps: TargetMaps,
+  mediaFiles: Express.Multer.File[],
+  startMediaFileIndex: number,
+): Promise<number> {
+  let mediaFileIndex = startMediaFileIndex;
 
   for (const additional of additionalContents) {
-    // Cuma image_video yang didukung sebagai additional content artikel.
     const additionalContent = await tx.articleAdditionalContent.create({
       data: {
         blockId: articleBlockId,
@@ -295,6 +474,10 @@ async function createBlockContents(
         orderNumber: additional.orderNumber,
       },
     });
+
+    maps.validMediaTargetIds.add(additionalContent.id);
+    if (additional.key)
+      maps.mediaKeyMap.set(additional.key, additionalContent.id);
 
     let finalUrl: string;
 
@@ -351,7 +534,8 @@ export default {
       if (!existing) throw new Error("Artikel tidak ditemukan");
 
       const imageVideoCount = data.blocks.reduce(
-        (total, block) => total + countNewImageVideo(block.additionalContents ?? []),
+        (total, block) =>
+          total + countNewImageVideo(block.additionalContents ?? []),
         0,
       );
 
@@ -362,25 +546,43 @@ export default {
       }
 
       // Cascade di schema otomatis hapus ArticleContentBlock,
-      // ArticleAdditionalContent, dan semua tabel turunannya.
+      // ArticleAdditionalContent, dan semua tabel turunannya — termasuk
+      // Table of Content lama kalau ada, jadi slot-nya bebas dipakai lagi.
       await tx.articleBlock.deleteMany({ where: { articleId: id } });
+
+      // full-replace -> nggak ada yang survive dari sebelumnya, maps mulai kosong
+      const maps = createEmptyTargetMaps();
+      const pending: PendingContent[] = [];
 
       let mediaFileIndex = 0;
 
+      // Tahap 1 — bikin semua ArticleBlock + content block shells + media
+      // dulu (lintas block, biar Link/TOC bisa saling referensi bebas urutan)
       for (const block of data.blocks) {
         const articleBlock = await tx.articleBlock.create({
           data: { articleId: id, orderNumber: block.orderNumber },
         });
 
-        mediaFileIndex = await createBlockContents(
+        await createContentBlockShells(
           tx,
           articleBlock.id,
           block.contents ?? [],
+          maps,
+          pending,
+        );
+
+        mediaFileIndex = await createAdditionalContents(
+          tx,
+          articleBlock.id,
           block.additionalContents ?? [],
+          maps,
           mediaFiles,
           mediaFileIndex,
         );
       }
+
+      // Tahap 2 — baru resolve & bikin detail Link/TOC
+      await finalizePendingContents(tx, id, pending, maps);
 
       return tx.article.findUnique({
         where: { id },
@@ -458,14 +660,39 @@ export default {
         data: { articleId, orderNumber },
       });
 
-      await createBlockContents(
+      // Block baru -> nggak ada yang perlu dihapus, valid target ids tinggal
+      // semua content block & media yang SUDAH ADA di artikel ini (buat
+      // Link/TOC yang mau nunjuk ke section/media lain lewat *ContentBlockId).
+      const maps = createEmptyTargetMaps();
+      maps.validContentTargetIds = await getExistingContentBlockIds(
+        tx,
+        articleId,
+      );
+      maps.validMediaTargetIds = await getExistingAdditionalContentIds(
+        tx,
+        articleId,
+      );
+      const pending: PendingContent[] = [];
+
+      await createContentBlockShells(
         tx,
         articleBlock.id,
         data.contents ?? [],
+        maps,
+        pending,
+      );
+
+      await createAdditionalContents(
+        tx,
+        articleBlock.id,
         data.additionalContents ?? [],
+        maps,
         mediaFiles,
         0,
       );
+
+      // Media & content shells di block ini sudah lengkap -> baru resolve link/TOC
+      await finalizePendingContents(tx, articleId, pending, maps);
 
       return tx.articleBlock.findUnique({
         where: { id: articleBlock.id },
@@ -532,7 +759,10 @@ export default {
 
       // Ganti isi block ini aja (bukan seluruh artikel) kalau
       // contents/additionalContents dikirim.
-      if (data.contents !== undefined || data.additionalContents !== undefined) {
+      if (
+        data.contents !== undefined ||
+        data.additionalContents !== undefined
+      ) {
         const imageVideoCount = countNewImageVideo(
           data.additionalContents ?? [],
         );
@@ -542,17 +772,42 @@ export default {
           );
         }
 
+        // Cascade otomatis hapus detail content & media lama (termasuk TOC
+        // lama di block ini kalau ada, jadi slotnya bebas dipakai ulang).
         await tx.articleContentBlock.deleteMany({ where: { blockId } });
         await tx.articleAdditionalContent.deleteMany({ where: { blockId } });
 
-        await createBlockContents(
+        // Ambil ulang valid target ids SETELAH delete di atas, biar content
+        // /media yang barusan dihapus otomatis nggak bisa jadi target lagi.
+        const maps = createEmptyTargetMaps();
+        maps.validContentTargetIds = await getExistingContentBlockIds(
+          tx,
+          articleId,
+        );
+        maps.validMediaTargetIds = await getExistingAdditionalContentIds(
+          tx,
+          articleId,
+        );
+        const pending: PendingContent[] = [];
+
+        await createContentBlockShells(
           tx,
           blockId,
           data.contents ?? [],
+          maps,
+          pending,
+        );
+
+        await createAdditionalContents(
+          tx,
+          blockId,
           data.additionalContents ?? [],
+          maps,
           mediaFiles,
           0,
         );
+
+        await finalizePendingContents(tx, articleId, pending, maps);
       }
 
       return tx.articleBlock.findUnique({
@@ -574,7 +829,10 @@ export default {
 
       const deletedOrder = existingBlock.orderNumber as number;
 
-      // Cascade otomatis hapus contentBlocks/additionalContents di bawahnya.
+      // Cascade otomatis hapus contentBlocks/additionalContents di
+      // bawahnya. Link lain yang nunjuk ke content/media di block ini
+      // otomatis target-nya jadi NULL (onDelete: SetNull di skema); TOC
+      // item yang nunjuk ke sini otomatis ikut kehapus (onDelete: Cascade).
       await tx.articleBlock.delete({ where: { id: blockId } });
 
       // Rapetin orderNumber block-block sesudahnya biar nggak bolong.

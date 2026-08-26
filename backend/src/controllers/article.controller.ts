@@ -69,6 +69,7 @@ export default {
         category: validatedQuery?.category,
         tag: validatedQuery?.tag,
         search: validatedQuery?.search,
+        isRecommended: validatedQuery?.isRecommended,
       });
 
       res.status(200).json({
@@ -114,6 +115,7 @@ export default {
         limit: validatedQuery?.limit ?? 10,
         search: validatedQuery?.search,
         status: validatedQuery?.status,
+        isRecommended: validatedQuery?.isRecommended,
         sortBy: validatedQuery?.sortBy ?? "createdAt",
         sortOrder: validatedQuery?.sortOrder ?? "desc",
       });
@@ -299,6 +301,70 @@ export default {
         res.status(404).json({ success: false, message: err.message });
         return;
       }
+      next(err);
+    }
+  },
+
+  // 🔥 BARU — daftar elemen sidebar yang di-favorite-in user yang lagi
+  // login. Nggak perlu cek role admin-like lagi di sini karena route-nya
+  // sudah di-guard authorizeRoles di articles.route.ts.
+  async getElementFavorites(
+    req: AuthenticatedRequestArticle,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const { user } = req;
+
+      if (!user) {
+        res.status(400).json({
+          success: false,
+          message: "Data request tidak valid",
+        });
+        return;
+      }
+
+      const favorites = await ArticleService.getElementFavorites(user.userId);
+
+      res.status(200).json({
+        success: true,
+        data: favorites,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  // 🔥 BARU — toggle favorite satu elemen sidebar (favorite <-> unfavorite).
+  async toggleElementFavorite(
+    req: AuthenticatedRequestArticle,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const { validatedBody, user } = req;
+
+      if (!validatedBody?.elementType || !user) {
+        res.status(400).json({
+          success: false,
+          message: "Data request tidak valid",
+        });
+        return;
+      }
+
+      const result = await ArticleService.toggleElementFavorite(
+        user.userId,
+        validatedBody.elementType,
+      );
+
+      res.status(200).json({
+        success: true,
+        message: result.isFavorite
+          ? "Elemen berhasil ditambahkan ke favorite"
+          : "Elemen berhasil dihapus dari favorite",
+        data: result,
+      });
+    } catch (err) {
       next(err);
     }
   },

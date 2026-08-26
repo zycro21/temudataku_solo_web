@@ -1,9 +1,19 @@
 import { z } from "zod";
 
 // ─── Content block sub-schemas ─────────────────────────────────────────────
+// `key` opsional di semua tipe — dipakai buat nge-referensiin content ini
+// sebagai target Link/Table of Content DI REQUEST YANG SAMA (lihat
+// linkContentSchema & tableOfContentSchema di bawah).
+//
+// PENTING: member dari z.discriminatedUnion() WAJIB berupa ZodObject murni
+// (bukan ZodEffects hasil .refine()/.superRefine()) — makanya semua
+// validasi tambahan (superRefine) ditaruh di ATAS hasil discriminatedUnion-
+// nya (articleBlockContentSchema di bawah), bukan di masing-masing schema
+// member ini.
 
 export const headingContentSchema = z.object({
   type: z.literal("heading"),
+  key: z.string().min(1).optional(),
   level: z.union([
     z.literal(1),
     z.literal(2),
@@ -18,107 +28,161 @@ export const headingContentSchema = z.object({
 
 export const paragraphContentSchema = z.object({
   type: z.literal("paragraph"),
+  key: z.string().min(1).optional(),
   text: z.string().min(1),
   orderNumber: z.number().int().min(1).optional(),
 });
 
 export const highlightContentSchema = z.object({
   type: z.literal("highlight"),
+  key: z.string().min(1).optional(),
   text: z.string().max(1250),
   orderNumber: z.number().int().min(1).optional(),
 });
 
-export const accordionContentSchema = z.object({
-  type: z.literal("accordion"),
-  title: z.string().min(1),
-  description: z.string().optional(),
+export const dividerContentSchema = z.object({
+  type: z.literal("divider"),
+  key: z.string().min(1).optional(),
+  style: z.enum(["SOLID", "DASHED"]).optional().default("SOLID"),
   orderNumber: z.number().int().min(1).optional(),
-  items: z
-    .array(
-      z.object({
-        title: z.string().min(1),
-        content: z.string().min(1),
-        orderNumber: z.number().int().min(1),
-      }),
-    )
-    .min(1),
 });
 
-export const carouselContentSchema = z.object({
-  type: z.literal("carousel"),
-  title: z.string().min(1),
-  description: z.string().optional(),
-  cardsPerSlide: z.number().int().min(1).optional(),
+// Table — columns = header teks per kolom (urutan array = urutan kolom).
+// rows[].cells harus PERSIS sepanjang columns (posisi cell selaras sama
+// posisi kolom) — divalidasi di articleBlockContentSchema.superRefine.
+export const tableContentSchema = z.object({
+  type: z.literal("table"),
+  key: z.string().min(1).optional(),
   orderNumber: z.number().int().min(1).optional(),
-  items: z
-    .array(
-      z.object({
-        title: z.string().min(1),
-        image: z.string().url().optional(),
-        content: z.string().optional(),
-        orderNumber: z.number().int().min(1),
-      }),
-    )
-    .min(1),
+  columns: z.array(z.object({ header: z.string().min(1) })).min(1),
+  rows: z.array(
+    z.object({
+      cells: z.array(z.string().nullable().optional()),
+    }),
+  ),
 });
 
-export const contentCardSchema = z.object({
-  type: z.literal("content_card"),
-  title: z.string().min(1),
-  description: z.string().optional(),
-  disableExpandableContent: z.boolean(),
+// Link — linkText: max 150 char (sesuai counter "0/150" di builder UI).
+// linkType external_url -> wajib externalUrl.
+// linkType article_section -> target boleh nunjuk ke CONTENT BLOCK
+// (targetKey/targetContentBlockId) ATAU ke MEDIA gambar/video
+// (targetMediaKey/targetAdditionalContentId) — isi SALAH SATU pasangan,
+// divalidasi di articleBlockContentSchema.superRefine.
+export const linkContentSchema = z.object({
+  type: z.literal("link"),
+  key: z.string().min(1).optional(),
   orderNumber: z.number().int().min(1).optional(),
-  items: z
-    .array(
-      z.object({
-        title: z.string().min(1),
-        content: z.string().min(1),
-        expandableContent: z.string().optional(),
-        orderNumber: z.number().int().min(1),
-      }),
-    )
-    .min(1),
+  linkText: z.string().min(1).max(150),
+  linkType: z.enum(["external_url", "article_section"]),
+  externalUrl: z.string().url().optional(),
+  // target ke content block (heading/paragraph/table/divider/dll)
+  targetKey: z.string().min(1).optional(),
+  targetContentBlockId: z.string().min(1).optional(),
+  // target ke additional content (gambar/video)
+  targetMediaKey: z.string().min(1).optional(),
+  targetAdditionalContentId: z.string().min(1).optional(),
 });
 
-export const tabNavigationSchema = z.object({
-  type: z.literal("tab_navigation"),
-  title: z.string().min(1),
-  description: z.string().optional(),
-  orderNumber: z.number().int().min(1).optional(),
-  tabs: z
-    .array(
-      z.object({
-        title: z.string().min(1),
-        content: z.string().min(1),
-        orderNumber: z.number().int().min(1),
-      }),
-    )
-    .min(1),
+// Table of Content item — sama polanya kayak Link article_section: tiap
+// item wajib punya SALAH SATU pasangan target (content block ATAU media).
+// label dibatasi 50 char (sesuai counter "23/50" di builder UI).
+const tableOfContentItemSchema = z.object({
+  label: z.string().min(1).max(50),
+  orderNumber: z.number().int().min(1),
+  targetKey: z.string().min(1).optional(),
+  targetContentBlockId: z.string().min(1).optional(),
+  targetMediaKey: z.string().min(1).optional(),
+  targetAdditionalContentId: z.string().min(1).optional(),
 });
 
-export const summaryContentSchema = z.object({
-  type: z.literal("summary"),
+export const tableOfContentSchema = z.object({
+  type: z.literal("table_of_content"),
+  key: z.string().min(1).optional(),
   orderNumber: z.number().int().min(1).optional(),
-  comments: z.array(z.string().min(1)).min(1),
+  items: z.array(tableOfContentItemSchema).min(1),
 });
 
-export const articleBlockContentSchema = z.discriminatedUnion("type", [
-  headingContentSchema,
-  paragraphContentSchema,
-  highlightContentSchema,
-  accordionContentSchema,
-  carouselContentSchema,
-  contentCardSchema,
-  tabNavigationSchema,
-  summaryContentSchema,
-]);
+// Helper — "isi salah satu pasangan, jangan dua-duanya, jangan kosong"
+function hasExactlyOneTargetPair(input: {
+  targetKey?: string;
+  targetContentBlockId?: string;
+  targetMediaKey?: string;
+  targetAdditionalContentId?: string;
+}): boolean {
+  const wantsContent = !!(input.targetKey || input.targetContentBlockId);
+  const wantsMedia = !!(
+    input.targetMediaKey || input.targetAdditionalContentId
+  );
+  return wantsContent !== wantsMedia; // XOR — persis salah satu, bukan dua-duanya/kosong
+}
+
+export const articleBlockContentSchema = z
+  .discriminatedUnion("type", [
+    headingContentSchema,
+    paragraphContentSchema,
+    highlightContentSchema,
+    dividerContentSchema,
+    tableContentSchema,
+    linkContentSchema,
+    tableOfContentSchema,
+  ])
+  .superRefine((data, ctx) => {
+    if (data.type === "table") {
+      data.rows.forEach((row, i) => {
+        if (row.cells.length !== data.columns.length) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["rows", i, "cells"],
+            message: `Jumlah cells (${row.cells.length}) harus sama dengan jumlah columns (${data.columns.length})`,
+          });
+        }
+      });
+    }
+
+    if (data.type === "link") {
+      if (data.linkType === "external_url" && !data.externalUrl) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["externalUrl"],
+          message: "externalUrl wajib diisi untuk linkType external_url",
+        });
+      }
+      if (
+        data.linkType === "article_section" &&
+        !hasExactlyOneTargetPair(data)
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["targetKey"],
+          message:
+            "Isi salah satu: (targetKey atau targetContentBlockId) untuk target content, ATAU (targetMediaKey atau targetAdditionalContentId) untuk target gambar/video — tidak boleh dua-duanya atau kosong",
+        });
+      }
+    }
+
+    if (data.type === "table_of_content") {
+      data.items.forEach((item, i) => {
+        if (!hasExactlyOneTargetPair(item)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["items", i, "targetKey"],
+            message:
+              "Isi salah satu: (targetKey atau targetContentBlockId) untuk target content, ATAU (targetMediaKey atau targetAdditionalContentId) untuk target gambar/video — tidak boleh dua-duanya atau kosong",
+          });
+        }
+      });
+    }
+  });
 
 // ─── Additional content — cuma image_video yang relevan buat artikel ──────
 // (multiple_choice/matching/interactive_code sengaja nggak di-mirror,
 // itu fitur assessment elearning, bukan konten artikel)
+// `key` opsional — dipakai kalau ada Link/TOC di request yang sama yang
+// mau nunjuk ke gambar/video ini (lewat targetMediaKey).
 
 export const imageVideoSchema = z.object({
   type: z.literal("image_video"),
+  key: z.string().min(1).optional(),
   position: z.enum(["BEFORE", "AFTER", "INLINE"]),
   orderNumber: z.number().int().min(1).optional(),
   isNewUpload: z.boolean(),

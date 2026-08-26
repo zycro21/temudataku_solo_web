@@ -1263,6 +1263,17 @@ export interface AuthenticatedRequestArticle extends Request {
     category?: string;
     tags?: string[];
     status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+    isRecommended?: boolean;
+    elementType?:
+      | "HEADING"
+      | "PARAGRAPH"
+      | "IMAGE"
+      | "VIDEO"
+      | "TABLE"
+      | "HIGHLIGHT"
+      | "DIVIDER"
+      | "LINK"
+      | "TABLE_OF_CONTENT"; // ← baris baru
   };
   validatedParams?: {
     id?: string;
@@ -1274,6 +1285,7 @@ export interface AuthenticatedRequestArticle extends Request {
     category?: string;
     tag?: string;
     search?: string;
+    isRecommended?: boolean;
     // Khusus GET /articles/admin
     status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
     sortBy?: "title" | "createdAt" | "updatedAt" | "status";
@@ -1285,56 +1297,57 @@ export interface AuthenticatedRequestArticle extends Request {
 export type ArticleBlockContentInput =
   | {
       type: "heading";
+      key?: string;
       level: 1 | 2 | 3 | 4 | 5 | 6;
       text: string;
       orderNumber?: number;
     }
-  | { type: "paragraph"; text: string; orderNumber?: number }
-  | { type: "highlight"; text: string; orderNumber?: number }
+  | { type: "paragraph"; key?: string; text: string; orderNumber?: number }
+  | { type: "highlight"; key?: string; text: string; orderNumber?: number }
   | {
-      type: "accordion";
-      title: string;
-      description?: string;
+      type: "divider";
+      key?: string;
+      style?: "SOLID" | "DASHED";
       orderNumber?: number;
-      items: { title: string; content: string; orderNumber: number }[];
     }
   | {
-      type: "carousel";
-      title: string;
-      description?: string;
-      cardsPerSlide?: number;
+      type: "table";
+      key?: string;
+      orderNumber?: number;
+      columns: { header: string }[];
+      rows: { cells: (string | null)[] }[];
+    }
+  | {
+      type: "link";
+      key?: string;
+      orderNumber?: number;
+      linkText: string;
+      linkType: "external_url" | "article_section";
+      externalUrl?: string;
+      // target ke content block — isi salah satu
+      targetKey?: string;
+      targetContentBlockId?: string;
+      // ATAU target ke gambar/video (additionalContent) — isi salah satu
+      targetMediaKey?: string;
+      targetAdditionalContentId?: string;
+    }
+  | {
+      type: "table_of_content";
+      key?: string;
       orderNumber?: number;
       items: {
-        title: string;
-        image?: string;
-        content?: string;
+        label: string;
         orderNumber: number;
+        targetKey?: string;
+        targetContentBlockId?: string;
+        targetMediaKey?: string;
+        targetAdditionalContentId?: string;
       }[];
-    }
-  | {
-      type: "content_card";
-      title: string;
-      description?: string;
-      disableExpandableContent: boolean;
-      orderNumber?: number;
-      items: {
-        title: string;
-        content: string;
-        expandableContent?: string;
-        orderNumber: number;
-      }[];
-    }
-  | {
-      type: "tab_navigation";
-      title: string;
-      description?: string;
-      orderNumber?: number;
-      tabs: { title: string; content: string; orderNumber: number }[];
-    }
-  | { type: "summary"; orderNumber?: number; comments: string[] };
+    };
 
 export type ArticleAdditionalContentInput = {
   type: "image_video";
+  key?: string; // biar bisa jadi target Link/TOC lewat targetMediaKey
   position: "BEFORE" | "AFTER" | "INLINE";
   orderNumber?: number;
   isNewUpload: boolean;
@@ -1350,13 +1363,16 @@ export type ArticleAdditionalContentInput = {
   };
 };
 
+// ArticleBlockInput, ArticleSingleBlockBody, AuthenticatedRequestArticleContent
+// TIDAK BERUBAH — bentuknya sama, cuma isi ArticleBlockContentInput dan
+// ArticleAdditionalContentInput di atas yang berubah.
+
 export type ArticleBlockInput = {
   orderNumber: number;
   contents?: ArticleBlockContentInput[];
   additionalContents?: ArticleAdditionalContentInput[];
 };
 
-// Body buat create/update SATU block (bukan array blocks kayak bulk-replace)
 export type ArticleSingleBlockBody = {
   orderNumber?: number;
   contents?: ArticleBlockContentInput[];
@@ -1372,9 +1388,6 @@ export interface AuthenticatedRequestArticleContent extends Request {
     phoneNumber?: string;
     fullName?: string;
   };
-  // PUT /articles/:id/content (bulk-replace) pakai { blocks: [...] }.
-  // POST/PATCH per-block pakai ArticleSingleBlockBody langsung.
-  // Controller masing-masing endpoint tahu bentuk mana yang berlaku.
   validatedBody?: { blocks: ArticleBlockInput[] } | ArticleSingleBlockBody;
   validatedParams?: { id?: string; blockId?: string };
   validatedQuery?: any;

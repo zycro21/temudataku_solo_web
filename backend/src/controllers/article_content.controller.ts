@@ -3,7 +3,6 @@ import { Response, NextFunction } from "express";
 import { AuthenticatedRequestArticleContent } from "../middlewares/authenticate.js";
 import ArticleContentService from "../services/article_content.service.js";
 
-
 const adminLikeRoles = ["admin", "cm", "curdev"];
 
 function isAdminLike(user?: { roles: string[] }) {
@@ -12,9 +11,23 @@ function isAdminLike(user?: { roles: string[] }) {
 
 // Dipakai bareng di semua method di bawah — satu tempat buat mapping
 // pesan error dari service ke status HTTP yang sesuai.
-function handleArticleContentError(err: any, res: Response, next: NextFunction) {
-  if (err.message === "Artikel tidak ditemukan" || err.message === "Block tidak ditemukan") {
+function handleArticleContentError(
+  err: any,
+  res: Response,
+  next: NextFunction,
+) {
+  if (
+    err.message === "Artikel tidak ditemukan" ||
+    err.message === "Block tidak ditemukan"
+  ) {
     res.status(404).json({ success: false, message: err.message });
+    return;
+  }
+
+  // 🔥 Satu artikel cuma boleh 1 Table of Content — pelanggaran constraint
+  // unik ini konflik sama state yang ada, bukan salah format request.
+  if (err.message.includes("sudah punya Table of Content")) {
+    res.status(409).json({ success: false, message: err.message });
     return;
   }
 
@@ -22,7 +35,14 @@ function handleArticleContentError(err: any, res: Response, next: NextFunction) 
     err.message.includes("tidak sesuai jumlah") ||
     err.message.includes("File media untuk") ||
     err.message.includes("wajib diisi untuk media") ||
-    err.message === "orderNumber tidak valid"
+    err.message === "orderNumber tidak valid" ||
+    // 🔥 Target Link/Table of Content nggak valid: targetKey/targetContentBlockId
+    // atau targetMediaKey/targetAdditionalContentId nggak ketemu, diisi
+    // dua-duanya sekaligus, nggak diisi sama sekali, atau externalUrl
+    // kosong buat link bertipe external_url.
+    err.message.includes("tidak ditemukan") ||
+    err.message.includes("Target wajib diisi salah satu") ||
+    err.message.includes("externalUrl wajib diisi untuk link")
   ) {
     res.status(400).json({ success: false, message: err.message });
     return;
@@ -41,7 +61,12 @@ export default {
     try {
       const { validatedParams, validatedBody, user } = req;
 
-      if (!validatedParams?.id || !validatedBody || !("blocks" in validatedBody) || !user) {
+      if (
+        !validatedParams?.id ||
+        !validatedBody ||
+        !("blocks" in validatedBody) ||
+        !user
+      ) {
         res.status(400).json({
           success: false,
           message: "Data request tidak valid",
@@ -155,7 +180,12 @@ export default {
     try {
       const { validatedParams, validatedBody, user } = req;
 
-      if (!validatedParams?.id || !validatedBody || "blocks" in validatedBody || !user) {
+      if (
+        !validatedParams?.id ||
+        !validatedBody ||
+        "blocks" in validatedBody ||
+        !user
+      ) {
         res.status(400).json({
           success: false,
           message: "Data request tidak valid",

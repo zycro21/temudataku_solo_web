@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma } from "@prisma/client";
+import { PrismaClient, Prisma, ArticleElementType } from "@prisma/client";
 import { parseAsync } from "json2csv";
 import ExcelJS from "exceljs";
 import { format as formatDate } from "date-fns";
@@ -38,8 +38,41 @@ function deleteCoverImageFile(coverImageUrl?: string | null) {
   });
 }
 
+// 🔥 Disesuaikan dengan revisi skema: accordion/carousel/contentCard/tab/
+// summary sudah dihapus (tidak jadi dipakai di artikel). Diganti dengan
+// table/divider/link/tableOfContent — 4 tipe ini + heading/paragraph/
+// highlight adalah SEMUA jenis content block yang tersisa.
+// 🔥 BARU: author sekarang ikut include userRoles -> role.roleName, dipakai
+// FE buat nampilin label role (Admin/CM/CURDEV) di kolom Author. Bentuk
+// nested Prisma-nya (userRoles: [{ role: { roleName } }]) di-flatten ke
+// `roles: string[]` lewat mapAuthorRoles() sebelum dibalikin ke response,
+// biar FE nggak perlu tau struktur nested-nya.
+const authorSelectWithRoles = {
+  id: true,
+  fullName: true,
+  profilePicture: true,
+  userRoles: { select: { role: { select: { roleName: true } } } },
+} as const;
+
+function mapAuthorRoles<
+  T extends {
+    id: string;
+    fullName: string;
+    profilePicture: string | null;
+    userRoles: { role: { roleName: string } }[];
+  } | null,
+>(author: T) {
+  if (!author) return null;
+  return {
+    id: author.id,
+    fullName: author.fullName,
+    profilePicture: author.profilePicture,
+    roles: author.userRoles.map((ur) => ur.role.roleName),
+  };
+}
+
 const articleDetailInclude = {
-  author: { select: { id: true, fullName: true, profilePicture: true } },
+  author: { select: authorSelectWithRoles },
   blocks: {
     orderBy: { orderNumber: "asc" as const },
     include: {
@@ -49,21 +82,20 @@ const articleDetailInclude = {
           headingContent: true,
           paragraphContent: true,
           highlightContent: true,
-          accordionContent: {
-            include: { items: { orderBy: { orderNumber: "asc" as const } } },
-          },
-          carouselContent: {
-            include: { items: { orderBy: { orderNumber: "asc" as const } } },
-          },
-          contentCardContent: {
-            include: { items: { orderBy: { orderNumber: "asc" as const } } },
-          },
-          tabContent: {
-            include: { tabs: { orderBy: { orderNumber: "asc" as const } } },
-          },
-          summaryContent: {
+          dividerContent: true,
+          linkContent: true,
+          tableContent: {
             include: {
-              comments: { orderBy: { orderNumber: "asc" as const } },
+              columns: { orderBy: { orderNumber: "asc" as const } },
+              rows: {
+                orderBy: { orderNumber: "asc" as const },
+                include: { cells: true },
+              },
+            },
+          },
+          tableOfContentContent: {
+            include: {
+              items: { orderBy: { orderNumber: "asc" as const } },
             },
           },
         },
@@ -110,6 +142,7 @@ export default {
         category: data.category,
         tags: data.tags || [],
         status: data.status ?? "DRAFT",
+        isRecommended: data.isRecommended ?? false,
         publishedAt,
       },
     });
@@ -123,8 +156,9 @@ export default {
     category?: string;
     tag?: string;
     search?: string;
+    isRecommended?: boolean;
   }) {
-    const { page, limit, category, tag, search } = query;
+    const { page, limit, category, tag, search, isRecommended } = query;
     const skip = (page - 1) * limit;
 
     // 🔥 Endpoint list ini publik — cuma artikel PUBLISHED yang boleh
@@ -136,6 +170,7 @@ export default {
 
     if (category) where.category = category;
     if (tag) where.tags = { has: tag };
+    if (isRecommended !== undefined) where.isRecommended = isRecommended;
     if (search) {
       where.OR = [
         { title: { contains: search, mode: "insensitive" } },
@@ -150,16 +185,17 @@ export default {
         skip,
         take: limit,
         include: {
-          author: {
-            select: { id: true, fullName: true, profilePicture: true },
-          },
+          author: { select: authorSelectWithRoles },
         },
       }),
       prisma.article.count({ where }),
     ]);
 
     return {
-      data,
+      data: data.map((article) => ({
+        ...article,
+        author: mapAuthorRoles(article.author),
+      })),
       meta: {
         page,
         limit,
@@ -178,14 +214,17 @@ export default {
     limit: number;
     search?: string;
     status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+    isRecommended?: boolean;
     sortBy: "title" | "createdAt" | "updatedAt" | "status";
     sortOrder: "asc" | "desc";
   }) {
-    const { page, limit, search, status, sortBy, sortOrder } = query;
+    const { page, limit, search, status, isRecommended, sortBy, sortOrder } =
+      query;
     const skip = (page - 1) * limit;
 
     const where: any = {};
     if (status) where.status = status;
+    if (isRecommended !== undefined) where.isRecommended = isRecommended;
     if (search) {
       where.OR = [
         { title: { contains: search, mode: "insensitive" } },
@@ -201,9 +240,7 @@ export default {
         skip,
         take: limit,
         include: {
-          author: {
-            select: { id: true, fullName: true, profilePicture: true },
-          },
+          author: { select: authorSelectWithRoles },
         },
       }),
       prisma.article.count({ where }),
@@ -217,18 +254,23 @@ export default {
       statusCounts.find((row) => row.status === s)?._count._all ?? 0;
 
     return {
-      data,
+      data: data.map((article) => ({
+        ...article,
+        author: mapAuthorRoles(article.author),
+      })),
       meta: {
         page,
         limit,
         total,
         totalPages: Math.max(1, Math.ceil(total / limit)),
       },
+      // 🔥 DIUBAH: status ARCHIVED nggak dipakai lagi di app (cuma DRAFT &
+      // PUBLISHED) — "archived" dihapus dari stats, sisanya cukup total,
+      // draft, dan published.
       stats: {
         total: statusCounts.reduce((sum, row) => sum + row._count._all, 0),
         draft: countFor("DRAFT"),
         published: countFor("PUBLISHED"),
-        archived: countFor("ARCHIVED"),
       },
     };
   },
@@ -243,7 +285,7 @@ export default {
 
     if (!article) throw new Error("Artikel tidak ditemukan");
 
-    return article;
+    return { ...article, author: mapAuthorRoles(article.author) };
   },
 
   // Publik — dipakai buat halaman detail artikel, jadi cuma yang
@@ -260,7 +302,7 @@ export default {
       throw new Error("Artikel tidak ditemukan");
     }
 
-    return article;
+    return { ...article, author: mapAuthorRoles(article.author) };
   },
 
   async updateArticle(id: string, data: any) {
@@ -295,6 +337,7 @@ export default {
         category: data.category ?? existing.category,
         tags: data.tags ?? existing.tags,
         status: data.status ?? existing.status,
+        isRecommended: data.isRecommended ?? existing.isRecommended,
         publishedAt,
       },
     });
@@ -321,5 +364,38 @@ export default {
     deleteCoverImageFile(existing.coverImage);
 
     return { id };
+  },
+
+  // 🔥 BARU — favorite elemen konten artikel per-user (sidebar "Content
+  // Elements"). Cuma balikin array elementType-nya aja (bukan seluruh
+  // row), soalnya FE cuma butuh tau "elemen mana aja yang di-favorite-in".
+  async getElementFavorites(userId: string) {
+    const favorites = await prisma.articleElementFavorite.findMany({
+      where: { userId },
+      select: { elementType: true },
+    });
+
+    return favorites.map((f) => f.elementType);
+  },
+
+  // Toggle: kalau sudah ada -> hapus (unfavorite), kalau belum -> buat
+  // (favorite). Compound unique [userId, elementType] di schema bikin
+  // pengecekan "sudah di-favorite-in belum" tinggal satu findUnique.
+  async toggleElementFavorite(userId: string, elementType: ArticleElementType) {
+    const existing = await prisma.articleElementFavorite.findUnique({
+      where: { userId_elementType: { userId, elementType } },
+    });
+
+    if (existing) {
+      await prisma.articleElementFavorite.delete({
+        where: { id: existing.id },
+      });
+      return { elementType, isFavorite: false };
+    }
+
+    await prisma.articleElementFavorite.create({
+      data: { userId, elementType },
+    });
+    return { elementType, isFavorite: true };
   },
 };

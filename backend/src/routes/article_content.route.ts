@@ -14,7 +14,7 @@ import {
   articleBlockParamSchema,
   updateArticleBlockSchema,
 } from "../validations/article_content.validation.js";
- 
+
 const router = Router();
 
 /**
@@ -27,8 +27,11 @@ const router = Router();
  *       - Kirim blocks berisi array kosong ([]) untuk mengosongkan semua konten artikel.
  *       - Endpoint memakai multipart/form-data karena mendukung upload gambar/video.
  *       - Field blocks harus dikirim dalam bentuk JSON string.
- *       - Tipe content yang didukung blocks[].contents[].type: heading, paragraph, highlight, accordion, carousel, content_card, tab_navigation, summary.
- *       - Tipe additionalContents yang didukung blocks[].additionalContents[].type hanya: image_video.
+ *       - Tipe content yang didukung blocks[].contents[].type = heading, paragraph, highlight, divider, table, link, table_of_content.
+ *       - Tipe additionalContents yang didukung blocks[].additionalContents[].type hanya = image_video.
+ *       - "key" (opsional) di tiap content DAN tiap additionalContent (image_video) dipakai buat nge-referensiin item itu sebagai target link/table_of_content DI PAYLOAD YANG SAMA — wajib dipakai di endpoint ini karena semua block dibuat ulang dari nol sehingga belum ada ID asli saat payload disusun.
+ *       - Content bertipe link dengan linkType=article_section, dan tiap items[] di table_of_content, wajib isi SALAH SATU dari targetKey (nunjuk ke key content lain) ATAU targetMediaKey (nunjuk ke key additionalContent image_video lain) — tidak boleh dua-duanya atau kosong.
+ *       - Satu artikel maksimal 1 block bertipe table_of_content.
  *     tags: [Articles]
  *     security:
  *       - bearerAuth: []
@@ -51,7 +54,7 @@ const router = Router();
  *               blocks:
  *                 type: string
  *                 description: JSON.stringify(blocks)
- *                 example: '[{"orderNumber":1,"contents":[{"type":"heading","level":2,"text":"Judul Bagian","orderNumber":1},{"type":"paragraph","text":"Isi paragraf artikel","orderNumber":2}],"additionalContents":[]}]'
+ *                 example: '[{"orderNumber":1,"contents":[{"type":"heading","key":"heading-1","level":2,"text":"Judul Bagian","orderNumber":1},{"type":"paragraph","text":"Isi paragraf artikel","orderNumber":2}],"additionalContents":[{"type":"image_video","key":"gambar-1","position":"AFTER","isNewUpload":true,"content":{"mediaType":"IMAGE"}}]},{"orderNumber":2,"contents":[{"type":"link","orderNumber":1,"linkText":"Lihat gambar di atas","linkType":"article_section","targetMediaKey":"gambar-1"}]}]'
  *               mediaFiles:
  *                 type: array
  *                 description: File gambar/video baru untuk additionalContents bertipe image_video dengan isNewUpload=true, urutannya harus sesuai urutan kemunculan di blocks
@@ -62,11 +65,13 @@ const router = Router();
  *       200:
  *         description: Konten artikel berhasil diperbarui
  *       400:
- *         description: Format JSON tidak valid, data tidak valid, atau jumlah file tidak sesuai
+ *         description: Format JSON tidak valid, data tidak valid (termasuk target link/TOC tidak ketemu atau diisi ganda), atau jumlah file tidak sesuai
  *       403:
  *         description: Hanya admin yang dapat mengubah konten artikel
  *       404:
  *         description: Artikel tidak ditemukan
+ *       409:
+ *         description: Artikel sudah punya Table of Content (maksimal 1 per artikel)
  *       500:
  *         description: Kesalahan server
  */
@@ -79,7 +84,7 @@ router.put(
   validate(updateArticleContentSchema),
   ArticleContentController.updateArticleContent,
 );
- 
+
 /**
  * @swagger
  * /api/articlecontent/articles/{id}/content/blocks:
@@ -112,7 +117,7 @@ router.get(
   validate(articleIdOnlyParamSchema),
   ArticleContentController.getArticleBlocks,
 );
- 
+
 /**
  * @swagger
  * /api/articlecontent/articles/{id}/content/blocks/{blockId}:
@@ -150,7 +155,7 @@ router.get(
   validate(articleBlockParamSchema),
   ArticleContentController.getArticleBlockById,
 );
- 
+
 /**
  * @swagger
  * /api/articlecontent/articles/{id}/content/blocks:
@@ -161,6 +166,9 @@ router.get(
  *       - Kalau orderNumber dikirim, block-block lain otomatis digeser buat kasih ruang.
  *       - Endpoint memakai multipart/form-data karena mendukung upload gambar/video.
  *       - Field contents dan additionalContents harus dikirim dalam bentuk JSON string.
+ *       - Tipe content yang didukung contents[].type = heading, paragraph, highlight, divider, table, link, table_of_content.
+ *       - Karena endpoint ini cuma bikin SATU block baru (block/media lain di artikel sudah tersimpan sebelumnya), target link/table_of_content pakai targetContentBlockId (ID content block yang sudah ada) atau targetAdditionalContentId (ID gambar/video yang sudah ada), didapat dari GET /content/blocks — BUKAN targetKey/targetMediaKey, yang cuma berlaku untuk referensi ke item di payload yang sama seperti PUT /content.
+ *       - Satu artikel maksimal 1 block bertipe table_of_content — request ditolak (409) kalau artikel sudah punya satu.
  *     tags: [Articles]
  *     security:
  *       - bearerAuth: []
@@ -198,11 +206,13 @@ router.get(
  *       201:
  *         description: Block berhasil ditambahkan
  *       400:
- *         description: Format JSON tidak valid atau jumlah file tidak sesuai
+ *         description: Format JSON tidak valid, data tidak valid (termasuk target link/TOC tidak ketemu atau diisi ganda), atau jumlah file tidak sesuai
  *       403:
  *         description: Hanya admin yang dapat membuat konten artikel
  *       404:
  *         description: Artikel tidak ditemukan
+ *       409:
+ *         description: Artikel sudah punya Table of Content (maksimal 1 per artikel)
  *       500:
  *         description: Kesalahan server
  */
@@ -215,7 +225,7 @@ router.post(
   validate(createArticleBlockSchema),
   ArticleContentController.createArticleBlock,
 );
- 
+
 /**
  * @swagger
  * /api/articlecontent/articles/{id}/content/blocks/{blockId}:
@@ -225,6 +235,7 @@ router.post(
  *       - Kirim orderNumber aja kalau cuma mau reorder tanpa ubah isi.
  *       - Kirim contents/additionalContents kalau mau ganti isi block ini (block lain tidak ikut terpengaruh).
  *       - Endpoint memakai multipart/form-data karena mendukung upload gambar/video.
+ *       - Sama seperti POST, target link/table_of_content di endpoint ini pakai targetContentBlockId atau targetAdditionalContentId (ID yang sudah ada di artikel), bukan targetKey/targetMediaKey.
  *     tags: [Articles]
  *     security:
  *       - bearerAuth: []
@@ -264,11 +275,13 @@ router.post(
  *       200:
  *         description: Block berhasil diperbarui
  *       400:
- *         description: Format JSON tidak valid, orderNumber tidak valid, atau jumlah file tidak sesuai
+ *         description: Format JSON tidak valid, orderNumber tidak valid, data tidak valid (termasuk target link/TOC tidak ketemu atau diisi ganda), atau jumlah file tidak sesuai
  *       403:
  *         description: Hanya admin yang dapat mengubah konten artikel
  *       404:
  *         description: Block tidak ditemukan
+ *       409:
+ *         description: Artikel sudah punya Table of Content (maksimal 1 per artikel)
  *       500:
  *         description: Kesalahan server
  */
@@ -281,13 +294,16 @@ router.patch(
   validate(updateArticleBlockSchema),
   ArticleContentController.updateArticleBlock,
 );
- 
+
 /**
  * @swagger
  * /api/articlecontent/articles/{id}/content/blocks/{blockId}:
  *   delete:
  *     summary: Admin menghapus 1 block artikel
- *     description: Block-block sesudahnya otomatis digeser mundur biar orderNumber tetap rapat tanpa bolong.
+ *     description:
+ *       - Block-block sesudahnya otomatis digeser mundur biar orderNumber tetap rapat tanpa bolong.
+ *       - Kalau ada Link di block lain yang nunjuk ke content/media di block ini, target Link tersebut otomatis jadi kosong (link-nya sendiri tidak ikut terhapus).
+ *       - Kalau ada item Table of Content yang nunjuk ke content/media di block ini, item tersebut ikut terhapus otomatis.
  *     tags: [Articles]
  *     security:
  *       - bearerAuth: []

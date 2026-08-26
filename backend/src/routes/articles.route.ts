@@ -12,6 +12,7 @@ import {
   articleSlugParamSchema,
   articleListQuerySchema,
   adminArticleListQuerySchema,
+  toggleElementFavoriteSchema,
 } from "../validations/articles.validator.js";
 
 const router = Router();
@@ -55,6 +56,10 @@ const router = Router();
  *               status:
  *                 type: string
  *                 enum: [DRAFT, PUBLISHED, ARCHIVED]
+ *               isRecommended:
+ *                 type: boolean
+ *                 default: false
+ *                 example: false
  *     responses:
  *       201:
  *         description: Artikel berhasil dibuat
@@ -103,6 +108,11 @@ router.post(
  *         name: search
  *         schema:
  *           type: string
+ *       - in: query
+ *         name: isRecommended
+ *         schema:
+ *           type: boolean
+ *         description: Filter cuma artikel yang ditandai rekomendasi
  *     responses:
  *       200:
  *         description: Daftar artikel published
@@ -145,6 +155,11 @@ router.get(
  *         schema:
  *           type: string
  *           enum: [DRAFT, PUBLISHED, ARCHIVED]
+ *       - in: query
+ *         name: isRecommended
+ *         schema:
+ *           type: boolean
+ *         description: Filter cuma artikel yang ditandai rekomendasi
  *       - in: query
  *         name: sortBy
  *         schema:
@@ -271,6 +286,8 @@ router.get(
  *               status:
  *                 type: string
  *                 enum: [DRAFT, PUBLISHED, ARCHIVED]
+ *               isRecommended:
+ *                 type: boolean
  *     responses:
  *       200:
  *         description: Artikel berhasil diperbarui
@@ -324,6 +341,63 @@ router.delete(
   authorizeRoles("admin", "cm", "curdev"),
   validate(articleIdParamSchema),
   ArticleController.deleteArticle,
+);
+
+/**
+ * @swagger
+ * /api/article/element-favorites:
+ *   get:
+ *     summary: Daftar elemen sidebar (Heading/Table/dst) yang di-favorite-in user yang login
+ *     tags: [Articles]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Daftar elementType yang di-favorite-in
+ *       500:
+ *         description: Kesalahan server
+ */
+router.get(
+  "/element-favorites",
+  authenticate,
+  authorizeRoles("admin", "cm", "curdev"),
+  ArticleController.getElementFavorites,
+);
+
+/**
+ * @swagger
+ * /api/article/element-favorites/toggle:
+ *   post:
+ *     summary: Toggle favorite satu elemen sidebar (favorite <-> unfavorite)
+ *     tags: [Articles]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - elementType
+ *             properties:
+ *               elementType:
+ *                 type: string
+ *                 enum: [HEADING, PARAGRAPH, IMAGE, VIDEO, TABLE, HIGHLIGHT, DIVIDER, LINK, TABLE_OF_CONTENT]
+ *     responses:
+ *       200:
+ *         description: Status favorite berhasil di-toggle
+ *       400:
+ *         description: Request tidak valid
+ *       500:
+ *         description: Kesalahan server
+ */
+router.post(
+  "/element-favorites/toggle",
+  authenticate,
+  authorizeRoles("admin", "cm", "curdev"),
+  validate(toggleElementFavoriteSchema),
+  ArticleController.toggleElementFavorite,
 );
 
 export default router;

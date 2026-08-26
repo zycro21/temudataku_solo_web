@@ -98,12 +98,25 @@ model AffiliatorProductConfig {
 // ELearningText -> ELearningTextBlock -> ELearningContentBlock,
 // cuma di sini nggak ada jenjang SubChapter/SubBab — block nempel
 // langsung ke Article karena artikel itu satu halaman konten, bukan
-// kurikulum berjenjang. Tipe konten (heading, paragraph, accordion,
-// carousel, content card, tab navigation, highlight, summary) dan
-// pola polymorphic one-to-one per tipe-nya disamain persis biar
-// komponen render di FE (accordion/paragraph/dll) bisa dipakai ulang
-// dari yang sudah ada di elearning. MediaType & AnchorPosition reuse
-// enum yang sudah ada (generik, bukan spesifik elearning).
+// kurikulum berjenjang.
+//
+// PERUBAHAN (revisi):
+// - Dihapus: ACCORDION, CAROUSEL, CONTENT_CARD, TAB_NAVIGATION, SUMMARY
+//   (beserta semua model & item pendukungnya) — tidak jadi dipakai di artikel.
+// - Dipertahankan: HEADING, PARAGRAPH, HIGHLIGHT.
+// - Ditambahkan 4 tipe konten baru: TABLE, DIVIDER, LINK, TABLE_OF_CONTENT.
+//   Semua 4 tipe baru ini adalah ArticleContentBlockType (block utama,
+//   punya urutan sendiri di alur artikel) — BUKAN additionalContent,
+//   karena additionalContent khusus untuk elemen yang nempel/anchor
+//   (before/after/inline) ke sebuah block, seperti gambar/video di
+//   sela-sela paragraf. TABLE/DIVIDER/LINK/TABLE_OF_CONTENT semuanya
+//   berdiri sendiri di alur konten (persis seperti Heading/Paragraph),
+//   jadi additionalContent (IMAGE_VIDEO) tidak berubah sama sekali.
+// - Link & Table of Content sekarang bisa nunjuk ke DUA jenis target:
+//   content block (heading/paragraph/table/dll) ATAU additional content
+//   (gambar/video) — makanya ArticleLinkContent & ArticleTableOfContentItem
+//   punya 2 FK nullable (targetContentBlockId & targetAdditionalContentId),
+//   isi salah satu (app-level validation, tidak ada DB constraint XOR).
 // ============================================================
 
 model Article {
@@ -117,8 +130,9 @@ model Article {
   category    String?       @db.VarChar
   tags        String[]      @db.VarChar
 
-  status      ArticleStatus @default(DRAFT)
-  publishedAt DateTime?     @db.Timestamp(6) @map("published_at")
+  status        ArticleStatus @default(DRAFT)
+  isRecommended Boolean       @default(false) @map("is_recommended")
+  publishedAt   DateTime?     @db.Timestamp(6) @map("published_at")
 
   createdAt   DateTime?     @default(now()) @db.Timestamp(6) @map("created_at")
   updatedAt   DateTime?     @db.Timestamp(6) @map("updated_at")
@@ -127,8 +141,14 @@ model Article {
   author      User          @relation(fields: [authorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   blocks      ArticleBlock[]
 
+  // Satu artikel maksimal punya satu Table of Content — constraint
+  // "hanya bisa dipakai 1 kali" ditegakkan lewat @unique di
+  // ArticleTableOfContentContent.articleId (lihat di bawah).
+  tableOfContent ArticleTableOfContentContent?
+
   @@index([authorId])
   @@index([status])
+  @@index([isRecommended])
   @@map("articles")
 }
 
@@ -164,14 +184,23 @@ model ArticleContentBlock {
 
   block       ArticleBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
 
-  headingContent     ArticleHeadingContent?
-  paragraphContent   ArticleParagraphContent?
-  accordionContent   ArticleAccordionContent?
-  carouselContent    ArticleCarouselContent?
-  contentCardContent ArticleContentCardContent?
-  tabContent         ArticleTabNavigationContent?
-  highlightContent   ArticleHighlightContent?
-  summaryContent     ArticleSummaryContent?
+  headingContent        ArticleHeadingContent?
+  paragraphContent      ArticleParagraphContent?
+  highlightContent      ArticleHighlightContent?
+  tableContent          ArticleTableContent?
+  dividerContent        ArticleDividerContent?
+  tableOfContentContent ArticleTableOfContentContent?
+
+  // Link ini adalah relasi "pemilik" — satu ArticleContentBlock bertipe
+  // LINK punya persis satu ArticleLinkContent.
+  linkContent           ArticleLinkContent? @relation("ArticleLinkOwner")
+
+  // Kebalikannya: content block ini (biasanya Heading/Paragraph/dll)
+  // bisa jadi TARGET dari banyak Link di artikel yang sama.
+  linkedFromContents     ArticleLinkContent[]         @relation("ArticleLinkTarget")
+
+  // Content block ini bisa jadi TARGET dari banyak item Table of Content.
+  referencedByTOCItems   ArticleTableOfContentItem[]  @relation("ArticleTOCItemTarget")
 
   @@map("article_content_blocks")
 }
@@ -179,12 +208,11 @@ model ArticleContentBlock {
 enum ArticleContentBlockType {
   HEADING
   PARAGRAPH
-  ACCORDION
-  CAROUSEL
-  CONTENT_CARD
-  TAB_NAVIGATION
   HIGHLIGHT
-  SUMMARY
+  TABLE
+  DIVIDER
+  LINK
+  TABLE_OF_CONTENT
 }
 
 model ArticleHeadingContent {
@@ -215,154 +243,198 @@ model ArticleHighlightContent {
   content   ArticleContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
 }
 
-// Accordion Content
-model ArticleAccordionContent {
-  id          String @id @default(cuid())
-  contentId   String @unique
-
-  title       String
-  description String?
-
-  items ArticleAccordionItem[]
-
-  content ArticleContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
-}
-
-model ArticleAccordionItem {
-  id          String @id @default(cuid())
-  accordionId String
-
-  title       String
-  content     String
-  orderNumber Int
-
-  accordion ArticleAccordionContent @relation(fields: [accordionId], references: [id], onDelete: Cascade)
-}
-
-// Carousel Content
-model ArticleCarouselContent {
-  id            String @id @default(cuid())
-  contentId     String @unique
-
-  title         String
-  description   String?
-  cardsPerSlide Int?
-
-  items ArticleCarouselItem[]
-
-  content ArticleContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
-}
-
-model ArticleCarouselItem {
-  id          String @id @default(cuid())
-  carouselId  String
-
-  title       String
-  image       String?
-  content     String?
-  orderNumber Int
-
-  carousel ArticleCarouselContent @relation(fields: [carouselId], references: [id], onDelete: Cascade)
-}
-
-// Content Card
-model ArticleContentCardContent {
+// ------------------------------------------------------------
+// Table — grid header/kolom + baris/isi, sesuai builder UI
+// (tombol "Add Column" bikin kolom baru + header, "Add Row" bikin
+// baris baru; isinya diisi per sel lewat ArticleTableCell).
+// ------------------------------------------------------------
+model ArticleTableContent {
   id        String @id @default(cuid())
   contentId String @unique
 
-  title       String
-  description String?
-
-  disableExpandableContent Boolean
-
-  items ArticleContentCardItem[]
+  columns ArticleTableColumn[]
+  rows    ArticleTableRow[]
 
   content ArticleContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@map("article_table_contents")
 }
 
-model ArticleContentCardItem {
-  id                String @id @default(cuid())
-  cardId            String
+model ArticleTableColumn {
+  id          String @id @default(cuid())
+  tableId     String @map("table_id")
 
-  title             String
-  content           String
-  expandableContent String?
+  header      String
+  orderNumber Int    @map("order_number")
 
-  orderNumber       Int
+  table ArticleTableContent @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  cells ArticleTableCell[]
 
-  card ArticleContentCardContent @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  @@unique([tableId, orderNumber])
+  @@map("article_table_columns")
 }
 
-// Tab Navigation
-model ArticleTabNavigationContent {
+model ArticleTableRow {
+  id          String @id @default(cuid())
+  tableId     String @map("table_id")
+
+  orderNumber Int    @map("order_number")
+
+  table ArticleTableContent @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  cells ArticleTableCell[]
+
+  @@unique([tableId, orderNumber])
+  @@map("article_table_rows")
+}
+
+model ArticleTableCell {
+  id       String  @id @default(cuid())
+  rowId    String  @map("row_id")
+  columnId String  @map("column_id")
+
+  value    String? @db.Text
+
+  row    ArticleTableRow    @relation(fields: [rowId], references: [id], onDelete: Cascade)
+  column ArticleTableColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
+
+  @@unique([rowId, columnId])
+  @@map("article_table_cells")
+}
+
+// ------------------------------------------------------------
+// Divider — garis pemisah antar section, cuma butuh pilihan style
+// (solid "—" atau dashed "----" sesuai contoh builder UI).
+// ------------------------------------------------------------
+model ArticleDividerContent {
   id        String @id @default(cuid())
   contentId String @unique
 
-  title       String
-  description String?
+  style     ArticleDividerStyle @default(SOLID)
 
-  tabs ArticleTabItem[]
+  content   ArticleContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
 
-  content ArticleContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  @@map("article_divider_contents")
 }
 
-model ArticleTabItem {
-  id          String @id @default(cuid())
-  tabId       String
-
-  title       String
-  content     String
-  orderNumber Int
-
-  tab ArticleTabNavigationContent @relation(fields: [tabId], references: [id], onDelete: Cascade)
+enum ArticleDividerStyle {
+  SOLID
+  DASHED
 }
 
-// Summary
-model ArticleSummaryContent {
+// ------------------------------------------------------------
+// Link — teks link + tujuan: External URL (isi field url) atau
+// Article Section (pilih content block LAIN atau MEDIA gambar/video
+// di artikel yang sama lewat dropdown "Section"). externalUrl,
+// targetContentBlockId, dan targetAdditionalContentId sengaja semuanya
+// nullable — cuma salah satu yang diisi sesuai linkType (dan kalau
+// ARTICLE_SECTION, cuma salah satu dari 2 target itu), divalidasi di
+// level aplikasi/BE.
+// ------------------------------------------------------------
+enum ArticleLinkType {
+  EXTERNAL_URL
+  ARTICLE_SECTION
+}
+
+model ArticleLinkContent {
   id        String @id @default(cuid())
   contentId String @unique
 
-  comments ArticleSummaryComment[]
+  linkText String          @db.VarChar(150)
+  linkType ArticleLinkType
 
-  content ArticleContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  // dipakai kalau linkType = EXTERNAL_URL
+  externalUrl String?
+
+  // dipakai kalau linkType = ARTICLE_SECTION — nunjuk ke SALAH SATU dari:
+  // content block lain (heading/paragraph/table/dll) ATAU additional
+  // content (gambar/video) di artikel yang sama. Persis salah satu yang
+  // diisi (app-level, tidak ada DB constraint XOR di Postgres).
+  targetContentBlockId      String? @map("target_content_block_id")
+  targetAdditionalContentId String? @map("target_additional_content_id")
+
+  content                 ArticleContentBlock       @relation("ArticleLinkOwner", fields: [contentId], references: [id], onDelete: Cascade)
+  targetContentBlock      ArticleContentBlock?      @relation("ArticleLinkTarget", fields: [targetContentBlockId], references: [id], onDelete: SetNull)
+  targetAdditionalContent ArticleAdditionalContent? @relation("ArticleLinkTargetMedia", fields: [targetAdditionalContentId], references: [id], onDelete: SetNull)
+
+  @@map("article_link_contents")
 }
 
-model ArticleSummaryComment {
-  id          String @id @default(cuid())
-  summaryId   String
+  // ------------------------------------------------------------
+  // Table of Content — daftar isi; tiap item ("Item Name 1", dst)
+  // nunjuk ke satu content block ATAU satu media (gambar/video) lain di
+  // artikel yang sama sebagai tujuan lompat ("Section": Paragraph 2,
+  // Header 99, dst). Dibatasi cuma 1 per artikel lewat @unique di
+  // articleId (bukan cuma konvensi FE — ditegakkan di level DB).
+  // ------------------------------------------------------------
+  model ArticleTableOfContentContent {
+    id        String @id @default(cuid())
+    contentId String @unique
 
-  comment     String
-  orderNumber Int
+    // denormalized dari block->article, khusus buat nge-enforce
+    // "1 artikel cuma boleh 1 Table of Content" di level DB
+    articleId String @unique @map("article_id")
 
-  summary ArticleSummaryContent @relation(fields: [summaryId], references: [id], onDelete: Cascade)
-}
+    items ArticleTableOfContentItem[]
 
-// Additional Content — nempel ke sebuah ArticleBlock dengan posisi
-// before/after/inline, dipakai buat gambar/video yang disisipkan di
-// antara konten teks (samain pola dengan ELearningAdditionalContent,
-// tapi cuma IMAGE_VIDEO yang relevan buat artikel — tipe kuis/matching/
-// interactive-code di elearning sengaja tidak di-mirror ke sini karena
-// itu fitur assessment pembelajaran, bukan konten artikel).
-model ArticleAdditionalContent {
-  id      String @id @default(cuid())
+    content ArticleContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+    article Article             @relation(fields: [articleId], references: [id], onDelete: Cascade)
 
-  blockId String @map("block_id")
+    @@map("article_table_of_content_contents")
+  }
 
-  type      ArticleAdditionalContentType
-  position  AnchorPosition
+  model ArticleTableOfContentItem {
+    id    String @id @default(cuid())
+    tocId String @map("toc_id")
 
-  orderNumber Int?
+    label       String @db.VarChar(50)
+    orderNumber Int    @map("order_number")
 
-  block ArticleBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+    // Isi SALAH SATU pasangan berikut (app-level validation) — target
+    // content block ATAU target additional content (gambar/video).
+    targetContentBlockId      String? @map("target_content_block_id")
+    targetAdditionalContentId String? @map("target_additional_content_id")
 
-  imageVideo ArticleImageVideoContent?
+    toc                     ArticleTableOfContentContent @relation(fields: [tocId], references: [id], onDelete: Cascade)
+    targetContentBlock      ArticleContentBlock?         @relation("ArticleTOCItemTarget", fields: [targetContentBlockId], references: [id], onDelete: Cascade)
+    targetAdditionalContent ArticleAdditionalContent?    @relation("ArticleTOCItemTargetMedia", fields: [targetAdditionalContentId], references: [id], onDelete: Cascade)
 
-  @@map("article_additional_contents")
-}
+    @@unique([tocId, orderNumber])
+    @@map("article_table_of_content_items")
+  }
 
-enum ArticleAdditionalContentType {
-  IMAGE_VIDEO
-}
+  // Additional Content — nempel ke sebuah ArticleBlock dengan posisi
+  // before/after/inline, dipakai buat gambar/video yang disisipkan di
+  // antara konten teks. TIDAK BERUBAH strukturnya dari skema sebelumnya —
+  // Table, Divider, Link, dan Table of Content semuanya jadi
+  // ArticleContentBlockType (lihat penjelasan di atas), bukan
+  // additionalContent. Yang baru cuma 2 relasi balik di bawah, biar
+  // Link/TOC bisa nunjuk ke sini.
+  model ArticleAdditionalContent {
+    id      String @id @default(cuid())
+
+    blockId String @map("block_id")
+
+    type      ArticleAdditionalContentType
+    position  AnchorPosition
+
+    orderNumber Int?
+
+    block ArticleBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+
+    imageVideo ArticleImageVideoContent?
+
+    // Kebalikan dari targetAdditionalContentId di ArticleLinkContent &
+    // ArticleTableOfContentItem — media ini bisa jadi TARGET dari banyak
+    // Link/TOC item di artikel yang sama.
+    linkedFromContents   ArticleLinkContent[]        @relation("ArticleLinkTargetMedia")
+    referencedByTOCItems ArticleTableOfContentItem[] @relation("ArticleTOCItemTargetMedia")
+
+    @@map("article_additional_contents")
+  }
+
+  enum ArticleAdditionalContentType {
+    IMAGE_VIDEO
+  }
 
 model ArticleImageVideoContent {
   id                   String @id @default(cuid())
@@ -379,6 +451,34 @@ model ArticleImageVideoContent {
 
   additionalContent ArticleAdditionalContent @relation(fields: [additionalContentId], references: [id], onDelete: Cascade)
   @@map("article_image_video_contents")
+}
+
+enum ArticleElementType {
+  HEADING
+  PARAGRAPH
+  IMAGE
+  VIDEO
+  TABLE
+  HIGHLIGHT
+  DIVIDER
+  LINK
+  TABLE_OF_CONTENT
+}
+
+model ArticleElementFavorite {
+  id          String             @id @default(cuid())
+  userId      String             @map("user_id")
+  elementType ArticleElementType @map("element_type")
+
+  createdAt DateTime? @default(now()) @db.Timestamp(6) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  // Satu user cuma bisa nge-favorite-in satu elemen tertentu SEKALI —
+  // toggle (favorite/unfavorite) jadi tinggal cek exists atau nggak lewat
+  // compound unique ini, tanpa perlu query "sudah ada belum" terpisah.
+  @@unique([userId, elementType])
+  @@map("article_element_favorites")
 }
 
 model AYCLBatch {
@@ -2323,6 +2423,7 @@ model User {
   redeemCodeUsages    RedeemCodeUsage[] @relation("RedeemCodeUsageUser")
   redeemCodeAttempts RedeemCodeAttempt[] @relation("RedeemCodeAttemptUser")
   eLearningCourseStreamCounts ELearningCourseStreamCount[]
+  articleElementFavorites ArticleElementFavorite[]
 
   @@map("users")
 }

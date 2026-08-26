@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
+import { InteractiveCodeRunner } from "./InteractiveCodeRunner";
 import type {
   ContentBlock,
   AdditionalContent,
@@ -4255,7 +4256,15 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
                 : item.type === "matching"
                   ? renderMatching(item)
                   : item.type === "interactive_code"
-                    ? renderInteractiveCode(item)
+                    ? (() => {
+                        const data = item.content as InteractiveCodeContent;
+                        return (
+                          <InteractiveCodeRunner
+                            language={data.language}
+                            initialCode={data.initialCode}
+                          />
+                        );
+                      })()
                     : null;
 
           return (
