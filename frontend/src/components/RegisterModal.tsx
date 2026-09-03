@@ -31,11 +31,6 @@ export default function RegisterModal({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // 🔥 FIX: samakan dengan LoginModal — halaman detail /elearning/[id]
-  // (course) dan /elearning/[id]/[subChapterId] (subchapter) sekarang
-  // balik ke dirinya sendiri (pathname + query) setelah login lewat
-  // Google di modal ini, bukan dipaksa ke /elearning (list). /elearning
-  // (list) dan /elearningfull tetap balik ke /elearning seperti semula.
   const isElearningDetailPage = pathname.startsWith("/elearning/");
   const isElearningListPage =
     pathname === "/elearning" || pathname === "/elearningfull";
@@ -48,9 +43,6 @@ export default function RegisterModal({
           pathname === "/mentoring" ||
           pathname === "/redeem" ||
           pathname.startsWith("/programs/") ||
-          // 🔥 TAMBAHAN: sama seperti LoginModal — sebelumnya `/artikel`
-          // persis (halaman list) tidak ke-cover, cuma halaman
-          // detail/kategori (`/artikel/...`).
           pathname === "/artikel" ||
           pathname.startsWith("/artikel/")
         ? `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`
@@ -258,22 +250,6 @@ export default function RegisterModal({
 
               <div className="text-center text-gray-500 text-xs">atau</div>
 
-              {/* <Button
-                type="button"
-                variant="outline"
-                onClick={() => loginGoogle()}
-                className="w-full border-[#0CA678] text-[#0CA678] hover:bg-[#f2f1f1] hover:text-[#0CA678]"
-              >
-                <Image
-                  src="/assets/auth/googleIcon.svg"
-                  alt="Google Logo"
-                  width={14}
-                  height={14}
-                  className="mr-2"
-                />
-                Gunakan Akun Google
-              </Button> */}
-
               <div className="flex justify-center">
                 <div className="w-full max-w-sm">
                   <GoogleLogin
@@ -310,6 +286,10 @@ export default function RegisterModal({
                         );
 
                         const adminRoles = ["admin", "curdev", "cm"];
+                        // 🔥 TAMBAHAN: role CW → /admin/artikel. Dicek
+                        // SEBELUM adminRoles supaya tidak ikut kelempar ke
+                        // /admin.
+                        const isCwRole = roles.includes("cw");
 
                         setIsOpen(false);
                         toast.success("Login Google berhasil");
@@ -323,7 +303,9 @@ export default function RegisterModal({
                         const savedReturnUrl =
                           localStorage.getItem("returnUrl");
 
-                        if (roles.some((r) => adminRoles.includes(r))) {
+                        if (isCwRole) {
+                          router.push("/admin/artikel");
+                        } else if (roles.some((r) => adminRoles.includes(r))) {
                           router.push("/admin");
                         } else if (roles.includes("mentor")) {
                           router.push("/dashboard/mentor");

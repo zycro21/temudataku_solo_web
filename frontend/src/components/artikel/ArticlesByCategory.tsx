@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react"; // 🔥 tambah useCallback
 import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 import CategoryArticleCard from "./ArticleCard";
@@ -11,6 +11,7 @@ import {
   fetchArticleCategories,
   fetchArticles,
 } from "./articleApi";
+import ArticleEmptyState from "./ArticleEmptyState"; // 🔥 tambah import
 
 const DEFAULT_LIMIT = 6;
 

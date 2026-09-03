@@ -13,6 +13,7 @@ import {
   CategoryArticleCardSkeleton,
 } from "./ArticleCardSkeleton";
 import { ArticleListItem, fetchArticles } from "./articleApi";
+import ArticleEmptyState from "./ArticleEmptyState";
 
 // 🔥 BARU — jumlah artikel yang ditampilkan default di versi mobile
 // (sebelum user klik "Lihat Lebih Banyak").
@@ -136,7 +137,18 @@ export default function RecommendedArticles() {
   // Taruh SETELAH semua Hooks (bukan sebelumnya) supaya urutan pemanggilan
   // Hooks tetap konsisten di setiap render — return dini sebelum semua
   // Hooks selesai dideklarasikan itu melanggar Rules of Hooks.
-  if (!loading && items.length === 0) return null;
+  if (!loading && items.length === 0) {
+    return (
+      <section
+        id="rekomendasi-artikel"
+        className="px-4 md:px-8 lg:px-10 py-8 md:py-12"
+      >
+        <div className="max-w-6xl mx-auto">
+          <ArticleEmptyState />
+        </div>
+      </section>
+    );
+  }
 
   const realIndex = canSlide
     ? (((activeIndex - cloneCount) % totalItems) + totalItems) % totalItems

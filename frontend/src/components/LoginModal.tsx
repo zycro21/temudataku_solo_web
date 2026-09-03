@@ -30,13 +30,6 @@ export default function LoginModal({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // 🔥 FIX: halaman detail /elearning/[id] (course) dan
-  // /elearning/[id]/[subChapterId] (subchapter) sekarang balik ke
-  // dirinya sendiri (pathname + query, mis. ?from=elearning) setelah
-  // login — sebelumnya semua yang match `/elearning/...` dipaksa balik
-  // ke /elearning (list), jadi mentee yang login dari tengah materi
-  // malah kelempar ke list dan harus cari lagi. /elearning (list) dan
-  // /elearningfull tetap balik ke /elearning seperti semula.
   const isElearningDetailPage = pathname.startsWith("/elearning/");
   const isElearningListPage =
     pathname === "/elearning" || pathname === "/elearningfull";
@@ -49,10 +42,6 @@ export default function LoginModal({
           pathname === "/mentoring" ||
           pathname === "/redeem" ||
           pathname.startsWith("/programs/") ||
-          // 🔥 TAMBAHAN: sebelumnya cuma halaman DETAIL/KATEGORI artikel
-          // (`/artikel/...`) yang di-cover — `/artikel` persis (halaman
-          // list-nya) tidak match kondisi manapun, jadi returnUrl-nya null
-          // dan malah lempar ke "/" alih-alih balik ke /artikel.
           pathname === "/artikel" ||
           pathname.startsWith("/artikel/")
         ? `${pathname}${searchParams.toString() ? `?${searchParams}` : ""}`
@@ -99,6 +88,10 @@ export default function LoginModal({
       const restrictedRoles = ["curdev", "cm", "guest"];
       const hasRestrictedRole = roles.some((r) => restrictedRoles.includes(r));
       const guestRole = roles.includes("guest");
+      // 🔥 TAMBAHAN: role "cw" (Content Writer) dicek TERPISAH dari
+      // restrictedRoles di atas, karena tujuan redirect-nya beda
+      // (/admin/artikel, bukan /admin/elearning).
+      const isCwRole = roles.includes("cw");
 
       setCurrentUser(user);
       setIsOpen(false);
@@ -110,8 +103,13 @@ export default function LoginModal({
       window.dispatchEvent(new Event("elearning-subscription:refresh"));
 
       setTimeout(() => {
-        // 🔥 GUEST, CURDEV, CM: redirect ke /admin/elearning
-        if (hasRestrictedRole) {
+        // 🔥 TAMBAHAN: role CW → langsung ke /admin/artikel. Dicek PALING
+        // AWAL supaya kalaupun user kebetulan juga punya role restricted
+        // lain (guest/curdev/cm), CW tetap menang.
+        if (isCwRole) {
+          router.push("/admin/artikel");
+        } else if (hasRestrictedRole) {
+          // 🔥 GUEST, CURDEV, CM: redirect ke /admin/elearning
           router.push("/admin/elearning");
         } else if (roles.some((r) => adminRoles.includes(r))) {
           router.push("/admin");
@@ -283,6 +281,9 @@ export default function LoginModal({
                         const hasRestrictedRole = roles.some((r) =>
                           restrictedRoles.includes(r),
                         );
+                        // 🔥 TAMBAHAN: sama seperti login manual di atas —
+                        // cek role CW terpisah, prioritas paling awal.
+                        const isCwRole = roles.includes("cw");
 
                         setIsOpen(false);
                         toast.success("Login Google berhasil");
@@ -294,7 +295,11 @@ export default function LoginModal({
                           new Event("elearning-subscription:refresh"),
                         );
 
-                        if (hasRestrictedRole) {
+                        // 🔥 TAMBAHAN: role CW → /admin/artikel, dicek
+                        // paling awal (menang dibanding restrictedRoles lain).
+                        if (isCwRole) {
+                          router.push("/admin/artikel");
+                        } else if (hasRestrictedRole) {
                           router.push("/admin/elearning");
                         } else if (roles.some((r) => adminRoles.includes(r))) {
                           router.push("/admin");

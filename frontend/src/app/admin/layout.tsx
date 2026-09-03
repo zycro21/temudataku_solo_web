@@ -375,14 +375,18 @@ export default function AdminLayout({
     [];
 
   // 🔥 Cek apakah user memiliki role yang restricted (guest, curdev, cm)
-  const restrictedRoles = ["guest", "curdev", "cm"];
+  const restrictedRoles = ["guest", "curdev", "cm", "cw"];
   const isRestricted = roles.some((r) => restrictedRoles.includes(r));
 
   // 🔥 Guest/curdev/cm guard: redirect dari /admin ke /admin/elearning
   useEffect(() => {
     if (!authLoading && currentUser && isRestricted) {
       if (pathname === "/admin" || pathname === "/admin/") {
-        router.replace("/admin/elearning");
+        // 🔥 TAMBAHAN: role CW diarahkan ke /admin/artikel, bukan
+        // /admin/elearning seperti restricted role lainnya.
+        router.replace(
+          roles.includes("cw") ? "/admin/artikel" : "/admin/elearning",
+        );
       }
     }
   }, [authLoading, currentUser, isRestricted, pathname, router]);
@@ -404,15 +408,16 @@ export default function AdminLayout({
       "Mentor",
       "Kelola Mentoring",
       "E-Learning",
-      "Artikel",
+      "Kelola Artikel",
       "Kode Redeem",
       "Transaksi",
       "Produk & Event",
       "History",
     ],
-    cm: ["E-Learning", "Artikel", "Produk & Event"],
-    curdev: ["E-Learning", "Artikel", "Produk & Event"],
+    cm: ["E-Learning", "Kelola Artikel", "Produk & Event"],
+    curdev: ["E-Learning", "Kelola Artikel", "Produk & Event"],
     guest: ["E-Learning"],
+    cw: ["Kelola Artikel"],
   };
 
   const allowedMenus = new Set<string>();
@@ -423,13 +428,21 @@ export default function AdminLayout({
   // 🔥 Jika user adalah restricted, pastikan hanya menu yang diizinkan
   if (isRestricted) {
     allowedMenus.clear();
-    const allowedMenusForRole =
-      permissions[
-        roles.find((r) =>
-          restrictedRoles.includes(r),
-        ) as keyof typeof permissions
-      ] || [];
-    allowedMenusForRole.forEach((menu) => allowedMenus.add(menu));
+    // 🔥 TAMBAHAN: kalau ada role CW, PASTIKAN cuma "Kelola Artikel" yang
+    // muncul — dicek eksplisit duluan, tidak lewat roles.find(...) di
+    // bawah supaya hasilnya tidak tergantung urutan role dari backend
+    // (misal user kebetulan juga punya role restricted lain).
+    if (roles.includes("cw")) {
+      allowedMenus.add("Kelola Artikel");
+    } else {
+      const allowedMenusForRole =
+        permissions[
+          roles.find((r) =>
+            restrictedRoles.includes(r),
+          ) as keyof typeof permissions
+        ] || [];
+      allowedMenusForRole.forEach((menu) => allowedMenus.add(menu));
+    }
   }
 
   const avatarUrl =
@@ -665,11 +678,11 @@ export default function AdminLayout({
 
   // 🔥 Restricted roles: hanya boleh mengakses beberapa area tertentu
   if (isRestricted) {
-    const allowedPaths = [
-      "/admin/elearning",
-      "/admin/artikel",
-      "/admin/produk-event",
-    ];
+    // 🔥 TAMBAHAN: kalau ada role CW, HANYA /admin/artikel yang boleh
+    // diakses — menang dibanding daftar allowedPaths restricted role lain.
+    const allowedPaths = roles.includes("cw")
+      ? ["/admin/artikel"]
+      : ["/admin/elearning", "/admin/artikel", "/admin/produk-event"];
     const isAllowed = allowedPaths.some((path) => pathname.startsWith(path));
     if (!isAllowed) {
       return null; // Akan redirect oleh useEffect di atas
@@ -684,7 +697,15 @@ export default function AdminLayout({
           <div className="mt-2 flex flex-col h-full overflow-hidden">
             {/* Logo */}
             <div className="pl-6 pb-6 pt-3">
-              <Link href={isRestricted ? "/admin/elearning" : "/admin"}>
+              <Link
+                href={
+                  isRestricted
+                    ? roles.includes("cw")
+                      ? "/admin/artikel"
+                      : "/admin/elearning"
+                    : "/admin"
+                }
+              >
                 <Image
                   src="/assets/dashboard/user/Navbar_logo.png"
                   alt="Temu Dataku"
