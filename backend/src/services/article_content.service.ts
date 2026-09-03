@@ -88,7 +88,7 @@ type BlockContentInput =
   | TableOfContentContentInput;
 
 type AdditionalContentInput = {
-  type: "image_video";
+  type: "image_video"; 
   key?: string;
   position: "BEFORE" | "AFTER" | "INLINE";
   orderNumber?: number;

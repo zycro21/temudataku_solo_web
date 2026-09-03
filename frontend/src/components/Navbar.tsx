@@ -332,6 +332,9 @@ export default function Navbar() {
         <li className="px-3 py-2 rounded-md hover:bg-gray-50 transition">
           <Link href="/tentang-kami">Tentang Kami</Link>
         </li>
+        <li className="px-3 py-2 rounded-md hover:bg-gray-50 transition">
+          <Link href="/artikel">Artikel</Link>
+        </li>
       </ul>
 
       {/* Bagian kanan */}
@@ -505,6 +508,12 @@ export default function Navbar() {
             <li className="px-4 py-2 text-center hover:bg-gray-50">
               <Link href="/mentoring">Mentoring</Link>
             </li>
+            {/* 🔥 TAMBAHAN: sebelumnya belum ada menu E-Learning di versi
+                mobile, padahal di dropdown desktop ("Jalur Belajar") sudah
+                ada. Posisinya disamakan: setelah Mentoring, sebelum AYCL. */}
+            <li className="px-4 py-2 text-center hover:bg-gray-50">
+              <Link href="/elearning">E-Learning</Link>
+            </li>
             {/* AYCL (dynamic seperti desktop) */}
             {ayclList.length === 0 ? (
               <li className="px-4 py-2 text-center hover:bg-gray-50 truncate">
@@ -528,6 +537,9 @@ export default function Navbar() {
             </li>
             <li className="px-4 py-2 text-center hover:bg-gray-50">
               <Link href="/tentang-kami">Tentang Kami</Link>
+            </li>
+            <li className="px-4 py-2 text-center hover:bg-gray-50">
+              <Link href="/artikel">Artikel</Link>
             </li>
           </ul>
         </div>

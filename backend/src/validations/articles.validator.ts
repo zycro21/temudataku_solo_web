@@ -23,7 +23,9 @@ export const createArticleSchema = z.object({
       .optional(),
     excerpt: z.string().optional(),
     coverImage: z.string().optional(), // di-override controller kalau ada file upload
-    category: z.string().optional(),
+    // 🔥 DIUBAH: category (string bebas) -> categoryId (relasi ke
+    // ArticleCategory yang di-manage user lewat CRUD, bukan list fix lagi).
+    categoryId: z.string().min(1, "Kategori wajib dipilih").optional(),
     tags: z.preprocess(
       (val) =>
         typeof val === "string" ? val.split(",").map((s) => s.trim()) : val,
@@ -47,7 +49,7 @@ export const updateArticleSchema = z.object({
       .optional(),
     excerpt: z.string().optional(),
     coverImage: z.string().optional(),
-    category: z.string().optional(),
+    categoryId: z.string().min(1, "Kategori wajib dipilih").optional(),
     tags: z.preprocess(
       (val) =>
         typeof val === "string" ? val.split(",").map((s) => s.trim()) : val,
@@ -87,9 +89,9 @@ export const articleListQuerySchema = z.object({
     ),
     limit: z.preprocess(
       (val) => (typeof val === "string" ? Number(val) : val),
-      z.number().int().positive().max(100).optional().default(10),
+      z.number().int().positive().max(10000).optional().default(10),
     ),
-    category: z.string().optional(),
+    categoryId: z.string().optional(),
     tag: z.string().optional(),
     search: z.string().optional(),
     isRecommended: booleanFromQuery.optional(),
@@ -111,10 +113,11 @@ export const adminArticleListQuerySchema = z.object({
     ),
     limit: z.preprocess(
       (val) => (typeof val === "string" ? Number(val) : val),
-      z.number().int().positive().max(1000).optional().default(10),
+      z.number().int().positive().max(10000).optional().default(10),
     ),
     search: z.string().optional(),
     status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).optional(),
+    categoryId: z.string().optional(),
     isRecommended: booleanFromQuery.optional(),
     sortBy: z
       .enum(["title", "createdAt", "updatedAt", "status"])

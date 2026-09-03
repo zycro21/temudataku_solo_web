@@ -28,7 +28,9 @@ interface ArticleFromAPI {
   slug: string;
   excerpt: string | null;
   coverImage: string | null;
-  category: string | null;
+  // 🔥 DIUBAH: category sekarang relasi ke ArticleCategory (bukan string
+  // bebas lagi), jadi API balikinnya object {id, name} atau null.
+  category: { id: string; name: string } | null;
   tags: string[];
   status: ArticleStatus;
   publishedAt: string | null;
@@ -52,6 +54,8 @@ type StatusFilterValue = "" | "DRAFT" | "PUBLISHED";
 
 interface ArtikelTableProps {
   search: string;
+  // 🔥 DIUBAH: sekarang berisi categoryId (id ArticleCategory), bukan nama
+  // kategori lagi — biar match sama article.category.id di data API.
   categoryFilter: string;
   authorFilter: string;
   statusFilter: StatusFilterValue;
@@ -78,11 +82,15 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 // ─── Badge kategori ───────────────────────────────────────────────────────────
-function CategoryBadge({ category }: { category: string | null }) {
+function CategoryBadge({
+  category,
+}: {
+  category: { id: string; name: string } | null;
+}) {
   if (!category) return <span className="text-xs text-gray-400">-</span>;
   return (
     <span className="inline-block px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">
-      {category}
+      {category.name}
     </span>
   );
 }
@@ -188,8 +196,17 @@ export default function ArtikelTable({
       const uniqueAuthors = Array.from(
         new Map(
           data
-            .filter((a): a is ArticleFromAPI & { author: NonNullable<ArticleFromAPI["author"]> } => !!a.author)
-            .map((a) => [a.author.id, { id: a.author.id, fullName: a.author.fullName }]),
+            .filter(
+              (
+                a,
+              ): a is ArticleFromAPI & {
+                author: NonNullable<ArticleFromAPI["author"]>;
+              } => !!a.author,
+            )
+            .map((a) => [
+              a.author.id,
+              { id: a.author.id, fullName: a.author.fullName },
+            ]),
         ).values(),
       );
       onAuthorsChange?.(uniqueAuthors);
@@ -254,9 +271,10 @@ export default function ArtikelTable({
       !query ||
       (article.title ?? "").toLowerCase().includes(query) ||
       (article.excerpt ?? "").toLowerCase().includes(query) ||
-      (article.category ?? "").toLowerCase().includes(query);
+      (article.category?.name ?? "").toLowerCase().includes(query);
 
-    const matchesCategory = !categoryFilter || article.category === categoryFilter;
+    const matchesCategory =
+      !categoryFilter || article.category?.id === categoryFilter;
     const matchesAuthor = !authorFilter || article.author?.id === authorFilter;
     const matchesStatus = !statusFilter || article.status === statusFilter;
 
@@ -271,6 +289,12 @@ export default function ArtikelTable({
     if (sortKey === "author") {
       return (
         (a.author?.fullName ?? "").localeCompare(b.author?.fullName ?? "") *
+        modifier
+      );
+    }
+    if (sortKey === "category") {
+      return (
+        (a.category?.name ?? "").localeCompare(b.category?.name ?? "") *
         modifier
       );
     }
@@ -417,7 +441,9 @@ export default function ArtikelTable({
         setDeleteLoading(false);
         setSuccessModal({
           type: "delete",
-          message: "Artikel berhasil dihapus",
+          // 🔥 DIUBAH: backend sekarang soft delete — artikel dipindah ke
+          // trash (masih bisa direstore), bukan dihapus permanen.
+          message: "Artikel berhasil dipindahkan ke trash",
         });
         fetchArticles();
       }, 250);
@@ -752,8 +778,8 @@ export default function ArtikelTable({
                 <span className="font-medium text-gray-700">
                   "{deleteModal.title}"
                 </span>{" "}
-                akan dihapus permanen beserta seluruh kontennya. Tindakan ini
-                tidak bisa dibatalkan.
+                akan dipindahkan ke trash dan tidak lagi tampil di sini. Artikel
+                masih bisa dipulihkan lagi dari trash kalau diperlukan.
               </p>
               <div className="flex gap-3">
                 <button

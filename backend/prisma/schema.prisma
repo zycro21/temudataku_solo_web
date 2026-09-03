@@ -127,7 +127,12 @@ model Article {
   slug        String        @unique
   excerpt     String?
   coverImage  String?       @map("cover_image")
-  category    String?       @db.VarChar
+
+  // 🔥 DIHAPUS: category String? @db.VarChar (string bebas)
+  // 🔥 DIGANTI jadi FK + relasi ke ArticleCategory:
+  categoryId  String?          @map("category_id")
+  category    ArticleCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
   tags        String[]      @db.VarChar
 
   status        ArticleStatus @default(DRAFT)
@@ -136,19 +141,21 @@ model Article {
 
   createdAt   DateTime?     @default(now()) @db.Timestamp(6) @map("created_at")
   updatedAt   DateTime?     @db.Timestamp(6) @map("updated_at")
+  deletedAt   DateTime?     @db.Timestamp(6) @map("deleted_at")
 
   // Relations
   author      User          @relation(fields: [authorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   blocks      ArticleBlock[]
+  likes       ArticleLike[]
+  comments    ArticleComment[]
 
-  // Satu artikel maksimal punya satu Table of Content — constraint
-  // "hanya bisa dipakai 1 kali" ditegakkan lewat @unique di
-  // ArticleTableOfContentContent.articleId (lihat di bawah).
   tableOfContent ArticleTableOfContentContent?
 
   @@index([authorId])
   @@index([status])
   @@index([isRecommended])
+  @@index([categoryId])   // 🔥 baru — biar query filter by category cepat
+  @@index([deletedAt])
   @@map("articles")
 }
 
@@ -156,6 +163,17 @@ enum ArticleStatus {
   DRAFT
   PUBLISHED
   ARCHIVED
+}
+
+model ArticleCategory {
+  id        String    @id @default(cuid())
+  name      String    @unique @db.VarChar
+  createdAt DateTime  @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt DateTime? @updatedAt @db.Timestamp(6) @map("updated_at")
+
+  articles  Article[]
+
+  @@map("article_categories")
 }
 
 model ArticleBlock {
@@ -479,6 +497,59 @@ model ArticleElementFavorite {
   // compound unique ini, tanpa perlu query "sudah ada belum" terpisah.
   @@unique([userId, elementType])
   @@map("article_element_favorites")
+}
+
+model ArticleLike {
+  id        String   @id @default(cuid())
+  articleId String   @map("article_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @db.Timestamp(6) @map("created_at")
+
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([articleId, userId])
+  @@index([articleId])
+  @@index([userId])
+  @@map("article_likes")
+}
+
+model ArticleComment {
+  id        String    @id @default(cuid())
+  articleId String    @map("article_id")
+  userId    String    @map("user_id")
+  parentId  String?   @map("parent_id")
+  content   String    @db.Text
+
+  createdAt DateTime  @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt DateTime? @updatedAt @db.Timestamp(6) @map("updated_at")
+  deletedAt DateTime? @db.Timestamp(6) @map("deleted_at")
+
+  article   Article              @relation(fields: [articleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  parent    ArticleComment?      @relation("ArticleCommentReplies", fields: [parentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  replies   ArticleComment[]     @relation("ArticleCommentReplies")
+  likes     ArticleCommentLike[]
+
+  @@index([articleId])
+  @@index([userId])
+  @@index([parentId])
+  @@map("article_comments")
+}
+
+model ArticleCommentLike {
+  id        String   @id @default(cuid())
+  commentId String   @map("comment_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @db.Timestamp(6) @map("created_at")
+
+  comment   ArticleComment @relation(fields: [commentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([commentId, userId])
+  @@index([commentId])
+  @@index([userId])
+  @@map("article_comment_likes")
 }
 
 model AYCLBatch {
@@ -2424,6 +2495,9 @@ model User {
   redeemCodeAttempts RedeemCodeAttempt[] @relation("RedeemCodeAttemptUser")
   eLearningCourseStreamCounts ELearningCourseStreamCount[]
   articleElementFavorites ArticleElementFavorite[]
+  articleLikes        ArticleLike[]
+  articleComments     ArticleComment[]
+  articleCommentLikes ArticleCommentLike[]
 
   @@map("users")
 }

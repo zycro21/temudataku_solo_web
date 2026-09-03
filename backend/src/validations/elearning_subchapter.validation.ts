@@ -17,6 +17,8 @@ export const getSubChaptersByCourseSchema = z.object({
       z.number().int().optional(),
     ),
     level: z.string().optional(),
+    // 🔥 TAMBAHAN: sama seperti getSubChapterByIdSchema.
+    viewAs: z.enum(["learner"]).optional(),
   }),
 });
 
@@ -24,6 +26,16 @@ export const getSubChapterByIdSchema = z.object({
   params: z.object({
     id: z.string().min(1, "Sub-chapter ID wajib diisi"),
   }),
+  // 🔥 TAMBAHAN: `viewAs=learner` dipakai KHUSUS oleh halaman belajar
+  // user-facing (Useelearningsubchapterdetail.ts) supaya backend SELALU
+  // filter subBabs/texts PUBLISHED-only, apa pun role akun yang login
+  // (termasuk admin/mentor yang lagi ngintip tampilan user). Kalau param
+  // ini tidak dikirim (dipakai CMS admin), behavior lama dipertahankan.
+  query: z
+    .object({
+      viewAs: z.enum(["learner"]).optional(),
+    })
+    .optional(),
 });
 
 export const createSubChapterSchema = z.object({

@@ -19,9 +19,20 @@ export const ELearningSubChapterService = {
       search?: string;
       orderNumber?: number;
       level?: string;
+      // 🔥 TAMBAHAN: sama seperti getSubChapterById — paksa PUBLISHED-only
+      // untuk pemanggil dari halaman belajar user-facing, apa pun role
+      // akunnya.
+      forcePublishedOnly?: boolean;
     },
   ) {
-    const { page = 1, limit = 10, search, orderNumber, level } = options; // ✅ tambah level
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      orderNumber,
+      level,
+      forcePublishedOnly = false,
+    } = options; // ✅ tambah level
 
     // =========================
     // CEK COURSE
@@ -92,8 +103,9 @@ export const ELearningSubChapterService = {
     // =========================
     const where: any = { courseId };
 
-    // 🔥 TAMBAHAN: mentee cuma boleh lihat subChapter yang published.
-    if (isEffectivelyMentee) {
+    // 🔥 TAMBAHAN: mentee WAJIB, role lain HANYA kalau forcePublishedOnly
+    // diminta eksplisit (dipakai halaman belajar user-facing).
+    if (isEffectivelyMentee || forcePublishedOnly) {
       where.status = "PUBLISHED";
     }
 
@@ -116,12 +128,16 @@ export const ELearningSubChapterService = {
       where,
       include: {
         subBabs: {
-          where: isEffectivelyMentee ? { status: "PUBLISHED" as const } : {}, // 🔥 TAMBAHAN
+          where:
+            isEffectivelyMentee || forcePublishedOnly
+              ? { status: "PUBLISHED" as const }
+              : {}, // 🔥 TAMBAHAN
           include: {
             texts: {
-              where: isEffectivelyMentee
-                ? { status: "PUBLISHED" as const }
-                : {}, // 🔥 TAMBAHAN
+              where:
+                isEffectivelyMentee || forcePublishedOnly
+                  ? { status: "PUBLISHED" as const }
+                  : {}, // 🔥 TAMBAHAN
               include: {
                 quiz: true,
                 assignment: true,
@@ -143,7 +159,18 @@ export const ELearningSubChapterService = {
   async getSubChapterById(
     id: string,
     user: { userId: string; roles: string[]; mentorProfileId?: string },
+    // 🔥 TAMBAHAN: `forcePublishedOnly` — dipakai KHUSUS oleh pemanggil dari
+    // halaman "belajar" user-facing (mis. Useelearningsubchapterdetail.ts),
+    // BUKAN dari CMS admin (tabel/form Modules yang butuh lihat semua status
+    // buat diedit). Kalau true, subBabs/texts SELALU difilter PUBLISHED-only
+    // — APA PUN role akun yang sedang login (termasuk admin/mentor/guest yang
+    // kebetulan lagi buka halaman belajar, mis. buat ngecek tampilan user).
+    // Kalau false/tidak dikirim, behavior LAMA dipertahankan (admin-like &
+    // mentor tetap lihat semua status — dipakai CMS).
+    options: { forcePublishedOnly?: boolean } = {},
   ) {
+    const { forcePublishedOnly = false } = options;
+
     // =========================
     // FETCH SUB-CHAPTER + COURSE
     // =========================
@@ -172,10 +199,23 @@ export const ELearningSubChapterService = {
 
     const course = subChapter.course;
 
+    // 🔥 TAMBAHAN: helper filter PUBLISHED-only, dipakai baik untuk mentee
+    // (WAJIB, tidak bisa dimatikan) maupun untuk role lain kalau
+    // `forcePublishedOnly` diminta eksplisit oleh pemanggil.
+    const applyPublishedFilter = () => {
+      const filteredSubBabs = subChapter.subBabs
+        .filter((sb) => sb.status === "PUBLISHED")
+        .map((sb) => ({
+          ...sb,
+          texts: sb.texts.filter((t) => t.status === "PUBLISHED"),
+        }));
+      return { ...subChapter, subBabs: filteredSubBabs };
+    };
+
     // ROLE: ADMIN / CM / CURDEV
     const adminLikeRoles = ["admin", "cm", "curdev", "guest"];
     if (user.roles.some((r) => adminLikeRoles.includes(r))) {
-      return subChapter;
+      return forcePublishedOnly ? applyPublishedFilter() : subChapter;
     }
 
     // =========================
@@ -185,7 +225,7 @@ export const ELearningSubChapterService = {
       if (user.mentorProfileId !== course.mentorId) {
         throw new Error("Akses ditolak: Anda bukan mentor course ini");
       }
-      return subChapter;
+      return forcePublishedOnly ? applyPublishedFilter() : subChapter;
     }
 
     // =========================
@@ -225,15 +265,9 @@ export const ELearningSubChapterService = {
       }
 
       // 🔥 filter subBabs & texts yang masih DRAFT/ARCHIVED supaya tidak ikut
-      // ke-expose ke mentee lewat sidebar navigasi materi.
-      const filteredSubBabs = subChapter.subBabs
-        .filter((sb) => sb.status === "PUBLISHED")
-        .map((sb) => ({
-          ...sb,
-          texts: sb.texts.filter((t) => t.status === "PUBLISHED"),
-        }));
-
-      return { ...subChapter, subBabs: filteredSubBabs };
+      // ke-expose ke mentee lewat sidebar navigasi materi. WAJIB, tidak
+      // tergantung `forcePublishedOnly`.
+      return applyPublishedFilter();
     }
 
     throw new Error("Akses ditolak");

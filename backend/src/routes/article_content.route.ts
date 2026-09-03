@@ -78,7 +78,7 @@ const router = Router();
 router.put(
   "/articles/:id/content",
   authenticate,
-  authorizeRoles("admin", "cm", "curdev"),
+  authorizeRoles("admin", "cm", "curdev", "cw"),
   handleArticleContentFilesUpload,
   parseArticleContentPayload,
   validate(updateArticleContentSchema),
@@ -113,7 +113,7 @@ router.put(
 router.get(
   "/articles/:id/content/blocks",
   authenticate,
-  authorizeRoles("admin", "cm", "curdev"),
+  authorizeRoles("admin", "cm", "curdev", "cw"),
   validate(articleIdOnlyParamSchema),
   ArticleContentController.getArticleBlocks,
 );
@@ -151,7 +151,7 @@ router.get(
 router.get(
   "/articles/:id/content/blocks/:blockId",
   authenticate,
-  authorizeRoles("admin", "cm", "curdev"),
+  authorizeRoles("admin", "cm", "curdev", "cw"),
   validate(articleBlockParamSchema),
   ArticleContentController.getArticleBlockById,
 );
@@ -219,7 +219,7 @@ router.get(
 router.post(
   "/articles/:id/content/blocks",
   authenticate,
-  authorizeRoles("admin", "cm", "curdev"),
+  authorizeRoles("admin", "cm", "curdev", "cw"),
   handleArticleContentFilesUpload,
   parseArticleBlockPayload,
   validate(createArticleBlockSchema),
@@ -288,7 +288,7 @@ router.post(
 router.patch(
   "/articles/:id/content/blocks/:blockId",
   authenticate,
-  authorizeRoles("admin", "cm", "curdev"),
+  authorizeRoles("admin", "cm", "curdev", "cw"),
   handleArticleContentFilesUpload,
   parseArticleBlockPayload,
   validate(updateArticleBlockSchema),
@@ -332,7 +332,7 @@ router.patch(
 router.delete(
   "/articles/:id/content/blocks/:blockId",
   authenticate,
-  authorizeRoles("admin", "cm", "curdev"),
+  authorizeRoles("admin", "cm", "curdev", "cw"),
   validate(articleBlockParamSchema),
   ArticleContentController.deleteArticleBlock,
 );

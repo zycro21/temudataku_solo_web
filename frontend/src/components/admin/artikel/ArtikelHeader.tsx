@@ -10,11 +10,10 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { toast } from "sonner";
-import { ARTICLE_CATEGORIES } from "./articleCategories";
 
 export interface ArtikelStatsShape {
   total: number;
@@ -25,6 +24,16 @@ export interface ArtikelStatsShape {
 export interface ArtikelAuthorOption {
   id: string;
   fullName: string;
+}
+
+// 🔥 BARU: kategori sekarang diambil dari endpoint publik
+// GET /api/article/categories (ArticleCategory di database), bukan lagi
+// list statis yang di-hardcode di frontend (./articleCategories) — biar
+// dropdown filter ini selalu sinkron sama kategori yang beneran di-manage
+// admin lewat CRUD kategori.
+interface ArtikelCategoryOption {
+  id: string;
+  name: string;
 }
 
 type StatusFilterValue = "" | "DRAFT" | "PUBLISHED";
@@ -85,6 +94,31 @@ export default function ArtikelHeader({
 }: ArtikelHeaderProps) {
   const router = useRouter();
   const [creating, setCreating] = useState(false);
+  // Daftar kategori dari database, diisi lewat fetch di useEffect di bawah.
+  const [categories, setCategories] = useState<ArtikelCategoryOption[]>([]);
+
+  // 🔥 BARU: fetch kategori langsung dari endpoint publiknya sendiri
+  // (bukan diturunkan dari data artikel yang sudah di-load kayak
+  // `authors`), karena kategori butuh daftar LENGKAP yang ada di
+  // database — bukan cuma kategori yang kebetulan dipakai artikel di
+  // halaman ini.
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/article/categories`,
+          { withCredentials: true },
+        );
+        setCategories(res.data.data ?? []);
+      } catch (err: any) {
+        console.error(err);
+        toast.error(
+          err.response?.data?.message || err.message || "Gagal memuat kategori",
+        );
+      }
+    };
+    fetchCategories();
+  }, []);
 
   // 🔥 DIUBAH TOTAL: dulu tombol ini buka modal "Buat Artikel Baru" buat
   // isi judul/kategori/status dulu sebelum artikel beneran dibuat.
@@ -211,9 +245,9 @@ export default function ArtikelHeader({
             onChange={onCategoryFilterChange}
           >
             <option value="">Semua Kategori</option>
-            {ARTICLE_CATEGORIES.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
               </option>
             ))}
           </FilterSelect>
@@ -242,3 +276,4 @@ export default function ArtikelHeader({
     </div>
   );
 }
+  

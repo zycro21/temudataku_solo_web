@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import axios from "axios";
+import { toast } from "sonner";
 import {
   Search,
   ChevronDown,
@@ -12,8 +14,17 @@ import {
   Link2,
   List,
   FileText,
+  LayoutPanelLeft,
 } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
+
+// 🔥 BARU: MIME type kustom buat drag & drop elemen dari sidebar ini ke
+// canvas di page.tsx. Dipakai di ElementCard (dataTransfer.setData) dan di
+// page.tsx (dataTransfer.getData) supaya keduanya "sepakat" data apa yang
+// sedang di-drag — dan supaya drop dari sidebar ini nggak ketuker sama
+// drag-reorder antar kartu yang sudah ada di canvas (yang tidak memakai
+// dataTransfer sama sekali, cuma state React biasa).
+export const ARTICLE_ELEMENT_DRAG_MIME = "application/x-article-element";
 
 // ─── Tipe elemen konten artikel ─────────────────────────────────────────────
 // Id-nya sengaja disamakan persis dengan ArticleContentBlockType di schema
@@ -475,10 +486,22 @@ function ElementCard({
     <>
       <button
         ref={cardRef}
+        draggable
+        onDragStart={(e) => {
+          // 🔥 BARU: taruh id elemen di dataTransfer pakai MIME kustom kita
+          // sendiri, supaya page.tsx bisa bedain "ini elemen baru dari
+          // sidebar" vs "ini reorder kartu yang sudah ada di canvas".
+          e.dataTransfer.setData(ARTICLE_ELEMENT_DRAG_MIME, el.id);
+          e.dataTransfer.effectAllowed = "copy";
+          // Sembunyikan tooltip preview saat drag dimulai biar nggak
+          // nutupin kursor drag.
+          setShowTooltip(false);
+          if (timerRef.current) clearTimeout(timerRef.current);
+        }}
         onClick={handleClick}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        className="group relative flex flex-col items-center justify-center gap-2 p-3 rounded-xl border border-gray-200 bg-white hover:border-emerald-400 hover:shadow-sm hover:bg-emerald-50/30 active:scale-95 transition-all duration-150 text-center w-full aspect-square"
+        className="group relative flex flex-col items-center justify-center gap-2 p-3 rounded-xl border border-gray-200 bg-white hover:border-emerald-400 hover:shadow-sm hover:bg-emerald-50/30 active:scale-95 active:cursor-grabbing cursor-grab transition-all duration-150 text-center w-full aspect-square"
       >
         <div
           role="button"
@@ -529,10 +552,18 @@ function ElementCard({
 // ─── Sidebar utama ───────────────────────────────────────────────────────────
 interface ArticleContentElementsSidebarProps {
   onAddElement: (el: ArticleContentElement) => void;
+  // 🔥 BARU: open/collapsed state sidebar sekarang bisa dikontrol dari
+  // page.tsx (controlled), supaya area canvas di tengah tahu kapan harus
+  // melebar. Kalau prop ini nggak dikasih, sidebar tetap jalan normal
+  // pakai state internal sendiri (uncontrolled) — backward compatible.
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export default function ArticleContentElementsSidebar({
   onAddElement,
+  isOpen: isOpenProp,
+  onOpenChange,
 }: ArticleContentElementsSidebarProps) {
   const [search, setSearch] = useState("");
   // 🔥 Beda dari sidebar e-learning (default semua tertutup) — di sini
@@ -544,15 +575,80 @@ export default function ArticleContentElementsSidebar({
   // dibuang dari DOM) supaya transisinya halus, dan tombol toggle-nya
   // mengambang setengah nempel di garis border kanan sidebar (persis pola
   // collapse yang umum dipakai di admin panel).
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpenState, setIsOpenState] = useState(true);
+  // Controlled kalau `isOpen` dikasih dari parent, uncontrolled kalau nggak.
+  const isOpen = isOpenProp ?? isOpenState;
+  const setIsOpen = (value: boolean | ((prev: boolean) => boolean)) => {
+    const next = typeof value === "function" ? value(isOpen) : value;
+    setIsOpenState(next);
+    onOpenChange?.(next);
+  };
   const sidebarRef = useRef<HTMLElement>(null);
 
+  // 🔥 BARU: favorite sekarang persist per-user lewat
+  // GET/POST /api/article/element-favorites — dulu cuma state lokal yang
+  // hilang tiap refresh. Diambil sekali saat sidebar pertama kali mount.
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchFavorites = async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/article/element-favorites`,
+          { withCredentials: true },
+        );
+        if (cancelled) return;
+        const list: ArticleElementId[] = res.data.data ?? [];
+        setFavorites(new Set(list));
+      } catch (err) {
+        // Diam-diam gagal — favorite bukan fitur kritikal buat alur utama
+        // editor, jadi nggak perlu toast error yang mengganggu di sini.
+        console.error("Gagal memuat elemen favorite:", err);
+      }
+    };
+
+    fetchFavorites();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Optimistic update: UI langsung berubah, baru kirim ke server. Kalau
+  // request gagal, di-rollback ke kondisi sebelumnya + kasih toast error.
   const toggleFavorite = useCallback((id: ArticleElementId) => {
+    let wasFavorite = false;
     setFavorites((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+        wasFavorite = true;
+      } else {
+        next.add(id);
+      }
       return next;
     });
+
+    axios
+      .post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/article/element-favorites/toggle`,
+        { elementType: id },
+        { withCredentials: true },
+      )
+      .catch((err) => {
+        console.error("Gagal mengubah status favorite:", err);
+        toast.error(
+          err.response?.data?.message ||
+            err.message ||
+            "Gagal mengubah status favorite",
+        );
+        // Rollback ke kondisi sebelum di-toggle.
+        setFavorites((prev) => {
+          const next = new Set(prev);
+          if (wasFavorite) next.add(id);
+          else next.delete(id);
+          return next;
+        });
+      });
   }, []);
 
   const query = search.toLowerCase().trim();
@@ -567,150 +663,168 @@ export default function ArticleContentElementsSidebar({
     <div className="relative h-full shrink-0 flex">
       <aside
         ref={sidebarRef}
+        // 🔥 DIUBAH: collapsed dulu "w-0 border-r-0" — sidebar-nya bener2
+        // ilang total, jadi susah dibuka lagi & tombol togglenya nggak
+        // kelihatan. Sekarang collapsed jadi rail kecil "w-9" (36px) yang
+        // tetap kelihatan & tombol toggle-nya selalu bisa diklik. Border
+        // juga sengaja SELALU ada (nggak di-toggle) biar rail-nya jelas
+        // batasnya, nggak nyatu blend sama background putih di sebelahnya.
         className={`bg-white border-r border-gray-200 flex flex-col overflow-hidden h-full transition-all duration-200 ease-in-out ${
-          isOpen ? "w-64" : "w-0 border-r-0"
+          isOpen ? "w-64" : "w-9"
         }`}
       >
-        {/* Lebar konten dikunci 256px biar nggak ikut menyempit/wrap pas
-            kontainer di luar sedang dianimasikan ke 0 — efeknya jadi
-            "slide out", bukan konten yang kepenyet dulu baru hilang. */}
-        <div className="w-64 h-full flex flex-col">
-          <div className="px-4 pt-4 pb-2.5 shrink-0 border-b border-gray-100">
-            <h2 className="text-[13px] font-bold text-gray-900">
-              Content Elements
-            </h2>
-            <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">
-              Drag and drop elements to build your article.
-            </p>
-            <div className="relative mt-2.5">
-              <input
-                type="text"
-                placeholder="Search elements ..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-7 pr-3 py-1.5 text-[11px] border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-gray-50 placeholder-gray-400"
-              />
-              <Search
-                size={11}
-                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400"
-              />
+        {/* 🔥 DIUBAH: konten detail (search, list elemen, dst) cuma
+            dirender pas isOpen — pas collapsed nggak usah render div w-64
+            sama sekali (bukan cuma disembunyiin), biar nggak ada elemen
+            lebar-tetap yang bisa nyebabin scroll horizontal pas transisi. */}
+        {isOpen && (
+          <div className="w-64 h-full flex flex-col">
+            <div className="px-4 pt-4 pb-2.5 shrink-0 border-b border-gray-100">
+              <h2 className="text-[13px] font-bold text-gray-900">
+                Content Elements
+              </h2>
+              <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">
+                Drag and drop elements to build your article.
+              </p>
+              <div className="relative mt-2.5">
+                <input
+                  type="text"
+                  placeholder="Search elements ..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-7 pr-3 py-1.5 text-[11px] border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-gray-50 placeholder-gray-400"
+                />
+                <Search
+                  size={11}
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto pb-6">
+              {/* Favorite */}
+              <div className="mt-1.5">
+                <button
+                  onClick={() => setFavoriteOpen((v) => !v)}
+                  className="w-full flex items-start justify-between px-4 py-1.5 hover:bg-gray-50 transition"
+                >
+                  <div className="text-left">
+                    <div className="flex items-center gap-1">
+                      <span className="text-[11px] font-bold text-gray-800">
+                        Favorite
+                      </span>
+                      <span className="text-[10px] font-semibold text-emerald-500">
+                        ({favoriteElements.length})
+                      </span>
+                    </div>
+                    <p className="text-[9px] text-gray-400 mt-0.5 leading-tight">
+                      Elements you use most, all in one place.
+                    </p>
+                  </div>
+                  {favoriteOpen ? (
+                    <ChevronDown
+                      size={12}
+                      className="text-gray-400 shrink-0 mt-0.5"
+                    />
+                  ) : (
+                    <ChevronRight
+                      size={12}
+                      className="text-gray-400 shrink-0 mt-0.5"
+                    />
+                  )}
+                </button>
+
+                {favoriteOpen && (
+                  <div className="px-3 pb-1">
+                    {favoriteElements.length > 0 ? (
+                      <div className="grid grid-cols-2 gap-1.5 mt-1">
+                        {favoriteElements.map((el) => (
+                          <ElementCard
+                            key={el.id}
+                            el={el}
+                            isFavorite
+                            onToggleFavorite={toggleFavorite}
+                            onClick={onAddElement}
+                            sidebarRef={sidebarRef}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[10px] text-gray-400 italic px-1 py-1.5">
+                        No favorites yet. Double click or tap ♡ on any element.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Basic Content */}
+              <div className="mt-1.5">
+                <button
+                  onClick={() => setBasicOpen((v) => !v)}
+                  className="w-full flex items-start justify-between px-4 py-1.5 hover:bg-gray-50 transition"
+                >
+                  <div className="text-left">
+                    <div className="flex items-center gap-1">
+                      <span className="text-[11px] font-bold text-gray-800">
+                        Basic Content
+                      </span>
+                      <span className="text-[10px] font-semibold text-emerald-500">
+                        ({basicElements.length})
+                      </span>
+                    </div>
+                    <p className="text-[9px] text-gray-400 mt-0.5 leading-tight">
+                      Core elements for building learning materials.
+                    </p>
+                  </div>
+                  {basicOpen ? (
+                    <ChevronDown
+                      size={12}
+                      className="text-gray-400 shrink-0 mt-0.5"
+                    />
+                  ) : (
+                    <ChevronRight
+                      size={12}
+                      className="text-gray-400 shrink-0 mt-0.5"
+                    />
+                  )}
+                </button>
+
+                {basicOpen && (
+                  <div className="px-3 pb-1">
+                    {basicElements.length > 0 ? (
+                      <div className="grid grid-cols-2 gap-1.5 mt-1">
+                        {basicElements.map((el) => (
+                          <ElementCard
+                            key={el.id}
+                            el={el}
+                            isFavorite={favorites.has(el.id)}
+                            onToggleFavorite={toggleFavorite}
+                            onClick={onAddElement}
+                            sidebarRef={sidebarRef}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[10px] text-gray-400 italic px-1 py-1.5">
+                        No results
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
+        )}
 
-          <div className="flex-1 overflow-y-auto pb-6">
-            {/* Favorite */}
-            <div className="mt-1.5">
-              <button
-                onClick={() => setFavoriteOpen((v) => !v)}
-                className="w-full flex items-start justify-between px-4 py-1.5 hover:bg-gray-50 transition"
-              >
-                <div className="text-left">
-                  <div className="flex items-center gap-1">
-                    <span className="text-[11px] font-bold text-gray-800">
-                      Favorite
-                    </span>
-                    <span className="text-[10px] font-semibold text-emerald-500">
-                      ({favoriteElements.length})
-                    </span>
-                  </div>
-                  <p className="text-[9px] text-gray-400 mt-0.5 leading-tight">
-                    Elements you use most, all in one place.
-                  </p>
-                </div>
-                {favoriteOpen ? (
-                  <ChevronDown
-                    size={12}
-                    className="text-gray-400 shrink-0 mt-0.5"
-                  />
-                ) : (
-                  <ChevronRight
-                    size={12}
-                    className="text-gray-400 shrink-0 mt-0.5"
-                  />
-                )}
-              </button>
-
-              {favoriteOpen && (
-                <div className="px-3 pb-1">
-                  {favoriteElements.length > 0 ? (
-                    <div className="grid grid-cols-2 gap-1.5 mt-1">
-                      {favoriteElements.map((el) => (
-                        <ElementCard
-                          key={el.id}
-                          el={el}
-                          isFavorite
-                          onToggleFavorite={toggleFavorite}
-                          onClick={onAddElement}
-                          sidebarRef={sidebarRef}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-[10px] text-gray-400 italic px-1 py-1.5">
-                      No favorites yet. Double click or tap ♡ on any element.
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Basic Content */}
-            <div className="mt-1.5">
-              <button
-                onClick={() => setBasicOpen((v) => !v)}
-                className="w-full flex items-start justify-between px-4 py-1.5 hover:bg-gray-50 transition"
-              >
-                <div className="text-left">
-                  <div className="flex items-center gap-1">
-                    <span className="text-[11px] font-bold text-gray-800">
-                      Basic Content
-                    </span>
-                    <span className="text-[10px] font-semibold text-emerald-500">
-                      ({basicElements.length})
-                    </span>
-                  </div>
-                  <p className="text-[9px] text-gray-400 mt-0.5 leading-tight">
-                    Core elements for building learning materials.
-                  </p>
-                </div>
-                {basicOpen ? (
-                  <ChevronDown
-                    size={12}
-                    className="text-gray-400 shrink-0 mt-0.5"
-                  />
-                ) : (
-                  <ChevronRight
-                    size={12}
-                    className="text-gray-400 shrink-0 mt-0.5"
-                  />
-                )}
-              </button>
-
-              {basicOpen && (
-                <div className="px-3 pb-1">
-                  {basicElements.length > 0 ? (
-                    <div className="grid grid-cols-2 gap-1.5 mt-1">
-                      {basicElements.map((el) => (
-                        <ElementCard
-                          key={el.id}
-                          el={el}
-                          isFavorite={favorites.has(el.id)}
-                          onToggleFavorite={toggleFavorite}
-                          onClick={onAddElement}
-                          sidebarRef={sidebarRef}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-[10px] text-gray-400 italic px-1 py-1.5">
-                      No results
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
+        {/* 🔥 BARU: tampilan rail pas collapsed — ikon kecil biar rail-nya
+            nggak keliatan kosong melompong, sekalian ngasih hint "ini
+            sidebar yang bisa dibuka lagi", bukan cuma garis putih polos. */}
+        {!isOpen && (
+          <div className="w-9 h-full flex flex-col items-center pt-4">
+            <LayoutPanelLeft size={16} className="text-gray-300" />
           </div>
-        </div>
+        )}
       </aside>
 
       {/* 🔥 BARU: tombol collapse/expand — mengambang setengah nempel di

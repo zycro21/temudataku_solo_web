@@ -19,9 +19,18 @@ export const ELearningSubBabService = {
       limit?: number;
       search?: string;
       sort?: "asc" | "desc";
+      // 🔥 TAMBAHAN: sama seperti getSubBabById — paksa PUBLISHED-only untuk
+      // pemanggil dari halaman belajar user-facing, apa pun role akunnya.
+      forcePublishedOnly?: boolean;
     },
   ) {
-    const { page = 1, limit = 10, search, sort = "asc" } = options;
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      sort = "asc",
+      forcePublishedOnly = false,
+    } = options;
 
     // =========================
     // FETCH SUB-CHAPTER + COURSE
@@ -111,8 +120,9 @@ export const ELearningSubBabService = {
     // =========================
     const where: any = { subChapterId };
 
-    // 🔥 TAMBAHAN: mentee cuma boleh lihat subBab yang published.
-    if (isEffectivelyMentee) {
+    // 🔥 TAMBAHAN: mentee WAJIB, role lain HANYA kalau forcePublishedOnly
+    // diminta eksplisit (dipakai halaman belajar user-facing).
+    if (isEffectivelyMentee || forcePublishedOnly) {
       where.status = "PUBLISHED";
     }
 
@@ -127,7 +137,10 @@ export const ELearningSubBabService = {
       where,
       include: {
         texts: {
-          where: isEffectivelyMentee ? { status: "PUBLISHED" as const } : {}, // 🔥 TAMBAHAN
+          where:
+            isEffectivelyMentee || forcePublishedOnly
+              ? { status: "PUBLISHED" as const }
+              : {}, // 🔥 TAMBAHAN
           include: {
             quiz: true,
             assignment: true,
@@ -157,7 +170,12 @@ export const ELearningSubBabService = {
   async getSubBabById(
     id: string,
     user: { userId: string; roles: string[]; mentorProfileId?: string },
+    // 🔥 TAMBAHAN: sama seperti getSubChapterById — dipakai KHUSUS oleh
+    // pemanggil dari halaman belajar user-facing supaya SELALU PUBLISHED-only
+    // apa pun role akun yang login (admin/mentor/guest sekalipun).
+    options: { forcePublishedOnly?: boolean } = {},
   ) {
+    const { forcePublishedOnly = false } = options;
     const now = new Date();
 
     // Ambil sub-bab beserta relasi
@@ -209,6 +227,16 @@ export const ELearningSubBabService = {
       adminLikeRoles.includes(role),
     );
 
+    // 🔥 TAMBAHAN: mentee SELALU wajib PUBLISHED-only (bug lama: sebelum ini
+    // tidak ada pengecekan status subBab/texts sama sekali untuk mentee).
+    // Role lain cuma difilter kalau caller minta eksplisit lewat
+    // `forcePublishedOnly` (dipakai halaman belajar user-facing).
+    const isEffectivelyMentee =
+      !isAdminLike &&
+      !user.roles.includes("mentor") &&
+      user.roles.includes("mentee");
+    const shouldFilterPublished = isEffectivelyMentee || forcePublishedOnly;
+
     // Jika admin-like, berikan akses bebas (skip semua pengecekan)
     if (isAdminLike) {
       // Langsung lanjut ke response tanpa pengecekan tambahan
@@ -247,19 +275,37 @@ export const ELearningSubBabService = {
           "Akses ditolak. Anda tidak memiliki subscription aktif.",
         );
       }
+
+      // 🔥 TAMBAHAN: mentee cuma boleh akses sub-bab yang published, dan
+      // course/subChapter induknya juga harus aktif+published — cegah akses
+      // langsung ke draft/archived walau tahu ID-nya (mis. lewat DevTools).
+      if (
+        subBab.status !== "PUBLISHED" ||
+        subBab.subChapter.status !== "PUBLISHED" ||
+        !course.isActive ||
+        course.status !== "PUBLISHED"
+      ) {
+        throw new Error("Akses ditolak: modul ini tidak tersedia");
+      }
     }
     // Jika role tidak dikenali
     else {
       throw new Error("Akses ditolak. Role tidak dikenali.");
     }
 
+    // 🔥 TAMBAHAN: filter texts yang PUBLISHED aja kalau perlu (mentee WAJIB,
+    // role lain HANYA kalau forcePublishedOnly diminta eksplisit).
+    const visibleTexts = shouldFilterPublished
+      ? subBab.texts.filter((t) => t.status === "PUBLISHED")
+      : subBab.texts;
+
     // ======================
     // RESPONSE
     // ======================
-    const quiz = subBab.texts.find((t) => t.quiz)?.quiz ?? null;
+    const quiz = visibleTexts.find((t) => t.quiz)?.quiz ?? null;
 
     const assignment =
-      subBab.texts.find((t) => t.assignment)?.assignment ?? null;
+      visibleTexts.find((t) => t.assignment)?.assignment ?? null;
 
     return {
       id: subBab.id,
@@ -273,7 +319,7 @@ export const ELearningSubBabService = {
         courseTitle: course.title,
       },
 
-      texts: subBab.texts,
+      texts: visibleTexts,
       createdAt: subBab.createdAt,
       updatedAt: subBab.updatedAt,
     };

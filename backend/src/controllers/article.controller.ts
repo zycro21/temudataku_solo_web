@@ -66,7 +66,7 @@ export default {
       const result = await ArticleService.getArticles({
         page: validatedQuery?.page ?? 1,
         limit: validatedQuery?.limit ?? 10,
-        category: validatedQuery?.category,
+        categoryId: validatedQuery?.categoryId,
         tag: validatedQuery?.tag,
         search: validatedQuery?.search,
         isRecommended: validatedQuery?.isRecommended,
@@ -115,6 +115,7 @@ export default {
         limit: validatedQuery?.limit ?? 10,
         search: validatedQuery?.search,
         status: validatedQuery?.status,
+        categoryId: validatedQuery?.categoryId,
         isRecommended: validatedQuery?.isRecommended,
         sortBy: validatedQuery?.sortBy ?? "createdAt",
         sortOrder: validatedQuery?.sortOrder ?? "desc",
@@ -294,13 +295,161 @@ export default {
 
       res.status(200).json({
         success: true,
-        message: "Artikel berhasil dihapus",
+        message: "Artikel berhasil dipindahkan ke trash",
       });
     } catch (err: any) {
       if (err.message === "Artikel tidak ditemukan") {
         res.status(404).json({ success: false, message: err.message });
         return;
       }
+      next(err);
+    }
+  },
+
+  // 🔥 BARU — kembalikan artikel dari trash.
+  async restoreArticle(
+    req: AuthenticatedRequestArticle,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const { validatedParams, user } = req;
+
+      if (!validatedParams?.id || !user) {
+        res.status(400).json({
+          success: false,
+          message: "Data request tidak valid",
+        });
+        return;
+      }
+
+      const isAdminLike = user.roles?.some((role) =>
+        adminLikeRoles.includes(role),
+      );
+
+      if (!isAdminLike) {
+        res.status(403).json({
+          success: false,
+          message: "Hanya admin/cm/curdev yang dapat memulihkan artikel",
+        });
+        return;
+      }
+
+      const result = await ArticleService.restoreArticle(validatedParams.id);
+
+      res.status(200).json({
+        success: true,
+        message: "Artikel berhasil dipulihkan",
+        data: result,
+      });
+    } catch (err: any) {
+      if (err.message === "Artikel tidak ditemukan") {
+        res.status(404).json({ success: false, message: err.message });
+        return;
+      }
+      if (err.message === "Artikel ini tidak sedang berada di trash") {
+        res.status(409).json({ success: false, message: err.message });
+        return;
+      }
+      next(err);
+    }
+  },
+
+  // 🔥 BARU — hapus permanen. Hanya boleh dipanggil untuk artikel yang
+  // sudah ada di trash (lihat guard di service).
+  async permanentDeleteArticle(
+    req: AuthenticatedRequestArticle,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const { validatedParams, user } = req;
+
+      if (!validatedParams?.id || !user) {
+        res.status(400).json({
+          success: false,
+          message: "Data request tidak valid",
+        });
+        return;
+      }
+
+      const isAdminLike = user.roles?.some((role) =>
+        adminLikeRoles.includes(role),
+      );
+
+      if (!isAdminLike) {
+        res.status(403).json({
+          success: false,
+          message:
+            "Hanya admin/cm/curdev yang dapat menghapus artikel secara permanen",
+        });
+        return;
+      }
+
+      await ArticleService.permanentDeleteArticle(validatedParams.id);
+
+      res.status(200).json({
+        success: true,
+        message: "Artikel berhasil dihapus permanen",
+      });
+    } catch (err: any) {
+      if (err.message === "Artikel tidak ditemukan") {
+        res.status(404).json({ success: false, message: err.message });
+        return;
+      }
+      if (
+        err.message ===
+        "Artikel harus dipindahkan ke trash dulu sebelum dihapus permanen"
+      ) {
+        res.status(409).json({ success: false, message: err.message });
+        return;
+      }
+      next(err);
+    }
+  },
+
+  // 🔥 BARU — listing artikel yang lagi ada di trash (halaman "Sampah" admin)
+  async getTrashedArticles(
+    req: AuthenticatedRequestArticle,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const { validatedQuery, user } = req;
+
+      if (!user) {
+        res.status(400).json({
+          success: false,
+          message: "Data request tidak valid",
+        });
+        return;
+      }
+
+      const isAdminLike = user.roles?.some((role) =>
+        adminLikeRoles.includes(role),
+      );
+
+      if (!isAdminLike) {
+        res.status(403).json({
+          success: false,
+          message: "Hanya admin/cm/curdev yang dapat mengakses endpoint ini",
+        });
+        return;
+      }
+
+      const result = await ArticleService.getTrashedArticles({
+        page: validatedQuery?.page ?? 1,
+        limit: validatedQuery?.limit ?? 10,
+        search: validatedQuery?.search,
+        sortBy: validatedQuery?.sortBy ?? "createdAt",
+        sortOrder: validatedQuery?.sortOrder ?? "desc",
+      });
+
+      res.status(200).json({
+        success: true,
+        data: result,
+      });
+    } catch (err) {
       next(err);
     }
   },

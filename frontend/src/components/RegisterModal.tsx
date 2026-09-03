@@ -47,7 +47,12 @@ export default function RegisterModal({
       : pathname === "/aycl" ||
           pathname === "/mentoring" ||
           pathname === "/redeem" ||
-          pathname.startsWith("/programs/")
+          pathname.startsWith("/programs/") ||
+          // 🔥 TAMBAHAN: sama seperti LoginModal — sebelumnya `/artikel`
+          // persis (halaman list) tidak ke-cover, cuma halaman
+          // detail/kategori (`/artikel/...`).
+          pathname === "/artikel" ||
+          pathname.startsWith("/artikel/")
         ? `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`
         : null;
 

@@ -574,7 +574,7 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
   const renderElearning = () => {
     if (loadingPlans) {
       return (
-        <div className="grid md:grid-cols-3 gap-4 justify-items-center">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-4 justify-items-center">
           <PlanSkeleton />
           <PlanSkeleton />
           <PlanSkeleton />
@@ -600,7 +600,7 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
     }
 
     return (
-      <div className="grid md:grid-cols-3 gap-4 justify-items-center items-start">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-4 justify-items-center items-start">
         {sortedPlans.map((plan) => {
           const meta = DURATION_META[plan.durationDay] ?? {
             discountAmount: 0,
@@ -619,7 +619,15 @@ const LearningPathsSection = forwardRef<HTMLDivElement>((props, ref) => {
             <div
               key={plan.id}
               className={`mx-auto w-full max-w-[280px] rounded-xl overflow-hidden shadow-lg transition-all duration-300 ${
-                isPopuler ? "mt-6 scale-105 border border-[#F49D07]" : "mt-0"
+                // 🔥 FIX: efek "naik" + scale buat kartu populer sebelumnya
+                // (`mt-6 scale-105`) aktif di SEMUA breakpoint, termasuk
+                // mobile — di mobile kartu di-stack 1 kolom, jadi mt-6 itu
+                // numpuk di atas gap-6 grid (bikin jarak sebelum kartu
+                // populer lebih lebar dari jarak sesudahnya), dan scale-105
+                // rawan bikin lebar kartu dikit melebihi container. Sekarang
+                // efek itu cuma jalan di md+ (desktop, layout 3 kolom),
+                // mobile jaraknya rata lewat gap-6 di grid aja.
+                isPopuler ? "md:mt-6 md:scale-105 border border-[#F49D07]" : ""
               }`}
             >
               {/* TOP - BERWARNA */}

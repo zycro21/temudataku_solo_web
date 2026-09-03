@@ -76,9 +76,19 @@ export function useElearningSubChapterDetail(
     setErrorType(null);
 
     try {
+      // 🔥 TAMBAHAN: `viewAs=learner` — hook ini KHUSUS dipakai halaman
+      // belajar user-facing (SubchapterDetail.tsx / SubchapterSidebar.tsx),
+      // BUKAN CMS admin. Dengan mengirim param ini, backend akan SELALU
+      // filter subBabs/texts yang PUBLISHED aja, apa pun role akun yang
+      // sedang login (termasuk kalau yang buka halaman ini admin/mentor
+      // yang lagi cek tampilan user) — supaya modul/materi draft/archived
+      // tidak pernah kelihatan di sini.
       const res = await axios.get(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/elearningSubChapter/subchapters/${subChapterId}`,
-        { withCredentials: true },
+        {
+          withCredentials: true,
+          params: { viewAs: "learner" },
+        },
       );
 
       setSubChapter(res.data?.data ?? null);

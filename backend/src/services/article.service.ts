@@ -73,6 +73,7 @@ function mapAuthorRoles<
 
 const articleDetailInclude = {
   author: { select: authorSelectWithRoles },
+  category: { select: { id: true, name: true } },
   blocks: {
     orderBy: { orderNumber: "asc" as const },
     include: {
@@ -104,6 +105,12 @@ const articleDetailInclude = {
         orderBy: { orderNumber: "asc" as const },
         include: { imageVideo: true },
       },
+    },
+  },
+  _count: {
+    select: {
+      likes: true,
+      comments: { where: { deletedAt: null } },
     },
   },
 };
@@ -139,7 +146,7 @@ export default {
         slug,
         excerpt: data.excerpt,
         coverImage: data.coverImage,
-        category: data.category,
+        categoryId: data.categoryId,
         tags: data.tags || [],
         status: data.status ?? "DRAFT",
         isRecommended: data.isRecommended ?? false,
@@ -153,12 +160,12 @@ export default {
   async getArticles(query: {
     page: number;
     limit: number;
-    category?: string;
+    categoryId?: string;
     tag?: string;
     search?: string;
     isRecommended?: boolean;
   }) {
-    const { page, limit, category, tag, search, isRecommended } = query;
+    const { page, limit, categoryId, tag, search, isRecommended } = query;
     const skip = (page - 1) * limit;
 
     // 🔥 Endpoint list ini publik — cuma artikel PUBLISHED yang boleh
@@ -166,9 +173,12 @@ export default {
     // listing admin (semua status), sebaiknya dibikin endpoint terpisah
     // yang di-guard authenticate + authorizeRoles, bukan nambah parameter
     // status yang bisa dipanggil publik.
-    const where: any = { status: "PUBLISHED" };
+    // 🔥 BARU: deletedAt: null — artikel yang udah di-soft-delete nggak
+    // boleh nongol di mana pun buat publik, walau statusnya masih PUBLISHED
+    // di DB (soft delete nggak ngubah status, cuma nyetel deletedAt).
+    const where: any = { status: "PUBLISHED", deletedAt: null };
 
-    if (category) where.category = category;
+    if (categoryId) where.categoryId = categoryId;
     if (tag) where.tags = { has: tag };
     if (isRecommended !== undefined) where.isRecommended = isRecommended;
     if (search) {
@@ -186,16 +196,38 @@ export default {
         take: limit,
         include: {
           author: { select: authorSelectWithRoles },
+          category: { select: { id: true, name: true } },
+          // 🔥 BARU: jumlah like & komentar buat ditampilin di card FE
+          // (❤️ / 💬 di section "Pilihan Bacaan" & per-Kategori).
+          // Relasinya diasumsikan bernama `likes` & `comments` di model
+          // Article — sama persis pola penamaan yang udah dipakai model
+          // ArticleComment buat relasi like-nya sendiri (lihat
+          // `_count: { select: { likes: true, replies: true } }` di
+          // articleComment.service.ts). Kalau nama relasi di schema kamu
+          // ternyata beda, tinggal sesuaikan 2 key di `select` bawah ini.
+          _count: {
+            select: {
+              likes: true,
+              // Komentar yang udah di-soft-delete nggak ikut dihitung —
+              // sama kayak filter yang dipakai `getComments`.
+              comments: { where: { deletedAt: null } },
+            },
+          },
         },
       }),
       prisma.article.count({ where }),
     ]);
 
     return {
-      data: data.map((article) => ({
-        ...article,
-        author: mapAuthorRoles(article.author),
-      })),
+      data: data.map((article) => {
+        const { _count, ...rest } = article;
+        return {
+          ...rest,
+          author: mapAuthorRoles(article.author),
+          likeCount: _count.likes,
+          commentCount: _count.comments,
+        };
+      }),
       meta: {
         page,
         limit,
@@ -214,22 +246,34 @@ export default {
     limit: number;
     search?: string;
     status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+    categoryId?: string;
     isRecommended?: boolean;
     sortBy: "title" | "createdAt" | "updatedAt" | "status";
     sortOrder: "asc" | "desc";
   }) {
-    const { page, limit, search, status, isRecommended, sortBy, sortOrder } =
-      query;
+    const {
+      page,
+      limit,
+      search,
+      status,
+      categoryId,
+      isRecommended,
+      sortBy,
+      sortOrder,
+    } = query;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: any = { deletedAt: null };
     if (status) where.status = status;
+    if (categoryId) where.categoryId = categoryId;
     if (isRecommended !== undefined) where.isRecommended = isRecommended;
     if (search) {
       where.OR = [
         { title: { contains: search, mode: "insensitive" } },
         { excerpt: { contains: search, mode: "insensitive" } },
-        { category: { contains: search, mode: "insensitive" } },
+        // 🔥 category sekarang relasi (bukan string bebas lagi), jadi
+        // search-nya lewat nama kategori terkait.
+        { category: { name: { contains: search, mode: "insensitive" } } },
       ];
     }
 
@@ -241,11 +285,13 @@ export default {
         take: limit,
         include: {
           author: { select: authorSelectWithRoles },
+          category: { select: { id: true, name: true } },
         },
       }),
       prisma.article.count({ where }),
       prisma.article.groupBy({
         by: ["status"],
+        where: { deletedAt: null },
         _count: { _all: true },
       }),
     ]);
@@ -277,15 +323,25 @@ export default {
 
   // 🔥 Admin-only (di-guard di route) — makanya nggak difilter status,
   // soalnya dipakai buat load draft/archived ke form edit di CMS.
+  // 🔥 BARU: artikel yang udah di-soft-delete dianggap "tidak ditemukan"
+  // di sini — buat lihat/restore artikel yang di-trash, pakai
+  // getTrashedArticleById / endpoint trash yang terpisah.
   async getArticleById(id: string) {
     const article = await prisma.article.findUnique({
       where: { id },
       include: articleDetailInclude,
     });
 
-    if (!article) throw new Error("Artikel tidak ditemukan");
+    if (!article || article.deletedAt) {
+      throw new Error("Artikel tidak ditemukan");
+    }
 
-    return { ...article, author: mapAuthorRoles(article.author) };
+    return {
+      ...article,
+      author: mapAuthorRoles(article.author),
+      likeCount: article._count.likes,
+      commentCount: article._count.comments,
+    };
   },
 
   // Publik — dipakai buat halaman detail artikel, jadi cuma yang
@@ -296,18 +352,23 @@ export default {
       include: articleDetailInclude,
     });
 
-    if (!article || article.status !== "PUBLISHED") {
-      // Sengaja disamain pesannya sama kasus "beneran nggak ada" —
-      // draft/archived nggak perlu ketahuan exist ke publik.
+    if (!article || article.status !== "PUBLISHED" || article.deletedAt) {
       throw new Error("Artikel tidak ditemukan");
     }
 
-    return { ...article, author: mapAuthorRoles(article.author) };
+    return {
+      ...article,
+      author: mapAuthorRoles(article.author),
+      likeCount: article._count.likes,
+      commentCount: article._count.comments,
+    };
   },
 
   async updateArticle(id: string, data: any) {
     const existing = await prisma.article.findUnique({ where: { id } });
-    if (!existing) throw new Error("Artikel tidak ditemukan");
+    if (!existing || existing.deletedAt) {
+      throw new Error("Artikel tidak ditemukan");
+    }
 
     let slug = existing.slug;
     if (data.slug && data.slug !== existing.slug) {
@@ -334,7 +395,7 @@ export default {
         slug,
         excerpt: data.excerpt ?? existing.excerpt,
         coverImage: data.coverImage ?? existing.coverImage,
-        category: data.category ?? existing.category,
+        categoryId: data.categoryId ?? existing.categoryId,
         tags: data.tags ?? existing.tags,
         status: data.status ?? existing.status,
         isRecommended: data.isRecommended ?? existing.isRecommended,
@@ -351,19 +412,114 @@ export default {
     return updated;
   },
 
+  // 🔥 DIUBAH: soft delete — bukan prisma.article.delete lagi. Artikel cuma
+  // ditandai deletedAt, row-nya (dan semua blocks/content di bawahnya)
+  // TETAP ada di DB, jadi masih bisa direstore. Karena itu file cover-nya
+  // juga sengaja TIDAK dihapus dari disk di sini (baru dihapus beneran di
+  // permanentDeleteArticle di bawah).
   async deleteArticle(id: string) {
     const existing = await prisma.article.findUnique({ where: { id } });
+    if (!existing || existing.deletedAt) {
+      throw new Error("Artikel tidak ditemukan");
+    }
+
+    await prisma.article.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+
+    return { id };
+  },
+
+  // 🔥 BARU — kembalikan artikel dari trash (deletedAt di-null-kan lagi).
+  async restoreArticle(id: string) {
+    const existing = await prisma.article.findUnique({ where: { id } });
     if (!existing) throw new Error("Artikel tidak ditemukan");
+    if (!existing.deletedAt) {
+      throw new Error("Artikel ini tidak sedang berada di trash");
+    }
+
+    const restored = await prisma.article.update({
+      where: { id },
+      data: { deletedAt: null },
+    });
+
+    return restored;
+  },
+
+  // 🔥 BARU — hapus PERMANEN, sengaja cuma boleh dipanggil buat artikel
+  // yang sudah berstatus soft-deleted (harus di-trash dulu, baru boleh
+  // dihapus total) — safety net biar nggak ada delete permanen "sekali
+  // klik" yang nggak sengaja.
+  async permanentDeleteArticle(id: string) {
+    const existing = await prisma.article.findUnique({ where: { id } });
+    if (!existing) throw new Error("Artikel tidak ditemukan");
+    if (!existing.deletedAt) {
+      throw new Error(
+        "Artikel harus dipindahkan ke trash dulu sebelum dihapus permanen",
+      );
+    }
 
     // onDelete: Cascade di schema otomatis ngehapus semua
     // ArticleBlock/ArticleContentBlock/dst di bawah artikel ini.
     await prisma.article.delete({ where: { id } });
 
-    // 🔥 Hapus juga file cover-nya dari disk kalau ada, setelah row-nya
-    // sukses dihapus dari DB.
+    // Baru di sini file cover-nya beneran dihapus dari disk.
     deleteCoverImageFile(existing.coverImage);
 
     return { id };
+  },
+
+  // 🔥 BARU — listing artikel yang lagi ada di trash (buat halaman
+  // "Sampah"/"Trash" di admin). Pola query mirip getArticlesAdmin.
+  async getTrashedArticles(query: {
+    page: number;
+    limit: number;
+    search?: string;
+    sortBy: "title" | "createdAt" | "updatedAt" | "status";
+    sortOrder: "asc" | "desc";
+  }) {
+    const { page, limit, search, sortBy, sortOrder } = query;
+    const skip = (page - 1) * limit;
+
+    const where: any = { deletedAt: { not: null } };
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: "insensitive" } },
+        { excerpt: { contains: search, mode: "insensitive" } },
+      ];
+    }
+
+    const [data, total] = await Promise.all([
+      prisma.article.findMany({
+        where,
+        // Default-nya diurutkan dari yang paling baru dihapus.
+        orderBy:
+          sortBy === "createdAt" && sortOrder === "desc"
+            ? { deletedAt: "desc" }
+            : { [sortBy]: sortOrder },
+        skip,
+        take: limit,
+        include: {
+          author: { select: authorSelectWithRoles },
+          category: { select: { id: true, name: true } },
+        },
+      }),
+      prisma.article.count({ where }),
+    ]);
+
+    return {
+      data: data.map((article) => ({
+        ...article,
+        author: mapAuthorRoles(article.author),
+      })),
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+    };
   },
 
   // 🔥 BARU — favorite elemen konten artikel per-user (sidebar "Content

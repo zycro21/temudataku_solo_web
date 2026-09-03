@@ -1260,7 +1260,9 @@ export interface AuthenticatedRequestArticle extends Request {
     slug?: string;
     excerpt?: string;
     coverImage?: string;
-    category?: string;
+    // 🔥 DIUBAH: category (string bebas) -> categoryId (relasi ke
+    // ArticleCategory).
+    categoryId?: string;
     tags?: string[];
     status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
     isRecommended?: boolean;
@@ -1273,7 +1275,12 @@ export interface AuthenticatedRequestArticle extends Request {
       | "HIGHLIGHT"
       | "DIVIDER"
       | "LINK"
-      | "TABLE_OF_CONTENT"; // ← baris baru
+      | "TABLE_OF_CONTENT";
+    // 🔥 BARU — dipakai createArticleCategorySchema/updateArticleCategorySchema
+    // (body: { name }) di endpoint POST/PATCH /api/article/categories.
+    name?: string;
+    content?: string; // 🔥 BARU — isi komentar, POST /articles/:id/comments
+    parentId?: string;
   };
   validatedParams?: {
     id?: string;
@@ -1282,11 +1289,13 @@ export interface AuthenticatedRequestArticle extends Request {
   validatedQuery?: {
     page?: number;
     limit?: number;
-    category?: string;
+    // 🔥 DIUBAH: category -> categoryId, dipakai filter di
+    // GET /articles dan GET /articles/admin.
+    categoryId?: string;
     tag?: string;
     search?: string;
     isRecommended?: boolean;
-    // Khusus GET /articles/admin
+    // Khusus GET /articles/admin & GET /articles/trash
     status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
     sortBy?: "title" | "createdAt" | "updatedAt" | "status";
     sortOrder?: "asc" | "desc";

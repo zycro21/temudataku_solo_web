@@ -13,6 +13,12 @@ export const getSubBabsBySubChapterSchema = z.object({
       .default(10),
     search: z.string().optional(),
     sort: z.enum(["asc", "desc"]).default("asc"),
+    // 🔥 TAMBAHAN: `viewAs=learner` dipakai KHUSUS oleh halaman belajar
+    // user-facing supaya backend SELALU filter PUBLISHED-only, apa pun
+    // role akun yang login (termasuk admin/mentor yang lagi ngintip
+    // tampilan user). Kalau tidak dikirim (dipakai CMS admin), behavior
+    // lama dipertahankan.
+    viewAs: z.enum(["learner"]).optional(),
   }),
 });
 
@@ -20,6 +26,12 @@ export const getSubBabByIdSchema = z.object({
   params: z.object({
     id: z.string().min(1, "SubBab ID wajib diisi"),
   }),
+  // 🔥 TAMBAHAN: sama seperti getSubBabsBySubChapterSchema.
+  query: z
+    .object({
+      viewAs: z.enum(["learner"]).optional(),
+    })
+    .optional(),
 });
 
 export const createSubBabSchema = z.object({

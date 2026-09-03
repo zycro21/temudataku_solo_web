@@ -48,7 +48,13 @@ export default function LoginModal({
       : pathname === "/aycl" ||
           pathname === "/mentoring" ||
           pathname === "/redeem" ||
-          pathname.startsWith("/programs/")
+          pathname.startsWith("/programs/") ||
+          // 🔥 TAMBAHAN: sebelumnya cuma halaman DETAIL/KATEGORI artikel
+          // (`/artikel/...`) yang di-cover — `/artikel` persis (halaman
+          // list-nya) tidak match kondisi manapun, jadi returnUrl-nya null
+          // dan malah lempar ke "/" alih-alih balik ke /artikel.
+          pathname === "/artikel" ||
+          pathname.startsWith("/artikel/")
         ? `${pathname}${searchParams.toString() ? `?${searchParams}` : ""}`
         : null;
 

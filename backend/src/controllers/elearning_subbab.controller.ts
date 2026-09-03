@@ -25,12 +25,16 @@ export const ELearningSubBabController = {
         limit = 10,
         search,
         sort = "asc",
+        viewAs,
       } = validatedQuery || {};
+
+      // 🔥 TAMBAHAN: sama seperti getSubBabById.
+      const forcePublishedOnly = viewAs === "learner";
 
       const result = await ELearningSubBabService.getSubBabsBySubChapter(
         subChapterId,
         user,
-        { page, limit, search, sort },
+        { page, limit, search, sort, forcePublishedOnly },
       );
 
       res.status(200).json({
@@ -48,7 +52,7 @@ export const ELearningSubBabController = {
     next: NextFunction,
   ) {
     try {
-      const { validatedParams, user } = req;
+      const { validatedParams, validatedQuery, user } = req;
 
       if (!user || !validatedParams?.id) {
         res.status(400).json({
@@ -58,9 +62,15 @@ export const ELearningSubBabController = {
         return;
       }
 
+      // 🔥 TAMBAHAN: `?viewAs=learner` dikirim KHUSUS oleh halaman belajar
+      // user-facing — kalau ada, backend SELALU filter texts PUBLISHED-only,
+      // apa pun role akun yang login. CMS admin tidak mengirim param ini.
+      const forcePublishedOnly = validatedQuery?.viewAs === "learner";
+
       const result = await ELearningSubBabService.getSubBabById(
         validatedParams.id,
         user,
+        { forcePublishedOnly },
       );
 
       res.status(200).json({

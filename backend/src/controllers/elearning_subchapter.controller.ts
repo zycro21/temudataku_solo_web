@@ -31,12 +31,16 @@ export const ELearningSubChapterController = {
         search,
         orderNumber,
         level,
+        viewAs,
       } = validatedQuery || {};
+
+      // 🔥 TAMBAHAN: sama seperti getSubChapterById.
+      const forcePublishedOnly = viewAs === "learner";
 
       const result = await ELearningSubChapterService.getSubChaptersByCourse(
         courseId,
         user,
-        { page, limit, search, orderNumber, level },
+        { page, limit, search, orderNumber, level, forcePublishedOnly },
       );
 
       res.status(200).json({ success: true, data: result });
@@ -51,7 +55,7 @@ export const ELearningSubChapterController = {
     next: NextFunction,
   ) {
     try {
-      const { user, validatedParams } = req;
+      const { user, validatedParams, validatedQuery } = req;
 
       if (!user || !validatedParams || !validatedParams.id) {
         res.status(400).json({
@@ -63,9 +67,17 @@ export const ELearningSubChapterController = {
 
       const id = validatedParams.id;
 
+      // 🔥 TAMBAHAN: `?viewAs=learner` dikirim KHUSUS oleh halaman belajar
+      // user-facing (Useelearningsubchapterdetail.ts) — kalau ada, backend
+      // SELALU filter subBabs/texts PUBLISHED-only, apa pun role akun yang
+      // login (termasuk admin/mentor). CMS admin tidak mengirim param ini,
+      // jadi behavior lama (lihat semua status) tetap jalan seperti biasa.
+      const forcePublishedOnly = validatedQuery?.viewAs === "learner";
+
       const subChapter = await ELearningSubChapterService.getSubChapterById(
         id,
         user,
+        { forcePublishedOnly },
       );
 
       res.status(200).json({
