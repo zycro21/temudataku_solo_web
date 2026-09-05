@@ -52,6 +52,7 @@ import {
   buildArticleContentFormData,
   mapBlocksResponseToCanvasItems,
   validateArticleContentBeforeSave,
+  htmlToPlainText,
   type ArticleBlockResponse,
 } from "@/components/admin/artikel/articleContentMapper";
 
@@ -933,6 +934,21 @@ export default function ArtikelEditorPage() {
       text: `${i.label} ${itemCounters[i.instanceId]}`,
     }));
 
+  // 🔥 TAMBAHAN: khusus buat dropdown "Section" di Table of Content —
+  // beda dari `headings` di atas, ini CUMA elemen HEADING, dan teksnya
+  // teks ASLI yang diketik user di heading tsb (bukan label generic "Heading
+  // 1"), karena Item Name TOC sekarang di-generate otomatis dari sini.
+  // Fallback ke label generic kalau headingnya masih kosong, biar dropdown
+  // tetap ada tulisannya (bukan blank).
+  const headingOptions = canvasItems
+    .filter((i) => i.id === "HEADING")
+    .map((i) => ({
+      instanceId: i.instanceId,
+      text:
+        htmlToPlainText(i.data?.html) ||
+        `${i.label} ${itemCounters[i.instanceId]}`,
+    }));
+
   const panelStyleState: ArticleStyleState = {
     ...selectionStyle,
     fontType:
@@ -1244,6 +1260,7 @@ export default function ArtikelEditorPage() {
                     isSelected={selectedInstanceId === item.instanceId}
                     isDragOver={dragOverCanvasId === item.instanceId}
                     headings={headings}
+                    headingOptions={headingOptions}
                     onSelect={() => setSelectedInstanceId(item.instanceId)}
                     onRemove={() => handleRemoveItem(item.instanceId)}
                     onMoveUp={() => handleMoveItem(item.instanceId, "up")}

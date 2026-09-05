@@ -1437,10 +1437,10 @@ function DividerBody({
 // ═══════════════════════════════════════════════════════════════════════════
 // ── TableOfContentBody ───────────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════
-// 🔥 DIUBAH: TableOfContentBody dirombak total mengikuti desain di gambar
-// referensi — daftar item yang diinput manual (nama custom + section
-// rujukan ke salah satu Heading di canvas), bisa ditambah/dihapus, bukan
-// lagi auto-generate dari semua Heading yang ada.
+// 🔥 DIUBAH: Section di sini sekarang cuma diisi Heading (lihat CardBody
+// di atas — prop `headings` yang dioper ke sini isinya `headingOptions`).
+// Item Name juga bukan lagi input manual — otomatis kesalin dari teks
+// heading yang dipilih di dropdown Section (lihat handleSectionChange).
 function TableOfContentBody({
   data,
   headings,
@@ -1476,8 +1476,18 @@ function TableOfContentBody({
     onChangeData({ tocItems: items.filter((it) => it.id !== id) });
   };
 
-  // Label yang ditampilkan di preview: pakai nama custom kalau diisi,
-  // kalau kosong fallback ke judul Heading yang dirujuk.
+  // 🔥 BARU: dipanggil tiap user pilih/ganti Section di dropdown — `name`
+  // langsung disamain dengan teks heading yang dipilih saat itu, jadi
+  // user nggak perlu (dan nggak bisa lagi) ngetik Item Name manual.
+  // Kalau Section dikosongkan lagi, name ikut dikosongkan.
+  const handleSectionChange = (id: string, sectionId: string) => {
+    const section = headings.find((h) => h.instanceId === sectionId);
+    updateItem(id, { sectionId, name: section?.text ?? "" });
+  };
+
+  // Label yang ditampilkan di preview: pakai name (yang sekarang otomatis
+  // = teks heading terpilih), fallback ke lookup heading / "Item N" kalau
+  // kosong (mis. data lama sebelum perubahan ini).
   const resolveLabel = (item: ArticleTocItem, idx: number) => {
     if (item.name.trim()) return item.name;
     const section = headings.find((h) => h.instanceId === item.sectionId);
@@ -1528,49 +1538,40 @@ function TableOfContentBody({
               i > 0 ? "pt-4 border-t border-dashed border-gray-200" : ""
             }
           >
-            <div className="grid grid-cols-2 gap-3 items-start">
-              <div>
-                <label className="text-xs font-semibold text-gray-700 mb-1 block">
-                  Item Name {i + 1}
+            {/* 🔥 DIUBAH: dulu grid 2 kolom (Item Name + Section), sekarang
+                cuma 1 kolom Section — Item Name-nya udah nggak ada
+                input-nya lagi. */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold text-gray-700">
+                  Section {i + 1}
                 </label>
-                <input
-                  type="text"
-                  maxLength={50}
-                  value={item.name}
-                  onChange={(e) =>
-                    updateItem(item.id, { name: e.target.value })
-                  }
-                  placeholder={`Enter a item name ${i + 1}`}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-400"
-                />
-                <p className="text-[10px] text-gray-400 mt-1">
-                  {item.name.length}/50
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeItem(item.id);
+                  }}
+                  disabled={items.length <= 1}
+                  title="Remove item"
+                  className="text-gray-300 hover:text-red-400 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
+              <SectionSelect
+                value={item.sectionId ?? ""}
+                options={headings}
+                placeholder="Select heading"
+                onChange={(v) => handleSectionChange(item.id, v)}
+              />
+              {/* 🔥 BARU: preview kecil nunjukin Item Name yang otomatis
+                  ke-generate, biar user tau tulisan apa yang bakal muncul
+                  di TOC tanpa perlu ngetik apa-apa. */}
+              {item.name && (
+                <p className="text-[11px] text-gray-400 mt-1.5 truncate">
+                  Item name: <span className="text-gray-600">{item.name}</span>
                 </p>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-semibold text-gray-700">
-                    Section
-                  </label>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeItem(item.id);
-                    }}
-                    disabled={items.length <= 1}
-                    title="Remove item"
-                    className="text-gray-300 hover:text-red-400 transition disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-                <SectionSelect
-                  value={item.sectionId ?? ""}
-                  options={headings}
-                  onChange={(v) => updateItem(item.id, { sectionId: v })}
-                />
-              </div>
+              )}
             </div>
           </div>
         ))}
@@ -1593,13 +1594,13 @@ function TableOfContentBody({
     </div>
   );
 }
-
 // ═══════════════════════════════════════════════════════════════════════════
 // ── CardBody dispatcher ──────────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════
 function CardBody({
   el,
   headings,
+  headingOptions,
   onEditorReady,
   onEditorFocus,
   onSelectionChange,
@@ -1607,6 +1608,7 @@ function CardBody({
 }: {
   el: ArticleCanvasItem;
   headings: { instanceId: string; text: string }[];
+  headingOptions: { instanceId: string; text: string }[];
   onEditorReady?: (ref: ArticleRichTextEditorRef | null) => void;
   onEditorFocus?: () => void;
   onSelectionChange?: (state: ArticleSelectionState) => void;
@@ -1680,7 +1682,7 @@ function CardBody({
       return (
         <TableOfContentBody
           data={data}
-          headings={headings}
+          headings={headingOptions}
           onChangeData={onChangeData}
         />
       );
@@ -1742,6 +1744,7 @@ export interface ArticleCanvasCardProps {
   // `text` isinya label generate ("Paragraph 2", "Image 1", dst), BUKAN isi
   // teks yang diketik user (lihat komentar di page.tsx tempat ini dibuat).
   headings: { instanceId: string; text: string }[];
+  headingOptions: { instanceId: string; text: string }[];
   onSelect: () => void;
   onRemove: () => void;
   onMoveUp: () => void;
@@ -1764,6 +1767,7 @@ export default function ArticleCanvasCard({
   isSelected,
   isDragOver,
   headings,
+  headingOptions,
   onSelect,
   onRemove,
   onMoveUp,
@@ -1884,6 +1888,7 @@ export default function ArticleCanvasCard({
         <CardBody
           el={el}
           headings={headings}
+          headingOptions={headingOptions}
           onEditorReady={onEditorReady}
           onEditorFocus={onEditorFocus}
           onSelectionChange={onSelectionChange}
