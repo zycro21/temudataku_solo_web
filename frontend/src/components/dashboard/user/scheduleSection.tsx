@@ -164,13 +164,24 @@ export default function ScheduleSection() {
         </div>
       </div>
 
-      <div className="flex items-center justify-center gap-3 mb-3">
+      {/* 🔥 DIUBAH: outer wrapper dulu "justify-center gap-3" tetap di
+          semua ukuran. Sekarang di mobile TANPA justify-center (chevron
+          nempel tepi, hari-hari di tengah melebar mengisi ruang lewat
+          flex-1 di wrapper dalam), gap dirapatkan (gap-2). Mulai sm: ke
+          atas balik PERSIS "justify-center gap-3" seperti semula. */}
+      <div className="flex items-center gap-2 sm:gap-3 sm:justify-center mb-3">
         <ChevronLeft
-          className="w-4 h-4 text-gray-400 cursor-pointer"
+          className="w-4 h-4 text-gray-400 cursor-pointer shrink-0"
           onClick={goToPrevWeek}
         />
 
-        <div className="flex items-center gap-2">
+        {/* 🔥 DIUBAH: dulu "flex items-center gap-2" tetap (jarak fix,
+            di-center lewat wrapper luar). Di mobile sekarang "flex-1
+            justify-between" — 7 hari dibagi rata mengisi lebar yang
+            tersedia, jadi nggak pernah kepotong/kegencet di layar sempit
+            berapa pun lebarnya. Mulai sm: ke atas balik "flex-none
+            justify-center gap-2" PERSIS seperti semula. */}
+        <div className="flex flex-1 sm:flex-none items-center justify-between sm:justify-center gap-0 sm:gap-2">
           {weekDates.map((date, index) => {
             const isSelected =
               date.toDateString() === selectedDate.toDateString();
@@ -179,7 +190,7 @@ export default function ScheduleSection() {
               <div
                 key={index}
                 onClick={() => setSelectedDate(date)}
-                className={`flex flex-col items-center justify-center px-2 py-1.5 rounded-md cursor-pointer transition
+                className={`flex flex-col items-center justify-center px-1.5 sm:px-2 py-1.5 rounded-md cursor-pointer transition
             ${
               isSelected
                 ? "bg-emerald-600 text-white font-semibold shadow-sm"
@@ -194,10 +205,22 @@ export default function ScheduleSection() {
         </div>
 
         <ChevronRight
-          className="w-4 h-4 text-gray-400 cursor-pointer"
+          className="w-4 h-4 text-gray-400 cursor-pointer shrink-0"
           onClick={goToNextWeek}
         />
       </div>
+
+      {/* 🔥 BARU: label tanggal terpilih, CUMA muncul di mobile
+          (sm:hidden) — cuma format ulang `selectedDate` yang sudah ada di
+          state, bukan data baru. Biar jelas jadwal di bawah ini punya
+          tanggal apa tanpa perlu re-baca deretan angka di atas. */}
+      <p className="sm:hidden text-[11px] font-medium text-gray-500 mb-2">
+        {selectedDate.toLocaleDateString("id-ID", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+        })}
+      </p>
 
       <div
         className={`space-y-3 ${
@@ -206,12 +229,17 @@ export default function ScheduleSection() {
       >
         {scheduleItems.length > 0 ? (
           scheduleItems.map((item, index) => (
+            // 🔥 DIUBAH: dulu selalu "flex items-center justify-between"
+            // (title+time kiri, tombol Zoom kanan, sejajar). Di mobile
+            // sekarang di-stack (flex-col) — title+time di atas, tombol
+            // Zoom full-width di bawah (lebih gampang di-tap). Mulai sm:
+            // ke atas balik PERSIS flex-row seperti semula.
             <div
               key={index}
-              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+              className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 p-3 bg-gray-50 rounded-lg"
             >
-              <div className="flex flex-col">
-                <span className="text-sm font-medium text-gray-800">
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm font-medium text-gray-800 truncate">
                   {item.title}
                 </span>
                 <span className="text-[12px] text-gray-500 mt-0.5">
@@ -239,7 +267,7 @@ export default function ScheduleSection() {
                     );
                   }
                 }}
-                className={`flex items-center text-[11px] font-medium rounded-full px-2.5 py-1 transition
+                className={`flex items-center justify-center sm:justify-start w-full sm:w-auto text-[11px] font-medium rounded-full px-2.5 py-1.5 sm:py-1 transition
                 ${
                   item.meetingLink
                     ? "text-blue-600 bg-white border hover:bg-gray-50"
@@ -252,7 +280,7 @@ export default function ScheduleSection() {
             </div>
           ))
         ) : (
-          <div className="p-10 text-center text-gray-500 text-[12px] bg-gray-50 rounded-lg">
+          <div className="p-6 sm:p-10 text-center text-gray-500 text-[12px] bg-gray-50 rounded-lg">
             Tidak ada jadwal hari ini
           </div>
         )}

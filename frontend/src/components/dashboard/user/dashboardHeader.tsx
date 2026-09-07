@@ -2,12 +2,22 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
-import { ChevronDown, User, LayoutDashboard } from "lucide-react";
+import { ChevronDown, User, LayoutDashboard, Menu } from "lucide-react"; // 🔥 TAMBAHAN: Menu
 import { useRouter } from "next/navigation";
 import ProfileModal from "./profileModal";
 import { useAuth } from "@/context/AuthContext";
 
-export default function DashboardHeader() {
+// 🔥 TAMBAHAN: prop opsional, default no-op — biar halaman dashboard/user
+// LAIN yang belum di-wire ke state sidebar (kayak page.tsx Overview) tetap
+// jalan seperti biasa, tombolnya cuma belum ngapa-ngapain sampai halaman
+// itu ikut dikasih handler-nya.
+interface DashboardHeaderProps {
+  onOpenMobileSidebar?: () => void;
+}
+
+export default function DashboardHeader({
+  onOpenMobileSidebar = () => {},
+}: DashboardHeaderProps) {
   const [open, setOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -60,35 +70,57 @@ export default function DashboardHeader() {
   return (
     <>
       <header className="flex items-center justify-between h-14 px-5 bg-white border-b">
-        {/* Search Bar */}
-        <div className="relative w-64">
-          <input
-            type="text"
-            placeholder="Masukkan kata kunci pencarian..."
-            className="w-full rounded-md border border-gray-300 bg-gray-50 pl-8 pr-3 py-1 text-[11px] focus:border-emerald-500 focus:ring-emerald-500"
-          />
+        {/* 🔥 DIUBAH: dulu langsung <div className="relative w-64"> berisi
+            search bar sebagai anak langsung header. Sekarang dibungkus
+            flex wrapper buat nampung tombol hamburger di sebelahnya —
+            tapi karena tombol hamburang "md:hidden" (nggak ada wujudnya
+            di desktop) & search box "hidden md:block" (balik persis
+            kayak semula di desktop), tampilan di ≥768px 100% sama kayak
+            sebelumnya. */}
+        <div className="flex items-center gap-3">
+          {/* 🔥 BARU: tombol buka sidebar, cuma tampil di mobile */}
+          <button
+            onClick={onOpenMobileSidebar}
+            className="md:hidden flex items-center justify-center w-8 h-8 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50"
+            aria-label="Buka menu"
+          >
+            <Menu size={18} />
+          </button>
+
+          {/* 🔥 BARU: logo TemuDataku, cuma tampil di mobile (md:hidden)
+              — di desktop nggak ada logo di header ini (logo desktop
+              sudah ada di sidebar, biar nggak dobel). Sama asetnya kayak
+              logo di sidebarDashboardUser.tsx. */}
           <Image
-            src="/assets/dashboard/user/search-icon.svg"
-            alt="Search"
-            width={9}
-            height={9}
-            className="absolute left-2.5 top-1/2 -translate-y-1/2"
+            src="/assets/dashboard/user/Navbar_logo.png"
+            alt="Temu Dataku"
+            width={300}
+            height={300}
+            unoptimized
+            className="md:hidden h-11 w-auto"
           />
+
+          {/* Search Bar — SAMA PERSIS kayak semula, cuma disembunyikan di
+              mobile (hidden md:block) biar header nggak sesak & search
+              input nggak overflow di layar sempit. */}
+          <div className="relative w-64 hidden md:block">
+            <input
+              type="text"
+              placeholder="Masukkan kata kunci pencarian..."
+              className="w-full rounded-md border border-gray-300 bg-gray-50 pl-8 pr-3 py-1 text-[11px] focus:border-emerald-500 focus:ring-emerald-500"
+            />
+            <Image
+              src="/assets/dashboard/user/search-icon.svg"
+              alt="Search"
+              width={9}
+              height={9}
+              className="absolute left-2.5 top-1/2 -translate-y-1/2"
+            />
+          </div>
         </div>
 
         {/* Right */}
         <div className="flex items-center gap-4 pr-4">
-          {/* Notification */}
-          {/* <button className="relative flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 bg-white">
-            <Image
-              src="/assets/dashboard/user/bell-icon.svg"
-              alt="Notification"
-              width={10}
-              height={10}
-            />
-            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500"></span>
-          </button> */}
-
           {/* User */}
           <div className="relative" ref={dropdownRef}>
             <button
@@ -104,7 +136,11 @@ export default function DashboardHeader() {
                 className="rounded-full object-cover"
               />
 
-              <div className="flex flex-col text-left leading-tight">
+              {/* 🔥 DIUBAH: dulu selalu "flex flex-col" — sekarang
+                  "hidden md:flex" biar nama+role disembunyikan di mobile
+                  (hemat ruang), tapi tampil identik seperti semula begitu
+                  masuk breakpoint md ke atas. */}
+              <div className="hidden md:flex flex-col text-left leading-tight">
                 <span className="text-[12px] font-medium text-gray-800">
                   {fullName}
                 </span>

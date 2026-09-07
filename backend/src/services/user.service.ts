@@ -20,7 +20,7 @@ export const updateUserProfile = async (
     youtube?: string;
     tiktok?: string;
     otherSocialMedia?: string;
-  }
+  },
 ): Promise<{ updatedFields: string[]; skippedFields: string[] }> => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -71,7 +71,7 @@ export const updateUserProfile = async (
 export const updateUserRoles = async (
   userId: string,
   rolesToAdd: string[],
-  rolesToRemove: string[]
+  rolesToRemove: string[],
 ) => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw new Error("User not found");
@@ -89,7 +89,7 @@ export const updateUserRoles = async (
 
   // VALIDASI: role yang ingin ditambahkan tidak boleh sudah dimiliki
   const duplicatedRoles = rolesToAdd.filter((r) =>
-    currentRoleNames.includes(r)
+    currentRoleNames.includes(r),
   );
   if (duplicatedRoles.length > 0) {
     throw new Error(`User already has role(s): ${duplicatedRoles.join(", ")}`);
@@ -97,11 +97,11 @@ export const updateUserRoles = async (
 
   // VALIDASI: setelah penghapusan, user masih punya minimal 1 role
   const remainingRoles = currentRoleNames.filter(
-    (r) => !rolesToRemove.includes(r)
+    (r) => !rolesToRemove.includes(r),
   );
   if (remainingRoles.length === 0 && rolesToAdd.length === 0) {
     throw new Error(
-      "User must have at least one role. You cannot remove all roles."
+      "User must have at least one role. You cannot remove all roles.",
     );
   }
 
@@ -123,6 +123,9 @@ export const updateUserRoles = async (
         mentor: "mentor",
         affiliator: "aff",
         admin: "admin",
+        cw: "cw",
+        cm: "cm",
+        curdev: "curdev"
       };
       const prefix = prefixMap[roleName] || "role";
       const userRoleId = `${prefix}-${nanoid(10)}`;
@@ -382,14 +385,14 @@ export const exportUsersToFile = async (query: any) => {
 type AdminUpdateUserInput = {
   email?: string;
   fullName?: string;
-  role?: "admin" | "mentor" | "mentee" | "affiliator";
+  role?: "admin" | "mentor" | "mentee" | "affiliator" | "cw" | "cm" | "curdev";
   isActive?: boolean;
   profilePicture?: string;
 };
 
 export const adminUpdateUser = async (
   userId: string,
-  newData: AdminUpdateUserInput
+  newData: AdminUpdateUserInput,
 ): Promise<{ updatedFields: string[]; skippedFields: string[] }> => {
   const user = await prisma.user.findUnique({
     where: { id: userId },

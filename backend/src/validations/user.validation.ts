@@ -27,7 +27,7 @@ export const updateUserRolesSchema = z
       message:
         "At least one of roles_to_add or roles_to_remove must be provided",
       path: ["roles_to_add"],
-    }
+    },
   )
   .refine(
     (data) => {
@@ -41,7 +41,7 @@ export const updateUserRolesSchema = z
     {
       message: "You cannot add and remove the same role",
       path: ["roles_to_add"],
-    }
+    },
   );
 
 export const deleteUserSchema = z.object({
@@ -94,7 +94,7 @@ export const exportUsersSchema = z.object({
     format: z.string().refine((val) => ["csv", "excel"].includes(val), {
       message: "Format must be 'csv' or 'excel'",
     }),
-    role: z.enum(["mentee", "mentor", "affiliator", "admin"]).optional(),
+    role: z.enum(["mentee", "mentor", "affiliator", "admin", "cm", "curdev", "cw"]).optional(),
   }),
 });
 
@@ -107,6 +107,6 @@ export const getUserByIdSchema = z.object({
 export const adminUpdateUserSchema = z.object({
   email: z.string().email().optional(),
   fullName: z.string().min(1).optional(),
-  role: z.enum(["admin", "mentor", "mentee", "affiliator"]).optional(),
+  role: z.enum(["admin", "mentor", "mentee", "affiliator", "cm", "curdev", "cw"]).optional(),
   isActive: z.boolean().optional(),
 });

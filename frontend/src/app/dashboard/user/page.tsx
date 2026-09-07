@@ -12,6 +12,8 @@ import axios from "axios";
 
 export default function MainDashboardUserPage() {
   const [user, setUser] = useState<any>(null);
+  // 🔥 BARU: state buka/tutup drawer sidebar khusus mobile
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -40,14 +42,50 @@ export default function MainDashboardUserPage() {
 
   return (
     <div className="flex">
-      <Sidebar />
+      <Sidebar
+        isMobileOpen={isMobileSidebarOpen}
+        onCloseMobile={() => setIsMobileSidebarOpen(false)}
+      />
 
       {/* Konten kanan */}
-      <div className="flex-1 flex flex-col ml-64 min-w-0">
-        <DashboardHeader />
+      {/* 🔥 DIUBAH: dulu selalu "ml-64" (mepet ke lebar sidebar yang
+          selalu tampil) — sekarang "ml-0 md:ml-64": di mobile sidebar-nya
+          drawer/overlay (nggak makan tempat), jadi konten full width;
+          begitu masuk breakpoint md ke atas, balik persis "ml-64" seperti
+          semula. */}
+      <div className="flex-1 flex flex-col ml-0 md:ml-64 min-w-0">
+        <DashboardHeader
+          onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
+        />
 
-        <main className="flex-1 px-5 py-4 bg-gray-50 overflow-x-hidden">
-          <h1 className="text-xl font-semibold text-gray-800 mb-4">
+        {/* 🔥 DIUBAH: px-5 → px-3 md:px-5, biar konten nggak terlalu
+            mepet ke tepi layar di HP; di desktop tetap px-5 seperti
+            semula. */}
+        <main className="flex-1 px-3 md:px-5 py-4 bg-gray-50 overflow-x-hidden">
+          {/* 🔥 BARU: kartu sapaan khusus MOBILE (md:hidden) — avatar
+              inisial + sapaan + subtitle kecil, biar nggak polos cuma
+              teks doang di layar sempit. TIDAK muncul di desktop sama
+              sekali (digantikan <h1> di bawahnya). */}
+          <div className="md:hidden mb-4 rounded-xl bg-white border border-gray-200 p-4 flex items-center gap-3">
+            {/* <div className="w-10 h-10 shrink-0 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-semibold text-sm">
+              {firstName.charAt(0).toUpperCase()}
+            </div> */}
+            <div className="min-w-0">
+              <p className="text-base font-semibold text-gray-800 truncate">
+                Halo, {firstName}
+              </p>
+              <p className="text-[11px] text-gray-500">
+                Selamat datang kembali di TemuDataku
+              </p>
+            </div>
+          </div>
+
+          {/* 🔥 DIUBAH: <h1> ASLI ini TIDAK diubah sama sekali (teks,
+              class, posisinya identik) — cuma ditambah "hidden md:block"
+              biar disembunyikan di mobile (digantikan kartu welcome di
+              atas) dan tampil PERSIS seperti semula mulai breakpoint md
+              ke atas (desktop 100% tidak berubah). */}
+          <h1 className="hidden md:block text-xl font-semibold text-gray-800 mb-4">
             Halo, {firstName}
           </h1>
 
@@ -65,9 +103,7 @@ export default function MainDashboardUserPage() {
             </div>
           </div>
 
-          <div className="mt-4">
-            <RecommendationSection />
-          </div>
+          <div className="mt-4 mb-5">{/* <RecommendationSection /> */}</div>
         </main>
       </div>
     </div>

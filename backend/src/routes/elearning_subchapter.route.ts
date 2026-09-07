@@ -86,6 +86,32 @@ router.get(
 
 /**
  * @swagger
+ * /api/elearningSubChapter/subchapterss/count:
+ *   get:
+ *     summary: Total sub-chapter yang PUBLISHED & tersedia
+ *     description: >
+ *       Total ELearningSubChapter berstatus PUBLISHED dari course yang
+ *       aktif & PUBLISHED. Dipakai dashboard user sebagai "total course
+ *       tersedia". WAJIB terdaftar SEBELUM route "/subchapters/:id" di
+ *       bawah, supaya "count" tidak ketangkep sebagai :id.
+ *     tags: [E-Learning SubChapters]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Total sub-chapter berhasil diambil
+ *       403:
+ *         description: Akses ditolak
+ */
+router.get(
+  "/subchapterss/count",
+  authenticate,
+  authorizeRoles("admin", "mentor", "mentee", "cm", "curdev", "guest"),
+  ELearningSubChapterController.getPublishedSubChapterCount
+);
+
+/**
+ * @swagger
  * /api/elearningSubChapter/subchapters/{id}:
  *   get:
  *     summary: Detail satu sub-chapter (beserta sub-bab)

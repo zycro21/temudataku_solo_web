@@ -77,6 +77,16 @@ export default function ChartSection() {
       if (week >= 0 && week < 4) weeklyTotals[week] += log.durationSec;
     });
 
+  // 🔥 BARU: total durasi periode yang lagi ditampilin — dihitung dari
+  // data yang SUDAH ada di state (monthlyTotals/weeklyTotals), murni
+  // tampilan tambahan, TIDAK ada request baru ke backend. Cuma dipakai
+  // di ringkasan mobile di bawah.
+  const totalSecondsForActiveTab =
+    (activeTab === "Month"
+      ? monthlyTotals[currentMonth]
+      : weeklyTotals[currentWeek - 1]) || 0;
+  const totalMinutesForActiveTab = Math.floor(totalSecondsForActiveTab / 60);
+
   const data =
     activeTab === "Month"
       ? {
@@ -175,15 +185,20 @@ export default function ChartSection() {
 
   return (
     <div className="bg-white p-4 rounded-lg shadow-sm w-full overflow-hidden">
-      <div className="flex justify-between items-center mb-3">
+      {/* 🔥 DIUBAH: dulu selalu flex-row (judul kiri, toggle kanan) dalam
+          satu baris. Di mobile (<640px) sekarang ditumpuk (flex-col) dan
+          toggle-nya full-width, dibagi rata 2 tombol — biar nggak
+          mepet/kepotong di layar sempit. Mulai sm: ke atas balik PERSIS
+          flex-row seperti semula. */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0 mb-3">
         <h2 className="text-sm font-semibold text-gray-800">
           Waktu Lihat Halaman
         </h2>
 
-        <div className="flex bg-gray-100 p-0.5 rounded-full text-[11px] font-medium">
+        <div className="flex bg-gray-100 p-0.5 rounded-full text-[11px] font-medium w-full sm:w-auto">
           <button
             onClick={() => setActiveTab("Week")}
-            className={`px-3 py-0.5 rounded-full transition ${
+            className={`flex-1 sm:flex-none px-3 py-1 sm:py-0.5 rounded-full transition ${
               activeTab === "Week"
                 ? "bg-emerald-500 text-white"
                 : "text-gray-500"
@@ -193,7 +208,7 @@ export default function ChartSection() {
           </button>
           <button
             onClick={() => setActiveTab("Month")}
-            className={`px-3 py-0.5 rounded-full transition ${
+            className={`flex-1 sm:flex-none px-3 py-1 sm:py-0.5 rounded-full transition ${
               activeTab === "Month"
                 ? "bg-emerald-500 text-white"
                 : "text-gray-500"
@@ -204,7 +219,21 @@ export default function ChartSection() {
         </div>
       </div>
 
-      <div className="h-[200px] relative">
+      {/* 🔥 BARU: ringkasan total durasi, CUMA muncul di mobile
+          (sm:hidden) — angkanya dari data yang sudah di-fetch, bukan
+          request baru. Ngasih konteks cepat tanpa perlu baca chart. */}
+      {!loading && (
+        <p className="sm:hidden text-[11px] text-gray-500 mb-2">
+          Total {activeTab === "Month" ? "bulan ini" : "minggu ini"}:{" "}
+          <span className="font-semibold text-emerald-600">
+            {totalMinutesForActiveTab} menit
+          </span>
+        </p>
+      )}
+
+      {/* 🔥 DIUBAH: tinggi chart sedikit dipendekkan di mobile
+          (h-[160px]), balik ke h-[200px] (original) mulai sm: ke atas. */}
+      <div className="h-[160px] sm:h-[200px] relative">
         {loading ? (
           <div className="flex justify-center items-center h-full">
             <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>

@@ -1308,3 +1308,32 @@ export const getSubChapterTextProgress = async ({
 
   return { subChapterId, subBabProgress, textProgress };
 };
+
+// 🔥 BARU: total SubChapter milik user yang sudah "selesai" — didefinisikan
+// sebagai progressPercent sudah 100 DI ELearningSubChapterProgress, ATAU
+// user sudah punya ELearningCertificate untuk SubChapter tsb (union
+// keduanya, biar tetap kehitung walau salah satu datanya sempat telat
+// sinkron). Dipakai dashboard user buat card "Tugas Selesai".
+export const getCompletedSubChapterCount = async ({
+  userId,
+}: {
+  userId: string;
+}) => {
+  const [completedProgress, certificates] = await Promise.all([
+    prisma.eLearningSubChapterProgress.findMany({
+      where: { userId, progressPercent: { gte: 100 } },
+      select: { subChapterId: true },
+    }),
+    prisma.eLearningCertificate.findMany({
+      where: { userId },
+      select: { subChapterId: true },
+    }),
+  ]);
+
+  const completedSubChapterIds = new Set<string>([
+    ...completedProgress.map((p) => p.subChapterId),
+    ...certificates.map((c) => c.subChapterId),
+  ]);
+
+  return { total: completedSubChapterIds.size };
+};

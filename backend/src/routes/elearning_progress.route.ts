@@ -15,6 +15,7 @@ import {
   completeTextProgressController,
   recalculateSubChapterProgressController,
   getSubChapterTextProgressController,
+  getCompletedSubChapterCountController,
 } from "../controllers/elearning_progress.controller.js";
 import {
   getMyProgressSchema,
@@ -160,6 +161,27 @@ router.get(
   authorizeRoles("mentee"),
   validate(getMyProgressSchema),
   getMyProgressController
+);
+
+/**
+ * @swagger
+ * /api/elearningProgress/progress/completed-count:
+ *   get:
+ *     summary: Total sub-chapter yang sudah selesai (progress 100% / sudah sertifikat)
+ *     tags: [E-Learning Progress]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Total sub-chapter selesai berhasil diambil
+ *       401:
+ *         description: Unauthorized
+ */
+router.get(
+  "/progress/completed-count",
+  authenticate,
+  authorizeRoles("mentee"),
+  getCompletedSubChapterCountController
 );
 
 /**

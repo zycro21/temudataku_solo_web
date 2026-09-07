@@ -12,6 +12,7 @@ import {
   completeTextProgress,
   recalculateSubChapterProgress,
   getSubChapterTextProgress,
+  getCompletedSubChapterCount,
 } from "../services/elearning_progress.service.js";
 import { AuthenticatedRequestELearningProgress } from "../middlewares/authenticate.js";
 
@@ -276,6 +277,20 @@ export const getSubChapterTextProgressController = async (
     const userId = req.user!.userId;
     const subChapterId = req.validatedParams.id;
     const result = await getSubChapterTextProgress({ userId, subChapterId });
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getCompletedSubChapterCountController = async (
+  req: AuthenticatedRequestELearningProgress,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const userId = req.user!.userId;
+    const result = await getCompletedSubChapterCount({ userId });
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);

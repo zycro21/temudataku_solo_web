@@ -156,6 +156,22 @@ export const ELearningSubChapterService = {
     return { page, limit, total, subChapters };
   },
 
+  // 🔥 BARU: total sub-chapter yang PUBLISHED & course-nya juga
+  // aktif+PUBLISHED — ini yang dipakai FE dashboard user sebagai "total
+  // course tersedia" (dulu di card "Jumlah E-Learning" hardcode 0).
+  // Dibiarkan terbuka untuk semua role yang boleh baca elearning (lihat
+  // route-nya), karena angkanya sama untuk siapa pun — bukan data privat.
+  async getPublishedSubChapterCount() {
+    const total = await prisma.eLearningSubChapter.count({
+      where: {
+        status: "PUBLISHED",
+        course: { isActive: true, status: "PUBLISHED" },
+      },
+    });
+
+    return { total };
+  },
+
   async getSubChapterById(
     id: string,
     user: { userId: string; roles: string[]; mentorProfileId?: string },

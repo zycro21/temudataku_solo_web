@@ -49,6 +49,21 @@ export const ELearningSubChapterController = {
     }
   },
 
+  async getPublishedSubChapterCount(
+    req: AuthenticatedRequestSubChapter,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const result =
+        await ELearningSubChapterService.getPublishedSubChapterCount();
+
+      res.status(200).json({ success: true, data: result });
+    } catch (err) {
+      next(err);
+    }
+  },
+
   async getSubChapterById(
     req: AuthenticatedRequestSubChapter,
     res: Response,
