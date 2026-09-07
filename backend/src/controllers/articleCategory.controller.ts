@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { AuthenticatedRequestArticle } from "../middlewares/authenticate.js";
 import ArticleCategoryService from "../services/articleCategory.service.js";
 
-const adminLikeRoles = ["admin", "cm", "curdev"];
+const adminLikeRoles = ["admin", "cm", "curdev", "cw"];
 
 function isAdminLike(user?: { roles: string[] }) {
   return !!user?.roles?.some((role) => adminLikeRoles.includes(role));

@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { AuthenticatedRequestArticle } from "../middlewares/authenticate.js";
 import ArticleService from "../services/article.service.js";
 
-const adminLikeRoles = ["admin", "cm", "curdev"];
+const adminLikeRoles = ["admin", "cm", "curdev", "cw"];
 
 export default {
   async createArticle(
