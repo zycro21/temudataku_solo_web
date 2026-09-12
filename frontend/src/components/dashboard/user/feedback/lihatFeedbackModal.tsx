@@ -27,7 +27,7 @@ export default function LihatFeedbackModal({
     <Dialog>
       {/* Tombol utama */}
       <DialogTrigger asChild>
-        <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center gap-1.5 text-xs py-1.5">
+        <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center gap-1.5 text-xs py-2 sm:py-1.5">
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
@@ -40,10 +40,11 @@ export default function LihatFeedbackModal({
       </DialogTrigger>
 
       {/* Modal */}
+      {/* 🔥 DIUBAH: sama fix jarak dari tepi layar mobile. */}
       <DialogContent
         className="
       bg-white rounded-lg shadow
-      w-full max-w-sm
+      w-[calc(100%-2rem)] sm:w-full max-w-sm
       p-0
       overflow-hidden
     "
@@ -79,7 +80,7 @@ export default function LihatFeedbackModal({
         {/* FOOTER */}
         <div className="px-4 py-3 border-t flex justify-center">
           <DialogClose asChild>
-            <Button className="w-full text-xs py-1.5 bg-blue-600 hover:bg-blue-700 text-white">
+            <Button className="w-full text-xs py-2 sm:py-1.5 bg-blue-600 hover:bg-blue-700 text-white">
               Tutup
             </Button>
           </DialogClose>

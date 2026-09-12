@@ -463,16 +463,70 @@ export default function AdminLayout({
       activeIcon: "/assets/dashboard/user/whiteoverview.svg",
     },
     {
-      name: "Mentee",
-      href: "/admin/mentee",
-      icon: "/assets/admin/mentee.svg",
-      activeIcon: "/assets/admin/white_mentee.svg",
+      name: "AYCL",
+      icon: "/assets/admin/pro.svg",
+      activeIcon: "/assets/admin/whitepro.svg",
+      hasSubmenu: true,
+      children: [
+        {
+          name: "All You Can Learn",
+          href: "/admin/aycl",
+          icon: "/assets/admin/pro.svg",
+          activeIcon: "/assets/admin/whitepro.svg",
+        },
+        {
+          name: "Data Mentee AYCL",
+          href: "/admin/aycl/mentee",
+          icon: "/assets/admin/mentee.svg",
+          activeIcon: "/assets/admin/white_mentee.svg",
+        },
+      ],
     },
     {
-      name: "Mentor",
-      href: "/admin/mentor",
-      icon: "/assets/dashboard/mentor/report.svg",
-      activeIcon: "/assets/dashboard/mentor/reportwhite.svg",
+      name: "E-Learning",
+      icon: "/assets/dashboard/user/practice.svg",
+      activeIcon: "/assets/dashboard/user/whitepractice.svg",
+      hasSubmenu: true,
+      children: [
+        {
+          name: "Kelola Materi E-Learning",
+          href: "/admin/elearning",
+          icon: "/assets/dashboard/user/practice.svg",
+          activeIcon: "/assets/dashboard/user/whitepractice.svg",
+        },
+        {
+          name: "Kelola Projek Mentee",
+          href: "/admin/elearning/submissions",
+          icon: "/assets/admin/tugas.svg",
+          activeIcon: "/assets/admin/whitetugas.svg",
+        },
+        {
+          name: "Monitoring Review",
+          href: "/admin/elearning/reviews",
+          icon: "/assets/dashboard/mentor/report.svg",
+          activeIcon: "/assets/dashboard/mentor/reportwhite.svg",
+        },
+      ],
+    },
+    {
+      name: "History",
+      icon: "/assets/admin/hissec.svg",
+      activeIcon: "/assets/admin/hissec.svg",
+      hasSubmenu: true,
+      children: [
+        {
+          name: "History",
+          href: "/admin/history",
+          icon: "/assets/admin/his.svg",
+          activeIcon: "/assets/admin/whitehis.svg",
+        },
+      ],
+    },
+    {
+      name: "Kelola Artikel",
+      href: "/admin/artikel",
+      icon: "/assets/dashboard/user/materi.svg",
+      activeIcon: "/assets/dashboard/user/whitemateri.svg",
     },
     {
       name: "Kelola Mentoring",
@@ -513,62 +567,28 @@ export default function AdminLayout({
       ],
     },
     {
-      name: "E-Learning",
-      icon: "/assets/dashboard/user/practice.svg",
-      activeIcon: "/assets/dashboard/user/whitepractice.svg",
-      hasSubmenu: true,
-      children: [
-        {
-          name: "Kelola Materi E-Learning",
-          href: "/admin/elearning",
-          icon: "/assets/dashboard/user/practice.svg",
-          activeIcon: "/assets/dashboard/user/whitepractice.svg",
-        },
-        {
-          name: "Kelola Projek Mentee",
-          href: "/admin/elearning/submissions",
-          icon: "/assets/admin/tugas.svg",
-          activeIcon: "/assets/admin/whitetugas.svg",
-        },
-        {
-          name: "Monitoring Review",
-          href: "/admin/elearning/reviews",
-          icon: "/assets/dashboard/mentor/report.svg",
-          activeIcon: "/assets/dashboard/mentor/reportwhite.svg",
-        },
-      ],
-    },
-    {
-      name: "Kelola Artikel",
-      href: "/admin/artikel",
-      icon: "/assets/dashboard/user/materi.svg",
-      activeIcon: "/assets/dashboard/user/whitemateri.svg",
-    },
-    {
       name: "Kode Redeem",
       href: "/admin/kode-redeem",
       icon: "/assets/admin/voucher.svg",
-      activeIcon: "/assets/admin/whitevoucher.svg",
+      activeIcon: "/assets/admin/voucheractive.svg",
     },
     {
-      name: "AYCL",
+      name: "Mentee",
+      href: "/admin/mentee",
+      icon: "/assets/admin/mentee.svg",
+      activeIcon: "/assets/admin/white_mentee.svg",
+    },
+    {
+      name: "Mentor",
+      href: "/admin/mentor",
+      icon: "/assets/dashboard/mentor/report.svg",
+      activeIcon: "/assets/dashboard/mentor/reportwhite.svg",
+    },
+    {
+      name: "Produk & Event",
+      href: "/admin/produk-event",
       icon: "/assets/admin/pro.svg",
       activeIcon: "/assets/admin/whitepro.svg",
-      hasSubmenu: true,
-      children: [
-        {
-          name: "All You Can Learn",
-          href: "/admin/aycl",
-          icon: "/assets/admin/pro.svg",
-          activeIcon: "/assets/admin/whitepro.svg",
-        },
-        {
-          name: "Data Mentee AYCL",
-          href: "/admin/aycl/mentee",
-          icon: "/assets/admin/mentee.svg",
-          activeIcon: "/assets/admin/white_mentee.svg",
-        },
-      ],
     },
     {
       name: "Transaksi",
@@ -581,26 +601,6 @@ export default function AdminLayout({
       href: "/admin/voucher",
       icon: "/assets/admin/voucher.svg",
       activeIcon: "/assets/admin/voucheractive.svg",
-    },
-    {
-      name: "Produk & Event",
-      href: "/admin/produk-event",
-      icon: "/assets/admin/pro.svg",
-      activeIcon: "/assets/admin/whitepro.svg",
-    },
-    {
-      name: "History",
-      icon: "/assets/admin/hissec.svg",
-      activeIcon: "/assets/admin/hissec.svg",
-      hasSubmenu: true,
-      children: [
-        {
-          name: "History",
-          href: "/admin/history",
-          icon: "/assets/admin/his.svg",
-          activeIcon: "/assets/admin/whitehis.svg",
-        },
-      ],
     },
   ];
 

@@ -23,7 +23,13 @@ export default function DayEventsSection() {
   const dayEvents = events[formattedDate] || [];
 
   return (
-    <div className="flex flex-col pt-10 pr-4 pb-4 h-full min-w-0">
+    // 🔥 DIUBAH: "pt-10 pr-4" dulu tetap di semua ukuran (jarak besar itu
+    // buat nyamain tinggi header kalender di layout desktop 3-kolom
+    // sejajar). Di mobile (di bawah lg: kalender & day-events sudah
+    // stack vertikal, jadi jarak besar itu cuma buang ruang) →
+    // "pt-4 lg:pt-10 pr-0 lg:pr-4". Balik PERSIS seperti semula mulai
+    // lg: ke atas.
+    <div className="flex flex-col pt-4 lg:pt-10 pr-0 lg:pr-4 pb-4 h-full min-w-0">
       {/* Header section */}
       <h2 className="text-base font-semibold text-gray-800 mb-3">
         {isToday
@@ -78,7 +84,12 @@ export default function DayEventsSection() {
                 </div>
               </div>
 
-              <div className="flex flex-col space-y-1.5">
+              {/* 🔥 DIUBAH: dulu "flex flex-col space-y-1.5" tetap di
+                  semua ukuran (tombol sekecil kontennya). Sekarang di
+                  mobile tombolnya "flex-row" berdampingan & full-width
+                  (lebih gampang di-tap, hemat tinggi), balik PERSIS
+                  flex-col seperti semula mulai sm: ke atas. */}
+              <div className="flex flex-row sm:flex-col gap-1.5 sm:space-y-1.5 sm:gap-0">
                 <button
                   onClick={() => {
                     if (event.meetingLink) {
@@ -102,14 +113,14 @@ export default function DayEventsSection() {
                       );
                     }
                   }}
-                  className="bg-emerald-500 text-white py-1 px-2 rounded-md text-xs font-medium hover:bg-emerald-600 transition"
+                  className="flex-1 sm:flex-none bg-emerald-500 text-white py-1.5 sm:py-1 px-2 rounded-md text-xs font-medium hover:bg-emerald-600 transition"
                 >
                   Join
                 </button>
 
                 <EventDetailDialog
                   trigger={
-                    <button className="border border-emerald-500 text-emerald-500 py-1 px-2 rounded-md text-xs font-medium hover:bg-emerald-50 transition">
+                    <button className="flex-1 sm:flex-none w-full border border-emerald-500 text-emerald-500 py-1.5 sm:py-1 px-2 rounded-md text-xs font-medium hover:bg-emerald-50 transition">
                       Lihat Detail
                     </button>
                   }

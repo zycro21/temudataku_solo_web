@@ -19,6 +19,7 @@ import {
   Key,
   MessageCircle,
 } from "lucide-react";
+import { toast } from "sonner"; // 🔥 TAMBAHAN: feedback saat "Salin" ditekan
 
 export default function GenericEventDetailDialog({
   trigger,
@@ -76,6 +77,17 @@ export default function GenericEventDetailDialog({
 
   const tanggalFormatted = formatTanggalIndonesia(date);
 
+  // 🔥 BARU: copy-to-clipboard, murni client-side (tidak ada request
+  // baru ke backend) — dipakai tombol "Salin" khusus mobile di bawah.
+  const handleCopy = async (value: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success(`${label} disalin`);
+    } catch {
+      toast.error("Gagal menyalin");
+    }
+  };
+
   return (
     <Dialog>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
@@ -83,7 +95,7 @@ export default function GenericEventDetailDialog({
       <DialogContent
         onInteractOutside={(e) => e.preventDefault()}
         className="
-      w-full max-w-md
+      w-[calc(100%-2rem)] sm:w-full max-w-md
       p-0
       max-h-[85vh]
       overflow-hidden
@@ -136,8 +148,13 @@ export default function GenericEventDetailDialog({
               <User className="w-3.5 h-3.5" /> Mentor
             </p>
 
-            <div className="ml-5 flex items-center gap-2 mt-1.5">
-              <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-100">
+            {/* 🔥 DIUBAH: dulu "ml-5 flex items-center gap-2 mt-1.5" tetap
+                di semua ukuran. Sekarang dibungkus kartu abu-abu khusus
+                mobile (bg-gray-50 border rounded-lg p-2), balik PERSIS
+                tanpa bungkus (bg-transparent, border-0, p-0) mulai sm:
+                ke atas. */}
+            <div className="ml-5 flex items-center gap-2 mt-1.5 bg-gray-50 sm:bg-transparent border border-gray-200 sm:border-0 rounded-lg sm:rounded-none p-2 sm:p-0">
+              <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-100 shrink-0">
                 <Image
                   src={
                     mentor?.photo
@@ -152,11 +169,11 @@ export default function GenericEventDetailDialog({
                 />
               </div>
 
-              <div className="leading-tight">
-                <p className="text-gray-800 font-medium text-xs">
+              <div className="leading-tight min-w-0">
+                <p className="text-gray-800 font-medium text-xs truncate">
                   {mentor?.name ?? "—"}
                 </p>
-                <p className="text-gray-500 text-[11px]">
+                <p className="text-gray-500 text-[11px] truncate">
                   {mentor?.email ?? "-"}
                 </p>
               </div>
@@ -187,14 +204,33 @@ export default function GenericEventDetailDialog({
               <p className="font-medium flex items-center gap-2 text-gray-800">
                 <Link2 className="w-3.5 h-3.5" /> Link Zoom
               </p>
+
+              {/* Versi desktop — ASLI, TIDAK diubah, cuma dibungkus
+                  "hidden sm:block" biar identik mulai sm: ke atas. */}
               <a
                 href={zoomLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="ml-5 text-emerald-600 hover:underline break-all mt-1 block text-xs"
+                className="hidden sm:block ml-5 text-emerald-600 hover:underline break-all mt-1 text-xs"
               >
                 {zoomLink}
               </a>
+
+              {/* 🔥 BARU: versi mobile — link dibungkus box + tombol
+                  "Buka" yang lebih gampang di-tap (sm:hidden). */}
+              <div className="sm:hidden ml-5 mt-1 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-2">
+                <span className="flex-1 min-w-0 truncate text-[11px] text-gray-600">
+                  {zoomLink}
+                </span>
+                <a
+                  href={zoomLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0 bg-emerald-500 text-white text-[11px] font-medium px-2.5 py-1 rounded-md hover:bg-emerald-600 transition"
+                >
+                  Buka
+                </a>
+              </div>
             </div>
           )}
 
@@ -206,9 +242,24 @@ export default function GenericEventDetailDialog({
                   <p className="font-medium flex items-center gap-2 text-gray-800">
                     <Key className="w-3.5 h-3.5" /> Meeting ID
                   </p>
-                  <p className="ml-5 text-gray-600 mt-1 break-all">
+
+                  {/* Desktop — ASLI, tidak diubah */}
+                  <p className="hidden sm:block ml-5 text-gray-600 mt-1 break-all">
                     {meetingId}
                   </p>
+
+                  {/* 🔥 BARU: mobile — box + tombol Salin */}
+                  <div className="sm:hidden ml-5 mt-1 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5">
+                    <span className="flex-1 min-w-0 truncate text-[11px] text-gray-700 font-mono">
+                      {meetingId}
+                    </span>
+                    <button
+                      onClick={() => handleCopy(meetingId, "Meeting ID")}
+                      className="shrink-0 text-[10px] font-medium text-emerald-600 hover:underline"
+                    >
+                      Salin
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -217,9 +268,24 @@ export default function GenericEventDetailDialog({
                   <p className="font-medium flex items-center gap-2 text-gray-800">
                     <Key className="w-3.5 h-3.5" /> Passcode
                   </p>
-                  <p className="ml-5 text-gray-600 mt-1 break-all">
+
+                  {/* Desktop — ASLI, tidak diubah */}
+                  <p className="hidden sm:block ml-5 text-gray-600 mt-1 break-all">
                     {passcode}
                   </p>
+
+                  {/* 🔥 BARU: mobile — box + tombol Salin */}
+                  <div className="sm:hidden ml-5 mt-1 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5">
+                    <span className="flex-1 min-w-0 truncate text-[11px] text-gray-700 font-mono">
+                      {passcode}
+                    </span>
+                    <button
+                      onClick={() => handleCopy(passcode, "Passcode")}
+                      className="shrink-0 text-[10px] font-medium text-emerald-600 hover:underline"
+                    >
+                      Salin
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

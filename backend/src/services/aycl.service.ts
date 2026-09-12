@@ -204,9 +204,11 @@ export class AyclService {
         id: b.id,
         title: b.title,
         description: b.description,
+        price: Number(b.price),
         startDate,
         endDate,
         isActive: b.isActive,
+        createdAt: b.createdAt,
       };
     });
 

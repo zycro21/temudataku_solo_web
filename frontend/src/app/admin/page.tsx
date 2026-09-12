@@ -12,11 +12,19 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"; // 🔥 TAMBAHAN
+import {
   ChevronDown,
   User,
   Calendar,
   FileText,
   ChevronRight,
+  Trash2,
+  Pencil,
 } from "lucide-react";
 import {
   LineChart,
@@ -38,7 +46,14 @@ import { useRouter } from "next/navigation";
 export default function AdminPage() {
   const router = useRouter();
 
-  const [selectedRange, setSelectedRange] = useState("Minggu Ini");
+  type RangeOption =
+    | "Semua"
+    | "Minggu Ini"
+    | "Bulan Ini"
+    | "3 Bulan Terakhir"
+    | "1 Tahun Terakhir";
+
+  const [selectedRange, setSelectedRange] = useState<RangeOption>("Semua");
   const [statData, setStatData] = useState({
     totalUsers: 0,
     totalMentors: 0,
@@ -108,16 +123,19 @@ export default function AdminPage() {
       value: statData.totalUsers,
       change: `+${statData.growthUsers} minggu ini`,
       image: "/assets/admin/mentee.svg",
+      href: "/admin/mentee",
     },
     {
       title: "Jumlah Mentor",
       value: statData.totalMentors,
       image: "/assets/dashboard/mentor/report.svg",
+      href: "/admin/mentor",
     },
     {
       title: "Total Transaksi",
       value: statData.totalTransactions,
       image: "/assets/admin/trans.svg",
+      href: "/admin/transaksi",
     },
   ];
 
@@ -127,59 +145,6 @@ export default function AdminPage() {
     { status: "failed", total: 0 },
     { status: "cancelled", total: 0 },
   ]);
-
-  useEffect(() => {
-    async function fetchPaymentStatus() {
-      try {
-        // === FETCH PAYMENT LANGSUNG DARI API BARU ===
-        const res = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/payment/payments?limit=10000`,
-          { withCredentials: true },
-        );
-
-        const payments = res.data.data || [];
-
-        // Status yang diizinkan
-        type AllowedStatus = "pending" | "confirmed" | "failed" | "cancelled";
-
-        const allowedStatuses: AllowedStatus[] = [
-          "pending",
-          "confirmed",
-          "failed",
-          "cancelled",
-        ];
-
-        // Counter awal
-        const statusCount: Record<AllowedStatus, number> = {
-          pending: 0,
-          confirmed: 0,
-          failed: 0,
-          cancelled: 0,
-        };
-
-        // Hitung status dari payment.status
-        payments.forEach((p: any) => {
-          const status = p.status?.toLowerCase();
-
-          if (allowedStatuses.includes(status)) {
-            statusCount[status as AllowedStatus] += 1;
-          }
-        });
-
-        // Update state
-        setPaymentStatus([
-          { status: "pending", total: statusCount.pending },
-          { status: "confirmed", total: statusCount.confirmed },
-          { status: "failed", total: statusCount.failed },
-          { status: "cancelled", total: statusCount.cancelled },
-        ]);
-      } catch (err) {
-        console.error("Error loading payment status:", err);
-      }
-    }
-
-    fetchPaymentStatus();
-  }, []);
 
   const colors: Record<string, string> = {
     pending: "#F59F00", // oranye
@@ -199,134 +164,275 @@ export default function AdminPage() {
     month: string;
     mentoring: number;
     e_learning: number;
+    aycl: number;
   }
 
   const [revenueData, setRevenueData] = useState<RevenueItem[]>([]);
 
-  // --- 1. Generate 12 bulan terakhir ---
-  const getLast12Months = () => {
-    const monthNames = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
-    ];
+  const MONTH_NAMES = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "Mei",
+    "Jun",
+    "Jul",
+    "Agu",
+    "Sep",
+    "Okt",
+    "Nov",
+    "Des",
+  ];
+  const DAY_NAMES = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 
+  // Status pembayaran yang dianggap sudah sukses / lunas (dihitung sbg pendapatan)
+  const SUCCESS_PAYMENT_STATUSES = ["confirmed", "paid", "settlement"];
+
+  // --- 1. Tentukan rentang tanggal berdasarkan filter yang dipilih ---
+  const getDateRange = (
+    range: RangeOption,
+  ): { start: Date | null; end: Date } => {
     const now = new Date();
-    const result = [];
+    const end = now;
 
-    for (let i = 11; i >= 0; i--) {
-      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    switch (range) {
+      case "Minggu Ini": {
+        const dayIndex = now.getDay(); // 0 = Minggu
+        const diffToMonday = dayIndex === 0 ? 6 : dayIndex - 1;
+        const start = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate() - diffToMonday,
+        );
+        return { start, end };
+      }
+      case "Bulan Ini": {
+        const start = new Date(now.getFullYear(), now.getMonth(), 1);
+        return { start, end };
+      }
+      case "3 Bulan Terakhir": {
+        const start = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+        return { start, end };
+      }
+      case "1 Tahun Terakhir": {
+        const start = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+        return { start, end };
+      }
+      case "Semua":
+      default:
+        return { start: null, end };
+    }
+  };
 
-      result.push({
-        key: `${date.getFullYear()}-${date.getMonth() + 1}`,
-        month: monthNames[date.getMonth()],
-        mentoring: 0,
-        e_learning: 0,
-      });
+  // --- 2. Bangun "bucket" sumbu-X pendapatan sesuai granularitas filter ---
+  // Minggu Ini -> per hari, Bulan Ini -> per minggu, sisanya -> per bulan
+  const buildRevenueBuckets = (
+    range: RangeOption,
+    payments: any[],
+  ): { buckets: RevenueItem[]; keyOf: (d: Date) => string } => {
+    const now = new Date();
+    const dayKey = (d: Date) =>
+      `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+    const monthKey = (d: Date) => `${d.getFullYear()}-${d.getMonth() + 1}`;
+
+    const buckets: RevenueItem[] = [];
+
+    if (range === "Minggu Ini") {
+      const dayIndex = now.getDay();
+      const diffToMonday = dayIndex === 0 ? 6 : dayIndex - 1;
+      const monday = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() - diffToMonday,
+      );
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        buckets.push({
+          key: dayKey(d),
+          month: DAY_NAMES[d.getDay()],
+          mentoring: 0,
+          e_learning: 0,
+          aycl: 0,
+        });
+      }
+      return { buckets, keyOf: dayKey };
     }
 
-    return result;
+    if (range === "Bulan Ini") {
+      const daysSoFar = now.getDate(); // sampai hari ini
+      const totalWeeks = Math.ceil(daysSoFar / 7);
+      const weekKey = (d: Date) =>
+        `${d.getFullYear()}-${d.getMonth() + 1}-w${Math.ceil(d.getDate() / 7)}`;
+
+      for (let w = 1; w <= totalWeeks; w++) {
+        const rangeStart = (w - 1) * 7 + 1;
+        const rangeEnd = Math.min(w * 7, daysSoFar);
+        buckets.push({
+          key: `${now.getFullYear()}-${now.getMonth() + 1}-w${w}`,
+          month:
+            rangeStart === rangeEnd
+              ? `${rangeStart}`
+              : `${rangeStart}-${rangeEnd}`,
+          mentoring: 0,
+          e_learning: 0,
+          aycl: 0,
+        });
+      }
+      return { buckets, keyOf: weekKey };
+    }
+
+    if (range === "3 Bulan Terakhir" || range === "1 Tahun Terakhir") {
+      const totalMonths = range === "3 Bulan Terakhir" ? 3 : 12;
+      for (let i = totalMonths - 1; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        buckets.push({
+          key: monthKey(d),
+          month: MONTH_NAMES[d.getMonth()],
+          mentoring: 0,
+          e_learning: 0,
+          aycl: 0,
+        });
+      }
+      return { buckets, keyOf: monthKey };
+    }
+
+    // "Semua" -> tampilkan semua bulan yang benar-benar ada datanya
+    const dates = payments
+      .map((p) => new Date(p.paymentDate ?? p.createdAt))
+      .filter((d) => !isNaN(d.getTime()));
+
+    if (dates.length === 0) {
+      buckets.push({
+        key: monthKey(now),
+        month: MONTH_NAMES[now.getMonth()],
+        mentoring: 0,
+        e_learning: 0,
+        aycl: 0,
+      });
+      return { buckets, keyOf: monthKey };
+    }
+
+    const minTime = Math.min(...dates.map((d) => d.getTime()));
+    const minDate = new Date(minTime);
+    const cursor = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+    const endCursor = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    while (cursor <= endCursor) {
+      const label =
+        cursor.getFullYear() === now.getFullYear()
+          ? MONTH_NAMES[cursor.getMonth()]
+          : `${MONTH_NAMES[cursor.getMonth()]} '${String(
+              cursor.getFullYear(),
+            ).slice(2)}`;
+
+      buckets.push({
+        key: monthKey(cursor),
+        month: label,
+        mentoring: 0,
+        e_learning: 0,
+        aycl: 0,
+      });
+      cursor.setMonth(cursor.getMonth() + 1);
+    }
+
+    return { buckets, keyOf: monthKey };
   };
 
-  // --- 2. Fetch mentoring ---
-  const fetchMentoringRevenue = async () => {
-    const res = await axios.get(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/booking/admin/bookings?page=1&limit=9999`,
-      { withCredentials: true },
-    );
-    return res.data.data.data;
-  };
-
-  // --- 3. Fetch practice ---
-  // const fetchPracticeRevenue = async () => {
-  //   const res = await axios.get(
-  //     `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/practice/admin/practice-purchases?page=1&limit=9999`,
-  //     { withCredentials: true },
-  //   );
-  //   return res.data.data.data;
-  // };
-
-  // --- 4. Hitung mentoring ---
-  const calculateMentoringRevenue = (bookings: any[]) => {
-    const months = getLast12Months();
-
-    bookings.forEach((b) => {
-      if (b.status !== "confirmed" && b.status !== "completed") return;
-      if (!b.payment) return;
-      if (!b.payment.paymentDate) return;
-
-      const payDate = new Date(b.payment.paymentDate);
-      const key = `${payDate.getFullYear()}-${payDate.getMonth() + 1}`;
-
-      const target = months.find((m) => m.key === key);
-      if (target) target.mentoring += Number(b.payment.amount);
-    });
-
-    return months;
-  };
-
-  // --- 5. Hitung practice ---
-  // const calculatePracticeRevenue = (
-  //   practicePurchases: any[],
-  //   months: RevenueItem[],
-  // ) => {
-  //   practicePurchases.forEach((p) => {
-  //     if (p.status !== "confirmed" && p.status !== "completed") return;
-  //     if (!p.payment) return;
-  //     if (!p.payment.paymentDate) return;
-
-  //     const payDate = new Date(p.payment.paymentDate);
-  //     const key = `${payDate.getFullYear()}-${payDate.getMonth() + 1}`;
-
-  //     const target = months.find((m) => m.key === key);
-  //     if (target) target.practice += Number(p.payment.amount);
-  //   });
-
-  //   return months;
-  // };
-
-  // E-Learning masih pakai dummy karena API belum selesai
-  // const generateELearningDummy = (months: RevenueItem[]) => {
-  //   months.forEach((m) => {
-  //     // Dummy pendapatan 50rb – 300rb
-  //     const randomValue =
-  //       Math.floor(Math.random() * (300000 - 50000 + 1)) + 50000;
-  //     m.e_learning = randomValue;
-  //   });
-
-  //   return months;
-  // };
-
-  // --- 6. Load data ---
+  // --- 3. Load payment sekali, lalu turunkan Status Pembayaran & Pendapatan ---
+  // dari sumber data + filter tanggal yang sama, supaya keduanya selalu konsisten.
   useEffect(() => {
-    const loadRevenue = async () => {
+    const loadPaymentsData = async () => {
       try {
-        const mentoringBookings = await fetchMentoringRevenue();
-        let months = calculateMentoringRevenue(mentoringBookings);
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/payment/payments`,
+          {
+            params: { page: 1, limit: 10000 },
+            withCredentials: true,
+          },
+        );
 
-        // const practicePurchases = await fetchPracticeRevenue();
-        // months = calculatePracticeRevenue(practicePurchases, months);
+        const allPayments = res.data.data || [];
+        const { start, end } = getDateRange(selectedRange);
 
-        // Tambahkan dummy e-learning
-        // months = generateELearningDummy(months);
+        const filtered = allPayments.filter((p: any) => {
+          const dateSource = p.paymentDate ?? p.createdAt;
+          if (!dateSource) return false;
+          const d = new Date(dateSource);
+          if (isNaN(d.getTime())) return false;
+          if (start && d < start) return false;
+          if (d > end) return false;
+          return true;
+        });
 
-        setRevenueData(months);
+        // --- Status Pembayaran ---
+        type AllowedStatus = "pending" | "confirmed" | "failed" | "cancelled";
+        const allowedStatuses: AllowedStatus[] = [
+          "pending",
+          "confirmed",
+          "failed",
+          "cancelled",
+        ];
+        const statusCount: Record<AllowedStatus, number> = {
+          pending: 0,
+          confirmed: 0,
+          failed: 0,
+          cancelled: 0,
+        };
+
+        filtered.forEach((p: any) => {
+          const status = p.status?.toLowerCase();
+          if (allowedStatuses.includes(status)) {
+            statusCount[status as AllowedStatus] += 1;
+          }
+        });
+
+        setPaymentStatus([
+          { status: "pending", total: statusCount.pending },
+          { status: "confirmed", total: statusCount.confirmed },
+          { status: "failed", total: statusCount.failed },
+          { status: "cancelled", total: statusCount.cancelled },
+        ]);
+
+        // --- Pendapatan ---
+        // type payment: "booking" -> Mentoring, "elearning" -> E-Learning, "aycl" -> AYCL
+        // "practice" tidak ditampilkan sesuai kebutuhan saat ini
+        const { buckets, keyOf } = buildRevenueBuckets(selectedRange, filtered);
+
+        filtered.forEach((p: any) => {
+          const status = String(p.status ?? "").toLowerCase();
+          if (!SUCCESS_PAYMENT_STATUSES.includes(status)) return;
+          if (p.type === "practice") return;
+          if (
+            p.type !== "booking" &&
+            p.type !== "elearning" &&
+            p.type !== "aycl"
+          )
+            return;
+
+          const dateSource = p.paymentDate ?? p.createdAt;
+          if (!dateSource) return;
+          const payDate = new Date(dateSource);
+          if (isNaN(payDate.getTime())) return;
+
+          const key = keyOf(payDate);
+          const target = buckets.find((b) => b.key === key);
+          if (!target) return;
+
+          const amount = Number(p.amount) || 0;
+          if (p.type === "booking") target.mentoring += amount;
+          else if (p.type === "elearning") target.e_learning += amount;
+          else if (p.type === "aycl") target.aycl += amount;
+        });
+
+        setRevenueData(buckets);
       } catch (err) {
-        console.error("Failed to load revenue:", err);
+        console.error("Gagal memuat data payment:", err);
       }
     };
 
-    loadRevenue();
-  }, []);
+    loadPaymentsData();
+  }, [selectedRange]);
 
   type AdminSession = {
     id: string;
@@ -340,6 +446,12 @@ export default function AdminPage() {
     size: string | number;
     rawPath: string | null;
     parsedDate?: Date;
+    // 🔥 TAMBAHAN
+    endIsoDate: string; // buat cek "sudah lewat" pakai jam SELESAI, bukan jam mulai
+    meetingLink: string;
+    meetingId: string;
+    passcode: string;
+    hasSession: boolean; // false = booking ini belum punya Session record beneran
   };
 
   function useAdminBookings() {
@@ -412,6 +524,12 @@ export default function AdminPage() {
                   document: docName,
                   size: formatSize,
                   rawPath,
+                  // 🔥 TAMBAHAN
+                  endIsoDate: s.endTime || s.startTime,
+                  meetingLink: s.meetingLink || "",
+                  meetingId: s.meetingId || "",
+                  passcode: s.passcode || "",
+                  hasSession: true,
                 }),
               );
             }
@@ -429,6 +547,12 @@ export default function AdminPage() {
               document: docName,
               size: formatSize,
               rawPath,
+              // 🔥 TAMBAHAN
+              endIsoDate: iso,
+              meetingLink: "",
+              meetingId: "",
+              passcode: "",
+              hasSession: false,
             };
           });
 
@@ -477,20 +601,18 @@ export default function AdminPage() {
             parsedDate: new Date(s.isoDate),
           }));
 
+          // 🔥 DIUBAH: dulu kalau sesi mendatang kurang dari 10, "bolong"-nya
+          // ditambal pakai sesi yang SUDAH LEWAT (pastSessions) biar tetap
+          // nampilin 10 kartu. Sekarang sesi yang sudah lewat dari sekarang
+          // dibuang total — cuma sesi yang jadwalnya masih akan datang yang
+          // ditampilkan, walau jumlahnya kurang dari 10.
           const futureSessions = withParsedDate
             .filter((s) => s.parsedDate! >= now)
             .sort((a, b) => a.parsedDate!.getTime() - b.parsedDate!.getTime());
 
-          const pastSessions = withParsedDate
-            .filter((s) => s.parsedDate! < now)
-            .sort((a, b) => b.parsedDate!.getTime() - a.parsedDate!.getTime());
-
-          const final10 = [
-            ...futureSessions.slice(0, 10),
-            ...pastSessions.slice(0, 10 - futureSessions.length),
-          ].slice(0, 10);
-
-          setSessions(final10.map(({ parsedDate, ...rest }) => rest));
+          // 🔥 DIUBAH: dihapus batas .slice(0, 10) — semua sesi yang belum
+          // lewat ditampilkan, berapa pun jumlahnya.
+          setSessions(futureSessions.map(({ parsedDate, ...rest }) => rest));
         } catch (err) {
           console.error("Error fetch bookings:", err);
         } finally {
@@ -506,43 +628,152 @@ export default function AdminPage() {
 
   const { sessions, setSessions, loading } = useAdminBookings();
 
-  async function handleDeleteSession(sessionId: string) {
-    // Konfirmasi pakai toast modal kecil
-    const confirmed = await new Promise<boolean>((resolve) => {
-      toast.warning("Yakin ingin menghapus sesi mentoring ini?", {
-        description: "Tindakan ini tidak bisa dibatalkan.",
-        action: {
-          label: "Hapus",
-          onClick: () => resolve(true),
-        },
-        cancel: {
-          label: "Batal",
-          onClick: () => resolve(false),
-        },
-        duration: Infinity,
-      });
-    });
+  // 🔥 BARU: state buat modal Edit Sesi
+  const [editingSession, setEditingSession] = useState<AdminSession | null>(
+    null,
+  );
+  const [editForm, setEditForm] = useState({
+    date: "",
+    startTime: "",
+    endTime: "",
+    meetingLink: "",
+    meetingId: "",
+    passcode: "",
+  });
+  const [savingEdit, setSavingEdit] = useState(false);
 
-    if (!confirmed) return;
+  // 🔥 BARU: sesi dianggap "sudah lewat" kalau jam SELESAI-nya sudah
+  // lewat dari sekarang — dipakai buat auto-ubah badge jadi "Completed"
+  // tanpa perlu admin update manual.
+  const isSessionPast = (session: AdminSession) =>
+    new Date(session.endIsoDate).getTime() < Date.now();
+
+  const getDisplayStatus = (session: AdminSession) =>
+    session.status === "completed" || isSessionPast(session)
+      ? "completed"
+      : "scheduled";
+
+  // 🔥 BARU: state buat popup konfirmasi hapus (ganti toast.warning lama)
+  const [sessionToDelete, setSessionToDelete] = useState<AdminSession | null>(
+    null,
+  );
+  const [deleting, setDeleting] = useState(false);
+
+  // 🔥 DIUBAH: dulu langsung nampilin toast.warning + jalanin delete di
+  // fungsi yang sama. Sekarang fungsi ini CUMA buka popup konfirmasi —
+  // eksekusi hapus beneran dipindah ke confirmDeleteSession() di bawah.
+  function requestDeleteSession(session: AdminSession) {
+    if (!session.hasSession) {
+      toast.error("Booking ini belum punya sesi mentoring untuk dihapus.");
+      return;
+    }
+    setSessionToDelete(session);
+  }
+
+  // 🔥 BARU: dipanggil dari tombol "Ya, Hapus" di popup konfirmasi.
+  // Isi logic-nya SAMA PERSIS dengan handleDeleteSession lama (axios
+  // delete + update state + toast) — cuma dipindah ke sini.
+  async function confirmDeleteSession() {
+    if (!sessionToDelete) return;
+    setDeleting(true);
 
     try {
       await axios.delete(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentoringSession/admin/mentoring-sessions/${sessionId}`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentoringSession/admin/mentoring-sessions/${sessionToDelete.id}`,
         { withCredentials: true },
       );
 
-      toast.success("Sesi mentoring berhasil dihapus!", {
-        description: "Halaman akan diperbarui...",
-      });
+      setSessions((prev) => prev.filter((s) => s.id !== sessionToDelete.id));
 
-      // 🟩 Langsung refresh page
-      router.refresh();
+      toast.success("Sesi mentoring berhasil dihapus!");
+      setSessionToDelete(null);
     } catch (err: any) {
       console.error(err);
 
       toast.error("Gagal menghapus sesi", {
-        description: err.response?.data?.error || "Terjadi kesalahan.",
+        description: err.response?.data?.message || "Terjadi kesalahan.",
       });
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  // 🔥 BARU: buka modal edit, isi form dari data sesi yang dipilih
+  function openEditDialog(session: AdminSession) {
+    const start = new Date(session.isoDate);
+    const end = new Date(session.endIsoDate);
+    const pad = (n: number) => String(n).padStart(2, "0");
+
+    setEditForm({
+      date: `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`,
+      startTime: `${pad(start.getHours())}:${pad(start.getMinutes())}`,
+      endTime: `${pad(end.getHours())}:${pad(end.getMinutes())}`,
+      meetingLink: session.meetingLink,
+      meetingId: session.meetingId,
+      passcode: session.passcode,
+    });
+    setEditingSession(session);
+  }
+
+  // 🔥 BARU: simpan perubahan lewat PATCH /admin/mentoring-sessions/:id
+  async function handleSaveEdit() {
+    if (!editingSession) return;
+    setSavingEdit(true);
+
+    try {
+      const [year, month, day] = editForm.date.split("-");
+      const [startHour, startMinute] = editForm.startTime
+        .split(":")
+        .map(Number);
+      const [endHour, endMinute] = editForm.endTime.split(":").map(Number);
+
+      await axios.patch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentoringSession/admin/mentoring-sessions/${editingSession.id}`,
+        {
+          date: `${day}-${month}-${year}`,
+          startTime: { hour: startHour, minute: startMinute },
+          endTime: { hour: endHour, minute: endMinute },
+          meetingLink: editForm.meetingLink || undefined,
+          meetingId: editForm.meetingId || undefined,
+          passcode: editForm.passcode || undefined,
+        },
+        { withCredentials: true },
+      );
+
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const newStart = new Date(
+        `${year}-${month}-${day}T${pad(startHour)}:${pad(startMinute)}:00`,
+      );
+      const newEnd = new Date(
+        `${year}-${month}-${day}T${pad(endHour)}:${pad(endMinute)}:00`,
+      );
+
+      // update langsung di state, biar kelihatan tanpa nunggu refresh
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id === editingSession.id
+            ? {
+                ...s,
+                isoDate: newStart.toISOString(),
+                endIsoDate: newEnd.toISOString(),
+                date: newStart.toLocaleString("id-ID"),
+                meetingLink: editForm.meetingLink,
+                meetingId: editForm.meetingId,
+                passcode: editForm.passcode,
+              }
+            : s,
+        ),
+      );
+
+      toast.success("Sesi mentoring berhasil diperbarui!");
+      setEditingSession(null);
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Gagal memperbarui sesi", {
+        description: err.response?.data?.message || "Terjadi kesalahan.",
+      });
+    } finally {
+      setSavingEdit(false);
     }
   }
 
@@ -641,6 +872,10 @@ export default function AdminPage() {
           </DropdownMenuTrigger>
 
           <DropdownMenuContent align="end" className="w-40 bg-white">
+            <DropdownMenuItem onClick={() => setSelectedRange("Semua")}>
+              Semua
+            </DropdownMenuItem>
+
             <DropdownMenuItem onClick={() => setSelectedRange("Minggu Ini")}>
               Minggu Ini
             </DropdownMenuItem>
@@ -669,6 +904,15 @@ export default function AdminPage() {
         {stats.map((stat, index) => (
           <Card
             key={index}
+            onClick={() => router.push(stat.href)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                router.push(stat.href);
+              }
+            }}
             className="
         w-full flex flex-col justify-between
         px-0 py-1.5
@@ -719,16 +963,21 @@ export default function AdminPage() {
         {/* Status Pembayaran */}
         <Card className="bg-white rounded-md shadow-sm col-span-1 lg:col-span-2">
           <CardHeader className="pb-1 pr-4">
-            <div className="flex items-center gap-2">
-              <Image
-                src="/assets/admin/moneyoverviewchart.svg"
-                alt="Status"
-                width={12}
-                height={12}
-              />
-              <CardTitle className="text-sm font-semibold text-gray-500">
-                Status Pembayaran
-              </CardTitle>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Image
+                  src="/assets/admin/moneyoverviewchart.svg"
+                  alt="Status"
+                  width={12}
+                  height={12}
+                />
+                <CardTitle className="text-sm font-semibold text-gray-500">
+                  Status Pembayaran
+                </CardTitle>
+              </div>
+              <span className="text-[10px] text-gray-400 font-normal whitespace-nowrap">
+                {selectedRange}
+              </span>
             </div>
           </CardHeader>
 
@@ -794,6 +1043,9 @@ export default function AdminPage() {
               <CardTitle className="text-sm font-semibold text-gray-500">
                 Pendapatan
               </CardTitle>
+              <span className="text-[10px] text-gray-400 font-normal whitespace-nowrap">
+                • {selectedRange}
+              </span>
             </div>
 
             {/* Legend */}
@@ -811,6 +1063,11 @@ export default function AdminPage() {
               <div className="flex items-center gap-1">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#06b6d4]" />
                 <span className="text-gray-500">E-Learning</span>
+              </div>
+
+              <div className="flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#f59e0b]" />
+                <span className="text-gray-500">AYCL</span>
               </div>
             </div>
           </CardHeader>
@@ -847,16 +1104,24 @@ export default function AdminPage() {
                     border: "1px solid #E5E7EB",
                     fontSize: 10,
                   }}
-                  formatter={(value: number) => [
-                    `Rp ${value.toLocaleString("id-ID")}`,
-                    "Pendapatan",
-                  ]}
-                  labelFormatter={(label) => `Bulan: ${label}`}
+                  formatter={(value: number, name: string) => {
+                    const labelMap: Record<string, string> = {
+                      mentoring: "Mentoring",
+                      e_learning: "E-Learning",
+                      aycl: "AYCL",
+                    };
+                    return [
+                      `Rp ${value.toLocaleString("id-ID")}`,
+                      labelMap[name] ?? name,
+                    ];
+                  }}
+                  labelFormatter={(label) => `Periode: ${label}`}
                 />
 
                 <Line
                   type="monotone"
                   dataKey="mentoring"
+                  name="mentoring"
                   stroke="#9333ea"
                   strokeWidth={2}
                   dot={false}
@@ -871,7 +1136,16 @@ export default function AdminPage() {
                 <Line
                   type="monotone"
                   dataKey="e_learning"
+                  name="e_learning"
                   stroke="#06b6d4"
+                  strokeWidth={2}
+                  dot={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="aycl"
+                  name="aycl"
+                  stroke="#f59e0b"
                   strokeWidth={2}
                   dot={false}
                 />
@@ -888,7 +1162,7 @@ export default function AdminPage() {
         ) : (
           <Card className="shadow-sm rounded-md">
             {/* HEADER */}
-            <CardHeader className="pb-1 pl-6 pr-3 flex items-center justify-between">
+            <CardHeader className="pb-1 pl-5 pr-5 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Image
                   src="/assets/dashboard/user/jadwal.svg"
@@ -896,7 +1170,7 @@ export default function AdminPage() {
                   width={14}
                   height={14}
                 />
-                <CardTitle className="text-xl font-semibold text-gray-500">
+                <CardTitle className="text-sm font-semibold text-gray-500">
                   Sesi Mentoring
                 </CardTitle>
               </div>
@@ -909,69 +1183,96 @@ export default function AdminPage() {
             <CardContent className="px-5 pb-4">
               <div className="overflow-x-auto pb-2 thin-scroll">
                 <div className="flex gap-4 min-w-max">
-                  {sessions.map((session) => (
-                    <div
-                      key={session.id}
-                      className="border rounded-lg p-4 w-[280px] bg-white shadow-sm"
-                    >
-                      {/* Status + Action */}
-                      <div className="flex items-center justify-between mb-3">
-                        <Badge
-                          className={`${statusColors[session.status]} px-2.5 py-1 text-[11px] rounded-md`}
-                        >
-                          {session.status.charAt(0).toUpperCase() +
-                            session.status.slice(1)}
-                        </Badge>
+                  {sessions.map((session) => {
+                    // 🔥 TAMBAHAN: hitung status tampilan (auto "Completed"
+                    // kalau sudah lewat jam selesainya)
+                    const displayStatus = getDisplayStatus(session);
 
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 px-3 text-xs"
+                    return (
+                      <div
+                        key={session.id}
+                        className="border border-gray-200 rounded-xl p-4 w-[310px] shrink-0 bg-white shadow-sm hover:shadow-md transition-shadow"
+                      >
+                        {/* Status + Action */}
+                        <div className="flex items-center justify-between pb-4 mb-4 border-b border-gray-100">
+                          <Badge
+                            className={`${statusColors[displayStatus]} px-2.5 py-1 text-xs font-medium rounded-full`}
                           >
-                            Edit
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 px-3 text-xs text-red-600 border-red-200"
-                            onClick={() => handleDeleteSession(session.id)}
-                          >
-                            Hapus
-                          </Button>
+                            {displayStatus.charAt(0).toUpperCase() +
+                              displayStatus.slice(1)}
+                          </Badge>
+
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              disabled={!session.hasSession}
+                              title={
+                                !session.hasSession
+                                  ? "Booking ini belum punya sesi terjadwal"
+                                  : "Edit sesi"
+                              }
+                              onClick={() => openEditDialog(session)}
+                              className="flex items-center justify-center w-7 h-7 rounded-md border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={!session.hasSession}
+                              title={
+                                !session.hasSession
+                                  ? "Booking ini belum punya sesi terjadwal"
+                                  : "Hapus sesi"
+                              }
+                              onClick={() => requestDeleteSession(session)}
+                              className="flex items-center justify-center w-7 h-7 rounded-md border border-red-200 text-red-500 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
-                      </div>
 
-                      {/* CONTENT */}
-                      <div className="space-y-3 text-[13px]">
+                        {/* Keterangan yang SELALU kelihatan (bukan cuma tooltip
+                            hover) — biar jelas kenapa Edit/Hapus disabled buat
+                            booking yang belum punya sesi mentoring beneran. */}
+                        {!session.hasSession && (
+                          <p className="text-xs text-amber-600 bg-amber-50 rounded-md px-2 py-1 mb-3">
+                            Booking ini belum punya sesi mentoring terjadwal.
+                          </p>
+                        )}
+
                         {/* Mentor & Mentee */}
-                        <div className="flex items-start gap-4">
-                          <div className="flex gap-2 w-1/2">
-                            <Image
-                              src="/assets/admin/bluementor.svg"
-                              alt="Mentor"
-                              width={16}
-                              height={16}
-                            />
-                            <div className="w-full">
-                              <p className="text-gray-500 text-xs">Mentor</p>
-                              <p className="font-medium truncate text-sm">
+                        <div className="grid grid-cols-2 gap-3 mb-4">
+                          <div className="flex items-start gap-2 min-w-0">
+                            <div className="w-7 h-7 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                              <Image
+                                src="/assets/admin/bluementor.svg"
+                                alt="Mentor"
+                                width={14}
+                                height={14}
+                              />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs text-gray-400">Mentor</p>
+                              <p className="text-sm font-medium text-gray-800 truncate">
                                 {session.mentor}
                               </p>
                             </div>
                           </div>
 
                           {session.mentee && (
-                            <div className="flex gap-2 w-1/2">
-                              <Image
-                                src="/assets/admin/bluementee.svg"
-                                alt="Mentee"
-                                width={16}
-                                height={16}
-                              />
-                              <div className="w-full">
-                                <p className="text-gray-500 text-xs">Mentee</p>
-                                <p className="font-medium truncate text-sm">
+                            <div className="flex items-start gap-2 min-w-0">
+                              <div className="w-7 h-7 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                                <Image
+                                  src="/assets/admin/bluementee.svg"
+                                  alt="Mentee"
+                                  width={14}
+                                  height={14}
+                                />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs text-gray-400">Mentee</p>
+                                <p className="text-sm font-medium text-gray-800 truncate">
                                   {session.mentee}
                                 </p>
                               </div>
@@ -979,59 +1280,67 @@ export default function AdminPage() {
                           )}
                         </div>
 
-                        {/* Date */}
-                        <div className="flex gap-3">
-                          <Image
-                            src="/assets/admin/bluetanggal.svg"
-                            alt="Tanggal"
-                            width={16}
-                            height={16}
-                          />
-                          <div>
-                            <p className="text-gray-500 text-xs">
-                              Tanggal & Waktu
-                            </p>
-                            <p className="font-medium text-sm">
-                              {session.date}
-                            </p>
+                        {/* Tanggal & Topik */}
+                        <div className="space-y-3 pb-4 mb-4 border-b border-gray-100">
+                          <div className="flex items-start gap-2">
+                            <div className="w-7 h-7 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                              <Image
+                                src="/assets/admin/bluetanggal.svg"
+                                alt="Tanggal"
+                                width={14}
+                                height={14}
+                              />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs text-gray-400">
+                                Tanggal & Waktu
+                              </p>
+                              <p className="text-sm font-medium text-gray-800">
+                                {session.date}
+                              </p>
+                            </div>
                           </div>
-                        </div>
 
-                        {/* Topic */}
-                        <div className="flex gap-3">
-                          <Image
-                            src="/assets/admin/bluetopik.svg"
-                            alt="Topik"
-                            width={16}
-                            height={16}
-                          />
-                          <div className="w-full">
-                            <p className="text-gray-500 text-xs">Topik</p>
-                            <p className="font-medium truncate text-sm">
-                              {session.topic}
-                            </p>
+                          <div className="flex items-start gap-2">
+                            <div className="w-7 h-7 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                              <Image
+                                src="/assets/admin/bluetopik.svg"
+                                alt="Topik"
+                                width={14}
+                                height={14}
+                              />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs text-gray-400">Topik</p>
+                              <p className="text-sm font-medium text-gray-800 truncate">
+                                {session.topic}
+                              </p>
+                            </div>
                           </div>
                         </div>
 
                         {/* Document */}
-                        <div className="space-y-2">
-                          <p className="text-gray-600 text-xs">Dokumen</p>
+                        <div>
+                          <p className="text-xs text-gray-400 mb-1.5">
+                            Dokumen
+                          </p>
 
-                          <div className="bg-gray-100 p-3 rounded-lg">
-                            <div className="flex gap-3 items-center">
-                              <Image
-                                src="/assets/admin/overviewdokumen.svg"
-                                alt="Dokumen"
-                                width={16}
-                                height={16}
-                              />
+                          <div className="bg-gray-50 border border-gray-100 rounded-lg p-2.5">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-md bg-white border border-gray-200 flex items-center justify-center shrink-0">
+                                <Image
+                                  src="/assets/admin/overviewdokumen.svg"
+                                  alt="Dokumen"
+                                  width={14}
+                                  height={14}
+                                />
+                              </div>
 
-                              <div className="w-full">
-                                <p className="font-medium truncate text-sm">
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium text-gray-800 truncate">
                                   {session.document}
                                 </p>
-
-                                <p className="text-xs text-gray-500">
+                                <p className="text-xs text-gray-400">
                                   {session.size}
                                 </p>
                               </div>
@@ -1040,7 +1349,7 @@ export default function AdminPage() {
                             {session.rawPath && (
                               <Button
                                 variant="link"
-                                className="text-[#0CA678] p-0 h-auto text-xs mt-2"
+                                className="text-emerald-600 p-0 h-auto text-xs mt-2"
                                 onClick={() =>
                                   window.open(
                                     `${process.env.NEXT_PUBLIC_API_BASE_URL}/${session.rawPath}`,
@@ -1054,8 +1363,8 @@ export default function AdminPage() {
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </CardContent>
@@ -1064,7 +1373,7 @@ export default function AdminPage() {
 
         {/* History Aktivitas */}
         <Card>
-          <CardHeader className="pb-0 flex items-center justify-between">
+          <CardHeader className="pb-1 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Image
                 src="/assets/dashboard/user/jadwal.svg"
@@ -1073,7 +1382,7 @@ export default function AdminPage() {
                 height={15}
                 className="relative bottom-0.5"
               />
-              <CardTitle className="text-lg font-semibold text-gray-400">
+              <CardTitle className="text-sm font-semibold text-gray-500">
                 History Aktivitas
               </CardTitle>
             </div>
@@ -1081,7 +1390,7 @@ export default function AdminPage() {
           </CardHeader>
 
           <CardContent>
-            <div className="max-h-100 overflow-y-auto scroll-thin pr-2 space-y-6 relative">
+            <div className="max-h-100 overflow-y-auto scroll-thin pr-2 space-y-5 relative">
               {loadingAct ? (
                 <p className="text-gray-500 text-sm">Memuat aktivitas...</p>
               ) : activities.length === 0 ? (
@@ -1116,13 +1425,13 @@ export default function AdminPage() {
                     />
 
                     <div className="flex-1">
-                      <h4 className="text-[15px] font-semibold text-gray-900">
+                      <h4 className="text-sm font-semibold text-gray-900">
                         {activity.title}
                       </h4>
-                      <p className="text-[14px] text-gray-600 mt-1 leading-snug">
+                      <p className="text-sm text-gray-600 mt-1 leading-snug">
                         {activity.description}
                       </p>
-                      <p className="text-[12px] text-gray-500 mt-1">
+                      <p className="text-xs text-gray-500 mt-1">
                         {activity.time}
                       </p>
                     </div>
@@ -1132,6 +1441,206 @@ export default function AdminPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* 🔥 BARU: Popup Konfirmasi Hapus — tema emerald + putih */}
+        <Dialog
+          open={!!sessionToDelete}
+          onOpenChange={(open) =>
+            !open && !deleting && setSessionToDelete(null)
+          }
+        >
+          <DialogContent
+            className="sm:max-w-sm text-center p-6"
+            onPointerDownOutside={(e) => e.preventDefault()}
+          >
+            {/* Ikon */}
+            <div className="flex justify-center mb-1">
+              <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center">
+                  <Trash2 className="w-4.5 h-4.5 text-emerald-600" />
+                </div>
+              </div>
+            </div>
+
+            <DialogHeader>
+              <DialogTitle className="text-center text-base font-semibold text-gray-800">
+                Hapus Sesi Mentoring?
+              </DialogTitle>
+            </DialogHeader>
+
+            <p className="text-xs text-gray-500 mt-1">
+              Tindakan ini tidak bisa dibatalkan. Data sesi akan hilang secara
+              permanen.
+            </p>
+
+            {/* Ringkasan sesi yang mau dihapus */}
+            {sessionToDelete && (
+              <div className="mt-4 rounded-lg bg-emerald-50 border border-emerald-100 p-3 text-left space-y-1">
+                <p className="text-xs text-gray-500">
+                  Mentor:{" "}
+                  <span className="font-medium text-gray-800">
+                    {sessionToDelete.mentor}
+                  </span>
+                </p>
+                <p className="text-xs text-gray-500">
+                  Mentee:{" "}
+                  <span className="font-medium text-gray-800">
+                    {sessionToDelete.mentee}
+                  </span>
+                </p>
+                <p className="text-xs text-gray-500">
+                  Jadwal:{" "}
+                  <span className="font-medium text-gray-800">
+                    {sessionToDelete.date}
+                  </span>
+                </p>
+              </div>
+            )}
+
+            {/* Tombol */}
+            <div className="flex gap-2 mt-5">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                onClick={() => setSessionToDelete(null)}
+                disabled={deleting}
+              >
+                Batal
+              </Button>
+              <Button
+                size="sm"
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                onClick={confirmDeleteSession}
+                disabled={deleting}
+              >
+                {deleting ? "Menghapus..." : "Ya, Hapus"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* 🔥 BARU: Modal Edit Sesi Mentoring */}
+        <Dialog
+          open={!!editingSession}
+          onOpenChange={(open) => !open && setEditingSession(null)}
+        >
+          <DialogContent
+            className="sm:max-w-md"
+            onPointerDownOutside={(e) => e.preventDefault()}
+          >
+            <DialogHeader>
+              <DialogTitle>Edit Sesi Mentoring</DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-3 text-sm">
+              <div>
+                <label className="text-xs font-medium text-gray-600">
+                  Tanggal
+                </label>
+                <input
+                  type="date"
+                  value={editForm.date}
+                  onChange={(e) =>
+                    setEditForm((f) => ({ ...f, date: e.target.value }))
+                  }
+                  className="w-full mt-1 px-2.5 py-1.5 border rounded-md text-xs"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-gray-600">
+                    Jam Mulai
+                  </label>
+                  <input
+                    type="time"
+                    value={editForm.startTime}
+                    onChange={(e) =>
+                      setEditForm((f) => ({ ...f, startTime: e.target.value }))
+                    }
+                    className="w-full mt-1 px-2.5 py-1.5 border rounded-md text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-600">
+                    Jam Selesai
+                  </label>
+                  <input
+                    type="time"
+                    value={editForm.endTime}
+                    onChange={(e) =>
+                      setEditForm((f) => ({ ...f, endTime: e.target.value }))
+                    }
+                    className="w-full mt-1 px-2.5 py-1.5 border rounded-md text-xs"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-gray-600">
+                  Link Meeting
+                </label>
+                <input
+                  type="text"
+                  value={editForm.meetingLink}
+                  onChange={(e) =>
+                    setEditForm((f) => ({ ...f, meetingLink: e.target.value }))
+                  }
+                  placeholder="https://zoom.us/..."
+                  className="w-full mt-1 px-2.5 py-1.5 border rounded-md text-xs"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-gray-600">
+                    Meeting ID
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.meetingId}
+                    onChange={(e) =>
+                      setEditForm((f) => ({ ...f, meetingId: e.target.value }))
+                    }
+                    className="w-full mt-1 px-2.5 py-1.5 border rounded-md text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-600">
+                    Passcode
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.passcode}
+                    onChange={(e) =>
+                      setEditForm((f) => ({ ...f, passcode: e.target.value }))
+                    }
+                    className="w-full mt-1 px-2.5 py-1.5 border rounded-md text-xs"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2 justify-end mt-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setEditingSession(null)}
+              >
+                Batal
+              </Button>
+              <Button
+                size="sm"
+                disabled={savingEdit}
+                onClick={handleSaveEdit}
+                className="bg-emerald-500 hover:bg-emerald-600 text-white"
+              >
+                {savingEdit ? "Menyimpan..." : "Simpan"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </>
   );

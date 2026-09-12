@@ -21,6 +21,13 @@ interface TambahFeedbackModalProps {
   onSuccess?: () => void;
 }
 
+const FEEDBACK_OPTIONS = [
+  "Sangat Setuju",
+  "Setuju",
+  "Tidak Setuju",
+  "Sangat Tidak Setuju",
+];
+
 export default function TambahFeedbackModal({
   sessionId,
   feedbackTitle,
@@ -124,10 +131,11 @@ export default function TambahFeedbackModal({
       {/* Modal Tambah Feedback */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogOverlay />
+        {/* 🔥 DIUBAH: sama fix jarak dari tepi layar mobile. */}
         <DialogContent
           className="
     bg-white rounded-lg shadow
-    w-full max-w-md
+    w-[calc(100%-2rem)] sm:w-full max-w-md
     flex flex-col
     max-h-[85vh]
     p-0
@@ -165,13 +173,14 @@ export default function TambahFeedbackModal({
                   {q} <span className="text-emerald-500">*</span>
                 </p>
 
-                <div className="flex flex-col gap-1.5">
-                  {[
-                    "Sangat Setuju",
-                    "Setuju",
-                    "Tidak Setuju",
-                    "Sangat Tidak Setuju",
-                  ].map((opt) => {
+                {/* Versi DESKTOP/tablet — list vertikal dengan radio dot
+                    ASLI, TIDAK diubah sama sekali, cuma dibungkus
+                    "hidden sm:flex sm:flex-col" (dulu "flex flex-col
+                    gap-1.5" polos) biar identik mulai sm: ke atas dan
+                    disembunyikan di mobile (digantikan grid chip di
+                    bawah). */}
+                <div className="hidden sm:flex sm:flex-col gap-1.5">
+                  {FEEDBACK_OPTIONS.map((opt) => {
                     const selected = answers[i] === opt;
                     return (
                       <label
@@ -217,6 +226,31 @@ export default function TambahFeedbackModal({
 
                         <span className="text-xs">{opt}</span>
                       </label>
+                    );
+                  })}
+                </div>
+
+                {/* 🔥 BARU: versi MOBILE (sm:hidden) — 4 pilihan jadi grid
+                    2 kolom chip (bukan list vertikal panjang), jauh lebih
+                    hemat tinggi buat 6 pertanyaan sekaligus. Pakai
+                    handleSelect yang SAMA PERSIS dengan versi desktop —
+                    cuma tampilannya beda, state & logic-nya satu sumber. */}
+                <div className="sm:hidden grid grid-cols-2 gap-1.5">
+                  {FEEDBACK_OPTIONS.map((opt) => {
+                    const selected = answers[i] === opt;
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => handleSelect(i, opt)}
+                        className={`rounded-md border px-2 py-2 text-[11px] font-medium text-center leading-snug transition ${
+                          selected
+                            ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                            : "border-gray-200 bg-white text-gray-600"
+                        }`}
+                      >
+                        {opt}
+                      </button>
                     );
                   })}
                 </div>
@@ -267,11 +301,13 @@ export default function TambahFeedbackModal({
           </div>
 
           {/* FOOTER */}
+          {/* 🔥 DIUBAH: py-1.5 → py-2 sm:py-1.5 (tap target lebih besar
+              di mobile, identik mulai sm: ke atas). */}
           <div className="px-4 py-3 flex gap-2 bg-white border-t shrink-0">
             <Button
               variant="outline"
               onClick={handleClose}
-              className="flex-1 text-xs py-1.5"
+              className="flex-1 text-xs py-2 sm:py-1.5"
             >
               Batal
             </Button>
@@ -279,7 +315,7 @@ export default function TambahFeedbackModal({
             <Button
               disabled={!allAnswered || loading}
               className={`
-        flex-1 text-xs py-1.5
+        flex-1 text-xs py-2 sm:py-1.5
         ${
           allAnswered && !loading
             ? "bg-emerald-500 hover:bg-emerald-600 text-white"

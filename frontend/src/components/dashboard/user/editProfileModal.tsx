@@ -175,7 +175,7 @@ export default function EditProfileModal({
           onInteractOutside={(e) => e.preventDefault()}
         >
           {/* Header - Sticky secara alami karena tidak masuk dalam area scroll */}
-          <div className="px-5 py-4 border-b border-gray-200">
+          <div className="px-4 sm:px-5 py-4 border-b border-gray-200">
             <DialogHeader className="flex justify-between items-start">
               <DialogTitle className="text-base font-semibold">
                 Edit Mentee
@@ -185,15 +185,21 @@ export default function EditProfileModal({
           </div>
 
           {/* Area Konten - Bagian ini yang bisa discroll */}
-          <div className="flex-1 overflow-y-auto px-5 py-4">
+          <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-4">
             {/* Foto Mentee */}
             <div>
-              <p className="text-sm font-semibold text-gray-700 mb-2">
+              <p className="text-sm font-semibold text-gray-700 mb-2 text-center sm:text-left">
                 Foto Mentee
               </p>
 
-              <div className="flex items-center gap-3">
-                <div className="w-[70px] h-[70px] rounded-full overflow-hidden bg-gray-100">
+              {/* 🔥 DIUBAH: dulu selalu "flex items-center gap-3" (foto
+                  kiri, tombol kanan, sejajar 1 baris) — di mobile sekarang
+                  di-stack & di-center (flex-col items-center), foto
+                  sedikit lebih besar (w-20 h-20, dari w-[70px] h-[70px]).
+                  Mulai sm: ke atas balik PERSIS "flex-row items-center
+                  gap-3" dan ukuran foto original 70px seperti semula. */}
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                <div className="w-20 h-20 sm:w-[70px] sm:h-[70px] rounded-full overflow-hidden bg-gray-100">
                   <Image
                     src={preview}
                     alt="Foto Mentee"
@@ -204,7 +210,7 @@ export default function EditProfileModal({
                   />
                 </div>
 
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col items-center sm:items-start gap-1.5">
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
@@ -225,7 +231,7 @@ export default function EditProfileModal({
                     </Button>
                   </div>
 
-                  <p className="text-[10px] text-gray-500 ml-1">
+                  <p className="text-[10px] text-gray-500 sm:ml-1">
                     PNG/JPG max 4MB
                   </p>
                 </div>
@@ -241,9 +247,18 @@ export default function EditProfileModal({
             </div>
 
             {/* Form */}
-            <div className="grid grid-cols-2 gap-3 mt-5 text-sm min-w-0">
-              {/* 🔥 UBAH: Nama Lengkap menjadi editable */}
-              <div className="col-span-2">
+            {/* 🔥 DIUBAH: dulu selalu "grid grid-cols-2 gap-3" (2 kolom
+                tetap, termasuk Peran & Status Akun berdampingan sempit di
+                mobile). Sekarang "grid-cols-1 sm:grid-cols-2" — di mobile
+                SEMUA field jadi 1 kolom penuh (termasuk Peran & Status
+                Akun ikut stack), lebih lega dibaca/diisi. Mulai sm: ke
+                atas balik PERSIS grid 2 kolom seperti semula. */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-5 text-sm min-w-0">
+              {/* 🔥 UBAH: col-span-2 → sm:col-span-2 (biar nggak
+                  "melebihi" grid 1-kolom di mobile; hasil visualnya di
+                  sm: ke atas tetap sama, full-width 2 kolom seperti
+                  semula) */}
+              <div className="sm:col-span-2">
                 <label className="text-xs font-medium">Nama Lengkap</label>
                 <input
                   type="text"
@@ -254,7 +269,7 @@ export default function EditProfileModal({
                 />
               </div>
 
-              <div className="col-span-2">
+              <div className="sm:col-span-2">
                 <label className="text-xs font-medium">Nomor Telepon</label>
                 <input
                   type="text"
@@ -265,7 +280,7 @@ export default function EditProfileModal({
                 />
               </div>
 
-              <div className="col-span-2">
+              <div className="sm:col-span-2">
                 <label className="text-xs font-medium">Email</label>
                 <input
                   type="email"
@@ -299,12 +314,18 @@ export default function EditProfileModal({
           </div>
 
           {/* Footer - Sticky di bawah */}
-          <div className="px-5 py-4 border-t border-gray-200">
-            <div className="flex gap-3 justify-center">
+          <div className="px-4 sm:px-5 py-4 border-t border-gray-200">
+            {/* 🔥 DIUBAH: dulu selalu "flex gap-3 justify-center" dengan
+                tiap tombol "flex-1 max-w-[160px]" (dua tombol berdampingan,
+                lebar dibatasi). Di mobile sekarang "flex-col" (stack,
+                full-width, urutan Batal di atas / Simpan di bawah tetap
+                sama). Mulai sm: ke atas balik PERSIS flex-row + max-w-[160px]
+                seperti semula. */}
+            <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 justify-center">
               <Button
                 variant="outline"
                 size="sm"
-                className="flex-1 max-w-[160px] border-emerald-500 text-emerald-500 hover:bg-emerald-50"
+                className="w-full sm:flex-1 sm:max-w-[160px] border-emerald-500 text-emerald-500 hover:bg-emerald-50"
                 onClick={handleCancel}
               >
                 Batal
@@ -313,7 +334,7 @@ export default function EditProfileModal({
               <Button
                 size="sm"
                 disabled={loading}
-                className="flex-1 max-w-[160px] bg-emerald-500 hover:bg-emerald-600 text-white"
+                className="w-full sm:flex-1 sm:max-w-[160px] bg-emerald-500 hover:bg-emerald-600 text-white"
                 onClick={handleSave}
               >
                 {loading ? "Menyimpan..." : "Simpan"}

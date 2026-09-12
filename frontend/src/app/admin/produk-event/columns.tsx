@@ -43,7 +43,7 @@ export type Project = {
   foto: string;
   nama: string;
 
-  kategori: "Mentoring" | "E-Learning";
+  kategori: "Mentoring" | "E-Learning" | "AYCL";
 
   /* =====================
      MENTORING ONLY
@@ -119,7 +119,7 @@ export type Project = {
 };
 
 // Cycle kategori untuk filter 4 mode
-const kategoriCycle = ["Mentoring", "E-Learning"];
+const kategoriCycle = ["Mentoring", "E-Learning", "AYCL"];
 
 export const columns: ColumnDef<Project>[] = [
   {

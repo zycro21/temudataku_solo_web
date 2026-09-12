@@ -20,9 +20,25 @@ export default function EventSection({ events }: EventSectionProps) {
 
   return (
     <div className="mb-6 mt-0">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Versi DESKTOP/tablet — grid card ASLI, TIDAK diubah sama
+          sekali, cuma dibungkus "hidden sm:grid" (dulu "grid" polos)
+          biar identik mulai sm: ke atas dan disembunyikan di mobile
+          (digantikan list ringkas di bawah). */}
+      <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {events.map((event) => (
           <EventCard key={event.id} event={event} />
+        ))}
+      </div>
+
+      {/* 🔥 BARU: versi MOBILE (sm:hidden) — kartu ringkas, bukan kartu
+          full detail. Deskripsi & toggle "Baca selengkapnya" tidak
+          ditampilkan (konsisten sama pola di feedbackSection/
+          sertifikatSection — konten panjang lebih cocok di kartu penuh,
+          layout ringkas fokus ke info inti + aksi). Data & navigasi
+          (handleDaftar) SAMA PERSIS dengan versi desktop. */}
+      <div className="sm:hidden space-y-3">
+        {events.map((event) => (
+          <EventCardMobile key={event.id} event={event} />
         ))}
       </div>
     </div>
@@ -72,12 +88,12 @@ function renderDescription(text: string) {
   });
 }
 
-function EventCard({ event }: { event: EventItem }) {
-  const [showFull, setShowFull] = useState(false);
-  const router = useRouter(); // untuk navigasi
-
-  //  Fungsi ketika tombol Daftar diklik
-  const handleDaftar = () => {
+// 🔥 BARU: helper navigasi diekstrak biar dipakai bareng versi desktop
+// (EventCard) dan mobile (EventCardMobile) — logic SAMA PERSIS dengan
+// handleDaftar original, cuma dipindah keluar biar tidak duplikasi.
+function useDaftarHandler(event: EventItem) {
+  const router = useRouter();
+  return () => {
     if (event.type === "practice") {
       router.push("/practice");
     } else if (event.type === "mentoring") {
@@ -86,6 +102,11 @@ function EventCard({ event }: { event: EventItem }) {
       console.warn("Tipe event tidak dikenali:", event.type);
     }
   };
+}
+
+function EventCard({ event }: { event: EventItem }) {
+  const [showFull, setShowFull] = useState(false);
+  const handleDaftar = useDaftarHandler(event);
 
   return (
     <Card className="p-0 overflow-hidden flex flex-col justify-between">
@@ -187,5 +208,63 @@ function EventCard({ event }: { event: EventItem }) {
         </button>
       </CardFooter>
     </Card>
+  );
+}
+
+// 🔥 BARU: kartu ringkas khusus mobile — thumbnail kecil di kiri,
+// judul+badge kategori+tanggal+lokasi di kanan (ringkas, tanpa
+// deskripsi panjang), tombol Daftar full-width di bawah.
+function EventCardMobile({ event }: { event: EventItem }) {
+  const handleDaftar = useDaftarHandler(event);
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg p-3">
+      <div className="flex gap-3">
+        {/* Thumbnail */}
+        <div className="relative w-20 h-20 shrink-0 rounded-md overflow-hidden bg-gray-100">
+          <Image
+            src={
+              event.image &&
+              (event.image.startsWith("/") || event.image.startsWith("http"))
+                ? event.image
+                : "/assets/dashboard/user/kokok.png"
+            }
+            alt={event.title}
+            fill
+            className="object-cover"
+          />
+        </div>
+
+        {/* Info */}
+        <div className="min-w-0 flex-1">
+          <span className="inline-block bg-emerald-50 text-emerald-700 text-[10px] font-semibold px-2 py-0.5 rounded-full">
+            {event.category}
+          </span>
+
+          <h3 className="text-sm font-bold text-gray-800 mt-1 leading-snug line-clamp-2">
+            {event.title}
+          </h3>
+
+          <div className="mt-1.5 flex items-center text-[11px] gap-1.5 text-gray-500">
+            <Calendar className="w-3 h-3 shrink-0" />
+            <span className="truncate">
+              {event.dateStart} - {event.dateEnd}
+            </span>
+          </div>
+
+          <div className="mt-1 flex items-center text-[11px] gap-1.5 text-gray-500">
+            <MapPin className="w-3 h-3 shrink-0" />
+            <span className="truncate">{event.location}</span>
+          </div>
+        </div>
+      </div>
+
+      <button
+        onClick={handleDaftar}
+        className="w-full mt-3 text-center px-3 py-2 text-xs font-medium rounded-md bg-emerald-500 text-white hover:bg-emerald-600 transition"
+      >
+        Daftar
+      </button>
+    </div>
   );
 }

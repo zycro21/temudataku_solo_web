@@ -103,7 +103,10 @@ export default function MainDashboardUserPage() {
             </div>
           </div>
 
-          <div className="mt-4 mb-5">{/* <RecommendationSection /> */}</div>
+          <div className="mt-4 mb-5">
+            {" "}
+            <RecommendationSection />{" "}
+          </div>
         </main>
       </div>
     </div>

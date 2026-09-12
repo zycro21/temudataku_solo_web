@@ -283,7 +283,13 @@ export default function AdminMentorPage() {
       hargaDisplay: formatRupiah(Number(item.price)),
       hargaDiskon: formatRupiah(Number(item.price)),
       deskripsi: item.description ?? "-",
-      status: item.isActive ? "Aktif" : "Nonaktif",
+      // 🔧 FIX: status E-Learning ditentukan dari `status === "PUBLISHED"`,
+      // BUKAN dari `isActive`. Sebelumnya field `isActive` di sini tidak
+      // pernah di-set sama sekali, padahal kolom "Aktif" di tabel (lihat
+      // columns.tsx) membaca `row.isActive`, bukan `row.status` — makanya
+      // semua baris E-Learning selalu tampil "Nonaktif".
+      status: item.status === "PUBLISHED" ? "Aktif" : "Nonaktif",
+      isActive: item.status === "PUBLISHED",
 
       diskonTipe: "-",
       diskon: 0,
@@ -300,6 +306,29 @@ export default function AdminMentorPage() {
     };
   };
 
+  const mapAyclToProject = (item: any): Project => {
+    return {
+      id: item.id,
+      // AYCL belum punya field thumbnail di backend, fallback ke logo default
+      foto: "/images/Navbar_logo.png",
+      nama: item.title,
+      kategori: "AYCL",
+
+      harga: Number(item.price) || 0,
+      hargaDisplay: formatRupiah(Number(item.price) || 0),
+      hargaDiskon: formatRupiah(Number(item.price) || 0),
+      deskripsi: item.description ?? "-",
+      // AYCL: status aktif/nonaktif murni dari isActive
+      status: item.isActive ? "Aktif" : "Nonaktif",
+      isActive: item.isActive,
+
+      diskonTipe: "-",
+      diskon: 0,
+
+      tanggalDitambahkan: formatDate(item.createdAt),
+    };
+  };
+
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -307,7 +336,7 @@ export default function AdminMentorPage() {
     try {
       setLoading(true);
 
-      const [mentoringRes, elearningRes] = await Promise.all([
+      const [mentoringRes, elearningRes, ayclRes] = await Promise.all([
         axios.get(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/mentorService/admin/mentoring-services`,
           {
@@ -328,6 +357,13 @@ export default function AdminMentorPage() {
             },
           },
         ),
+        axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/aycl/aycl`, {
+          withCredentials: true,
+          params: {
+            page: 1,
+            limit: 10000,
+          },
+        }),
       ]);
 
       const mentoringProjects = mentoringRes.data.data
@@ -338,9 +374,13 @@ export default function AdminMentorPage() {
         mapELearningToProject,
       );
 
-      console.log(elearningProjects.map((p: any) => p.foto));
+      const ayclProjects = (ayclRes.data.data || []).map(mapAyclToProject);
 
-      setProjects([...mentoringProjects, ...elearningProjects]);
+      setProjects([
+        ...mentoringProjects,
+        ...elearningProjects,
+        ...ayclProjects,
+      ]);
     } catch (error) {
       console.error("Gagal fetch products:", error);
     } finally {
@@ -985,8 +1025,24 @@ export default function AdminMentorPage() {
 
         const totalELearning = elearningRes.data.total || 0;
 
-        // Total Produk & Event = bootcamp + e-learning
-        const totalProdukEvent = totalMentoring + totalELearning;
+        // =====================
+        // FETCH AYCL
+        // =====================
+        const ayclRes = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/aycl/aycl`,
+          {
+            params: {
+              page: 1,
+              limit: 10000,
+            },
+            withCredentials: true,
+          },
+        );
+
+        const totalAycl = ayclRes.data.meta?.total || 0;
+
+        // Total Produk & Event = bootcamp + e-learning + aycl
+        const totalProdukEvent = totalMentoring + totalELearning + totalAycl;
 
         // =====================
         // SET STATS
@@ -1008,6 +1064,12 @@ export default function AdminMentorPage() {
             title: "E-Learning",
             value: totalELearning.toString(),
             image: "/assets/admin/tugas.svg",
+            color: "text-green-600",
+          },
+          {
+            title: "AYCL",
+            value: totalAycl.toString(),
+            image: "/assets/admin/pro.svg",
             color: "text-green-600",
           },
         ]);

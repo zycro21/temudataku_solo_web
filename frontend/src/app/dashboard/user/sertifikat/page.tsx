@@ -51,6 +51,10 @@ export default function SertifikatDashboardUserPage() {
   const [elearningLoading, setElearningLoading] = useState(true);
   const [elearningError, setElearningError] = useState("");
 
+  // 🔥 BARU: state drawer sidebar mobile — pola sama persis kayak
+  // page.tsx Overview/Jadwal/Feedback.
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -206,14 +210,6 @@ export default function SertifikatDashboardUserPage() {
   }, []);
 
   // Filter
-  // 🔥 UBAH: sekarang menggabungkan `sertifikats` (bootcamp) +
-  // `elearningCertificates` jadi satu list sebelum di-filter, supaya opsi
-  // "E-Learning" di `SertifikatFilters` beneran nyaring data e-learning
-  // juga (dulu sertifikat e-learning selalu tampil di section terpisah,
-  // di luar filter/search).
-  // 🔥 UBAH: `normalize` sekarang buang semua karakter non-alfanumerik
-  // (bukan cuma spasi), biar "E-Learning" (dari tombol filter) match
-  // sama value program "elearning" (tanpa strip).
   const filtered = useMemo(() => {
     const normalize = (str: string) =>
       str.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -246,14 +242,33 @@ export default function SertifikatDashboardUserPage() {
 
   return (
     <div className="flex">
-      <Sidebar />
+      <Sidebar
+        isMobileOpen={isMobileSidebarOpen}
+        onCloseMobile={() => setIsMobileSidebarOpen(false)}
+      />
 
-      {/* Konten kanan */}
-      <div className="flex-1 flex flex-col ml-64 min-w-0">
-        <DashboardHeader />
+      {/* 🔥 DIUBAH: "ml-64" → "ml-0 md:ml-64" — sama pola kayak halaman
+          lain: di mobile sidebar jadi drawer, balik PERSIS "ml-64" mulai
+          md: ke atas. */}
+      <div className="flex-1 flex flex-col ml-0 md:ml-64 min-w-0">
+        <DashboardHeader
+          onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
+        />
 
-        <main className="flex-1 px-5 py-4 bg-gray-50 overflow-x-hidden">
-          <h1 className="text-3xl font-semibold text-gray-800 mb-4">
+        {/* 🔥 DIUBAH: px-5 → px-3 md:px-5 */}
+        <main className="flex-1 px-3 md:px-5 py-4 bg-gray-50 overflow-x-hidden">
+          {/* 🔥 BARU: kartu judul khusus MOBILE (md:hidden), konsisten
+              sama pola halaman lain. TIDAK muncul di desktop. */}
+          <div className="md:hidden mb-4 rounded-xl bg-white border border-gray-200 p-4">
+            <p className="text-base font-semibold text-gray-800">Sertifikat</p>
+            <p className="text-[11px] text-gray-500 mt-0.5">
+              Kumpulan sertifikat dari program yang kamu ikuti
+            </p>
+          </div>
+
+          {/* 🔥 DIUBAH: <h1> ASLI tidak diubah sama sekali — cuma
+              ditambah "hidden md:block". */}
+          <h1 className="hidden md:block text-3xl font-semibold text-gray-800 mb-4">
             Sertifikat
           </h1>
 

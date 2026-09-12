@@ -73,22 +73,36 @@ export default function ActivitySection() {
           </p>
         ) : (
           activities.map((item, index) => (
+            // 🔥 DIUBAH: dulu selalu "flex items-center justify-between"
+            // (title+status kiri, tombol kanan, sejajar dalam 1 baris). Di
+            // mobile sekarang di-stack (flex-col items-start) — status
+            // ditampilkan sebagai pill/badge (bukan teks polos), tombol
+            // full-width di bawah biar gampang di-tap. Mulai sm: ke atas
+            // balik PERSIS layout original (flex-row, status teks polos,
+            // tombol ukuran asli).
             <div
               key={index}
-              className="flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-gray-50"
+              className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-0 p-3 border border-gray-200 rounded-lg bg-gray-50"
             >
-              <div className="flex flex-col">
-                <span className="text-sm font-medium text-gray-800">
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm font-medium text-gray-800 truncate">
                   {item.title}
                 </span>
-                <span className="text-[12px] text-orange-500 mt-0.5 font-medium">
+
+                {/* 🔥 DIUBAH: versi mobile pakai pill badge, versi sm: ke
+                    atas pakai teks polos original — dua elemen terpisah,
+                    ditoggle lewat sm:hidden / hidden sm:inline. */}
+                <span className="sm:hidden mt-1 inline-flex w-fit items-center rounded-full bg-orange-50 px-2 py-0.5 text-[11px] font-medium text-orange-600">
+                  {item.status}
+                </span>
+                <span className="hidden sm:inline text-[12px] text-orange-500 mt-0.5 font-medium">
                   {item.status}
                 </span>
               </div>
 
               <button
                 onClick={() => handleView(item)}
-                className="bg-emerald-500 text-white text-[12px] px-3 py-1 rounded-full hover:bg-emerald-600 transition"
+                className="w-full sm:w-auto bg-emerald-500 text-white text-[12px] px-3 py-1.5 sm:py-1 rounded-full hover:bg-emerald-600 transition"
               >
                 Lengkapi
               </button>

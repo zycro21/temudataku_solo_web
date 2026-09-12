@@ -24,11 +24,16 @@ export default function FailedModal({
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogOverlay />
 
+      {/* 🔥 DIUBAH: "w-full" → "w-[calc(100%-2rem)] sm:w-full" — dialog
+          dulu nempel edge-to-edge ke tepi layar di mobile (lebar 100%
+          viewport tanpa jarak kiri-kanan), sekarang otomatis nyisain
+          16px di kiri & kanan. Balik PERSIS w-full mulai sm: ke atas
+          (di situ sudah dibatasi max-w-xs, jadi tidak pernah full-bleed). */}
       <DialogContent
         showCloseButton={false}
         className="
     bg-white rounded-lg shadow
-    w-full max-w-xs
+    w-[calc(100%-2rem)] sm:w-full max-w-xs
     p-4
     text-center
     overflow-x-hidden
@@ -65,9 +70,11 @@ export default function FailedModal({
         </p>
 
         {/* BUTTONS */}
+        {/* 🔥 DIUBAH: py-1.5 → py-2 sm:py-1.5 (tap target lebih besar di
+            mobile, balik PERSIS ukuran original mulai sm: ke atas). */}
         <div className="mt-4 flex flex-col gap-2">
           <DialogClose asChild>
-            <Button className="w-full text-xs py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white">
+            <Button className="w-full text-xs py-2 sm:py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white">
               Kembali ke Dashboard
             </Button>
           </DialogClose>
@@ -78,7 +85,7 @@ export default function FailedModal({
               onRetry?.();
               onClose();
             }}
-            className="w-full text-xs py-1.5 border-emerald-500 text-emerald-600 hover:bg-emerald-50"
+            className="w-full text-xs py-2 sm:py-1.5 border-emerald-500 text-emerald-600 hover:bg-emerald-50"
           >
             Tambah Umpan Balik
           </Button>

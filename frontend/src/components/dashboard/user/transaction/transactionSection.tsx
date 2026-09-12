@@ -19,7 +19,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowUpDown, ArrowDown, ArrowUp } from "lucide-react";
+import {
+  ArrowUpDown,
+  ArrowDown,
+  ArrowUp,
+  CalendarDays,
+  GraduationCap,
+  Sparkles,
+  Receipt,
+} from "lucide-react"; // 🔥 TAMBAHAN: ikon jenis transaksi
 
 interface ApiPayment {
   id: string;
@@ -156,8 +164,61 @@ export default function TransactionSection() {
     return <ArrowDown className="inline w-4 h-4 ml-1 text-green-600" />;
   };
 
+  // 🔥 BARU: helper style badge status — diekstrak biar tidak duplikasi
+  // antara versi tabel desktop & versi kartu mobile (persis kondisi &
+  // warna yang sama seperti sebelumnya).
+  const statusBadgeClass = (status: string) =>
+    status === "confirmed"
+      ? "bg-green-100 text-green-600"
+      : status === "pending"
+        ? "bg-yellow-100 text-yellow-600"
+        : "bg-red-100 text-red-600";
+
+  // 🔥 BARU: dot warna kecil di dalam badge status (murni dekoratif,
+  // dipetakan dari status yang sama, bukan data baru).
+  const statusDotClass = (status: string) =>
+    status === "confirmed"
+      ? "bg-green-500"
+      : status === "pending"
+        ? "bg-yellow-500"
+        : "bg-red-500";
+
+  // 🔥 BARU: warna aksen garis kiri kartu mobile, dari status yang sama.
+  const statusAccentClass = (status: string) =>
+    status === "confirmed"
+      ? "border-l-green-400"
+      : status === "pending"
+        ? "border-l-yellow-400"
+        : "border-l-red-400";
+
+  // 🔥 BARU: ikon + warna avatar bulat berdasarkan jenis transaksi
+  // (`type`, field yang sudah ada di data — bukan field baru).
+  const typeVisual = (type: ApiPayment["type"]) => {
+    switch (type) {
+      case "aycl":
+        return {
+          icon: Sparkles,
+          bg: "bg-purple-50",
+          color: "text-purple-500",
+        };
+      case "elearning":
+        return {
+          icon: GraduationCap,
+          bg: "bg-blue-50",
+          color: "text-blue-500",
+        };
+      case "booking":
+      default:
+        return {
+          icon: CalendarDays,
+          bg: "bg-emerald-50",
+          color: "text-emerald-600",
+        };
+    }
+  };
+
   return (
-    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 min-w-0 mb-4">
+    <div className="bg-white p-3 sm:p-4 rounded-lg shadow-sm border border-gray-200 min-w-0 mb-4">
       {/* Search */}
       <div className="mb-4 flex gap-4">
         <Input
@@ -171,13 +232,18 @@ export default function TransactionSection() {
       {loading ? (
         <p className="text-center text-gray-500 py-6">Memuat data...</p>
       ) : transactions.length === 0 ? (
-        <p className="text-center text-gray-500 py-6">
-          Belum ada transaksi pembayaran.
-        </p>
+        // 🔥 DIUBAH: dikasih ikon di atas teks, murni dekoratif — bukan
+        // perubahan kondisi (masih persis "transactions.length === 0").
+        <div className="flex flex-col items-center justify-center py-10 gap-2">
+          <Receipt className="w-9 h-9 text-gray-300" />
+          <p className="text-center text-gray-500">
+            Belum ada transaksi pembayaran.
+          </p>
+        </div>
       ) : (
         <>
-          {/* TABLE */}
-          <div className="overflow-x-auto rounded-lg border border-gray-300 min-w-0">
+          {/* Versi DESKTOP/tablet — tabel ASLI, TIDAK diubah sama sekali */}
+          <div className="hidden sm:block overflow-x-auto rounded-lg border border-gray-300 min-w-0">
             <Table className="table-fixed w-full">
               <TableHeader>
                 <TableRow>
@@ -221,10 +287,6 @@ export default function TransactionSection() {
               <TableBody>
                 {paginatedData.map((t, idx) => (
                   <TableRow key={idx} className="border-b border-gray-200">
-                    {/* PERBAIKAN: 
-          - Menambahkan break-all agar ID panjang terpotong ke bawah 
-          - Mengatur min-width agar kolom tidak terlalu sempit
-      */}
                     <TableCell className="py-3 px-3 break-all whitespace-normal w-[25%]">
                       {t.transactionId}
                     </TableCell>
@@ -243,13 +305,9 @@ export default function TransactionSection() {
 
                     <TableCell className="py-3 w-[15%]">
                       <span
-                        className={`px-2 py-1 rounded-md text-sm font-medium inline-block ${
-                          t.status === "confirmed"
-                            ? "bg-green-100 text-green-600"
-                            : t.status === "pending"
-                              ? "bg-yellow-100 text-yellow-600"
-                              : "bg-red-100 text-red-600"
-                        }`}
+                        className={`px-2 py-1 rounded-md text-sm font-medium inline-block ${statusBadgeClass(
+                          t.status,
+                        )}`}
                       >
                         {t.status}
                       </span>
@@ -260,15 +318,79 @@ export default function TransactionSection() {
             </Table>
           </div>
 
+          {/* Versi MOBILE (sm:hidden) — list kartu, dipercantik:
+              - Aksen garis kiri warna sesuai status (border-l-4)
+              - Avatar bulat + ikon sesuai jenis transaksi (t.type)
+              - Badge status pakai dot bulat kecil + border tipis
+              - Shadow lembut biar nggak flat
+              Semua elemen visual ini murni dekoratif dari data yang
+              SUDAH ADA (t.type, t.status) — tidak ada field/logic baru. */}
+          <div className="sm:hidden space-y-2.5">
+            {paginatedData.map((t, idx) => {
+              const { icon: TypeIcon, bg, color } = typeVisual(t.type);
+              return (
+                <div
+                  key={idx}
+                  className={`border border-gray-200 border-l-4 ${statusAccentClass(
+                    t.status,
+                  )} rounded-lg p-3 shadow-sm bg-white`}
+                >
+                  <div className="flex items-start gap-2.5">
+                    {/* Avatar ikon jenis transaksi */}
+                    <div
+                      className={`shrink-0 w-9 h-9 rounded-full ${bg} flex items-center justify-center`}
+                    >
+                      <TypeIcon className={`w-4 h-4 ${color}`} />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="text-sm font-semibold text-gray-800 leading-snug break-words min-w-0 flex-1">
+                          {t.title}
+                        </h3>
+
+                        <span
+                          className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusBadgeClass(
+                            t.status,
+                          )}`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${statusDotClass(
+                              t.status,
+                            )}`}
+                          />
+                          {t.status}
+                        </span>
+                      </div>
+
+                      <p className="text-[11px] text-gray-400 mt-1 break-all">
+                        {t.transactionId}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-gray-100">
+                    <span className="text-[11px] text-gray-500">
+                      {t.paymentDate}
+                    </span>
+                    <span className="text-sm font-bold text-gray-800">
+                      Rp {t.amount.toLocaleString("id-ID")}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
           {/* PAGINATION */}
-          <div className="flex items-center justify-between mt-4 text-sm text-gray-600">
-            <p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mt-4 text-sm text-gray-600">
+            <p className="text-center sm:text-left text-xs sm:text-sm">
               Menampilkan {(currentPage - 1) * rowsPerPage + 1}–
               {Math.min(currentPage * rowsPerPage, filteredData.length)} dari{" "}
               {filteredData.length} data
             </p>
 
-            <div className="flex items-center gap-4 mx-auto">
+            <div className="flex items-center justify-center gap-4 sm:mx-auto">
               <Button
                 variant="outline"
                 size="sm"
@@ -290,8 +412,10 @@ export default function TransactionSection() {
               </Button>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-gray-500">Tampilkan per halaman</span>
+            <div className="flex items-center justify-center sm:justify-start gap-2">
+              <span className="text-gray-500 text-xs sm:text-sm">
+                Tampilkan per halaman
+              </span>
               <Select
                 value={rowsPerPage.toString()}
                 onValueChange={(val) => {

@@ -94,14 +94,37 @@ export default function CalendarSection() {
     }
   };
 
+  // 🔥 BARU: versi warna POLOS (tanpa text-white) khusus dot indicator
+  // mobile — dipetakan dari tipe yang sama supaya konsisten sama legenda
+  // & pill desktop.
+  const getEventDotColor = (type: EventType) => {
+    switch (type) {
+      case "one-on-one":
+        return "bg-yellow-400";
+      case "group":
+        return "bg-blue-500";
+      case "bootcamp":
+        return "bg-purple-500";
+      case "shortclass":
+        return "bg-pink-400";
+      case "live class":
+        return "bg-red-400";
+      default:
+        return "bg-emerald-500";
+    }
+  };
+
   const isSameDate = (d1: Date, d2: Date) =>
     d1.getDate() === d2.getDate() &&
     d1.getMonth() === d2.getMonth() &&
     d1.getFullYear() === d2.getFullYear();
 
   return (
-    <div className="bg-white pt-1 px-6 pb-6 h-fit">
-      {/* Header Kalender */}
+    // 🔥 DIUBAH: px-6 → px-3 sm:px-6, biar nggak makan ruang di mobile.
+    // Balik PERSIS px-6 mulai sm: ke atas.
+    <div className="bg-white pt-1 px-3 sm:px-6 pb-6 h-fit">
+      {/* Header Kalender — TIDAK diubah sama sekali (font kecil fixed di
+          semua breakpoint sudah cukup ringkas buat mobile). */}
       <div className="flex justify-between items-center mb-3">
         <div className="flex items-center space-x-2">
           <div className="flex items-center border border-gray-400 rounded px-2 py-0.5 cursor-pointer">
@@ -165,14 +188,19 @@ export default function CalendarSection() {
             <div
               key={index}
               onClick={() => setSelectedDate(date)}
-              className={`group relative border-b border-r border-gray-300 flex flex-col cursor-pointer ${
+              // 🔥 DIUBAH: minHeight dipindah dari inline style ("80px"
+              // tetap) ke className responsive "min-h-[52px] sm:min-h-[80px]"
+              // — sel kalender lebih pendek di mobile (7 kolom sempit +
+              // lebih banyak baris = butuh dihemat), balik PERSIS 80px
+              // mulai sm: ke atas.
+              className={`group relative border-b border-r border-gray-300 flex flex-col cursor-pointer min-h-[52px] sm:min-h-[80px] ${
                 !isCurrentMonth ? "bg-gray-100 text-gray-400" : ""
               } ${isSelected ? "ring-2 ring-emerald-500" : ""}`}
-              style={{ padding: "4px", minHeight: "80px" }}
+              style={{ padding: "4px" }}
             >
               {isToday && (
                 <span
-                  className="absolute top-1 left-1/2 -translate-x-1/2 bg-black text-white px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition"
+                  className="absolute top-1 left-1/2 -translate-x-1/2 bg-black text-white px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition hidden sm:block"
                   style={{ fontSize: "8px" }}
                 >
                   Today
@@ -189,25 +217,55 @@ export default function CalendarSection() {
               </div>
 
               <div className="space-y-0.5 mt-0.5 flex-1 overflow-hidden">
-                {dayEvents.slice(0, 2).map((event, eventIndex) => (
-                  <span
-                    key={eventIndex}
-                    className={`block w-full rounded-sm text-left truncate ${getEventStyle(
-                      event.type,
-                    )}`}
-                    style={{ fontSize: "9px", padding: "1px 3px" }}
-                  >
-                    {event.title}
-                  </span>
-                ))}
+                {/* Pill teks penuh — ASLI, TIDAK diubah, cuma dibungkus
+                    "hidden sm:block" supaya identik mulai sm: ke atas. */}
+                <div className="hidden sm:block space-y-0.5">
+                  {dayEvents.slice(0, 2).map((event, eventIndex) => (
+                    <span
+                      key={eventIndex}
+                      className={`block w-full rounded-sm text-left truncate ${getEventStyle(
+                        event.type,
+                      )}`}
+                      style={{ fontSize: "9px", padding: "1px 3px" }}
+                    >
+                      {event.title}
+                    </span>
+                  ))}
 
-                {dayEvents.length > 2 && (
-                  <span
-                    className="block text-gray-400 text-left"
-                    style={{ fontSize: "8px" }}
-                  >
-                    +{dayEvents.length - 2} more
-                  </span>
+                  {dayEvents.length > 2 && (
+                    <span
+                      className="block text-gray-400 text-left"
+                      style={{ fontSize: "8px" }}
+                    >
+                      +{dayEvents.length - 2} more
+                    </span>
+                  )}
+                </div>
+
+                {/* 🔥 BARU: dot indicator, CUMA muncul di mobile
+                    (sm:hidden) — kolom terlalu sempit buat teks penuh,
+                    jadi diganti titik warna sesuai tipe event. Tap sel
+                    tetap pilih tanggal, detailnya muncul di
+                    DayEventsSection di bawah/samping. */}
+                {dayEvents.length > 0 && (
+                  <div className="sm:hidden flex flex-wrap gap-0.5 justify-center">
+                    {dayEvents.slice(0, 4).map((event, eventIndex) => (
+                      <span
+                        key={eventIndex}
+                        className={`w-1.5 h-1.5 rounded-full ${getEventDotColor(
+                          event.type,
+                        )}`}
+                      />
+                    ))}
+                    {dayEvents.length > 4 && (
+                      <span
+                        className="text-gray-400"
+                        style={{ fontSize: "7px" }}
+                      >
+                        +{dayEvents.length - 4}
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -215,7 +273,8 @@ export default function CalendarSection() {
         })}
       </div>
 
-      {/* Legenda */}
+      {/* Legenda — tidak diubah, sudah flex-wrap jadi otomatis rapi di
+          mobile. */}
       <div
         className="flex items-center gap-2 mt-2 flex-wrap"
         style={{ fontSize: "9px" }}

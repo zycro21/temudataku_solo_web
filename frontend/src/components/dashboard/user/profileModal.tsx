@@ -80,6 +80,24 @@ export default function ProfileModal({
       ? currentUser.phoneNumber.trim().split(/\s+/)[0]
       : "-";
 
+  // 🔥 BARU: dipakai KHUSUS buat list detail versi mobile di bawah —
+  // sumber datanya sama persis dengan yang dipakai grid detail desktop,
+  // cuma diringkas jadi array biar gampang di-map jadi baris list.
+  const detailRows = [
+    { label: "Nama Lengkap", value: currentUser?.fullName || "-" },
+    { label: "Email", value: currentUser?.email || "-" },
+    { label: "No Telepon", value: phoneDisplay },
+    {
+      label: "Peran",
+      value: currentUser?.userRoles?.[0]?.role?.roleName || "-",
+    },
+    { label: "ID Mentee", value: currentUser?.id || "-" },
+    {
+      label: "Status Akun",
+      value: currentUser?.isActive ? "Aktif" : "Tidak Aktif",
+    },
+  ];
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -95,8 +113,35 @@ export default function ProfileModal({
 
           <div className="border-b border-gray-200 mb-1" />
 
-          {/* Foto Mentee */}
-          <div>
+          {/* 🔥 BARU: header profil ringkas KHUSUS mobile (sm:hidden) —
+              avatar bulat + nama + peran, menggantikan foto kotak besar
+              di bawah (yang disembunyikan di mobile). */}
+          <div className="sm:hidden flex flex-col items-center text-center gap-2 py-3">
+            <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-100 border border-gray-200">
+              <Image
+                src={avatarUrl}
+                alt="Foto Mentee"
+                width={80}
+                height={80}
+                unoptimized
+                className="object-cover w-full h-full"
+              />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">
+                {currentUser?.fullName || "-"}
+              </p>
+              <p className="text-[11px] text-gray-500">
+                {currentUser?.userRoles?.[0]?.role?.roleName || "-"}
+              </p>
+            </div>
+          </div>
+
+          {/* Foto Mentee — BLOK ASLI, TIDAK diubah sama sekali, cuma
+              dibungkus "hidden sm:block" biar disembunyikan di mobile
+              (digantikan header profil di atas) dan tampil PERSIS seperti
+              semula mulai breakpoint sm ke atas. */}
+          <div className="hidden sm:block">
             <p className="text-sm font-medium text-gray-600 mb-2">
               Foto Mentee
             </p>
@@ -112,13 +157,18 @@ export default function ProfileModal({
             </div>
           </div>
 
-          {/* Detail */}
-          <div className="grid grid-cols-2 gap-4 text-xs mt-4 min-w-0">
+          {/* Detail — DESKTOP: grid 2 kolom ASLI, TIDAK diubah sama
+              sekali, cuma dibungkus "hidden sm:grid" (dulu "grid" polos)
+              supaya hasil visualnya di sm: ke atas 100% sama seperti
+              semula. */}
+          <div className="hidden sm:grid sm:grid-cols-2 gap-4 text-xs mt-4 min-w-0">
             {/* Kiri */}
             <div className="space-y-6">
               <div>
                 <p className="font-medium text-gray-600">ID Mentee</p>
-                <p className="font-semibold break-words">{currentUser?.id || "-"}</p>
+                <p className="font-semibold break-words">
+                  {currentUser?.id || "-"}
+                </p>
               </div>
               <div>
                 <p className="font-medium text-gray-600">No Telepon</p>
@@ -136,11 +186,15 @@ export default function ProfileModal({
             <div className="space-y-6">
               <div>
                 <p className="font-medium text-gray-600">Nama Lengkap</p>
-                <p className="font-semibold break-words">{currentUser?.fullName || "-"}</p>
+                <p className="font-semibold break-words">
+                  {currentUser?.fullName || "-"}
+                </p>
               </div>
               <div>
                 <p className="font-medium text-gray-600">Email</p>
-                <p className="font-semibold break-words">{currentUser?.email || "-"}</p>
+                <p className="font-semibold break-words">
+                  {currentUser?.email || "-"}
+                </p>
               </div>
               <div>
                 <p className="font-medium text-gray-600">Status Akun</p>
@@ -149,6 +203,25 @@ export default function ProfileModal({
                 </p>
               </div>
             </div>
+          </div>
+
+          {/* 🔥 BARU: versi mobile detail — list 1 kolom dengan garis
+              pemisah antar baris (divide-y), lebih lega dibaca di layar
+              sempit dibanding grid 2 kolom yang kepotong. */}
+          <div className="sm:hidden mt-2 divide-y divide-gray-100 text-xs">
+            {detailRows.map((row) => (
+              <div
+                key={row.label}
+                className="flex items-center justify-between gap-3 py-2.5"
+              >
+                <p className="font-medium text-gray-500 shrink-0">
+                  {row.label}
+                </p>
+                <p className="font-semibold text-gray-900 text-right break-words">
+                  {row.value}
+                </p>
+              </div>
+            ))}
           </div>
 
           {/* Footer */}

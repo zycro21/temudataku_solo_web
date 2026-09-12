@@ -67,6 +67,9 @@ export default function FeedbackDashboardUserPage() {
   const [feedbackData, setFeedbackData] = useState<Feedback[]>([]);
   const [programFilter, setProgramFilter] = useState("Semua");
   const [searchQuery, setSearchQuery] = useState("");
+  // 🔥 BARU: state drawer sidebar mobile — pola sama persis kayak
+  // page.tsx Overview/Jadwal.
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const fetchFeedbacks = async () => {
     try {
@@ -151,14 +154,35 @@ export default function FeedbackDashboardUserPage() {
 
   return (
     <div className="flex">
-      <Sidebar />
+      <Sidebar
+        isMobileOpen={isMobileSidebarOpen}
+        onCloseMobile={() => setIsMobileSidebarOpen(false)}
+      />
 
-      {/* Konten kanan */}
-      <div className="flex-1 flex flex-col ml-64 min-w-0">
-        <DashboardHeader />
+      {/* 🔥 DIUBAH: "ml-64" → "ml-0 md:ml-64" — sama pola kayak
+          Overview/Jadwal: di mobile sidebar jadi drawer, balik PERSIS
+          "ml-64" mulai md: ke atas. */}
+      <div className="flex-1 flex flex-col ml-0 md:ml-64 min-w-0">
+        <DashboardHeader
+          onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
+        />
 
-        <main className="flex-1 px-5 py-4 bg-gray-50 overflow-x-hidden">
-          <h1 className="text-3xl font-semibold text-gray-800 mb-4">Feedback</h1>
+        {/* 🔥 DIUBAH: px-5 → px-3 md:px-5 */}
+        <main className="flex-1 px-3 md:px-5 py-4 bg-gray-50 overflow-x-hidden">
+          {/* 🔥 BARU: kartu judul khusus MOBILE (md:hidden), konsisten
+              sama pola di Overview/Jadwal. TIDAK muncul di desktop. */}
+          <div className="md:hidden mb-4 rounded-xl bg-white border border-gray-200 p-4">
+            <p className="text-base font-semibold text-gray-800">Feedback</p>
+            <p className="text-[11px] text-gray-500 mt-0.5">
+              Isi feedback sesi mentoring yang sudah kamu ikuti
+            </p>
+          </div>
+
+          {/* 🔥 DIUBAH: <h1> ASLI tidak diubah sama sekali (termasuk
+              ukuran text-3xl-nya) — cuma ditambah "hidden md:block". */}
+          <h1 className="hidden md:block text-3xl font-semibold text-gray-800 mb-4">
+            Feedback
+          </h1>
 
           <div className="space-y-4 min-w-0">
             <FeedbackFilters

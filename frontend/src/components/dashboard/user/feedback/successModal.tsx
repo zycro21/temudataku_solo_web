@@ -18,12 +18,14 @@ export default function SuccessModal({ open, onClose }: SuccessModalProps) {
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogOverlay />
+      {/* 🔥 DIUBAH: sama fix seperti failedModal.tsx — kasih jarak dari
+          tepi layar di mobile, identik di sm: ke atas. */}
       <DialogContent
         showCloseButton={false}
         onInteractOutside={(e) => e.preventDefault()}
         className="
     bg-white rounded-lg shadow
-    w-full max-w-xs
+    w-[calc(100%-2rem)] sm:w-full max-w-xs
     p-4
     text-center
     overflow-x-hidden
@@ -57,8 +59,9 @@ export default function SuccessModal({ open, onClose }: SuccessModalProps) {
         </p>
 
         {/* BUTTON */}
+        {/* 🔥 DIUBAH: py-1.5 → py-2 sm:py-1.5 */}
         <DialogClose asChild>
-          <Button className="mt-4 w-full text-xs py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white">
+          <Button className="mt-4 w-full text-xs py-2 sm:py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white">
             Kembali ke Dashboard
           </Button>
         </DialogClose>
