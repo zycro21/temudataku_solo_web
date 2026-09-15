@@ -145,7 +145,7 @@ export default function SubscriptionStatusBanner() {
 
         {isEndingSoon && (
           <Link
-            href="/elearning"
+            href="/elearning#pilihan-elearning"
             className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-semibold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 rounded-full px-4 py-1.5 sm:py-2 transition-all shrink-0 shadow-sm shadow-emerald-500/25"
           >
             Perpanjang Sekarang

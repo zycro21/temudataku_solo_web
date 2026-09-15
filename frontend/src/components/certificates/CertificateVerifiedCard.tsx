@@ -62,42 +62,51 @@ export default function CertificateVerifiedCard({ data }: Props) {
   return (
     <div className="overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-xl shadow-emerald-900/5">
       {/* Header hijau */}
-      <div className="relative bg-gradient-to-br from-emerald-600 to-emerald-500 px-6 py-8 text-center sm:px-10">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white/15 ring-4 ring-white/20">
-          <CheckCircle2 size={34} className="text-white" strokeWidth={2.2} />
+      <div className="relative bg-gradient-to-br from-emerald-600 to-emerald-500 px-5 py-7 text-center sm:px-10 sm:py-8">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/15 ring-4 ring-white/20 sm:h-16 sm:w-16">
+          <CheckCircle2
+            size={28}
+            className="text-white sm:hidden"
+            strokeWidth={2.2}
+          />
+          <CheckCircle2
+            size={34}
+            className="hidden text-white sm:block"
+            strokeWidth={2.2}
+          />
         </div>
-        <h1 className="mt-4 text-xl font-bold text-white sm:text-2xl">
+        <h1 className="mt-4 text-lg font-bold text-white sm:text-2xl">
           Sertifikat Terverifikasi
         </h1>
-        <p className="mt-1.5 text-sm text-emerald-50">
+        <p className="mt-1.5 text-xs sm:text-sm text-emerald-50">
           Sertifikat ini tercatat resmi dalam sistem TemuDataku
         </p>
       </div>
 
       {/* Body detail */}
-      <div className="space-y-6 px-6 py-8 sm:px-10">
+      <div className="space-y-5 sm:space-y-6 px-5 py-6 sm:px-10 sm:py-8">
         <div className="text-center">
           <p className="text-xs font-medium uppercase tracking-wide text-emerald-600">
             Diberikan Kepada
           </p>
-          <p className="mt-1 text-2xl font-bold text-gray-900">
+          <p className="mt-1 text-lg sm:text-2xl font-bold text-gray-900 break-words">
             {data.user.fullName}
           </p>
         </div>
 
-        <div className="rounded-2xl bg-emerald-50/70 p-5">
+        <div className="rounded-2xl bg-emerald-50/70 p-4 sm:p-5">
           <div className="flex items-start gap-3">
             <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-100">
               <Award size={17} className="text-emerald-600" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
                 Telah Menyelesaikan
               </p>
-              <p className="mt-0.5 font-semibold text-gray-900">
+              <p className="mt-0.5 font-semibold text-gray-900 break-words">
                 {data.subChapter.title}
               </p>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 break-words">
                 {data.subChapter.course.title}
               </p>
             </div>
@@ -145,7 +154,7 @@ export default function CertificateVerifiedCard({ data }: Props) {
         </a>
       </div>
 
-      <div className="border-t border-emerald-100 bg-emerald-50/50 px-6 py-4 text-center sm:px-10">
+      <div className="border-t border-emerald-100 bg-emerald-50/50 px-5 py-4 text-center sm:px-10">
         <p className="text-xs text-gray-500">
           Halaman ini adalah hasil verifikasi otomatis dari QR code pada
           sertifikat fisik/digital TemuDataku.

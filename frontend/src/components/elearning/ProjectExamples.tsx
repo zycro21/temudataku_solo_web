@@ -110,14 +110,14 @@ export default function ProjectExamples() {
   }, [api]);
 
   return (
-    <section className="py-8 md:py-12 bg-white w-full overflow-hidden">
+    <section className="py-8 sm:py-10 md:py-12 bg-white w-full overflow-hidden">
       {/* ===== HEADER ===== */}
       <div className="max-w-[1200px] mx-auto px-4">
         <div className="text-center mb-6 md:mb-8">
-          <h2 className="text-lg md:text-xl lg:text-2xl font-bold text-gray-900 mb-2">
+          <h2 className="text-lg sm:text-xl md:text-2xl lg:text-2xl font-bold text-gray-900 mb-2">
             Proyek Sejauh Ini, Keren Nggak Sih?
           </h2>
-          <p className="text-sm md:text-base text-gray-700 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-sm md:text-base text-gray-700 max-w-3xl mx-auto leading-relaxed px-1">
             Bukan sekadar latihan, ini hasil nyata dari mereka yang udah serius
             ngejalanin challenge di TemuDataku. Dari analisis data sampai
             visualisasi yang insight-driven, semua proyek ini nunjukin gimana

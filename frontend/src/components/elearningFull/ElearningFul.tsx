@@ -224,23 +224,23 @@ export default function ElearningSelection() {
   };
 
   return (
-    <section className="py-16 px-4 md:px-6 lg:px-8">
+    <section className="py-10 sm:py-12 md:py-14 lg:py-16 px-4 md:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <SubscriptionStatusBanner />
 
         {/* Section Header */}
-        <div className="text-center mb-12">
-          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+        <div className="text-center mb-8 sm:mb-10 lg:mb-12">
+          <h2 className="text-2xl sm:text-3xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
             Kuasai Skill dengan E-Learning Praktis
           </h2>
-          <p className="text-lg text-gray-600 max-w-4xl mx-auto">
+          <p className="text-sm sm:text-base md:text-lg lg:text-lg text-gray-600 max-w-sm sm:max-w-xl md:max-w-2xl lg:max-w-4xl mx-auto">
             Dari nol sampai expert, e-learning ini siap temenin langkah
             belajarmu. Tinggal pilih modul, terus jalanin!
           </p>
         </div>
 
         {/* Search and Filter */}
-        <div className="mb-8 space-y-6">
+        <div className="mb-6 sm:mb-8 space-y-4 sm:space-y-6">
           {/* Search Bar */}
           <div className="flex flex-col md:flex-row gap-4">
             {/* Search Bar - Full width */}
@@ -271,7 +271,7 @@ export default function ElearningSelection() {
                   key={category}
                   onClick={() => handleCategoryChange(category)}
                   variant={isActive ? "default" : "outline"}
-                  className={`px-6 py-2 rounded-md ${
+                  className={`px-4 py-1.5 sm:px-6 sm:py-2 rounded-md ${
                     isActive
                       ? "bg-emerald-600 hover:bg-emerald-700 text-white"
                       : "border-gray-300 text-gray-600 hover:bg-gray-50"
@@ -286,7 +286,7 @@ export default function ElearningSelection() {
 
         {/* Practice Cards Grid / Empty / Loading / Locked State */}
         {loading ? (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6">
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
@@ -303,7 +303,7 @@ export default function ElearningSelection() {
           </div>
         ) : errorType === "unauthenticated" ||
           errorType === "no-subscription" ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center px-4">
+          <div className="flex flex-col items-center justify-center py-16 sm:py-20 lg:py-24 text-center px-4">
             <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mb-4">
               <Lock className="w-7 h-7 text-emerald-600" />
             </div>
@@ -338,7 +338,7 @@ export default function ElearningSelection() {
             )}
           </div>
         ) : totalPractices === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="flex flex-col items-center justify-center py-16 sm:py-20 lg:py-24 text-center">
             {/* Icon */}
             <SearchX className="w-16 h-16 text-gray-400 mb-4" />
 
@@ -353,7 +353,7 @@ export default function ElearningSelection() {
             </p>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6">
             {visiblePractices.map((course) => (
               <Link
                 key={course.id}
@@ -382,7 +382,7 @@ export default function ElearningSelection() {
                     {/* Title */}
                     <h3
                       title={course.title}
-                      className="text-[1.375rem] leading-snug font-bold text-gray-900 mb-2 line-clamp-1 transition-colors group-hover:text-emerald-600"
+                      className="text-lg sm:text-xl lg:text-[1.375rem] leading-snug font-bold text-gray-900 mb-2 line-clamp-1 transition-colors group-hover:text-emerald-600"
                     >
                       {course.title}
                     </h3>
@@ -393,9 +393,9 @@ export default function ElearningSelection() {
                     </p>
 
                     {/* Class & Module Info */}
-                    <div className="flex flex-wrap items-center gap-4 text-sm mb-6">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm mb-4 sm:mb-6">
                       {/* Kelas */}
-                      <div className="flex items-center gap-2 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg">
+                      <div className="flex items-center gap-2 bg-gray-100 text-gray-700 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg">
                         <Image
                           src="/assets/elearning/class.svg"
                           alt="Kelas"
@@ -408,7 +408,7 @@ export default function ElearningSelection() {
                       </div>
 
                       {/* Modul */}
-                      <div className="flex items-center gap-2 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg">
+                      <div className="flex items-center gap-2 bg-gray-100 text-gray-700 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg">
                         <Image
                           src="/assets/elearning/module.svg"
                           alt="Modul"
@@ -439,7 +439,7 @@ export default function ElearningSelection() {
                       );
 
                       return (
-                        <div className="flex items-center justify-between text-sm pt-4 border-t border-gray-100">
+                        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 text-sm pt-4 border-t border-gray-100">
                           <div className="flex items-center gap-2">
                             <StarRating rating={displayedRating} />
                             <span className="text-gray-700 font-medium">
@@ -472,7 +472,7 @@ export default function ElearningSelection() {
 
         {/* Action Buttons */}
         {canExpand && (
-          <div className="flex justify-center mt-10 gap-4 flex-wrap">
+          <div className="flex justify-center mt-8 sm:mt-10 gap-4 flex-wrap">
             {/* Toggle Less / More */}
             {!isExpanded && (
               <Button

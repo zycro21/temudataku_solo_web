@@ -30,20 +30,21 @@ export default function SubchapterFooter({
   nextLocked = false,
 }: Props) {
   return (
-    <footer className="h-16 shrink-0 bg-[#F8FAFC] border-t border-gray-200 z-50">
-      <div className="h-full flex items-center justify-between px-6">
+    <footer className="h-14 sm:h-16 shrink-0 bg-[#F8FAFC] border-t border-gray-200 z-50">
+      <div className="h-full flex items-center justify-between px-2 sm:px-6 gap-1 sm:gap-2">
         {/* PREV */}
         <Button
           variant="ghost"
           disabled={!prev}
           onClick={() => prev && onNavigate(prev)}
-          className="flex items-center gap-3 text-left disabled:opacity-40"
+          className="flex items-center gap-1.5 sm:gap-3 text-left disabled:opacity-40 min-w-0 h-auto px-1.5 py-1 sm:h-9 sm:px-4 sm:py-2"
         >
           {/* ICON */}
-          <div className="w-8 h-8 flex items-center justify-center rounded-full border border-emerald-500">
+          <div className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full border border-emerald-500 shrink-0">
             <svg
-              width="14"
-              height="14"
+              width="11"
+              height="11"
+              className="sm:w-[14px] sm:h-[14px]"
               viewBox="0 0 24 24"
               fill="none"
               stroke="#10B981"
@@ -56,9 +57,13 @@ export default function SubchapterFooter({
           </div>
 
           {/* TEXT */}
-          <div className="leading-tight">
-            <p className="text-[11px] text-gray-500">{prev?.moduleTitle}</p>
-            <p className="text-xs font-semibold text-gray-800">{prev?.title}</p>
+          <div className="leading-tight min-w-0">
+            <p className="hidden sm:block text-[11px] text-gray-500 truncate">
+              {prev?.moduleTitle}
+            </p>
+            <p className="text-[10px] sm:text-xs font-semibold text-gray-800 truncate max-w-[70px] sm:max-w-[180px]">
+              {prev?.title}
+            </p>
           </div>
         </Button>
 
@@ -72,26 +77,35 @@ export default function SubchapterFooter({
               ? "Selesaikan materi sebelumnya secara berurutan untuk membuka ini"
               : undefined
           }
-          className="flex items-center gap-3 text-right disabled:opacity-40"
+          className="flex items-center gap-1.5 sm:gap-3 text-right disabled:opacity-40 min-w-0 h-auto px-1.5 py-1 sm:h-9 sm:px-4 sm:py-2"
         >
           {/* TEXT */}
-          <div className="leading-tight">
-            <p className="text-[11px] text-gray-500">{next?.moduleTitle}</p>
-            <p className="text-xs font-semibold text-gray-800">{next?.title}</p>
+          <div className="leading-tight min-w-0">
+            <p className="hidden sm:block text-[11px] text-gray-500 truncate">
+              {next?.moduleTitle}
+            </p>
+            <p className="text-[10px] sm:text-xs font-semibold text-gray-800 truncate max-w-[70px] sm:max-w-[180px]">
+              {next?.title}
+            </p>
           </div>
 
           {/* ICON */}
           <div
-            className={`w-8 h-8 flex items-center justify-center rounded-full border ${
+            className={`w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full border shrink-0 ${
               next && nextLocked ? "border-gray-300" : "border-emerald-500"
             }`}
           >
             {next && nextLocked ? (
-              <Lock size={13} strokeWidth={2.25} className="text-gray-400" />
+              <Lock
+                size={11}
+                strokeWidth={2.25}
+                className="text-gray-400 sm:w-[13px] sm:h-[13px]"
+              />
             ) : (
               <svg
-                width="14"
-                height="14"
+                width="11"
+                height="11"
+                className="sm:w-[14px] sm:h-[14px]"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="#10B981"

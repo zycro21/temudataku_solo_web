@@ -103,7 +103,7 @@ export default function SubchapterCertificateContent({
             Memeriksa sertifikat kamu...
           </p>
           <p className="mt-1 text-xs text-gray-500">
-            Selamat, kamu sudah menyelesaikan kelas ini 🎉 Mohon tunggu
+            Selamat, kamu sudah menyelesaikan kelas ini, Mohon tunggu
             sebentar.
           </p>
         </div>
@@ -137,7 +137,7 @@ export default function SubchapterCertificateContent({
         </div>
         <div>
           <p className="text-base font-bold text-gray-900">
-            Selamat! Kamu Sudah Menyelesaikan Kelas Ini 🎉
+            Selamat! Kamu Sudah Menyelesaikan Kelas Ini 
           </p>
           <p className="mt-1.5 max-w-sm text-sm text-gray-500">
             Sertifikat kelulusanmu sudah siap dicetak. Nilai yang tercantum akan
@@ -218,7 +218,7 @@ export default function SubchapterCertificateContent({
             <Award className="h-7 w-7 text-emerald-600" />
           </div>
           <h1 className="text-xl font-bold text-gray-900">
-            Selamat! Kamu Berhasil Menyelesaikan Kelas Ini 🎉
+            Selamat! Kamu Berhasil Menyelesaikan Kelas Ini 
           </h1>
           <p className="mt-1 text-sm text-gray-500">
             {certificate.subChapter.title} &middot;{" "}
@@ -245,7 +245,7 @@ export default function SubchapterCertificateContent({
             href={certificate.certificateUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-700 active:scale-[0.98]"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-700 active:scale-[0.98] sm:w-auto"
           >
             <Download size={14} />
             Unduh Sertifikat
@@ -257,7 +257,7 @@ export default function SubchapterCertificateContent({
           <iframe
             src={previewUrl}
             title="Pratinjau Sertifikat"
-            className="h-[620px] w-full sm:h-[720px]"
+            className="h-[380px] w-full sm:h-[620px] lg:h-[720px]"
             allow="autoplay"
           />
         </div>

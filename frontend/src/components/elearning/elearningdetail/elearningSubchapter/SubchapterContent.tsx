@@ -704,7 +704,7 @@ const QuizRenderer = ({
       )}
 
       {/* ================= QUESTION AREA ================= */}
-      <div className="bg-white pt-6 pl-28 pr-8 pb-12 space-y-12">
+      <div className="bg-white pt-6 pl-4 pr-4 sm:pl-8 sm:pr-6 md:pl-16 lg:pl-28 lg:pr-8 pb-12 space-y-12">
         {visibleQuestions.map((q: any, index: number) => {
           const currentAnswers = answers[q.id] || [];
           const isCorrect = checkIsCorrect(q);
@@ -720,7 +720,7 @@ const QuizRenderer = ({
 
           return (
             <div key={q.id} id={`question-${index}`} className="space-y-4">
-              <p className="text-2xl font-bold text-black">
+              <p className="text-lg sm:text-2xl font-bold text-black">
                 Pertanyaan{" "}
                 {isStepMode && !submitted ? currentStep + 1 : index + 1}
               </p>
@@ -755,7 +755,7 @@ const QuizRenderer = ({
               )}
 
               {/* OPTIONS */}
-              <div className="pl-8 space-y-4 pt-4">
+              <div className="pl-1 sm:pl-8 space-y-3 sm:space-y-4 pt-4">
                 {q.options.map((opt: string, optIdx: number) => {
                   const checked = currentAnswers.includes(opt);
                   const isCorrectOption = q.correctAnswers.includes(opt);
@@ -798,7 +798,7 @@ const QuizRenderer = ({
                   return (
                     <label
                       key={`${q.id}-${optIdx}`}
-                      className={`flex items-center gap-4 px-5 py-4 border rounded-xl cursor-pointer transition hover:bg-gray-50 ${borderStyle}`}
+                      className={`flex items-center gap-3 sm:gap-4 px-3 sm:px-5 py-3 sm:py-4 border rounded-xl cursor-pointer transition hover:bg-gray-50 ${borderStyle}`}
                     >
                       <input
                         type="checkbox"
@@ -830,7 +830,7 @@ const QuizRenderer = ({
               {/* RESULT PER QUESTION */}
               {submitted && (
                 <div
-                  className={`mt-6 border rounded-xl p-5 flex gap-4 ${
+                  className={`mt-6 border rounded-xl p-4 sm:p-5 flex gap-3 sm:gap-4 ${
                     isCorrect
                       ? "border-emerald-500 bg-emerald-50"
                       : "border-red-500 bg-red-50"
@@ -878,11 +878,11 @@ const QuizRenderer = ({
 
       {/* ================= BOTTOM ACTION ================= */}
       {!isStepMode && !submitted && (
-        <div className="bg-white flex justify-center pl-28 pr-8 pb-16">
+        <div className="bg-white flex justify-center px-4 sm:pl-8 sm:pr-6 md:pl-16 lg:pl-28 lg:pr-8 pb-16">
           <button
             disabled={!allAnswered || submitted || isSubmitting}
             onClick={() => setShowConfirmModal(true)}
-            className={`flex items-center gap-3 px-10 py-4 rounded-xl font-semibold text-base transition ${
+            className={`flex items-center gap-3 px-6 sm:px-10 py-4 rounded-xl font-semibold text-base transition ${
               !allAnswered || submitted || isSubmitting
                 ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                 : "bg-emerald-500 text-white hover:bg-emerald-600"
@@ -896,11 +896,11 @@ const QuizRenderer = ({
 
       {/* ================= STEP MODE NAVIGATION ================= */}
       {isStepMode && !submitted && (
-        <div className="bg-white flex justify-between items-center pl-28 pr-8 pt-2 pb-12">
+        <div className="bg-white flex justify-between items-center gap-3 px-4 sm:pl-8 sm:pr-6 md:pl-16 lg:pl-28 lg:pr-8 pt-2 pb-12">
           <button
             disabled={currentStep === 0}
             onClick={() => setCurrentStep((p) => p - 1)}
-            className="px-8 py-4 rounded-xl bg-emerald-500 text-white"
+            className="px-4 sm:px-8 py-3 sm:py-4 rounded-xl bg-emerald-500 text-white text-sm sm:text-base"
           >
             Sebelumnya
           </button>
@@ -909,7 +909,7 @@ const QuizRenderer = ({
             <button
               disabled={!allAnswered || isSubmitting}
               onClick={() => setShowConfirmModal(true)}
-              className={`flex items-center gap-3 px-10 py-4 rounded-xl font-semibold transition ${
+              className={`flex items-center gap-2 sm:gap-3 px-4 sm:px-10 py-3 sm:py-4 rounded-xl font-semibold text-sm sm:text-base transition ${
                 !allAnswered || isSubmitting
                   ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                   : "bg-emerald-500 text-white hover:bg-emerald-600"
@@ -921,7 +921,7 @@ const QuizRenderer = ({
           ) : (
             <button
               onClick={() => setCurrentStep((p) => p + 1)}
-              className="px-8 py-4 rounded-xl bg-emerald-500 text-white"
+              className="px-4 sm:px-8 py-3 sm:py-4 rounded-xl bg-emerald-500 text-white text-sm sm:text-base"
             >
               Selanjutnya
             </button>
@@ -931,26 +931,27 @@ const QuizRenderer = ({
 
       {/* ================= CONFIRM SUBMIT MODAL ================= */}
       {showConfirmModal && (
-        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center">
-          <div className="bg-white rounded-2xl w-full max-w-md p-8 text-center space-y-4 shadow-2xl">
+        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center px-4">
+          <div className="bg-white rounded-2xl w-full max-w-md p-5 sm:p-8 text-center space-y-4 shadow-2xl">
             <div className="flex justify-center">
               <Image
                 src="/assets/elearning/confirm-quiz.svg"
                 alt="confirm"
-                width={180}
-                height={140}
+                width={140}
+                height={110}
+                className="sm:w-[180px] sm:h-[140px]"
               />
             </div>
 
-            <h2 className="text-xl font-bold text-gray-900 mb-1">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">
               Selesaikan Kuis?
             </h2>
 
-            <p className="text-gray-700 text-base leading-relaxed">
+            <p className="text-gray-700 text-sm sm:text-base leading-relaxed">
               Pastikan semua jawaban sudah sesuai sebelum dikirim.
             </p>
 
-            <div className="flex gap-4 pt-2">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2">
               <button
                 onClick={() => setShowConfirmModal(false)}
                 disabled={isSubmitting}
@@ -1024,10 +1025,10 @@ const QuizRenderer = ({
           }[tone];
 
           return (
-            <div className="w-full flex justify-center mb-16">
+            <div className="w-full flex justify-center mb-16 px-4 sm:px-0">
               <div
                 key={`quiz-result-${quiz.id}-${latestAttempt?.id ?? "local"}`}
-                className={`quiz-result-panel ${toneStyles.panelBg} border ${toneStyles.panelBorder} rounded-3xl shadow-lg ml-20 px-10 pt-10 pb-9 text-center max-w-3xl w-full`}
+                className={`quiz-result-panel ${toneStyles.panelBg} border ${toneStyles.panelBorder} rounded-3xl shadow-lg lg:ml-20 px-5 sm:px-10 pt-8 sm:pt-10 pb-9 text-center max-w-3xl w-full`}
               >
                 {/* ================= ICON ================= */}
                 <div
@@ -1075,7 +1076,7 @@ const QuizRenderer = ({
                         di percobaan pertama maupun kedua, selama skornya
                         100. */}
                     <h2 className={`text-2xl font-bold ${toneStyles.headline}`}>
-                      Selamat! Jawabanmu benar semua 🎉
+                      Selamat! Jawabanmu benar semua
                     </h2>
 
                     <p className="mt-2 text-gray-600">
@@ -1394,12 +1395,12 @@ function AssignmentRenderer({
   }
 
   return (
-    <div className="w-full max-w-full h-[calc(100vh-270px)] overflow-hidden">
-      {/* 300px = navbar + hero + footer space */}
+    <div className="w-full max-w-full h-auto lg:h-[calc(100vh-270px)] lg:overflow-hidden">
+      {/* 300px = navbar + hero + footer space (cuma relevan di layout 2 kolom lg:) */}
 
-      <div className="grid grid-cols-1 lg:grid-cols-[65%_35%] gap-6 h-full px-6 min-h-0">
+      <div className="grid grid-cols-1 lg:grid-cols-[65%_35%] gap-6 lg:h-full px-4 sm:px-6 min-h-0">
         {/* ================= LEFT (65%) ================= */}
-        <section className="overflow-y-auto pr-6 space-y-10 pb-6 min-h-0">
+        <section className="lg:overflow-y-auto lg:pr-6 space-y-8 sm:space-y-10 pb-6 min-h-0">
           <div className="space-y-4">
             <h2 className="text-xl font-bold text-black">Deskripsi Proyek</h2>
             {/* 🔥 FIX: `a.description` itu HTML mentah dari RichTextEditor
@@ -1530,18 +1531,19 @@ function AssignmentRenderer({
         </section>
 
         {showConfirmModal && (
-          <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center">
-            <div className="bg-white rounded-2xl w-full max-w-md p-8 text-center space-y-6 shadow-2xl">
+          <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center px-4">
+            <div className="bg-white rounded-2xl w-full max-w-md p-5 sm:p-8 text-center space-y-5 sm:space-y-6 shadow-2xl">
               <div className="flex justify-center">
                 <Image
                   src="/assets/elearning/confirm-quiz.svg"
                   alt="confirm"
-                  width={200}
-                  height={150}
+                  width={160}
+                  height={120}
+                  className="sm:w-[200px] sm:h-[150px]"
                 />
               </div>
 
-              <h2 className="text-2xl font-bold text-gray-800">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
                 {isRetrying ? "Kirim Revisi Tugas?" : "Kirim Tugas Proyek?"}
               </h2>
 
@@ -1551,7 +1553,7 @@ function AssignmentRenderer({
                   : "Setelah dikirim, tugas akan menunggu penilaian dan tidak dapat diedit sampai hasil review keluar."}
               </p>
 
-              <div className="flex gap-4 pt-2">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2">
                 <button
                   onClick={() => setShowConfirmModal(false)}
                   disabled={isSubmitting}
@@ -1577,7 +1579,7 @@ function AssignmentRenderer({
         {/* ================= RIGHT (35%) ================= */}
         {showUploadForm ? (
           <>
-            <section className="overflow-y-auto pl-4 pr-4 space-y-6 pb-10">
+            <section className="lg:overflow-y-auto px-1 sm:px-4 space-y-6 pb-10">
               <div>
                 <h2 className="text-xl font-bold text-black">Unggah File</h2>
 
@@ -1677,7 +1679,7 @@ function AssignmentRenderer({
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-4">
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4">
                 {/* 🔥 BARU: kalau lagi mode revisi, kasih opsi batal balik
                     ke panel status sebelumnya tanpa harus submit. */}
                 {isRetrying && (
@@ -1693,7 +1695,7 @@ function AssignmentRenderer({
                 <button
                   onClick={() => setShowConfirmModal(true)}
                   disabled={uploadedFiles.length === 0 || isSubmitting}
-                  className={`w-2/5 text-sm font-medium py-2.5 rounded-lg transition ${
+                  className={`w-full sm:w-2/5 text-sm font-medium py-2.5 rounded-lg transition ${
                     uploadedFiles.length === 0 || isSubmitting
                       ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                       : "bg-emerald-500 hover:bg-emerald-600 text-white"
@@ -1706,9 +1708,9 @@ function AssignmentRenderer({
           </>
         ) : (
           <>
-            <section className="overflow-y-auto pl-4 pr-4 space-y-6 pb-10 min-h-0">
+            <section className="lg:overflow-y-auto px-1 sm:px-4 space-y-6 pb-10 min-h-0">
               {/* Tanggal + status */}
-              <div className="flex justify-between items-center border rounded-lg px-4 py-3 bg-gray-50">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 border rounded-lg px-4 py-3 bg-gray-50">
                 <div className="space-y-1">
                   <p className="text-sm text-gray-500">Dikumpulkan pada:</p>
                   <p className="text-base font-semibold text-black">
@@ -2058,6 +2060,32 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
 
   const [activeTabs, setActiveTabs] = useState<Record<string, number>>({});
 
+  // 🔥 BARU: dulu carousel "carousel" & "content_card" di bawah selalu
+  // pakai `cardsPerSlide` yang sama persis di semua ukuran layar (mis.
+  // content_card SELALU 3 kartu sejajar, hardcode). Di HP, lebar kartu
+  // hasil bagi `100 / cardsPerSlide` itu jadi sangat sempit — judul
+  // pendek kayak "PATCH"/"DELETE" sampai kepaksa patah per-huruf karena
+  // kontainernya nggak muat. Sekarang jumlah kartu per slide dihitung
+  // ulang berdasarkan lebar viewport: 1 kartu di HP (<640px), maksimal 2
+  // di tablet (640-1023px), dan APA ADANYA (sesuai konfigurasi
+  // admin/hardcode aslinya) di desktop (≥1024px) — jadi tampilan desktop
+  // sama sekali tidak berubah.
+  const [viewportWidth, setViewportWidth] = useState<number>(() =>
+    typeof window !== "undefined" ? window.innerWidth : 1280,
+  );
+
+  useEffect(() => {
+    const handleResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const getResponsiveCardsPerSlide = (desktopValue: number) => {
+    if (viewportWidth < 640) return 1;
+    if (viewportWidth < 1024) return Math.min(desktopValue, 2);
+    return desktopValue;
+  };
+
   // 🔥 Backend (getTextById) tidak mengirim `id` untuk contentBlocks sama
   // sekali (heading/paragraph/accordion/dst) — cuma `orderNumber`. Helper
   // ini kasih fallback key stabil buat dipakai sebagai index state
@@ -2250,7 +2278,7 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
             </div>
 
             {/* ================= ACCORDION ITEMS (CENTER) ================= */}
-            <div className="w-3/4 mx-auto space-y-4">
+            <div className="w-full lg:w-3/4 mx-auto space-y-4">
               {content.items.map((item, index) => {
                 const openIndexes = openAccordions[contentKeyOf(content)] ?? [];
                 const isOpen = openIndexes.includes(index);
@@ -2319,7 +2347,7 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
         return (
           <div key={content.id} className={`w-full ${richTextDisplayClass}`}>
             <div
-              className={`w-[85%] mx-auto rounded-md overflow-hidden flex bg-[#F8FAFC] ${richTextDisplayClass}`}
+              className={`w-full lg:w-[85%] mx-auto rounded-md overflow-hidden flex bg-[#F8FAFC] ${richTextDisplayClass}`}
             >
               {/* Left Dark Strip */}
               <div
@@ -2339,7 +2367,9 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
       }
 
       case "carousel": {
-        const cardsPerSlide = content.cardsPerSlide ?? 2;
+        const cardsPerSlide = getResponsiveCardsPerSlide(
+          content.cardsPerSlide ?? 2,
+        );
         const totalItems = content.items.length;
         // 🔥 Sama seperti accordion: cuma description yang di-decode token
         // fstyle-nya (title block-level tetap plain text).
@@ -2467,14 +2497,18 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
             </div>
 
             {/* ================= CAROUSEL ================= */}
-            <div className="relative w-[70%] mx-auto">
-              {/* LEFT ARROW */}
+            <div className="relative w-full lg:w-[70%] mx-auto">
+              {/* LEFT ARROW — disembunyikan di mobile/tablet (posisinya
+                  -left-16 akan terpotong di layar sempit); navigasi di
+                  sana pakai drag/swipe yang sudah ada + titik indikator
+                  di bawah. */}
               <button
                 onClick={goPrev}
                 disabled={isPrevDisabled}
                 className={`
+            hidden lg:flex
             absolute -left-16 top-1/2 -translate-y-1/2
-            w-12 h-12 flex items-center justify-center
+            w-12 h-12 items-center justify-center
             bg-white border border-emerald-500
             text-2xl font-bold text-emerald-600
             rounded-lg shadow-md
@@ -2494,8 +2528,9 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
                 onClick={goNext}
                 disabled={isNextDisabled}
                 className={`
+            hidden lg:flex
             absolute -right-16 top-1/2 -translate-y-1/2
-            w-12 h-12 flex items-center justify-center
+            w-12 h-12 items-center justify-center
             bg-white border border-emerald-500
             text-2xl font-bold text-emerald-600
             rounded-lg shadow-md
@@ -2636,7 +2671,7 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
       }
 
       case "content_card": {
-        const cardsPerSlide = 3;
+        const cardsPerSlide = getResponsiveCardsPerSlide(3);
         const totalItems = content.items.length;
 
         const currentIndex = carouselIndexes[contentKeyOf(content)] ?? 0;
@@ -2785,17 +2820,19 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
             </div>
 
             {/* ================= CARD CONTAINER ================= */}
-            <div className="relative w-[80%] mx-auto">
+            <div className="relative w-full lg:w-[80%] mx-auto">
               {totalItems > 3 && (
                 <>
-                  {/* PREVIOUS */}
+                  {/* PREVIOUS — disembunyikan di mobile/tablet, sama
+                      alasannya dengan carousel di atas. */}
                   <button
                     onClick={goPrev}
                     disabled={currentIndex === 0}
                     className={`
+        hidden lg:flex
         absolute -left-16 top-1/2 -translate-y-1/2
         w-14 h-14
-        flex items-center justify-center
+        items-center justify-center
         rounded-full
         bg-white shadow-md
         transition-all duration-300
@@ -2819,9 +2856,10 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
                     onClick={goNext}
                     disabled={currentIndex === maxIndex}
                     className={`
+        hidden lg:flex
         absolute -right-16 top-1/2 -translate-y-1/2
         w-14 h-14
-        flex items-center justify-center
+        items-center justify-center
         rounded-full
         bg-white shadow-md
         transition-all duration-300
@@ -3149,7 +3187,7 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
             </div>
 
             {/* ================= TAB WRAPPER (CENTER) ================= */}
-            <div className="w-[85%] mx-auto">
+            <div className="w-full lg:w-[85%] mx-auto">
               {/* ================= TAB HEADER ================= */}
               <div className="flex w-full">
                 {content.tabs.map((tab, index) => {
@@ -3165,7 +3203,7 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
                         }))
                       }
                       className={`
-            flex-1 py-5 text-base font-semibold tracking-wide truncate
+            flex-1 py-3 sm:py-5 px-1 text-xs sm:text-base font-semibold tracking-wide truncate
             transition-all duration-300 ease-in-out
             ${
               isActive
@@ -3193,8 +3231,8 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
                 className={`
       bg-white
       rounded-b-2xl
-      p-8
-      text-base
+      p-4 sm:p-8
+      text-sm sm:text-base
       text-black
       leading-relaxed
       shadow-sm
@@ -3533,9 +3571,9 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
 
     return (
       <div className="w-full flex justify-center">
-        <div className="w-full max-w-3xl bg-white border-2 border-emerald-600 rounded-xl p-8">
+        <div className="w-full max-w-3xl bg-white border-2 border-emerald-600 rounded-xl p-4 sm:p-8">
           {/* QUESTION */}
-          <h3 className="text-2xl font-bold text-black text-center">
+          <h3 className="text-lg sm:text-2xl font-bold text-black text-center">
             {data.question}
           </h3>
 
@@ -3547,7 +3585,7 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
           {/* TABLE */}
           <div className="mt-8">
             {/* HEADER */}
-            <div className="grid grid-cols-[60px_1fr_80px_80px] font-semibold text-center border-b pb-3">
+            <div className="grid grid-cols-[28px_1fr_44px_44px] sm:grid-cols-[60px_1fr_80px_80px] gap-1 sm:gap-0 text-xs sm:text-base font-semibold text-center border-b pb-3">
               <div>No</div>
               <div className="text-left">Pernyataan</div>
               <div>Benar</div>
@@ -3568,7 +3606,7 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
                 return (
                   <div
                     key={option.orderNumber ?? index}
-                    className={`grid grid-cols-[60px_1fr_80px_80px] items-center py-4 text-center transition
+                    className={`grid grid-cols-[28px_1fr_44px_44px] sm:grid-cols-[60px_1fr_80px_80px] gap-1 sm:gap-0 items-center py-3 sm:py-4 text-xs sm:text-base text-center transition
                     ${isWrong ? "bg-red-50" : ""}
                     ${isRight ? "bg-emerald-50" : ""}
                   `}
@@ -3578,7 +3616,7 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
 
                     {/* PERNYATAAN */}
                     <div
-                      className={`text-left pr-4 transition ${
+                      className={`text-left pr-1 sm:pr-4 transition ${
                         isWrong ? "text-red-600 font-medium" : ""
                       }`}
                     >
@@ -3697,6 +3735,21 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
   // (benar/salah) sama kayak attempt sebelumnya.
   const [matchingAttempt, setMatchingAttempt] = useState<
     Record<string, number>
+  >({});
+
+  // 🔥 BARU: HTML5 Drag & Drop API (`draggable`, `onDragStart`, `onDrop`,
+  // dst — dipakai di bawah) TIDAK didukung sentuhan/touch di browser
+  // mobile mana pun (Chrome Android, Safari iOS). Tanpa ini, soal
+  // matching secara teknis tidak bisa dikerjakan sama sekali di HP/
+  // tablet. `selectedChip` nyimpen kartu jawaban mana (per soal
+  // matching, key-nya `matchingKey`) yang lagi "dipilih" lewat tap —
+  // dipakai bareng alur tap-kartu-lalu-tap-drop-zone di bawah. Drag asli
+  // via mouse tetap jalan seperti sebelumnya, sama sekali tidak
+  // disentuh — ini cuma jalur INPUT TAMBAHAN yang ujung-ujungnya
+  // manggil `handleDrop` yang SAMA PERSIS, jadi logic penilaian/scoring
+  // tidak berubah sedikit pun.
+  const [selectedChip, setSelectedChip] = useState<
+    Record<string, number | null>
   >({});
 
   // 🔥 BARU: auto-scroll pas drag pilihan jawaban matching ke soal yang
@@ -3854,6 +3907,10 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
         ...prev,
         [matchingKey]: (prev[matchingKey] ?? 0) + 1,
       }));
+      setSelectedChip((prev) => ({
+        ...prev,
+        [matchingKey]: null,
+      }));
     };
 
     // 🔥 BARU: reset total ke kondisi awal — semua pasangan yang sudah
@@ -3868,6 +3925,10 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
         [matchingKey]: false,
       }));
       setRecentlyCancelled((prev) => ({
+        ...prev,
+        [matchingKey]: null,
+      }));
+      setSelectedChip((prev) => ({
         ...prev,
         [matchingKey]: null,
       }));
@@ -3888,9 +3949,9 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
 
     return (
       <div className="w-full flex justify-center">
-        <div className="w-full max-w-4xl bg-white border-2 border-emerald-600 rounded-xl p-8">
+        <div className="w-full max-w-4xl bg-white border-2 border-emerald-600 rounded-xl p-4 sm:p-8">
           {/* QUESTION */}
-          <h3 className="text-2xl font-bold text-black text-center">
+          <h3 className="text-lg sm:text-2xl font-bold text-black text-center">
             {data.title}
           </h3>
 
@@ -3900,7 +3961,8 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
 
           {/* INSTRUCTION */}
           <p className="text-center text-sm text-gray-500 mt-4 italic">
-            (Seret dan lepaskan card ke area kosong yang tersedia)
+            Seret (drag) kartu jawaban ke kotak kosong yang tersedia - atau di
+            HP/tablet, ketuk kartu jawabannya dulu, lalu ketuk kotak tujuannya.
           </p>
 
           {/* ============================= */}
@@ -3912,9 +3974,11 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
                 Pilihan Jawaban
               </h4>
 
-              <div className="flex flex-wrap gap-4 justify-center">
+              <div className="flex flex-wrap gap-2 sm:gap-4 justify-center px-1">
                 {rightItems.map((right) => {
                   const isUsed = usedRightOrders.includes(right.orderNumber);
+                  const isPicked =
+                    selectedChip[matchingKey] === right.orderNumber;
 
                   return (
                     <div
@@ -3936,12 +4000,29 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
                         // atau dibatalkan) — matiin auto-scroll.
                         isMatchingDraggingRef.current = false;
                       }}
+                      // 🔥 BARU: tap-to-select buat HP/tablet (lihat catatan
+                      // di deklarasi `selectedChip` di atas) — tap kartu ini
+                      // buat "pilih", tap lagi buat batal pilih. Sama sekali
+                      // tidak mengganggu drag mouse di desktop, karena click
+                      // tanpa gerakan drag tetap event yang terpisah.
+                      onClick={() => {
+                        if (isUsed || isSubmitted) return;
+                        setSelectedChip((prev) => ({
+                          ...prev,
+                          [matchingKey]:
+                            prev[matchingKey] === right.orderNumber
+                              ? null
+                              : right.orderNumber,
+                        }));
+                      }}
                       className={`
-                      px-5 py-2 rounded-lg shadow-sm border transition text-sm
+                      px-3 sm:px-5 py-2 rounded-lg shadow-sm border transition text-xs sm:text-sm
                       ${
                         isUsed
                           ? "bg-red-50 border-red-400 text-red-600 cursor-not-allowed opacity-70"
-                          : "bg-white border-emerald-500 hover:bg-emerald-50 cursor-grab active:cursor-grabbing"
+                          : isPicked
+                            ? "bg-emerald-100 border-emerald-600 ring-2 ring-emerald-400 cursor-pointer"
+                            : "bg-white border-emerald-500 hover:bg-emerald-50 cursor-grab active:cursor-grabbing"
                       }
                     `}
                     >
@@ -3976,17 +4057,19 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
               return (
                 <div
                   key={left.orderNumber}
-                  className="flex items-center justify-center gap-8 w-full max-w-3xl"
+                  className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-8 w-full max-w-3xl"
                 >
                   {/* LEFT */}
-                  <div className="w-1/3 bg-gray-100 px-4 py-3 rounded-lg font-medium text-sm text-center">
+                  <div className="w-full sm:w-1/3 bg-gray-100 px-4 py-3 rounded-lg font-medium text-sm text-center">
                     {left.content}
                   </div>
 
-                  {/* 🔥 ARROW LEBIH BESAR & TEBAL */}
+                  {/* 🔥 ARROW LEBIH BESAR & TEBAL — diputar 90° pas
+                      ditumpuk vertikal di mobile, biar tetap kebaca
+                      sebagai "arah" dari kotak kiri ke drop zone */}
                   <ArrowRight
-                    className="text-emerald-700"
-                    size={40}
+                    className="text-emerald-700 rotate-90 sm:rotate-0 shrink-0 sm:w-10 sm:h-10"
+                    size={28}
                     strokeWidth={3}
                   />
 
@@ -3999,12 +4082,35 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
                       );
                       handleDrop(left.orderNumber, rightOrder);
                     }}
+                    // 🔥 BARU: separuh dari alur tap-to-place. `selectedRight`
+                    // di closure ini masih nilai SEBELUM klik ini diproses
+                    // (React batching), jadi walau event click dari tombol
+                    // "hapus jawaban" di dalam (kalau zona ini terisi) ikut
+                    // bubbling ke sini, `selectedRight` yang truthy bikin
+                    // baris ini nggak dobel-eksekusi taruh jawaban baru.
+                    onClick={() => {
+                      if (isSubmitted || selectedRight) return;
+                      const pending = selectedChip[matchingKey];
+                      if (pending == null) return;
+                      handleDrop(left.orderNumber, pending);
+                      setSelectedChip((prev) => ({
+                        ...prev,
+                        [matchingKey]: null,
+                      }));
+                    }}
                     className={`
-                    w-1/3 min-h-[52px] flex items-center justify-center
+                    w-full sm:w-1/3 min-h-[52px] flex items-center justify-center
                     border-2 border-dashed rounded-lg px-4 py-3 transition text-center
                     ${isCorrect ? "border-emerald-500 bg-emerald-50" : ""}
                     ${isWrong ? "border-red-500 bg-red-50" : ""}
                     ${!selectedRight ? "border-gray-300 bg-gray-50" : ""}
+                    ${
+                      !selectedRight &&
+                      !isSubmitted &&
+                      selectedChip[matchingKey] != null
+                        ? "cursor-pointer ring-2 ring-emerald-300"
+                        : ""
+                    }
                   `}
                   >
                     {selectedRight ? (
@@ -4050,6 +4156,10 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
                       >
                         {selectedRight.content}
                       </div>
+                    ) : selectedChip[matchingKey] != null && !isSubmitted ? (
+                      <span className="text-emerald-600 text-xs sm:text-sm font-medium">
+                        Ketuk untuk taruh di sini
+                      </span>
                     ) : (
                       <span className="text-gray-400 text-sm">
                         Drop di sini

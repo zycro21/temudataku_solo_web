@@ -434,6 +434,13 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
     "manual",
   );
 
+  // 🔥 BARU: buka/tutup drawer SubchapterSidebar di mobile/tablet (< lg).
+  // Dipicu dari tombol hamburger di SubchapterNavbar, ditutup dari dalam
+  // SubchapterSidebar sendiri (backdrop, tombol X, atau otomatis begitu
+  // mentee memilih materi/task/sertifikat/kembali). Tidak berpengaruh
+  // apa pun di desktop (lg ke atas) — di sana sidebar selalu statis.
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
   // 🔥 BARU: apakah quiz/assignment yang lagi aktif punya jawaban/draft
   // yang BELUM disubmit — dilaporkan real-time oleh QuizRenderer/
   // AssignmentRenderer di SubchapterContent.tsx lewat prop
@@ -1362,6 +1369,8 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
           onBack={() =>
             guardNavigation(() => router.push(`/elearning/${practiceId}`))
           }
+          isMobileOpen={isMobileSidebarOpen}
+          onMobileClose={() => setIsMobileSidebarOpen(false)}
         />
 
         {/* 🔥 FIX (sidebar ikut menyempit kalau judul materi panjang):
@@ -1377,7 +1386,10 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
             SubchapterHeroNavigation.tsx) sama-sama diperlukan supaya judul
             panjang WRAP ke bawah, bukan mendorong lebar ke samping. */}
         <div className="flex-1 min-w-0 min-h-0 flex flex-col">
-          <SubchapterNavbar practiceId={practiceId} />
+          <SubchapterNavbar
+            practiceId={practiceId}
+            onMenuClick={() => setIsMobileSidebarOpen(true)}
+          />
 
           {heroMeta && (
             <SubchapterHeroNavigation
@@ -1406,7 +1418,7 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
             onWheel={() => setUserInteracted(true)}
             onTouchStart={() => setUserInteracted(true)}
             onMouseDown={() => setUserInteracted(true)}
-            className="flex-1 overflow-y-auto px-15 py-8 bg-white"
+            className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 sm:py-7 md:px-10 lg:px-15 lg:py-8 bg-white"
           >
             {contentMode?.type === "certificate" ? (
               <SubchapterCertificateContent
@@ -1624,23 +1636,23 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
           `beforeunload`, jadi butuh modal sendiri di sini. */}
       {pendingNavigation && (
         <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center px-4">
-          <div className="bg-white rounded-2xl w-full max-w-md p-8 text-center space-y-4 shadow-2xl">
+          <div className="bg-white rounded-2xl w-full max-w-md p-5 sm:p-8 text-center space-y-4 shadow-2xl">
             <div className="flex justify-center">
               <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center">
                 <AlertTriangle className="w-8 h-8 text-amber-500" />
               </div>
             </div>
 
-            <h2 className="text-xl font-bold text-gray-900 mb-1">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">
               Tinggalkan Halaman Ini?
             </h2>
 
-            <p className="text-gray-700 text-base leading-relaxed">
+            <p className="text-gray-700 text-sm sm:text-base leading-relaxed">
               Jawaban atau berkas yang sudah kamu isi belum dikirim/
               dikumpulkan. Kalau pindah sekarang, semuanya akan hilang.
             </p>
 
-            <div className="flex gap-4 pt-2">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2">
               <button
                 onClick={() => setPendingNavigation(null)}
                 className="flex-1 border border-emerald-500 text-emerald-600 py-3 rounded-lg font-semibold hover:bg-emerald-50 transition"

@@ -2,15 +2,15 @@ import Image from "next/image";
 
 export default function WhySection() {
   return (
-    <section className="py-10 md:py-12 px-3 md:px-5 lg:px-6 bg-white">
+    <section className="py-8 sm:py-10 md:py-12 px-3 md:px-5 lg:px-6 bg-white">
       <div className="max-w-6xl mx-auto">
         {/* Section Header */}
-        <div className="mb-8 flex gap-1">
-          <h2 className="text-lg md:text-xl lg:text-2xl font-bold text-gray-900">
+        <div className="mb-6 sm:mb-8 flex flex-col gap-2 lg:flex-row lg:gap-1">
+          <h2 className="text-lg sm:text-xl md:text-2xl lg:text-2xl font-bold text-gray-900">
             Kenapa Harus Mendaftar E-Learning TemuDataku?
           </h2>
 
-          <p className="text-xs md:text-sm text-gray-600 max-w-xl mx-auto text-end leading-relaxed py-1">
+          <p className="text-xs sm:text-sm text-gray-600 max-w-xl lg:mx-auto text-left lg:text-end leading-relaxed py-1">
             E-Learning TemuDataku dirancang untuk membekali Anda dengan
             keterampilan praktis. Setiap materi disajikan melalui teks
             interaktif, studi kasus nyata, hingga simulasi kerja agar Anda siap
@@ -19,17 +19,17 @@ export default function WhySection() {
         </div>
 
         {/* Benefits Grid */}
-        <div className="grid md:grid-cols-2 gap-3 lg:gap-4">
+        <div className="grid md:grid-cols-2 gap-3 sm:gap-4 lg:gap-4">
           {/* Benefit 1 */}
-          <div className="group flex items-start gap-3 bg-gray-50 rounded-xl px-5 py-6 flex-col transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-lg">
+          <div className="group flex items-start gap-3 bg-gray-50 rounded-xl px-4 py-5 sm:px-5 sm:py-6 flex-col transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-lg">
             <div className="flex-shrink-0">
-              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white rounded-full flex items-center justify-center transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
                 <Image
                   src="/assets/practicePage/stair.svg"
                   alt="stair"
                   width={36}
                   height={36}
-                  className="w-9 h-9"
+                  className="w-8 h-8 sm:w-9 sm:h-9"
                 />
               </div>
             </div>
@@ -45,15 +45,15 @@ export default function WhySection() {
           </div>
 
           {/* Benefit 2 */}
-          <div className="group flex items-start gap-3 bg-gray-50 rounded-xl px-5 py-6 flex-col transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-lg">
+          <div className="group flex items-start gap-3 bg-gray-50 rounded-xl px-4 py-5 sm:px-5 sm:py-6 flex-col transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-lg">
             <div className="flex-shrink-0">
-              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white rounded-full flex items-center justify-center transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
                 <Image
                   src="/assets/practicePage/db.svg"
                   alt="db"
                   width={36}
                   height={36}
-                  className="w-9 h-9"
+                  className="w-8 h-8 sm:w-9 sm:h-9"
                 />
               </div>
             </div>
@@ -69,15 +69,15 @@ export default function WhySection() {
           </div>
 
           {/* Benefit 3 */}
-          <div className="group flex items-start gap-3 bg-gray-50 rounded-xl px-5 py-6 flex-col transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-lg">
+          <div className="group flex items-start gap-3 bg-gray-50 rounded-xl px-4 py-5 sm:px-5 sm:py-6 flex-col transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-lg">
             <div className="flex-shrink-0">
-              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white rounded-full flex items-center justify-center transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3">
                 <Image
                   src="/assets/practicePage/case.svg"
                   alt="work"
                   width={36}
                   height={36}
-                  className="w-9 h-9"
+                  className="w-8 h-8 sm:w-9 sm:h-9"
                 />
               </div>
             </div>
@@ -93,15 +93,15 @@ export default function WhySection() {
           </div>
 
           {/* Benefit 4 */}
-          <div className="group flex items-start gap-3 bg-gray-50 rounded-xl px-5 py-6 flex-col transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-lg">
+          <div className="group flex items-start gap-3 bg-gray-50 rounded-xl px-4 py-5 sm:px-5 sm:py-6 flex-col transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-lg">
             <div className="flex-shrink-0">
-              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white rounded-full flex items-center justify-center transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3">
                 <Image
                   src="/assets/practicePage/work.svg"
                   alt="case1"
                   width={36}
                   height={36}
-                  className="w-9 h-9"
+                  className="w-8 h-8 sm:w-9 sm:h-9"
                 />
               </div>
             </div>

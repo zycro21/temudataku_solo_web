@@ -27,7 +27,7 @@ export default function HeroSection({ course }: HeroSectionProps) {
   };
 
   return (
-    <section className="bg-gradient-to-br py-10 px-3 md:px-5 lg:px-8 relative overflow-hidden">
+    <section className="bg-gradient-to-br py-8 sm:py-10 px-3 md:px-5 lg:px-8 relative overflow-hidden">
       <Image
         src="/assets/mentoringPage/vectorHeroSection.svg"
         alt="vector background"
@@ -63,7 +63,7 @@ export default function HeroSection({ course }: HeroSectionProps) {
           </div>
 
           {/* Right - Content */}
-          <div className="space-y-5 order-1 lg:order-2 max-w-3xl">
+          <div className="space-y-5 order-1 lg:order-2 max-w-3xl mx-auto lg:mx-0 text-center lg:text-left">
             {/* Title & Description */}
             <div className="space-y-3">
               <h1 className="text-lg md:text-xl lg:text-2xl xl:text-3xl font-extrabold text-gray-900 leading-tight">
@@ -71,7 +71,7 @@ export default function HeroSection({ course }: HeroSectionProps) {
               </h1>
 
               {course.description && (
-                <p className="text-sm md:text-base text-gray-700 leading-relaxed max-w-4xl">
+                <p className="text-sm md:text-base text-gray-700 leading-relaxed max-w-4xl mx-auto lg:mx-0">
                   {course.description}
                 </p>
               )}
@@ -79,7 +79,7 @@ export default function HeroSection({ course }: HeroSectionProps) {
 
             {/* Tags */}
             {course.tags && course.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
                 {course.tags.map((keyword) => (
                   <span
                     key={keyword}
@@ -105,7 +105,7 @@ export default function HeroSection({ course }: HeroSectionProps) {
             )}
 
             {/* CTA */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <div className="flex flex-col sm:flex-row gap-3 pt-2 justify-center lg:justify-start">
               <Button
                 type="button"
                 onClick={scrollToMateri}
@@ -132,6 +132,7 @@ export default function HeroSection({ course }: HeroSectionProps) {
                 variant="outline"
                 size="lg"
                 className="
+                  w-full sm:w-auto
                   border-emerald-600 
                   text-emerald-600 
                   hover:bg-emerald-50 

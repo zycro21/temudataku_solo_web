@@ -211,14 +211,18 @@ export default function ChooseSubscriptionElearning() {
   );
 
   return (
-    <section id="pilihan-elearning" ref={sectionRef} className="py-20 px-0">
-      <div className="max-w-[1200px] mx-auto">
+    <section
+      id="pilihan-elearning"
+      ref={sectionRef}
+      className="py-12 sm:py-14 md:py-16 lg:py-20 px-0"
+    >
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 md:px-8 lg:px-0">
         {/* HEADER (PUTIH) */}
-        <div className="text-center mb-10">
-          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+        <div className="text-center mb-8 sm:mb-10">
+          <h2 className="text-2xl sm:text-3xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
             Langganan Sekarang dan Jadi Lebih Hebat
           </h2>
-          <p className="text-base md:text-lg text-gray-600">
+          <p className="text-base md:text-lg text-gray-600 max-w-md sm:max-w-xl lg:max-w-none mx-auto lg:mx-0">
             Langganan bulanan untuk akses semua materi, tanpa batas. Makin lama,
             makin hemat dan untung banyak.
           </p>
@@ -226,38 +230,41 @@ export default function ChooseSubscriptionElearning() {
       </div>
 
       {/* BG ABU-ABU FULL */}
-      <div className="relative bg-gray-100 py-12 w-full overflow-hidden">
+      <div className="relative bg-gray-100 py-10 sm:py-12 w-full overflow-hidden">
         {/* ===== DECORATIVE ORNAMENTS ===== */}
+        {/* 🔥 Ukuran ornamen di-scale turun buat mobile/tablet lewat className
+            (Next/Image tetap boleh di-resize pakai CSS), lg dikunci balik ke
+            ukuran asli (width/height prop) supaya tampilan desktop persis sama. */}
         <Image
           src="/assets/elearning/Union.svg"
           alt="Ornament Top Left"
           width={260}
           height={260}
-          className="absolute top-0 left-0 opacity-30 pointer-events-none z-0"
+          className="absolute top-0 left-0 opacity-30 pointer-events-none z-0 w-[130px] h-[130px] sm:w-[190px] sm:h-[190px] md:w-[220px] md:h-[220px] lg:w-[260px] lg:h-[260px]"
         />
         <Image
           src="/assets/elearning/Union.svg"
           alt="Ornament Top Right"
           width={300}
           height={300}
-          className="absolute top-0 right-0 opacity-30 rotate-180 scale-90 pointer-events-none z-0"
+          className="absolute top-0 right-0 opacity-30 rotate-180 scale-90 pointer-events-none z-0 w-[150px] h-[150px] sm:w-[220px] sm:h-[220px] md:w-[260px] md:h-[260px] lg:w-[300px] lg:h-[300px]"
         />
         <Image
           src="/assets/elearning/Union.svg"
           alt="Ornament Bottom Left"
           width={300}
           height={300}
-          className="absolute bottom-0 left-0 opacity-40 pointer-events-none z-0"
+          className="absolute bottom-0 left-0 opacity-40 pointer-events-none z-0 w-[150px] h-[150px] sm:w-[220px] sm:h-[220px] md:w-[260px] md:h-[260px] lg:w-[300px] lg:h-[300px]"
         />
         <Image
           src="/assets/elearning/Union.svg"
           alt="Ornament Bottom Right"
           width={350}
           height={350}
-          className="absolute bottom-0 right-0 opacity-40 pointer-events-none z-0"
+          className="absolute bottom-0 right-0 opacity-40 pointer-events-none z-0 w-[170px] h-[170px] sm:w-[250px] sm:h-[250px] md:w-[300px] md:h-[300px] lg:w-[350px] lg:h-[350px]"
         />
 
-        <div className="relative z-10 max-w-[1200px] mx-auto grid md:grid-cols-3 gap-3 items-start px-4">
+        <div className="relative z-10 max-w-[1200px] mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-10 sm:gap-y-12 lg:gap-3 items-start px-4">
           {loadingPlans ? (
             <>
               <PlanSkeleton />
@@ -288,7 +295,7 @@ export default function ChooseSubscriptionElearning() {
                   key={plan.id}
                   className={`mx-auto w-full max-w-[320px] rounded-xl overflow-hidden shadow-lg transition-all duration-300 ${
                     isPopuler
-                      ? "mt-8 scale-105 border border-[#F49D07]"
+                      ? "mt-8 mb-4 sm:mb-6 lg:mb-0 scale-105 origin-bottom lg:origin-center border border-[#F49D07]"
                       : "mt-0"
                   }`}
                 >

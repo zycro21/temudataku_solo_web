@@ -158,9 +158,8 @@ const TestimonialSection = () => {
                   key={person.id}
                   className="
   pl-2 md:pl-3
-  basis-[90%]
-  sm:basis-[70%]
-  md:basis-1/2
+  basis-[97%]
+  sm:basis-1/2
   lg:basis-1/3
 "
                 >

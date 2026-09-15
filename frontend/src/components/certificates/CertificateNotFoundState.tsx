@@ -6,7 +6,7 @@ interface Props {
 
 export default function CertificateNotFoundState({ isError = false }: Props) {
   return (
-    <div className="rounded-3xl border border-gray-100 bg-white p-10 text-center shadow-sm">
+    <div className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-10 text-center shadow-sm">
       <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
         <ShieldAlert size={30} className="text-gray-400" />
       </div>

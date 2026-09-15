@@ -36,7 +36,7 @@ function resolveThumbnailImage(thumbnail: string | null | undefined) {
 const taskLabelMap: Record<string, string> = {
   QUIZ: "Quiz",
   PROJECT: "Projek",
-  QUIZ_AND_PROJECT: "Quiz & Pr..",
+  QUIZ_AND_PROJECT: "Quiz & Projek",
 };
 
 const levelLabelMap: Record<string, string> = {
@@ -123,17 +123,17 @@ export default function SubChapterSection({
   return (
     <section
       id="materi-belajar"
-      className="py-10 px-3 md:px-5 lg:px-6 scroll-mt-24"
+      className="py-8 sm:py-10 px-3 md:px-5 lg:px-6 scroll-mt-24"
     >
       <div className="max-w-screen-2xl mx-auto">
         {/* Header */}
         <div className="mb-6 flex flex-col gap-3">
-          <h2 className="text-lg md:text-xl font-bold text-gray-900">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900">
             Apa yang Akan Kamu Pelajari
           </h2>
 
           {progress ? (
-            <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-600">
               <CircleGauge className="w-4 h-4 text-amber-500 shrink-0" />
               <span>
                 Progress:{" "}
@@ -263,7 +263,7 @@ export default function SubChapterSection({
                       </p>
                     )}
 
-                    <div className="flex items-center gap-2 text-[11px] text-gray-600 mb-3">
+                    <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-600 mb-3">
                       <span className="flex items-center gap-1.5 bg-gray-100 px-2.5 py-1 rounded-lg">
                         <BookOpen className="w-3 h-3" />
                         {moduleCount} modul

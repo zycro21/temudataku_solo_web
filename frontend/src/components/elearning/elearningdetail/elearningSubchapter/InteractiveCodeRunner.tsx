@@ -113,8 +113,8 @@ export function InteractiveCodeRunner({
 
         <div className="bg-[#0F172A] rounded-xl overflow-hidden shadow-xl">
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-3 bg-[#1E293B] border-b border-slate-700">
-            <span className="text-sm font-medium text-emerald-400 uppercase tracking-wide">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-5 py-3 bg-[#1E293B] border-b border-slate-700">
+            <span className="text-xs sm:text-sm font-medium text-emerald-400 uppercase tracking-wide">
               {languageLabel}
             </span>
 
@@ -129,7 +129,7 @@ export function InteractiveCodeRunner({
               <button
                 onClick={handleRunCode}
                 disabled={running || !initialCode}
-                className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition disabled:opacity-60"
+                className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-semibold bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition disabled:opacity-60"
               >
                 {running ? (
                   <>
@@ -144,7 +144,7 @@ export function InteractiveCodeRunner({
           </div>
 
           {/* Code Block */}
-          <pre className="p-6 text-sm text-slate-200 font-mono whitespace-pre-wrap overflow-x-auto">
+          <pre className="p-3 sm:p-6 text-xs sm:text-sm text-slate-200 font-mono whitespace-pre-wrap overflow-x-auto">
             {codeText || (
               <span className="text-gray-500 italic">No code entered</span>
             )}
@@ -153,15 +153,17 @@ export function InteractiveCodeRunner({
           {/* 🔥 Output - tambahkan ref */}
           <div ref={outputRef}>
             {output && (
-              <div className="border-t border-slate-700 bg-black px-6 py-4 relative">
+              <div className="border-t border-slate-700 bg-black px-3 sm:px-6 py-4 relative">
                 <button
                   onClick={() => handleCopy(output)}
-                  className="absolute top-3 right-4 px-3 py-1 text-xs bg-slate-700 text-white rounded hover:bg-slate-600 transition"
+                  className="absolute top-3 right-3 sm:right-4 px-2.5 sm:px-3 py-1 text-[11px] sm:text-xs bg-slate-700 text-white rounded hover:bg-slate-600 transition"
                 >
                   Copy Output
                 </button>
-                <p className="text-xs text-gray-400 mb-2">Output:</p>
-                <pre className="text-emerald-400 text-sm font-mono whitespace-pre-wrap">
+                <p className="text-xs text-gray-400 mb-2 pr-20 sm:pr-0">
+                  Output:
+                </p>
+                <pre className="text-emerald-400 text-xs sm:text-sm font-mono whitespace-pre-wrap">
                   {output}
                 </pre>
               </div>

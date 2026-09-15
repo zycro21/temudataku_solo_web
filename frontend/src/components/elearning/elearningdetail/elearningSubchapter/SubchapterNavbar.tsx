@@ -9,9 +9,14 @@ import { useLogout } from "@/hooks/useLogout";
 
 interface Props {
   practiceId: string;
+  // 🔥 BARU: dipanggil saat tombol hamburger di-klik — dipakai SubchapterDetail.tsx
+  // buat membuka drawer SubchapterSidebar di mobile/tablet. Kalau tidak
+  // dikirim (mis. dipakai di tempat lain nanti), tombolnya tetap tampil
+  // tapi tidak melakukan apa-apa saat diklik.
+  onMenuClick?: () => void;
 }
 
-export default function SubchapterNavbar({ practiceId }: Props) {
+export default function SubchapterNavbar({ practiceId, onMenuClick }: Props) {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -51,7 +56,14 @@ export default function SubchapterNavbar({ practiceId }: Props) {
     <header className="h-14 bg-white border-b flex items-center justify-between px-4">
       {/* ========== LEFT ========== */}
       <div className="flex items-center gap-3">
-        <button className="p-1.5 rounded-md hover:bg-gray-100">
+        {/* 🔥 BARU: cuma tampil di mobile/tablet (`lg:hidden`) — di
+            desktop sidebar materi selalu kelihatan statis di kiri, jadi
+            tombol buka-drawer ini tidak relevan di sana. */}
+        <button
+          onClick={onMenuClick}
+          aria-label="Buka menu materi"
+          className="p-1.5 rounded-md hover:bg-gray-100 lg:hidden"
+        >
           <Menu size={18} className="text-gray-600" />
         </button>
       </div>

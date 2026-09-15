@@ -70,7 +70,7 @@ export default function HeroSection() {
     },
   ];
   return (
-    <section className="bg-gradient-to-br pt-12 pb-32 px-3 md:px-5 lg:px-6 relative overflow-hidden">
+    <section className="bg-gradient-to-br pt-8 pb-14 sm:pt-10 sm:pb-20 md:pt-12 md:pb-24 lg:pt-12 lg:pb-32 px-3 md:px-5 lg:px-6 relative overflow-hidden">
       <Image
         src="/assets/mentoringPage/vectorHeroSection.svg"
         alt="vector background"
@@ -79,7 +79,7 @@ export default function HeroSection() {
         priority
       />
       <div className="max-w-7xl mx-auto relative z-10">
-        <div className="grid lg:grid-cols-2 gap-8 lg:gap-10 items-center">
+        <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-10 items-center">
           {/* Left side - Illustration */}
           <div className="relative flex items-center justify-center">
             <Image
@@ -92,31 +92,32 @@ export default function HeroSection() {
           </div>
 
           {/* Right side - Content */}
-          <div className="space-y-4 order-1 lg:order-2">
+          <div className="space-y-4 order-1 lg:order-2 text-center lg:text-left">
             {/* Main Heading */}
             <div className="space-y-2">
-              <h1 className="text-lg md:text-xl lg:text-3xl font-extrabold text-gray-900 leading-snug">
+              <h1 className="text-xl sm:text-2xl md:text-2xl lg:text-3xl font-extrabold text-gray-900 leading-snug">
                 Upgrade Pengetahuan Anda,
                 <br /> Kapan Saja, Dimana Saja.
               </h1>
 
-              <p className="text-base md:text-lg font-semibold leading-relaxed max-w-xl">
+              <p className="text-base md:text-lg font-semibold leading-relaxed max-w-xl mx-auto lg:mx-0">
                 #LangkahKecilHasilBesar
               </p>
 
               {/* Description */}
-              <p className="text-sm md:text-base text-gray-600 leading-relaxed max-w-xl">
+              <p className="text-sm md:text-base text-gray-600 leading-relaxed max-w-xl mx-auto lg:mx-0">
                 Skill itu tumbuh kalau dipraktikkan. Yuk, pelajari materi
                 interaktif dan coba sendiri langkah-langkahnya!
               </p>
             </div>
 
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 mt-4">
+            <div className="flex flex-col sm:flex-row gap-3 mt-4 justify-center lg:justify-start">
               <Button
                 size="lg"
                 onClick={handleScrollToSubscription}
                 className="
+      w-full sm:w-auto
       bg-emerald-600 
       hover:bg-emerald-700 
       text-white 
@@ -139,6 +140,7 @@ export default function HeroSection() {
                 size="lg"
                 onClick={openWhatsApp}
                 className="
+      w-full sm:w-auto
       border-emerald-600 
       text-emerald-600 
       hover:bg-emerald-50 
@@ -156,9 +158,9 @@ export default function HeroSection() {
 
             {/* Mentor Avatars and Stats */}
             <div className="space-y-3">
-              <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-3 flex-wrap justify-center lg:justify-start">
                 {/* Avatar Stack */}
-                <div className="flex gap-1.5 flex-wrap">
+                <div className="flex gap-1.5 flex-wrap justify-center">
                   {mentors.map((mentor, index) => (
                     <Avatar key={mentor.id} className="w-9 h-9 shadow-sm">
                       <AvatarImage src={mentor.image} alt={mentor.name} />
@@ -176,7 +178,7 @@ export default function HeroSection() {
               </div>
 
               {/* Testimonial Link */}
-              <div className="pt-1">
+              <div className="pt-1 text-center lg:text-left">
                 <button
                   onClick={scrollToAlumniSays}
                   className="

@@ -81,7 +81,7 @@ export default function AlumniSays() {
   }, [api]);
 
   return (
-    <section id="alumni-says" className="py-8 md:py-16">
+    <section id="alumni-says" className="py-8 sm:py-10 md:py-16">
       <div className="max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start mb-8">
@@ -114,12 +114,14 @@ export default function AlumniSays() {
               {alumni.map((person) => (
                 <CarouselItem
                   key={person.id}
-                  className="pl-4 basis-[85%] sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
+                  className="pl-4 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
                 >
-                  <div className="bg-white rounded-xl shadow-md hover:shadow-2xl hover:-translate-y-3 transition-all duration-300 h-full flex flex-col p-6 border border-transparent hover:border-emerald-200">
-                    <div className="flex justify-center mb-6">
-                      <div className="w-28 h-28 rounded-full bg-gray-100 flex items-center justify-center">
-                        <User className={`w-14 h-14 ${person.color}`} />
+                  <div className="bg-white rounded-xl shadow-md hover:shadow-2xl hover:-translate-y-3 transition-all duration-300 h-full flex flex-col p-5 sm:p-6 border border-transparent hover:border-emerald-200">
+                    <div className="flex justify-center mb-4 sm:mb-6">
+                      <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gray-100 flex items-center justify-center">
+                        <User
+                          className={`w-12 h-12 sm:w-14 sm:h-14 ${person.color}`}
+                        />
                       </div>
                     </div>
 

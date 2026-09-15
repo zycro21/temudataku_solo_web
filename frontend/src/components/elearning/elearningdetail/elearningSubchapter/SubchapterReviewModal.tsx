@@ -60,7 +60,7 @@ export default function SubchapterReviewModal({
     <Dialog open={open}>
       <DialogContent
         showCloseButton={false}
-        className="max-w-md gap-0 overflow-hidden rounded-2xl border-0 p-0 shadow-2xl"
+        className="w-[calc(100%-2rem)] max-w-md gap-0 overflow-hidden rounded-2xl border-0 p-0 shadow-2xl sm:w-full"
         // 🔥 Modal ini sengaja TIDAK BOLEH ketutup dari klik di luar area
         // modal ataupun tombol Escape — satu-satunya jalan keluar cuma
         // lewat tombol X / "Nanti Saja" yang eksplisit di bawah (biar
@@ -69,7 +69,7 @@ export default function SubchapterReviewModal({
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
         {/* HEADER — banner emerald dengan sedikit tekstur, biar nggak flat */}
-        <DialogHeader className="relative overflow-hidden bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-500 px-6 pb-7 pt-6 text-left">
+        <DialogHeader className="relative overflow-hidden bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-500 px-4 pb-6 pt-5 text-left sm:px-6 sm:pb-7 sm:pt-6">
           {/* dot-grid tekstur halus */}
           <div
             className="pointer-events-none absolute inset-0 opacity-[0.15]"
@@ -87,20 +87,20 @@ export default function SubchapterReviewModal({
             onClick={() => !isSubmitting && onClose()}
             disabled={isSubmitting}
             aria-label="Tutup"
-            className="absolute right-4 top-4 z-10 rounded-full bg-white/15 p-1.5 text-white/90 transition hover:bg-white/25 disabled:opacity-40"
+            className="absolute right-3 top-3 z-10 rounded-full bg-white/15 p-1.5 text-white/90 transition hover:bg-white/25 disabled:opacity-40 sm:right-4 sm:top-4"
           >
             <X size={16} />
           </button>
 
-          <div className="relative flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/20 ring-1 ring-white/30">
-              <PartyPopper size={22} className="text-white" />
+          <div className="relative flex items-start gap-2 pr-8 sm:gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/20 ring-1 ring-white/30 sm:h-11 sm:w-11">
+              <PartyPopper size={20} className="text-white" />
             </div>
-            <div>
-              <DialogTitle className="text-lg font-bold leading-snug text-white">
+            <div className="min-w-0">
+              <DialogTitle className="text-base sm:text-lg font-bold leading-snug text-white">
                 Selamat, kelas ini sudah selesai!
               </DialogTitle>
-              <p className="mt-1 text-sm leading-relaxed text-emerald-50">
+              <p className="mt-1 text-xs sm:text-sm leading-relaxed text-emerald-50">
                 Yuk kasih review buat{" "}
                 <span className="font-semibold text-white">
                   {subChapterTitle}
@@ -111,7 +111,7 @@ export default function SubchapterReviewModal({
           </div>
         </DialogHeader>
 
-        <div className="space-y-6 bg-white px-6 py-6">
+        <div className="space-y-5 bg-white px-4 py-5 sm:space-y-6 sm:px-6 sm:py-6">
           {/* STAR PICKER */}
           <div className="flex flex-col items-center gap-2.5">
             <div
@@ -197,7 +197,7 @@ export default function SubchapterReviewModal({
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 border-t border-gray-100 bg-gray-50 px-6 py-4">
+        <div className="flex items-center justify-end gap-2 border-t border-gray-100 bg-gray-50 px-4 py-3 sm:px-6 sm:py-4">
           <Button
             variant="ghost"
             disabled={isSubmitting}

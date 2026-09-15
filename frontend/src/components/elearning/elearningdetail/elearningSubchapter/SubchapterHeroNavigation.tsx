@@ -397,7 +397,7 @@ export default function SubchapterHeroNavigation({
              baris baru) alih-alih maksa parent melebar horizontal.
           2) `shrink-0` di badge skor (kanan) → badge nggak ikut kepenyet
              kalau judul di kiri butuh ruang lebih banyak. */}
-      <div className="relative z-10 px-6 py-6 w-full flex items-center justify-between gap-4">
+      <div className="relative z-10 px-4 py-5 sm:px-6 sm:py-6 w-full flex items-center justify-between gap-4">
         <div className="min-w-0 flex-1">
           <p className="text-xs md:text-sm text-white/90 font-medium mb-1.5 tracking-wide">
             {overrideDescription ?? (
@@ -411,7 +411,7 @@ export default function SubchapterHeroNavigation({
             )}
           </p>
 
-          <h1 className="text-xl md:text-3xl font-bold leading-tight break-words">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold leading-tight break-words">
             {overrideTitle ?? subModuleTitle}
           </h1>
         </div>
@@ -419,10 +419,10 @@ export default function SubchapterHeroNavigation({
         {/* SCORE BADGE */}
         {quizScore !== null && (
           <div className="ml-auto pr-2 text-right shrink-0">
-            <p className="text-sm font-semibold text-white mb-0.5">
+            <p className="text-xs sm:text-sm font-semibold text-white mb-0.5">
               Skor Anda:
             </p>
-            <p className="text-2xl font-extrabold text-white tracking-tight">
+            <p className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
               {quizScore}/100
             </p>
           </div>

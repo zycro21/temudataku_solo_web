@@ -75,6 +75,16 @@ interface Props {
   // sidebar ini tetap jalan normal di tempat lain yang belum sempat
   // mengirim prop ini.
   onBack?: () => void;
+
+  // 🔥 BARU: kontrol drawer sidebar di mobile/tablet (< lg). Di desktop
+  // (lg ke atas) prop ini diabaikan — sidebar selalu tampil statis
+  // seperti sebelumnya. `isMobileOpen` menentukan drawer kebuka/ketutup,
+  // `onMobileClose` dipanggil tiap kali drawer perlu ditutup (klik
+  // backdrop, tombol X, ATAU begitu mentee memilih materi/task/
+  // sertifikat/kembali — supaya drawer otomatis nutup habis navigasi,
+  // bukan nutup sendiri baru mentee sadar sudah pindah halaman).
+  isMobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
 export default function ModuleSidebar({
@@ -95,6 +105,8 @@ export default function ModuleSidebar({
   onSelectTask,
   onSelectCertificate,
   onBack,
+  isMobileOpen = false,
+  onMobileClose,
 }: Props) {
   const router = useRouter();
   const [keyword, setKeyword] = useState("");
@@ -149,6 +161,27 @@ export default function ModuleSidebar({
     !!unlockedTextIds && !unlockedTextIds.has(textId);
   const LOCKED_TOOLTIP =
     "Selesaikan materi sebelumnya secara berurutan untuk membuka ini";
+
+  // 🔥 BARU: satu pintu buat "pilih lalu tutup drawer di mobile" — di
+  // desktop `onMobileClose` sengaja tidak dikirim dari parent jadi
+  // pemanggilan ini no-op di sana (sidebar desktop memang tidak pernah
+  // ditutup).
+  const selectText = (text: TextWithSubBab) => {
+    onSelectText?.(text);
+    onMobileClose?.();
+  };
+  const selectTask = (task: {
+    type: "quiz" | "assignment";
+    textId: string;
+    title: string;
+  }) => {
+    onSelectTask?.(task);
+    onMobileClose?.();
+  };
+  const selectCertificate = () => {
+    onSelectCertificate?.();
+    onMobileClose?.();
+  };
 
   const filteredSubBabs = useMemo(() => {
     if (!keyword) return subChapter.subBabs;
@@ -207,155 +240,198 @@ export default function ModuleSidebar({
   // sebagai poin/marker di DALAM dropdown modul yang benar-benar
   // memilikinya — bukan lagi satu seksi global di bawah.
 
-  return (
-    <aside
-      // 🔥 FIX: dulu nggak ada `shrink-0`, jadi meskipun width-nya
-      // "dipatok" 240px lewat `w-[240px]`, sebagai flex item di dalam
-      // `<div className="flex flex-1">` (SubchapterDetail.tsx) dia tetap
-      // punya flex-shrink default (1) — artinya kalau konten sebelah kanan
-      // (HeroNavigation, terutama judul materi yang panjang) butuh ruang
-      // lebih dari yang tersedia, browser bakal ambil ruang itu dengan
-      // NYUSUTIN sidebar ini duluan, bukan bikin konten kanan yang
-      // menyesuaikan/wrap. `shrink-0` di sini mengunci sidebar supaya
-      // selalu tetap 240px apa pun yang terjadi di kanan — pasangannya ada
-      // di SubchapterHeroNavigation.tsx (`min-w-0` + `break-words` di
-      // wrapper judul) supaya judul panjang itu sendiri yang turun ke
-      // baris baru, bukan memaksa elemen lain menyempit.
-      className="w-[240px] shrink-0 sticky top-0 bg-white border-r hidden lg:flex flex-col"
-      style={{ height: "calc(100vh - 60px)" }}
-    >
-      {/* HEADER */}
-      <div className="p-4 border-b">
-        <button
-          onClick={() =>
-            onBack ? onBack() : router.push(`/elearning/${courseId}`)
-          }
-          className="flex items-center gap-2 text-[11px] text-gray-500 hover:text-gray-700 cursor-pointer transition-colors mb-4"
-        >
-          <Image
-            src="/assets/elearning/arrowback.svg"
-            alt="back"
-            width={7}
-            height={7}
-          />
-          Kembali
-        </button>
+  // 🔥 BARU: sama seperti onBack di tombol "Kembali" — dibungkus supaya
+  // drawer mobile ikut nutup begitu mentee keluar dari halaman ini.
+  const handleBack = () => {
+    onBack ? onBack() : router.push(`/elearning/${courseId}`);
+    onMobileClose?.();
+  };
 
-        {/* 🔥 BARU: judul di-batasi maksimal 2 baris (`line-clamp-2`) +
+  return (
+    <>
+      {/* 🔥 BARU: backdrop cuma muncul di mobile/tablet (< lg) saat drawer
+          kebuka — klik di luar area sidebar buat nutup. Di desktop
+          (lg:hidden) backdrop ini nggak pernah dirender sama sekali,
+          karena sidebar desktop memang selalu statis, tidak pernah jadi
+          overlay. */}
+      {isMobileOpen && (
+        <div
+          onClick={onMobileClose}
+          aria-hidden
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+        />
+      )}
+
+      <aside
+        // 🔥 FIX: dulu nggak ada `shrink-0`, jadi meskipun width-nya
+        // "dipatok" 240px lewat `w-[240px]`, sebagai flex item di dalam
+        // `<div className="flex flex-1">` (SubchapterDetail.tsx) dia tetap
+        // punya flex-shrink default (1) — artinya kalau konten sebelah kanan
+        // (HeroNavigation, terutama judul materi yang panjang) butuh ruang
+        // lebih dari yang tersedia, browser bakal ambil ruang itu dengan
+        // NYUSUTIN sidebar ini duluan, bukan bikin konten kanan yang
+        // menyesuaikan/wrap. `shrink-0` di sini mengunci sidebar supaya
+        // selalu tetap 240px apa pun yang terjadi di kanan — pasangannya ada
+        // di SubchapterHeroNavigation.tsx (`min-w-0` + `break-words` di
+        // wrapper judul) supaya judul panjang itu sendiri yang turun ke
+        // baris baru, bukan memaksa elemen lain menyempit.
+        //
+        // 🔥 BARU (mobile/tablet < lg): sebelumnya section ini `hidden`
+        // total di bawah `lg`, jadi mentee di HP/tablet SAMA SEKALI tidak
+        // bisa buka daftar materi. Sekarang di bawah `lg` dia jadi drawer
+        // overlay (fixed, slide dari kiri, di atas backdrop) yang
+        // dikontrol tombol hamburger di SubchapterNavbar lewat
+        // `isMobileOpen`/`onMobileClose`. Dari `lg` ke atas, class `lg:`
+        // di bawah mengembalikannya PERSIS seperti perilaku lama (static,
+        // sticky, selalu tampil) — tidak ada perubahan apa pun di desktop.
+        className={`fixed inset-y-0 left-0 z-50 w-[240px] shrink-0 bg-white border-r flex flex-col transition-transform duration-300 ease-in-out
+${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
+lg:sticky lg:top-0 lg:z-auto lg:translate-x-0 lg:flex`}
+        style={{ height: "calc(100vh - 60px)" }}
+      >
+        {/* HEADER */}
+        <div className="p-4 border-b">
+          <div className="flex items-center justify-between gap-2 mb-4">
+            <button
+              onClick={handleBack}
+              className="flex items-center gap-2 text-[11px] text-gray-500 hover:text-gray-700 cursor-pointer transition-colors"
+            >
+              <Image
+                src="/assets/elearning/arrowback.svg"
+                alt="back"
+                width={7}
+                height={7}
+              />
+              Kembali
+            </button>
+
+            {/* 🔥 BARU: tombol tutup drawer — cuma relevan & dirender di
+                mobile/tablet (`lg:hidden`), karena di desktop drawer ini
+                memang tidak pernah "ditutup". */}
+            <button
+              onClick={onMobileClose}
+              aria-label="Tutup menu"
+              className="lg:hidden text-gray-400 hover:text-gray-600 text-lg leading-none px-1"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* 🔥 BARU: judul di-batasi maksimal 2 baris (`line-clamp-2`) +
             dipotong pakai "..." kalau kepanjangan, biar nggak makan tempat
             & dorong konten lain ke bawah. Judul lengkapnya tetap bisa
             dibaca lewat native tooltip browser (attribute `title`) pas
             di-hover. */}
-        <h2
-          className="text-lg font-bold text-gray-900 mb-4 text-left line-clamp-2"
-          title={subChapter.title}
-        >
-          {subChapter.title}
-        </h2>
+          <h2
+            className="text-lg font-bold text-gray-900 mb-4 text-left line-clamp-2"
+            title={subChapter.title}
+          >
+            {subChapter.title}
+          </h2>
 
-        <div className="space-y-1.5 mb-3">
-          <div className="flex justify-between text-[11px] font-bold text-gray-600">
-            <span>Progress: {Math.round(progressPercent)}%</span>
-            <span>Terakhir diakses: {lastAccessed}</span>
+          <div className="space-y-1.5 mb-3">
+            <div className="flex justify-between text-[11px] font-bold text-gray-600">
+              <span>Progress: {Math.round(progressPercent)}%</span>
+              <span>Terakhir diakses: {lastAccessed}</span>
+            </div>
+
+            <div className="h-1.5 w-full bg-gray-100 rounded-full">
+              <div
+                className="h-1.5 bg-emerald-500 rounded-full"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
           </div>
 
-          <div className="h-1.5 w-full bg-gray-100 rounded-full">
-            <div
-              className="h-1.5 bg-emerald-500 rounded-full"
-              style={{ width: `${progressPercent}%` }}
+          <div className="relative mt-6">
+            <Image
+              src="/assets/elearning/search.svg"
+              alt="search"
+              width={12}
+              height={12}
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 opacity-60"
+            />
+            <input
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              placeholder="Cari"
+              className="w-full pl-8 pr-3 py-2 text-xs bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
           </div>
         </div>
 
-        <div className="relative mt-6">
-          <Image
-            src="/assets/elearning/search.svg"
-            alt="search"
-            width={12}
-            height={12}
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 opacity-60"
-          />
-          <input
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            placeholder="Cari"
-            className="w-full pl-8 pr-3 py-2 text-xs bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          />
-        </div>
-      </div>
+        {/* CONTENT */}
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 text-xs pb-8">
+          {filteredSubBabs.map((subBab) => {
+            const isOpen = openModules[subBab.id] ?? false;
 
-      {/* CONTENT */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 text-xs pb-8">
-        {filteredSubBabs.map((subBab) => {
-          const isOpen = openModules[subBab.id] ?? false;
+            // 🔥 "materi" biasa = text yang tidak punya quiz/assignment
+            const materiTexts = subBab.texts.filter(
+              (t) => !t.quiz && !t.assignment,
+            );
 
-          // 🔥 "materi" biasa = text yang tidak punya quiz/assignment
-          const materiTexts = subBab.texts.filter(
-            (t) => !t.quiz && !t.assignment,
-          );
+            // 🔥 Quiz/assignment MILIK SubBab ini sendiri (bisa ada di
+            // SubBab mana pun, bukan cuma yang terakhir) — dirender sebagai
+            // penanda di dalam dropdown SubBab ini.
+            const quizText = subBab.texts.find((t) => t.quiz);
+            const assignmentText = subBab.texts.find((t) => t.assignment);
 
-          // 🔥 Quiz/assignment MILIK SubBab ini sendiri (bisa ada di
-          // SubBab mana pun, bukan cuma yang terakhir) — dirender sebagai
-          // penanda di dalam dropdown SubBab ini.
-          const quizText = subBab.texts.find((t) => t.quiz);
-          const assignmentText = subBab.texts.find((t) => t.assignment);
-
-          return (
-            <div key={subBab.id} className="space-y-1.5">
-              <button
-                onClick={() =>
-                  setOpenModules((p) => ({
-                    ...p,
-                    [subBab.id]: !isOpen,
-                  }))
-                }
-                className="flex items-center justify-between w-full px-1.5 py-1 rounded-md text-left
+            return (
+              <div key={subBab.id} className="space-y-1.5">
+                <button
+                  onClick={() =>
+                    setOpenModules((p) => ({
+                      ...p,
+                      [subBab.id]: !isOpen,
+                    }))
+                  }
+                  className="flex items-center justify-between w-full px-1.5 py-1 rounded-md text-left
                 cursor-pointer transition hover:bg-gray-100"
-              >
-                <div className="flex items-center gap-2 text-[11px] text-black min-w-0">
-                  <Image
-                    src="/assets/elearning/arrowup.svg"
-                    alt="toggle"
-                    width={9}
-                    height={9}
-                    className={`shrink-0 transition-transform ${
-                      isOpen ? "rotate-180" : ""
-                    }`}
-                  />
-                  <span className="truncate">{subBab.title}</span>
-                  {/* 🔥 BARU: centang modul — cuma muncul kalau SEMUA
+                >
+                  <div className="flex items-center gap-2 text-[11px] text-black min-w-0">
+                    <Image
+                      src="/assets/elearning/arrowup.svg"
+                      alt="toggle"
+                      width={9}
+                      height={9}
+                      className={`shrink-0 transition-transform ${
+                        isOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                    <span className="truncate">{subBab.title}</span>
+                    {/* 🔥 BARU: centang modul — cuma muncul kalau SEMUA
                       ELearningText (materi + quiz + assignment) yang
                       published di SubBab ini sudah selesai. */}
-                  {completedSubBabIds.has(subBab.id) && (
-                    <CheckCircle2
-                      size={15}
-                      strokeWidth={2.25}
-                      className="text-emerald-500 shrink-0"
-                    />
-                  )}
-                </div>
-              </button>
+                    {completedSubBabIds.has(subBab.id) && (
+                      <CheckCircle2
+                        size={15}
+                        strokeWidth={2.25}
+                        className="text-emerald-500 shrink-0"
+                      />
+                    )}
+                  </div>
+                </button>
 
-              {isOpen && (
-                <ul className="pl-5 space-y-1.5">
-                  {materiTexts.map((text) => {
-                    const isActive =
-                      !activeTaskType && text.id === activeTextId;
-                    const locked = isLocked(text.id);
+                {isOpen && (
+                  <ul className="pl-5 space-y-1.5">
+                    {materiTexts.map((text) => {
+                      const isActive =
+                        !activeTaskType && text.id === activeTextId;
+                      const locked = isLocked(text.id);
 
-                    return (
-                      <li
-                        key={text.id}
-                        onClick={() => {
-                          if (locked) return;
-                          onSelectText?.({
-                            ...text,
-                            subBabId: subBab.id,
-                            subBabTitle: subBab.title,
-                          });
-                        }}
-                        title={locked ? LOCKED_TOOLTIP : undefined}
-                        className={`flex items-center gap-2 px-1.5 py-1 rounded-md transition
+                      return (
+                        <li
+                          key={text.id}
+                          onClick={() => {
+                            if (locked) return;
+                            selectText({
+                              ...text,
+                              subBabId: subBab.id,
+                              subBabTitle: subBab.title,
+                            });
+                          }}
+                          title={locked ? LOCKED_TOOLTIP : undefined}
+                          className={`flex items-center gap-2 px-1.5 py-1 rounded-md transition
 ${
   locked
     ? "text-gray-400 cursor-not-allowed"
@@ -363,55 +439,59 @@ ${
       ? "bg-emerald-500 text-white font-bold py-1.5 cursor-pointer"
       : "text-gray-900 hover:text-gray-600 hover:bg-gray-100 cursor-pointer"
 }`}
-                      >
-                        <div className="flex items-center justify-center w-4 h-4 shrink-0">
-                          {locked ? (
-                            <Lock
-                              size={11}
-                              strokeWidth={2.25}
-                              className="text-gray-400"
-                            />
-                          ) : completedTextIds.has(text.id) ? (
-                            <CheckCircle2
-                              size={14}
-                              strokeWidth={2.25}
-                              className={
-                                isActive ? "text-white" : "text-emerald-500"
-                              }
-                            />
-                          ) : (
-                            <Image
-                              src="/assets/elearning/submodule-unfinished.svg"
-                              alt="status"
-                              width={9}
-                              height={9}
-                              className={isActive ? "brightness-0 invert" : ""}
-                            />
-                          )}
-                        </div>
+                        >
+                          <div className="flex items-center justify-center w-4 h-4 shrink-0">
+                            {locked ? (
+                              <Lock
+                                size={11}
+                                strokeWidth={2.25}
+                                className="text-gray-400"
+                              />
+                            ) : completedTextIds.has(text.id) ? (
+                              <CheckCircle2
+                                size={14}
+                                strokeWidth={2.25}
+                                className={
+                                  isActive ? "text-white" : "text-emerald-500"
+                                }
+                              />
+                            ) : (
+                              <Image
+                                src="/assets/elearning/submodule-unfinished.svg"
+                                alt="status"
+                                width={9}
+                                height={9}
+                                className={
+                                  isActive ? "brightness-0 invert" : ""
+                                }
+                              />
+                            )}
+                          </div>
 
-                        <span className="text-[10px] leading-relaxed text-left">
-                          {text.title}
-                        </span>
-                      </li>
-                    );
-                  })}
+                          <span className="text-[10px] leading-relaxed text-left">
+                            {text.title}
+                          </span>
+                        </li>
+                      );
+                    })}
 
-                  {/* 🔥 PENANDA quiz/assignment MILIK SubBab ini — cuma
+                    {/* 🔥 PENANDA quiz/assignment MILIK SubBab ini — cuma
                       penanda bahwa SubBab ini ada penilaiannya, bukan lagi
                       satu seksi global terpisah di bawah semua modul. */}
-                  {quizText?.quiz && (
-                    <li
-                      onClick={() => {
-                        if (isLocked(quizText.id)) return;
-                        onSelectTask?.({
-                          type: "quiz",
-                          textId: quizText.id,
-                          title: quizText.quiz!.title,
-                        });
-                      }}
-                      title={isLocked(quizText.id) ? LOCKED_TOOLTIP : undefined}
-                      className={`flex items-center gap-2 px-1.5 py-1 rounded-md transition
+                    {quizText?.quiz && (
+                      <li
+                        onClick={() => {
+                          if (isLocked(quizText.id)) return;
+                          selectTask({
+                            type: "quiz",
+                            textId: quizText.id,
+                            title: quizText.quiz!.title,
+                          });
+                        }}
+                        title={
+                          isLocked(quizText.id) ? LOCKED_TOOLTIP : undefined
+                        }
+                        className={`flex items-center gap-2 px-1.5 py-1 rounded-md transition
 ${
   isLocked(quizText.id)
     ? "text-gray-400 cursor-not-allowed"
@@ -419,61 +499,63 @@ ${
       ? "bg-emerald-500 text-white font-bold py-1.5 cursor-pointer"
       : "text-gray-900 hover:text-gray-600 hover:bg-gray-100 cursor-pointer"
 }`}
-                    >
-                      <div className="flex items-center justify-center w-4 h-4 shrink-0">
-                        {isLocked(quizText.id) ? (
-                          <Lock
-                            size={11}
-                            strokeWidth={2.25}
-                            className="text-gray-400"
-                          />
-                        ) : completedTextIds.has(quizText.id) ? (
-                          <CheckCircle2
-                            size={14}
-                            strokeWidth={2.25}
-                            className={
-                              activeTaskType === "quiz" &&
-                              activeTaskTextId === quizText.id
-                                ? "text-white"
-                                : "text-emerald-500"
-                            }
-                          />
-                        ) : (
-                          <Image
-                            src="/assets/elearning/penilaian.svg"
-                            alt="quiz"
-                            width={9}
-                            height={9}
-                            className={
-                              activeTaskType === "quiz" &&
-                              activeTaskTextId === quizText.id
-                                ? "brightness-0 invert"
-                                : ""
-                            }
-                          />
-                        )}
-                      </div>
+                      >
+                        <div className="flex items-center justify-center w-4 h-4 shrink-0">
+                          {isLocked(quizText.id) ? (
+                            <Lock
+                              size={11}
+                              strokeWidth={2.25}
+                              className="text-gray-400"
+                            />
+                          ) : completedTextIds.has(quizText.id) ? (
+                            <CheckCircle2
+                              size={14}
+                              strokeWidth={2.25}
+                              className={
+                                activeTaskType === "quiz" &&
+                                activeTaskTextId === quizText.id
+                                  ? "text-white"
+                                  : "text-emerald-500"
+                              }
+                            />
+                          ) : (
+                            <Image
+                              src="/assets/elearning/penilaian.svg"
+                              alt="quiz"
+                              width={9}
+                              height={9}
+                              className={
+                                activeTaskType === "quiz" &&
+                                activeTaskTextId === quizText.id
+                                  ? "brightness-0 invert"
+                                  : ""
+                              }
+                            />
+                          )}
+                        </div>
 
-                      <span className="text-[10px] leading-relaxed text-left">
-                        Penilaian Quiz — {quizText.quiz.title}
-                      </span>
-                    </li>
-                  )}
+                        <span className="text-[10px] leading-relaxed text-left">
+                          Penilaian Quiz — {quizText.quiz.title}
+                        </span>
+                      </li>
+                    )}
 
-                  {assignmentText?.assignment && (
-                    <li
-                      onClick={() => {
-                        if (isLocked(assignmentText.id)) return;
-                        onSelectTask?.({
-                          type: "assignment",
-                          textId: assignmentText.id,
-                          title: assignmentText.assignment!.title,
-                        });
-                      }}
-                      title={
-                        isLocked(assignmentText.id) ? LOCKED_TOOLTIP : undefined
-                      }
-                      className={`flex items-center gap-2 px-1.5 py-1 rounded-md transition
+                    {assignmentText?.assignment && (
+                      <li
+                        onClick={() => {
+                          if (isLocked(assignmentText.id)) return;
+                          selectTask({
+                            type: "assignment",
+                            textId: assignmentText.id,
+                            title: assignmentText.assignment!.title,
+                          });
+                        }}
+                        title={
+                          isLocked(assignmentText.id)
+                            ? LOCKED_TOOLTIP
+                            : undefined
+                        }
+                        className={`flex items-center gap-2 px-1.5 py-1 rounded-md transition
 ${
   isLocked(assignmentText.id)
     ? "text-gray-400 cursor-not-allowed"
@@ -481,54 +563,54 @@ ${
       ? "bg-emerald-500 text-white font-bold py-1.5 cursor-pointer"
       : "text-gray-900 hover:text-gray-600 hover:bg-gray-100 cursor-pointer"
 }`}
-                    >
-                      <div className="flex items-center justify-center w-4 h-4 shrink-0">
-                        {isLocked(assignmentText.id) ? (
-                          <Lock
-                            size={11}
-                            strokeWidth={2.25}
-                            className="text-gray-400"
-                          />
-                        ) : completedTextIds.has(assignmentText.id) ? (
-                          <CheckCircle2
-                            size={14}
-                            strokeWidth={2.25}
-                            className={
-                              activeTaskType === "assignment" &&
-                              activeTaskTextId === assignmentText.id
-                                ? "text-white"
-                                : "text-emerald-500"
-                            }
-                          />
-                        ) : (
-                          <Image
-                            src="/assets/elearning/penilaian.svg"
-                            alt="assignment"
-                            width={9}
-                            height={9}
-                            className={
-                              activeTaskType === "assignment" &&
-                              activeTaskTextId === assignmentText.id
-                                ? "brightness-0 invert"
-                                : ""
-                            }
-                          />
-                        )}
-                      </div>
+                      >
+                        <div className="flex items-center justify-center w-4 h-4 shrink-0">
+                          {isLocked(assignmentText.id) ? (
+                            <Lock
+                              size={11}
+                              strokeWidth={2.25}
+                              className="text-gray-400"
+                            />
+                          ) : completedTextIds.has(assignmentText.id) ? (
+                            <CheckCircle2
+                              size={14}
+                              strokeWidth={2.25}
+                              className={
+                                activeTaskType === "assignment" &&
+                                activeTaskTextId === assignmentText.id
+                                  ? "text-white"
+                                  : "text-emerald-500"
+                              }
+                            />
+                          ) : (
+                            <Image
+                              src="/assets/elearning/penilaian.svg"
+                              alt="assignment"
+                              width={9}
+                              height={9}
+                              className={
+                                activeTaskType === "assignment" &&
+                                activeTaskTextId === assignmentText.id
+                                  ? "brightness-0 invert"
+                                  : ""
+                              }
+                            />
+                          )}
+                        </div>
 
-                      <span className="text-[10px] leading-relaxed text-left">
-                        Penilaian Proyek — {assignmentText.assignment.title}
-                      </span>
-                    </li>
-                  )}
-                </ul>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                        <span className="text-[10px] leading-relaxed text-left">
+                          Penilaian Proyek — {assignmentText.assignment.title}
+                        </span>
+                      </li>
+                    )}
+                  </ul>
+                )}
+              </div>
+            );
+          })}
+        </div>
 
-      {/* ================= ASSESSMENT SUMMARY (FOOTER) =================
+        {/* ================= ASSESSMENT SUMMARY (FOOTER) =================
           🔥 BARU: ringkasan penilaian subchapter ini di luar/di bawah
           semua modul, sengaja ditaruh DI LUAR div scrollable "CONTENT" di
           atas (jadi selalu keliatan, nggak ikut ke-scroll) — mirip posisi
@@ -541,58 +623,60 @@ ${
           3) Cuma ada SALAH SATU → tampil sebagai satu baris info langsung
              (tanpa dropdown/chevron sama sekali), diklik langsung nuju ke
              assessment itu. */}
-      {(overallQuizText || overallAssignmentText) && (
-        <div className="p-4 border-t bg-gray-50/70 shrink-0">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-0.5">
-            Penilaian
-          </p>
+        {(overallQuizText || overallAssignmentText) && (
+          <div className="p-4 border-t bg-gray-50/70 shrink-0">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-0.5">
+              Penilaian
+            </p>
 
-          {hasBothAssessments ? (
-            <div className="border border-emerald-100 rounded-lg bg-white shadow-sm overflow-hidden">
-              <button
-                onClick={() => setAssessmentOpen((v) => !v)}
-                className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left hover:bg-emerald-50/60 transition cursor-pointer"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="flex items-center justify-center w-7 h-7 rounded-full bg-emerald-50 shrink-0">
-                    <Image
-                      src="/assets/elearning/penilaian.svg"
-                      alt="assessment"
-                      width={11}
-                      height={11}
-                    />
+            {hasBothAssessments ? (
+              <div className="border border-emerald-100 rounded-lg bg-white shadow-sm overflow-hidden">
+                <button
+                  onClick={() => setAssessmentOpen((v) => !v)}
+                  className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left hover:bg-emerald-50/60 transition cursor-pointer"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex items-center justify-center w-7 h-7 rounded-full bg-emerald-50 shrink-0">
+                      <Image
+                        src="/assets/elearning/penilaian.svg"
+                        alt="assessment"
+                        width={11}
+                        height={11}
+                      />
+                    </div>
+                    <span className="text-[11px] font-bold text-gray-800 truncate">
+                      Quiz &amp; Tugas Proyek
+                    </span>
                   </div>
-                  <span className="text-[11px] font-bold text-gray-800 truncate">
-                    Quiz &amp; Tugas Proyek
-                  </span>
-                </div>
 
-                <Image
-                  src="/assets/elearning/arrowup.svg"
-                  alt="toggle"
-                  width={9}
-                  height={9}
-                  className={`shrink-0 transition-transform ${
-                    assessmentOpen ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
+                  <Image
+                    src="/assets/elearning/arrowup.svg"
+                    alt="toggle"
+                    width={9}
+                    height={9}
+                    className={`shrink-0 transition-transform ${
+                      assessmentOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
 
-              {assessmentOpen && (
-                <div className="border-t divide-y">
-                  <button
-                    onClick={() => {
-                      if (isLocked(overallQuizText!.id)) return;
-                      onSelectTask?.({
-                        type: "quiz",
-                        textId: overallQuizText!.id,
-                        title: overallQuizText!.quiz!.title,
-                      });
-                    }}
-                    title={
-                      isLocked(overallQuizText!.id) ? LOCKED_TOOLTIP : undefined
-                    }
-                    className={`w-full flex items-center gap-2 px-3 py-2.5 text-left transition
+                {assessmentOpen && (
+                  <div className="border-t divide-y">
+                    <button
+                      onClick={() => {
+                        if (isLocked(overallQuizText!.id)) return;
+                        selectTask({
+                          type: "quiz",
+                          textId: overallQuizText!.id,
+                          title: overallQuizText!.quiz!.title,
+                        });
+                      }}
+                      title={
+                        isLocked(overallQuizText!.id)
+                          ? LOCKED_TOOLTIP
+                          : undefined
+                      }
+                      className={`w-full flex items-center gap-2 px-3 py-2.5 text-left transition
 ${
   isLocked(overallQuizText!.id)
     ? "text-gray-400 cursor-not-allowed"
@@ -600,53 +684,53 @@ ${
       ? "bg-emerald-500 text-white cursor-pointer"
       : "hover:bg-emerald-50/60 text-gray-800 cursor-pointer"
 }`}
-                  >
-                    {isLocked(overallQuizText!.id) ? (
-                      <Lock
-                        size={11}
-                        strokeWidth={2.25}
-                        className="text-gray-400 shrink-0"
-                      />
-                    ) : (
-                      <span
-                        className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                          activeTaskType === "quiz" &&
-                          activeTaskTextId === overallQuizText!.id
-                            ? "bg-white"
-                            : "bg-emerald-500"
-                        }`}
-                      />
-                    )}
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-bold">Quiz</p>
-                      <p
-                        className={`text-[9px] truncate ${
-                          activeTaskType === "quiz" &&
-                          activeTaskTextId === overallQuizText!.id
-                            ? "text-white/80"
-                            : "text-gray-500"
-                        }`}
-                      >
-                        {overallQuizText!.quiz!.title}
-                      </p>
-                    </div>
-                  </button>
+                    >
+                      {isLocked(overallQuizText!.id) ? (
+                        <Lock
+                          size={11}
+                          strokeWidth={2.25}
+                          className="text-gray-400 shrink-0"
+                        />
+                      ) : (
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                            activeTaskType === "quiz" &&
+                            activeTaskTextId === overallQuizText!.id
+                              ? "bg-white"
+                              : "bg-emerald-500"
+                          }`}
+                        />
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold">Quiz</p>
+                        <p
+                          className={`text-[9px] truncate ${
+                            activeTaskType === "quiz" &&
+                            activeTaskTextId === overallQuizText!.id
+                              ? "text-white/80"
+                              : "text-gray-500"
+                          }`}
+                        >
+                          {overallQuizText!.quiz!.title}
+                        </p>
+                      </div>
+                    </button>
 
-                  <button
-                    onClick={() => {
-                      if (isLocked(overallAssignmentText!.id)) return;
-                      onSelectTask?.({
-                        type: "assignment",
-                        textId: overallAssignmentText!.id,
-                        title: overallAssignmentText!.assignment!.title,
-                      });
-                    }}
-                    title={
-                      isLocked(overallAssignmentText!.id)
-                        ? LOCKED_TOOLTIP
-                        : undefined
-                    }
-                    className={`w-full flex items-center gap-2 px-3 py-2.5 text-left transition
+                    <button
+                      onClick={() => {
+                        if (isLocked(overallAssignmentText!.id)) return;
+                        selectTask({
+                          type: "assignment",
+                          textId: overallAssignmentText!.id,
+                          title: overallAssignmentText!.assignment!.title,
+                        });
+                      }}
+                      title={
+                        isLocked(overallAssignmentText!.id)
+                          ? LOCKED_TOOLTIP
+                          : undefined
+                      }
+                      className={`w-full flex items-center gap-2 px-3 py-2.5 text-left transition
 ${
   isLocked(overallAssignmentText!.id)
     ? "text-gray-400 cursor-not-allowed"
@@ -655,75 +739,75 @@ ${
       ? "bg-emerald-500 text-white cursor-pointer"
       : "hover:bg-emerald-50/60 text-gray-800 cursor-pointer"
 }`}
-                  >
-                    {isLocked(overallAssignmentText!.id) ? (
-                      <Lock
-                        size={11}
-                        strokeWidth={2.25}
-                        className="text-gray-400 shrink-0"
-                      />
-                    ) : (
-                      <span
-                        className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                          activeTaskType === "assignment" &&
-                          activeTaskTextId === overallAssignmentText!.id
-                            ? "bg-white"
-                            : "bg-emerald-500"
-                        }`}
-                      />
-                    )}
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-bold">Tugas Proyek</p>
-                      <p
-                        className={`text-[9px] truncate ${
-                          activeTaskType === "assignment" &&
-                          activeTaskTextId === overallAssignmentText!.id
-                            ? "text-white/80"
-                            : "text-gray-500"
-                        }`}
-                      >
-                        {overallAssignmentText!.assignment!.title}
-                      </p>
-                    </div>
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            (() => {
-              // Cuma salah satu yang ada — nggak butuh dropdown, langsung
-              // satu baris klik-able aja.
-              const single = overallQuizText
-                ? {
-                    type: "quiz" as const,
-                    textId: overallQuizText.id,
-                    title: overallQuizText.quiz!.title,
-                    label: "Quiz",
-                  }
-                : {
-                    type: "assignment" as const,
-                    textId: overallAssignmentText!.id,
-                    title: overallAssignmentText!.assignment!.title,
-                    label: "Tugas Proyek",
-                  };
+                    >
+                      {isLocked(overallAssignmentText!.id) ? (
+                        <Lock
+                          size={11}
+                          strokeWidth={2.25}
+                          className="text-gray-400 shrink-0"
+                        />
+                      ) : (
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                            activeTaskType === "assignment" &&
+                            activeTaskTextId === overallAssignmentText!.id
+                              ? "bg-white"
+                              : "bg-emerald-500"
+                          }`}
+                        />
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold">Tugas Proyek</p>
+                        <p
+                          className={`text-[9px] truncate ${
+                            activeTaskType === "assignment" &&
+                            activeTaskTextId === overallAssignmentText!.id
+                              ? "text-white/80"
+                              : "text-gray-500"
+                          }`}
+                        >
+                          {overallAssignmentText!.assignment!.title}
+                        </p>
+                      </div>
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              (() => {
+                // Cuma salah satu yang ada — nggak butuh dropdown, langsung
+                // satu baris klik-able aja.
+                const single = overallQuizText
+                  ? {
+                      type: "quiz" as const,
+                      textId: overallQuizText.id,
+                      title: overallQuizText.quiz!.title,
+                      label: "Quiz",
+                    }
+                  : {
+                      type: "assignment" as const,
+                      textId: overallAssignmentText!.id,
+                      title: overallAssignmentText!.assignment!.title,
+                      label: "Tugas Proyek",
+                    };
 
-              const isActive =
-                activeTaskType === single.type &&
-                activeTaskTextId === single.textId;
-              const locked = isLocked(single.textId);
+                const isActive =
+                  activeTaskType === single.type &&
+                  activeTaskTextId === single.textId;
+                const locked = isLocked(single.textId);
 
-              return (
-                <button
-                  onClick={() => {
-                    if (locked) return;
-                    onSelectTask?.({
-                      type: single.type,
-                      textId: single.textId,
-                      title: single.title,
-                    });
-                  }}
-                  title={locked ? LOCKED_TOOLTIP : undefined}
-                  className={`w-full flex items-center gap-2 border rounded-lg shadow-sm px-3 py-2.5 text-left transition
+                return (
+                  <button
+                    onClick={() => {
+                      if (locked) return;
+                      selectTask({
+                        type: single.type,
+                        textId: single.textId,
+                        title: single.title,
+                      });
+                    }}
+                    title={locked ? LOCKED_TOOLTIP : undefined}
+                    className={`w-full flex items-center gap-2 border rounded-lg shadow-sm px-3 py-2.5 text-left transition
 ${
   locked
     ? "bg-white border-gray-100 text-gray-400 cursor-not-allowed"
@@ -731,50 +815,50 @@ ${
       ? "bg-emerald-500 border-emerald-500 text-white cursor-pointer"
       : "bg-white border-emerald-100 text-gray-800 hover:bg-emerald-50/60 cursor-pointer"
 }`}
-                >
-                  <div
-                    className={`flex items-center justify-center w-7 h-7 rounded-full shrink-0 ${
-                      locked
-                        ? "bg-gray-50"
-                        : isActive
-                          ? "bg-white/20"
-                          : "bg-emerald-50"
-                    }`}
                   >
-                    {locked ? (
-                      <Lock
-                        size={12}
-                        strokeWidth={2.25}
-                        className="text-gray-400"
-                      />
-                    ) : (
-                      <Image
-                        src="/assets/elearning/penilaian.svg"
-                        alt="assessment"
-                        width={11}
-                        height={11}
-                        className={isActive ? "brightness-0 invert" : ""}
-                      />
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-bold">{single.label}</p>
-                    <p
-                      className={`text-[9px] truncate ${
-                        isActive ? "text-white/80" : "text-gray-500"
+                    <div
+                      className={`flex items-center justify-center w-7 h-7 rounded-full shrink-0 ${
+                        locked
+                          ? "bg-gray-50"
+                          : isActive
+                            ? "bg-white/20"
+                            : "bg-emerald-50"
                       }`}
                     >
-                      {single.title}
-                    </p>
-                  </div>
-                </button>
-              );
-            })()
-          )}
-        </div>
-      )}
+                      {locked ? (
+                        <Lock
+                          size={12}
+                          strokeWidth={2.25}
+                          className="text-gray-400"
+                        />
+                      ) : (
+                        <Image
+                          src="/assets/elearning/penilaian.svg"
+                          alt="assessment"
+                          width={11}
+                          height={11}
+                          className={isActive ? "brightness-0 invert" : ""}
+                        />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold">{single.label}</p>
+                      <p
+                        className={`text-[9px] truncate ${
+                          isActive ? "text-white/80" : "text-gray-500"
+                        }`}
+                      >
+                        {single.title}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })()
+            )}
+          </div>
+        )}
 
-      {/* 🔥 DIUBAH: dulu render card sertifikat LANGSUNG di sidebar
+        {/* 🔥 DIUBAH: dulu render card sertifikat LANGSUNG di sidebar
           (thumbnail + tombol download nemplok di sini) — sekarang cuma
           TOMBOL PEMICU kecil, gaya sama seperti tombol "Penilaian"
           single-item di atas. Klik tombol ini akan MEMBUKA sertifikatnya
@@ -782,27 +866,27 @@ ${
           SubchapterDetail.tsx), bukan lagi ditampilkan langsung di sini.
           Cuma dirender kalau `certificateStatus` bukan "idle" (progress
           course ini sudah 100%). */}
-      {certificateStatus !== "idle" && (
-        <div className="p-4 border-t bg-gray-50/70 shrink-0">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-0.5">
-            Sertifikat
-          </p>
+        {certificateStatus !== "idle" && (
+          <div className="p-4 border-t bg-gray-50/70 shrink-0">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-0.5">
+              Sertifikat
+            </p>
 
-          <button
-            onClick={() => {
-              if (
-                certificateStatus === "ready" ||
-                certificateStatus === "error" ||
-                certificateStatus === "not-generated" // 🔥 DIUBAH: dulu "not-eligible"
-              ) {
-                onSelectCertificate?.();
+            <button
+              onClick={() => {
+                if (
+                  certificateStatus === "ready" ||
+                  certificateStatus === "error" ||
+                  certificateStatus === "not-generated" // 🔥 DIUBAH: dulu "not-eligible"
+                ) {
+                  selectCertificate();
+                }
+              }}
+              disabled={
+                certificateStatus === "checking" ||
+                certificateStatus === "generating"
               }
-            }}
-            disabled={
-              certificateStatus === "checking" ||
-              certificateStatus === "generating"
-            }
-            className={`w-full flex items-center gap-2 border rounded-lg shadow-sm px-3 py-2.5 text-left transition
+              className={`w-full flex items-center gap-2 border rounded-lg shadow-sm px-3 py-2.5 text-left transition
 ${
   certificateStatus === "checking" || certificateStatus === "generating"
     ? "bg-white border-gray-100 text-gray-400 cursor-default"
@@ -810,45 +894,49 @@ ${
       ? "bg-emerald-500 border-emerald-500 text-white cursor-pointer"
       : "bg-white border-emerald-100 text-gray-800 hover:bg-emerald-50/60 cursor-pointer"
 }`}
-          >
-            <div
-              className={`flex items-center justify-center w-7 h-7 rounded-full shrink-0 ${
-                isCertificateActive ? "bg-white/20" : "bg-emerald-50"
-              }`}
             >
-              {certificateStatus === "checking" ||
-              certificateStatus === "generating" ? (
-                <Loader2 size={13} className="animate-spin text-emerald-500" />
-              ) : (
-                <Award
-                  size={13}
-                  className={
-                    isCertificateActive ? "text-white" : "text-emerald-500"
-                  }
-                />
-              )}
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] font-bold">Sertifikat</p>
-              <p
-                className={`text-[9px] truncate ${
-                  isCertificateActive ? "text-white/80" : "text-gray-500"
+              <div
+                className={`flex items-center justify-center w-7 h-7 rounded-full shrink-0 ${
+                  isCertificateActive ? "bg-white/20" : "bg-emerald-50"
                 }`}
               >
-                {certificateStatus === "generating"
-                  ? "Sedang dibuat..."
-                  : certificateStatus === "checking"
-                    ? "Memeriksa..."
-                    : certificateStatus === "error"
-                      ? "Gagal memuat, klik untuk coba lagi"
-                      : certificateStatus === "not-generated" // 🔥 DIUBAH
-                        ? "Kelas selesai, klik untuk cetak sertifikatmu"
-                        : "Kelas selesai, lihat sertifikatmu"}
-              </p>
-            </div>
-          </button>
-        </div>
-      )}
-    </aside>
+                {certificateStatus === "checking" ||
+                certificateStatus === "generating" ? (
+                  <Loader2
+                    size={13}
+                    className="animate-spin text-emerald-500"
+                  />
+                ) : (
+                  <Award
+                    size={13}
+                    className={
+                      isCertificateActive ? "text-white" : "text-emerald-500"
+                    }
+                  />
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold">Sertifikat</p>
+                <p
+                  className={`text-[9px] truncate ${
+                    isCertificateActive ? "text-white/80" : "text-gray-500"
+                  }`}
+                >
+                  {certificateStatus === "generating"
+                    ? "Sedang dibuat..."
+                    : certificateStatus === "checking"
+                      ? "Memeriksa..."
+                      : certificateStatus === "error"
+                        ? "Gagal memuat, klik untuk coba lagi"
+                        : certificateStatus === "not-generated" // 🔥 DIUBAH
+                          ? "Kelas selesai, klik untuk cetak sertifikatmu"
+                          : "Kelas selesai, lihat sertifikatmu"}
+                </p>
+              </div>
+            </button>
+          </div>
+        )}
+      </aside>
+    </>
   );
 }
