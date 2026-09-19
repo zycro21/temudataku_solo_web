@@ -923,6 +923,7 @@ function stripCodeHTML(html: string): string {
 
 function CodingPreview({ data }: { data: any }) {
   const [output, setOutput] = useState<string | null>(null);
+  const [images, setImages] = useState<string[]>([]);
   const [running, setRunning] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedOutput, setCopiedOutput] = useState(false);
@@ -948,6 +949,7 @@ function CodingPreview({ data }: { data: any }) {
     if (!code || !rawLang) return;
     setRunning(true);
     setOutput(null);
+    setImages([]);
     try {
       const res = await fetch("/api/execute-code", {
         method: "POST",
@@ -961,6 +963,7 @@ function CodingPreview({ data }: { data: any }) {
         );
       } else {
         setOutput(json.output ?? "(no output)");
+        setImages(Array.isArray(json.images) ? json.images : []);
       }
     } catch (err: any) {
       setOutput(`[Failed to run code]\n${err?.message ?? String(err)}`);
@@ -1070,9 +1073,23 @@ function CodingPreview({ data }: { data: any }) {
                 {copiedOutput ? "Copied!" : "Copy"}
               </button>
               <p className="text-xs text-gray-400 mb-2">Output:</p>
-              <pre className="text-emerald-400 text-sm font-mono whitespace-pre-wrap">
-                {output}
-              </pre>
+              {output && (
+                <pre className="text-emerald-400 text-sm font-mono whitespace-pre-wrap">
+                  {output}
+                </pre>
+              )}
+              {images.length > 0 && (
+                <div className="flex flex-col gap-3 mt-3">
+                  {images.map((img, i) => (
+                    <img
+                      key={i}
+                      src={`data:image/png;base64,${img}`}
+                      alt={`Plot output ${i + 1}`}
+                      className="max-w-full rounded-md border border-slate-700"
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

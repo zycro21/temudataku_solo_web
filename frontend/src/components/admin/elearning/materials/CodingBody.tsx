@@ -17,11 +17,13 @@ const LANGUAGE_LABELS: Record<CodingLanguage, string> = {
   "c++": "C++",
 };
 
-// Eksekusi kode via Next.js API Route → JDoodle
+// Eksekusi kode via Next.js API Route → Code Runner (VPS)
+type ExecuteResult = { output: string; images: string[] };
+
 async function executeCode(
   lang: CodingLanguage,
   code: string,
-): Promise<string> {
+): Promise<ExecuteResult> {
   try {
     const res = await fetch("/api/execute-code", {
       method: "POST",
@@ -30,11 +32,20 @@ async function executeCode(
     });
     const json = await res.json();
     if (!res.ok) {
-      return `[Failed to run code]\n${json?.error ?? `HTTP ${res.status}`}`;
+      return {
+        output: `[Failed to run code]\n${json?.error ?? `HTTP ${res.status}`}`,
+        images: [],
+      };
     }
-    return json.output ?? "(no output)";
+    return {
+      output: json.output ?? "(no output)",
+      images: Array.isArray(json.images) ? json.images : [],
+    };
   } catch (err: any) {
-    return `[Failed to run code]\n${err?.message ?? String(err)}`;
+    return {
+      output: `[Failed to run code]\n${err?.message ?? String(err)}`,
+      images: [],
+    };
   }
 }
 
@@ -264,6 +275,7 @@ function CodingPreviewCard({
   onEdit: () => void;
 }) {
   const [output, setOutput] = useState<string | null>(null);
+  const [images, setImages] = useState<string[]>([]);
   const [running, setRunning] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -272,8 +284,10 @@ function CodingPreviewCard({
     if (!language || !question) return;
     setRunning(true);
     setOutput(null);
+    setImages([]);
     const result = await executeCode(language, htmlToPlainText(question));
-    setOutput(result);
+    setOutput(result.output);
+    setImages(result.images);
     setRunning(false);
   };
 
@@ -372,9 +386,23 @@ function CodingPreviewCard({
             <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
               Output
             </p>
-            <pre className="text-sm font-mono text-emerald-400 whitespace-pre-wrap leading-relaxed">
-              {output}
-            </pre>
+            {output && (
+              <pre className="text-sm font-mono text-emerald-400 whitespace-pre-wrap leading-relaxed">
+                {output}
+              </pre>
+            )}
+            {images.length > 0 && (
+              <div className="flex flex-col gap-3 mt-3">
+                {images.map((img, i) => (
+                  <img
+                    key={i}
+                    src={`data:image/png;base64,${img}`}
+                    alt={`Plot output ${i + 1}`}
+                    className="max-w-full rounded-md border border-[#2d3548]"
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

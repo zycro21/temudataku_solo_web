@@ -34,8 +34,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const images = Array.isArray(data.images) ? data.images : [];
+    // Fallback '(no output)' cuma kalau teks KOSONG dan gambar juga KOSONG —
+    // kalau ada gambar (misal matplotlib) tapi teksnya kosong, biarin kosong aja.
+    const output = data.output || (images.length > 0 ? "" : "(no output)");
+
     return NextResponse.json({
-      output: data.output || "(no output)",
+      output,
+      images,
     });
   } catch (err: any) {
     console.error("[execute-code] error:", err);

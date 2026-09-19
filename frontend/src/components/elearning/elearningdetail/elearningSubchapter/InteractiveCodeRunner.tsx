@@ -42,13 +42,17 @@ export function InteractiveCodeRunner({
   initialCode,
 }: InteractiveCodeRunnerProps) {
   const [output, setOutput] = useState<string>("");
+  const [images, setImages] = useState<string[]>([]);
   const [running, setRunning] = useState(false);
   const [copied, setCopied] = useState(false);
 
   // 🔥 BARU: ref untuk output container
   const outputRef = useRef<HTMLDivElement>(null);
 
-  const executeCode = async (lang: string, code: string) => {
+  const executeCode = async (
+    lang: string,
+    code: string,
+  ): Promise<{ output: string; images: string[] }> => {
     try {
       const res = await fetch("/api/execute-code", {
         method: "POST",
@@ -57,11 +61,20 @@ export function InteractiveCodeRunner({
       });
       const json = await res.json();
       if (!res.ok) {
-        return `[Failed to run code]\n${json?.error ?? `HTTP ${res.status}`}`;
+        return {
+          output: `[Failed to run code]\n${json?.error ?? `HTTP ${res.status}`}`,
+          images: [],
+        };
       }
-      return json.output ?? "(no output)";
+      return {
+        output: json.output ?? "(no output)",
+        images: Array.isArray(json.images) ? json.images : [],
+      };
     } catch (err: any) {
-      return `[Failed to run code]\n${err?.message ?? String(err)}`;
+      return {
+        output: `[Failed to run code]\n${err?.message ?? String(err)}`,
+        images: [],
+      };
     }
   };
 
@@ -69,10 +82,12 @@ export function InteractiveCodeRunner({
     if (!initialCode) return;
     setRunning(true);
     setOutput("");
+    setImages([]);
     try {
       const plainCode = htmlToPlainText(initialCode);
       const result = await executeCode(language, plainCode);
-      setOutput(result);
+      setOutput(result.output);
+      setImages(result.images);
 
       // 🔥 BARU: scroll ke output setelah hasil muncul
       setTimeout(() => {
@@ -152,20 +167,36 @@ export function InteractiveCodeRunner({
 
           {/* 🔥 Output - tambahkan ref */}
           <div ref={outputRef}>
-            {output && (
+            {(output || images.length > 0) && (
               <div className="border-t border-slate-700 bg-black px-3 sm:px-6 py-4 relative">
-                <button
-                  onClick={() => handleCopy(output)}
-                  className="absolute top-3 right-3 sm:right-4 px-2.5 sm:px-3 py-1 text-[11px] sm:text-xs bg-slate-700 text-white rounded hover:bg-slate-600 transition"
-                >
-                  Copy Output
-                </button>
+                {output && (
+                  <button
+                    onClick={() => handleCopy(output)}
+                    className="absolute top-3 right-3 sm:right-4 px-2.5 sm:px-3 py-1 text-[11px] sm:text-xs bg-slate-700 text-white rounded hover:bg-slate-600 transition"
+                  >
+                    Copy Output
+                  </button>
+                )}
                 <p className="text-xs text-gray-400 mb-2 pr-20 sm:pr-0">
                   Output:
                 </p>
-                <pre className="text-emerald-400 text-xs sm:text-sm font-mono whitespace-pre-wrap">
-                  {output}
-                </pre>
+                {output && (
+                  <pre className="text-emerald-400 text-xs sm:text-sm font-mono whitespace-pre-wrap">
+                    {output}
+                  </pre>
+                )}
+                {images.length > 0 && (
+                  <div className="flex flex-col gap-3 mt-3">
+                    {images.map((img, i) => (
+                      <img
+                        key={i}
+                        src={`data:image/png;base64,${img}`}
+                        alt={`Plot output ${i + 1}`}
+                        className="max-w-full rounded-md border border-slate-700"
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

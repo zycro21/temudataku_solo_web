@@ -220,7 +220,7 @@ model ArticleContentBlock {
   // Content block ini bisa jadi TARGET dari banyak item Table of Content.
   referencedByTOCItems   ArticleTableOfContentItem[]  @relation("ArticleTOCItemTarget")
 
-  @@map("article_content_blocks")
+  @@map("ct_article_content_blocks")
 }
 
 enum ArticleContentBlockType {
@@ -241,6 +241,8 @@ model ArticleHeadingContent {
   text      String @db.Text
 
   content   ArticleContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@map("ct_article_heading_contents")
 }
 
 model ArticleParagraphContent {
@@ -250,6 +252,8 @@ model ArticleParagraphContent {
   text      String @db.Text
 
   content   ArticleContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@map("ct_article_paragraph_contents")
 }
 
 model ArticleHighlightContent {
@@ -259,6 +263,8 @@ model ArticleHighlightContent {
   text      String @db.VarChar(1250)
 
   content   ArticleContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@map("ct_article_highlight_contents")
 }
 
 // ------------------------------------------------------------
@@ -275,7 +281,7 @@ model ArticleTableContent {
 
   content ArticleContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
 
-  @@map("article_table_contents")
+  @@map("ct_article_table_contents")
 }
 
 model ArticleTableColumn {
@@ -289,7 +295,7 @@ model ArticleTableColumn {
   cells ArticleTableCell[]
 
   @@unique([tableId, orderNumber])
-  @@map("article_table_columns")
+  @@map("ct_article_table_columns")
 }
 
 model ArticleTableRow {
@@ -302,7 +308,7 @@ model ArticleTableRow {
   cells ArticleTableCell[]
 
   @@unique([tableId, orderNumber])
-  @@map("article_table_rows")
+  @@map("ct_article_table_rows")
 }
 
 model ArticleTableCell {
@@ -316,7 +322,7 @@ model ArticleTableCell {
   column ArticleTableColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
 
   @@unique([rowId, columnId])
-  @@map("article_table_cells")
+  @@map("ct_article_table_cells")
 }
 
 // ------------------------------------------------------------
@@ -331,7 +337,7 @@ model ArticleDividerContent {
 
   content   ArticleContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
 
-  @@map("article_divider_contents")
+  @@map("ct_article_divider_contents")
 }
 
 enum ArticleDividerStyle {
@@ -374,7 +380,7 @@ model ArticleLinkContent {
   targetContentBlock      ArticleContentBlock?      @relation("ArticleLinkTarget", fields: [targetContentBlockId], references: [id], onDelete: SetNull)
   targetAdditionalContent ArticleAdditionalContent? @relation("ArticleLinkTargetMedia", fields: [targetAdditionalContentId], references: [id], onDelete: SetNull)
 
-  @@map("article_link_contents")
+  @@map("ct_article_link_contents")
 }
 
   // ------------------------------------------------------------
@@ -397,7 +403,7 @@ model ArticleLinkContent {
     content ArticleContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
     article Article             @relation(fields: [articleId], references: [id], onDelete: Cascade)
 
-    @@map("article_table_of_content_contents")
+    @@map("ct_article_table_of_content_contents")
   }
 
   model ArticleTableOfContentItem {
@@ -417,7 +423,7 @@ model ArticleLinkContent {
     targetAdditionalContent ArticleAdditionalContent?    @relation("ArticleTOCItemTargetMedia", fields: [targetAdditionalContentId], references: [id], onDelete: Cascade)
 
     @@unique([tocId, orderNumber])
-    @@map("article_table_of_content_items")
+    @@map("ct_article_table_of_content_items")
   }
 
   // Additional Content — nempel ke sebuah ArticleBlock dengan posisi
@@ -447,7 +453,7 @@ model ArticleLinkContent {
     linkedFromContents   ArticleLinkContent[]        @relation("ArticleLinkTargetMedia")
     referencedByTOCItems ArticleTableOfContentItem[] @relation("ArticleTOCItemTargetMedia")
 
-    @@map("article_additional_contents")
+    @@map("ct_article_additional_contents")
   }
 
   enum ArticleAdditionalContentType {
@@ -468,7 +474,7 @@ model ArticleImageVideoContent {
   createdAt            DateTime? @default(now())
 
   additionalContent ArticleAdditionalContent @relation(fields: [additionalContentId], references: [id], onDelete: Cascade)
-  @@map("article_image_video_contents")
+  @@map("ct_article_image_video_contents")
 }
 
 enum ArticleElementType {
@@ -1007,7 +1013,7 @@ model ELearningContentBlock {
   highlightContent   ELearningHighlightContent?
   summaryContent     ELearningSummaryContent?
 
-  @@map("e_learning_content_blocks")
+  @@map("ct_e_learning_content_blocks")
 }
 
 enum ContentBlockType {
@@ -1029,6 +1035,8 @@ model ELearningHeadingContent {
   text        String @db.Text
 
   content     ELearningContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@map("ct_e_learning_heading_contents")
 }
 
 model ELearningParagraphContent {
@@ -1038,6 +1046,8 @@ model ELearningParagraphContent {
   text      String @db.Text
 
   content   ELearningContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@map("ct_e_learning_paragraph_contents")
 }
 
 model ELearningHighlightContent {
@@ -1047,6 +1057,8 @@ model ELearningHighlightContent {
   text      String @db.VarChar(1250)
 
   content   ELearningContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@map("ct_e_learning_highlight_contents")
 }
 
 // Accordion Content
@@ -1060,6 +1072,8 @@ model ELearningAccordionContent {
   items ELearningAccordionItem[]
 
   content ELearningContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@map("ct_e_learning_accordion_contents")
 }
 
 model ELearningAccordionItem {
@@ -1071,6 +1085,8 @@ model ELearningAccordionItem {
   orderNumber Int
 
   accordion ELearningAccordionContent @relation(fields: [accordionId], references: [id], onDelete: Cascade)
+
+  @@map("ct_e_learning_accordion_items")
 }
 
 // Carousel Content
@@ -1085,6 +1101,8 @@ model ELearningCarouselContent {
   items ELearningCarouselItem[]
 
   content ELearningContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@map("ct_e_learning_carousel_contents")
 }
 
 model ELearningCarouselItem {
@@ -1097,6 +1115,8 @@ model ELearningCarouselItem {
   orderNumber Int
 
   carousel ELearningCarouselContent @relation(fields: [carouselId], references: [id], onDelete: Cascade)
+
+  @@map("ct_e_learning_carousel_items")
 }
 
 // Content Card
@@ -1112,6 +1132,8 @@ model ELearningContentCardContent {
   items ELearningContentCardItem[]
 
   content ELearningContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@map("ct_e_learning_content_card_contents")
 }
 
 model ELearningContentCardItem {
@@ -1125,6 +1147,8 @@ model ELearningContentCardItem {
   orderNumber  Int
 
   card ELearningContentCardContent @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@map("ct_e_learning_content_card_items")
 }
 
 // Tab Navigation
@@ -1138,6 +1162,8 @@ model ELearningTabNavigationContent {
   tabs ELearningTabItem[]
 
   content ELearningContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@map("ct_e_learning_tab_navigation_contents")
 }
 
 model ELearningTabItem {
@@ -1149,6 +1175,8 @@ model ELearningTabItem {
   orderNumber Int
 
   tab ELearningTabNavigationContent @relation(fields: [tabId], references: [id], onDelete: Cascade)
+
+  @@map("ct_e_learning_tab_items")
 }
 
 // Summary
@@ -1159,6 +1187,8 @@ model ELearningSummaryContent {
   comments ELearningSummaryComment[]
 
   content ELearningContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@map("ct_e_learning_summary_contents")
 }
 
 model ELearningSummaryComment {
@@ -1169,6 +1199,8 @@ model ELearningSummaryComment {
   orderNumber Int
 
   summary ELearningSummaryContent @relation(fields: [summaryId], references: [id], onDelete: Cascade)
+
+  @@map("ct_e_learning_summary_comments")
 }
 
 // Additional Content
@@ -1189,7 +1221,7 @@ model ELearningAdditionalContent {
   matching        ELearningMatchingQuestion?
   code            ELearningExecutableCode?
 
-  @@map("e_learning_additional_contents")
+  @@map("ct_e_learning_additional_contents")
 }
 
 enum AdditionalContentType {
@@ -1221,7 +1253,7 @@ model ELearningMatchingQuestion {
 
   items ELearningMatchingItem[]
 
-  @@map("e_learning_matching_questions")
+  @@map("ct_e_learning_matching_questions")
 }
 
 model ELearningMatchingItem {
@@ -1236,7 +1268,7 @@ model ELearningMatchingItem {
 
   question    ELearningMatchingQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
-  @@map("e_learning_matching_items")
+  @@map("ct_e_learning_matching_items")
 }
 
 enum MatchingItemSide {
@@ -1254,6 +1286,8 @@ model ELearningMultipleChoiceQuestion {
 
   options ELearningMultipleChoiceOption[]
   additionalContent ELearningAdditionalContent @relation(fields: [additionalContentId], references: [id], onDelete: Cascade)
+
+  @@map("ct_e_learning_multiple_choice_questions")
 }
 
 model ELearningMultipleChoiceOption {
@@ -1264,6 +1298,8 @@ model ELearningMultipleChoiceOption {
   orderNumber Int
 
   question    ELearningMultipleChoiceQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("ct_e_learning_multiple_choice_options")
 }
 
 model ELearningImageVideoContent {
@@ -1280,7 +1316,7 @@ model ELearningImageVideoContent {
   createdAt DateTime? @default(now())
 
   additionalContent ELearningAdditionalContent @relation(fields: [additionalContentId], references: [id], onDelete: Cascade)
-  @@map("e_learning_image_video_contents")
+  @@map("ct_e_learning_image_video_contents")
 }
 
 enum MediaType {
@@ -1307,7 +1343,7 @@ model ELearningExecutableCode {
   additionalContent ELearningAdditionalContent @relation(fields: [additionalContentId], references: [id], onDelete: Cascade)
 
   runs ELearningCodeRun[]
-  @@map("e_learning_executable_codes")
+  @@map("ct_e_learning_executable_codes")
 }
 
 enum CodeLanguage {
@@ -1354,7 +1390,7 @@ model ELearningQuiz {
   questions        ELearningQuestion[]
   quizAttempts     ELearningQuizAttempt[]
 
-  @@map("e_learning_quizzes")
+  @@map("ct_e_learning_quizzes")
 }
 
 model ELearningQuestion {
@@ -1369,7 +1405,7 @@ model ELearningQuestion {
 
   quiz            ELearningQuiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
 
-  @@map("e_learning_questions")
+  @@map("ct_e_learning_questions")
 }
 
 model ELearningQuizAttempt {
@@ -1409,7 +1445,7 @@ model ELearningAssignment {
   supportingFiles  ELearningAssignmentSupportingFile[]
   submissions      ELearningSubmission[]
 
-  @@map("e_learning_assignments")
+  @@map("ct_e_learning_assignments")
 }
 
 model ELearningAssignmentInstruction {
@@ -1423,7 +1459,7 @@ model ELearningAssignmentInstruction {
   assignment    ELearningAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
 
   @@unique([assignmentId, orderNumber])
-  @@map("e_learning_assignment_instructions")
+  @@map("ct_e_learning_assignment_instructions")
 }
 
 model ELearningAssignmentSupportingFile {
@@ -1444,7 +1480,7 @@ model ELearningAssignmentSupportingFile {
 
   assignment    ELearningAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
 
-  @@map("e_learning_assignment_supporting_files")
+  @@map("ct_e_learning_assignment_supporting_files")
 }
 
 enum SupportingFileType {
