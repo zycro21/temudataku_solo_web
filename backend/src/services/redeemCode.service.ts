@@ -206,6 +206,14 @@ export default {
           orderBy: { redeemedAt: "desc" },
           include: {
             user: { select: { id: true, fullName: true, email: true } },
+            // 🔥 FIX: sebelumnya subscription tidak di-include sama sekali,
+            // padahal frontend (RedeemCodeTable.tsx) baca u.subscription.status
+            // — bikin "Cannot read properties of undefined (reading 'status')"
+            // begitu modal detail dibuka. Disamakan dengan include di
+            // getRedeemUsages di bawah.
+            subscription: {
+              select: { id: true, startAt: true, endAt: true, status: true },
+            },
           },
         },
       },

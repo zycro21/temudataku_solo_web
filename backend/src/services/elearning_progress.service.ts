@@ -1067,10 +1067,16 @@ export const completeTextProgress = async ({
   userId,
   textId,
   progress,
+  roles = [],
 }: {
   userId: string;
   textId: string;
   progress?: number;
+  // 🔥 BARU: dipakai buat bypass syarat subscription di bawah — KHUSUS
+  // role "admin" (bukan seluruh adminLikeRoles yang dipakai di
+  // getSubChapterById; cm/curdev/guest sengaja tetap diperlakukan sama
+  // seperti mentee di endpoint ini, sesuai keputusan produk).
+  roles?: string[];
 }) => {
   const text = await prisma.eLearningText.findUnique({
     where: { id: textId },
@@ -1103,21 +1109,31 @@ export const completeTextProgress = async ({
 
   const subChapterId = text.subBab.subChapterId;
 
-  // Cek subscription aktif — sama persis seperti completeSubBab
   const now = new Date();
-  const activeSubscription = await prisma.eLearningSubscription.findFirst({
-    where: {
-      userId,
-      status: { in: ["active", "confirmed", "completed"] },
-      startAt: { lte: now },
-      endAt: { gte: now },
-    },
-  });
 
-  if (!activeSubscription) {
-    const err = new Error("Anda belum memiliki subscription aktif");
-    (err as any).statusCode = 403;
-    throw err;
+  // Cek subscription aktif — sama persis seperti completeSubBab.
+  // 🔥 BARU: KECUALI kalau requester punya role "admin" — supaya staff/QA
+  // (termasuk akun dual-role admin+mentee) bisa nge-test alur belajar
+  // penuh (progress & unlock next) tanpa perlu subscription beneran.
+  // Sengaja dipersempit cuma "admin" (bukan cm/curdev/guest), yang
+  // terakhir ini tetap wajib subscription aktif sama seperti mentee.
+  const isAdmin = roles.includes("admin");
+
+  if (!isAdmin) {
+    const activeSubscription = await prisma.eLearningSubscription.findFirst({
+      where: {
+        userId,
+        status: { in: ["active", "confirmed", "completed"] },
+        startAt: { lte: now },
+        endAt: { gte: now },
+      },
+    });
+
+    if (!activeSubscription) {
+      const err = new Error("Anda belum memiliki subscription aktif");
+      (err as any).statusCode = 403;
+      throw err;
+    }
   }
 
   // 🔥 TAMBAHAN: cegah mentee mencatat progress ke text/subBab/subChapter/

@@ -697,15 +697,7 @@ export default function AdminLayout({
           <div className="mt-2 flex flex-col h-full overflow-hidden">
             {/* Logo */}
             <div className="pl-6 pb-6 pt-3">
-              <Link
-                href={
-                  isRestricted
-                    ? roles.includes("cw")
-                      ? "/admin/artikel"
-                      : "/admin/elearning"
-                    : "/admin"
-                }
-              >
+              <Link href="/">
                 <Image
                   src="/assets/dashboard/user/Navbar_logo.png"
                   alt="Temu Dataku"

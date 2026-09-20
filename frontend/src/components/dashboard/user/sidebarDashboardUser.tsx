@@ -94,7 +94,7 @@ export default function Sidebar({
               semula, nggak ada padding kanan), cuma di mobile dikasih
               pr-4 buat jarak ke tombol close. */}
           <div className="flex items-center justify-between pl-6 pr-4 md:pr-0 pb-5 pt-3">
-            <Link href="/dashboard/user" onClick={onCloseMobile}>
+            <Link href="/" onClick={onCloseMobile}>
               <Image
                 src="/assets/dashboard/user/Navbar_logo.png"
                 alt="Temu Dataku"

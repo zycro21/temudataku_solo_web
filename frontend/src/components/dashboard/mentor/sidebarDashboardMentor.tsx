@@ -48,7 +48,7 @@ export default function Sidebar() {
       <div className="mt-2">
         {/* Logo */}
         <div className="pl-6 pb-6">
-          <Link href="/dashboard/mentor">
+          <Link href="/">
             <Image
               src="/assets/dashboard/user/Navbar_logo.png"
               alt="Temu Dataku"

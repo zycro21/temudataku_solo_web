@@ -237,10 +237,16 @@ export const completeTextProgressController = async (
 ) => {
   try {
     const userId = req.user!.userId;
+    const roles = req.user!.roles; // 🔥 BARU: buat bypass subscription khusus admin
     const textId = req.validatedParams.id;
     const progress = req.validatedBody?.progress;
 
-    const result = await completeTextProgress({ userId, textId, progress });
+    const result = await completeTextProgress({
+      userId,
+      textId,
+      progress,
+      roles,
+    });
 
     res.json({ success: true, data: result });
   } catch (err) {

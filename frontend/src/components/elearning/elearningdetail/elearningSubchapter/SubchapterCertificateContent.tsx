@@ -103,8 +103,7 @@ export default function SubchapterCertificateContent({
             Memeriksa sertifikat kamu...
           </p>
           <p className="mt-1 text-xs text-gray-500">
-            Selamat, kamu sudah menyelesaikan kelas ini, Mohon tunggu
-            sebentar.
+            Selamat, kamu sudah menyelesaikan kelas ini, Mohon tunggu sebentar.
           </p>
         </div>
       </div>
@@ -137,11 +136,12 @@ export default function SubchapterCertificateContent({
         </div>
         <div>
           <p className="text-base font-bold text-gray-900">
-            Selamat! Kamu Sudah Menyelesaikan Kelas Ini 
+            Selamat! Kamu Sudah Menyelesaikan Kelas Ini
           </p>
           <p className="mt-1.5 max-w-sm text-sm text-gray-500">
-            Sertifikat kelulusanmu sudah siap dicetak. Nilai yang tercantum akan
-            diambil dari Percobaan/Attempt Quiz/Projek TERAKHIR kamu.
+            Sertifikat kelulusanmu sudah siap dicetak. Nilai yang tercantum pada
+            sertifikat akan menggunakan{" "}
+            <span className="font-bold">nilai terbaik dari seluruh percobaan Quiz/Project Akhir kamu</span>
           </p>
         </div>
 
@@ -158,13 +158,15 @@ export default function SubchapterCertificateContent({
         <div className="flex max-w-sm items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-left">
           <TriangleAlert size={16} className="mt-0.5 shrink-0 text-amber-500" />
           <p className="text-xs text-amber-800">
-            <span className="font-semibold">Perhatikan dulu:</span> sertifikat
-            hanya bisa dicetak{" "}
-            <span className="font-semibold">1 kali setiap bulan</span>. Kalau
-            kamu berencana mengerjakan ulang Quiz/Projek untuk nilai yang lebih
-            bagus, sebaiknya selesaikan itu dulu SEBELUM menekan tombol di bawah
-            ini - supaya sertifikat yang tercetak langsung memuat nilai
-            terbaikmu.
+            <span className="font-semibold">
+              Perhatikan sebelum mencetak sertifikat:
+            </span>{" "}
+            Sertifikat hanya dapat dicetak{" "}
+            <span className="font-semibold">1 kali setiap bulan</span>. Jika
+            kamu masih ingin mengulang Quiz/Project untuk meningkatkan nilai,
+            selesaikan terlebih dahulu sebelum mencetak sertifikat agar{" "}
+            <span className="font-semibold">nilai terbaikmu</span> tercantum
+            pada sertifikat.
           </p>
         </div>
 
@@ -218,7 +220,7 @@ export default function SubchapterCertificateContent({
             <Award className="h-7 w-7 text-emerald-600" />
           </div>
           <h1 className="text-xl font-bold text-gray-900">
-            Selamat! Kamu Berhasil Menyelesaikan Kelas Ini 
+            Selamat! Kamu Berhasil Menyelesaikan Kelas Ini
           </h1>
           <p className="mt-1 text-sm text-gray-500">
             {certificate.subChapter.title} &middot;{" "}

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
@@ -143,6 +144,9 @@ export default function StatCards() {
       title: "Sertifikat",
       value: certificateCount ?? 0,
       icon: "/assets/dashboard/user/sertifikat2.svg",
+      // 🔥 BARU: cuma card ini yang bisa diklik, lempar ke halaman
+      // sertifikat mentee.
+      href: "/dashboard/user/sertifikat",
     },
     {
       title: "Jumlah E-Learning Selesai",
@@ -163,44 +167,65 @@ export default function StatCards() {
     // "sm:gap-4" balik PERSIS sama seperti semula — jadi tampilan
     // desktop/tablet tidak berubah sedikit pun.
     <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4">
-      {stats.map((item, idx) => (
-        <div
-          key={idx}
-          // 🔥 DIUBAH: padding sedikit lebih rapat di mobile (p-2.5),
-          // balik ke p-3 (original) mulai sm: ke atas.
-          className="relative p-2.5 sm:p-3 bg-white border border-gray-200 rounded-md shadow-sm w-full"
-        >
-          <ChevronRight className="absolute top-2 right-2 w-3 h-3 text-gray-700" />
+      {stats.map((item, idx) => {
+        // 🔥 DIUBAH: padding sedikit lebih rapat di mobile (p-2.5),
+        // balik ke p-3 (original) mulai sm: ke atas. Ditambah "block"
+        // supaya kalau elemen ini dirender jadi <Link> (yang defaultnya
+        // inline), layout-nya tetap identik dengan <div> biasa.
+        const cardClassName =
+          "relative block p-2.5 sm:p-3 bg-white border border-gray-200 rounded-md shadow-sm w-full";
 
-          <div className="flex items-center gap-1.5">
-            <Image src={item.icon} alt={item.title} width={14} height={14} />
-            {/* 🔥 DIUBAH: dulu satu <span> nampilin item.title langsung.
-                Sekarang 2 <span> — versi mobile pakai mobileTitle (kalau
-                ada, fallback ke title kalau nggak ada), versi sm: ke atas
-                SELALU pakai title asli. Ukuran font (text-[11px]
-                sm:text-[12px]) tetap sama seperti sebelumnya. */}
-            <span className="text-[11px] sm:text-[12px] text-gray-600 leading-tight">
-              <span className="sm:hidden">
-                {item.mobileTitle ?? item.title}
-              </span>
-              <span className="hidden sm:inline">{item.title}</span>
-            </span>
-          </div>
+        const cardContent = (
+          <>
+            <ChevronRight className="absolute top-2 right-2 w-3 h-3 text-gray-700" />
 
-          {/* 🔥 DIUBAH: jarak & ukuran angka sedikit dikecilkan khusus
-              mobile (mt-2, text-lg), balik ke ukuran original (mt-3,
-              text-xl) mulai sm: ke atas. */}
-          <div className="mt-2 sm:mt-3 h-7 flex items-center">
-            {loading ? (
-              <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto" />
-            ) : (
-              <span className="text-lg sm:text-xl font-bold text-gray-900">
-                {item.value}
+            <div className="flex items-center gap-1.5">
+              <Image src={item.icon} alt={item.title} width={14} height={14} />
+              {/* 🔥 DIUBAH: dulu satu <span> nampilin item.title langsung.
+                  Sekarang 2 <span> — versi mobile pakai mobileTitle (kalau
+                  ada, fallback ke title kalau nggak ada), versi sm: ke atas
+                  SELALU pakai title asli. Ukuran font (text-[11px]
+                  sm:text-[12px]) tetap sama seperti sebelumnya. */}
+              <span className="text-[11px] sm:text-[12px] text-gray-600 leading-tight">
+                <span className="sm:hidden">
+                  {item.mobileTitle ?? item.title}
+                </span>
+                <span className="hidden sm:inline">{item.title}</span>
               </span>
-            )}
+            </div>
+
+            {/* 🔥 DIUBAH: jarak & ukuran angka sedikit dikecilkan khusus
+                mobile (mt-2, text-lg), balik ke ukuran original (mt-3,
+                text-xl) mulai sm: ke atas. */}
+            <div className="mt-2 sm:mt-3 h-7 flex items-center">
+              {loading ? (
+                <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto" />
+              ) : (
+                <span className="text-lg sm:text-xl font-bold text-gray-900">
+                  {item.value}
+                </span>
+              )}
+            </div>
+          </>
+        );
+
+        // 🔥 BARU: cuma card yang punya `href` (sekarang: Sertifikat) yang
+        // dirender jadi link beneran. Card lain tetap <div> biasa persis
+        // seperti sebelumnya, tidak ikut jadi clickable.
+        if (item.href) {
+          return (
+            <Link key={idx} href={item.href} className={cardClassName}>
+              {cardContent}
+            </Link>
+          );
+        }
+
+        return (
+          <div key={idx} className={cardClassName}>
+            {cardContent}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
