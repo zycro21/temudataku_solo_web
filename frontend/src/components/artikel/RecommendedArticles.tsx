@@ -32,6 +32,17 @@ const DRAG_THRESHOLD_RATIO = 0.3;
 export default function RecommendedArticles() {
   const [items, setItems] = useState<ArticleListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  // 🔥 FIX — dulu section ini nentuin "ada artikel apa nggak" cuma dari
+  // hasil fetch isRecommended:true. Akibatnya kalau udah ada artikel
+  // PUBLISHED tapi belum ada satupun yang ditandai recommended, empty
+  // state "Artikel Segera Hadir!" tetep muncul (padahal artikelnya udah
+  // ada, cuma nggak ada yang recommended). Sekarang kita cek terpisah
+  // apakah ada artikel published SAMA SEKALI (tanpa filter isRecommended)
+  // via meta.total, supaya bisa dibedain 2 kondisi:
+  // - belum ada artikel published sama sekali -> tampilin "Segera Hadir"
+  // - udah ada artikel published tapi belum ada yang recommended -> section
+  //   ini disembunyiin total (return null), BUKAN nampilin empty state.
+  const [hasAnyPublishedArticle, setHasAnyPublishedArticle] = useState(false);
 
   // 🔥 DIUBAH — carousel infinite yang geser 1 kartu per step (bukan 1
   // halaman/3 kartu lagi), tapi tetep nampilin 3 kartu sekaligus di
@@ -66,11 +77,19 @@ export default function RecommendedArticles() {
       try {
         // 🔥 Diambil lebih dari 3 (limit 12) — sisanya disimpan buat
         // di-page lewat drag/tombol panah, bukan sekaligus ditampilkan.
-        const { items } = await fetchArticles({
-          isRecommended: true,
-          limit: 12,
-        });
-        if (!cancelled) setItems(items);
+        // Dipanggil PARALEL sama fetch total artikel published (tanpa
+        // filter isRecommended, limit:1 aja karena cuma butuh meta.total)
+        // buat nentuin apakah section ini harus nampilin empty state
+        // "Segera Hadir" ATAU disembunyiin total (lihat komentar FIX di
+        // deklarasi state hasAnyPublishedArticle di atas).
+        const [{ items }, { meta: allMeta }] = await Promise.all([
+          fetchArticles({ isRecommended: true, limit: 12 }),
+          fetchArticles({ limit: 1 }),
+        ]);
+        if (!cancelled) {
+          setItems(items);
+          setHasAnyPublishedArticle(allMeta.total > 0);
+        }
       } catch (err) {
         console.error("Gagal memuat artikel rekomendasi:", err);
       } finally {
@@ -132,12 +151,21 @@ export default function RecommendedArticles() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canSlide, extendedItems.length]);
 
-  // Nggak ada rekomendasi sama sekali & udah selesai loading -> section ini
-  // disembunyiin total daripada nampilin box kosong yang aneh di homepage.
+  // Nggak ada rekomendasi sama sekali & udah selesai loading -> ada 2
+  // kemungkinan (🔥 FIX, lihat komentar di state hasAnyPublishedArticle):
+  // 1. Belum ada artikel PUBLISHED sama sekali di seluruh web -> tampilin
+  //    empty state "Artikel Segera Hadir!" (situasi awal/baru launch).
+  // 2. Udah ada artikel published (mungkin udah tampil di section
+  //    "per Kategori"), cuma belum ada satupun yang ditandai recommended
+  //    -> section INI aja yang disembunyiin total (return null), JANGAN
+  //    nampilin "Segera Hadir" karena artikelnya sendiri udah ada.
   // Taruh SETELAH semua Hooks (bukan sebelumnya) supaya urutan pemanggilan
   // Hooks tetap konsisten di setiap render — return dini sebelum semua
   // Hooks selesai dideklarasikan itu melanggar Rules of Hooks.
   if (!loading && items.length === 0) {
+    if (hasAnyPublishedArticle) {
+      return null;
+    }
     return (
       <section
         id="rekomendasi-artikel"
