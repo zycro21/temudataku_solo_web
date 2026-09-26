@@ -245,7 +245,7 @@ Kolom `roleName` **tidak dibatasi lewat `enum` di level database** -
 cuma `VarChar` biasa, jadi nilai apa pun bisa dimasukkan lewat baris
 data, tidak ada validasi di level skema. Berdasarkan pemakaian
 `authorizeRoles(...)` yang pernah kita temui di kode backend (bukan dari
-schema ini), kemungkinan nilai yang dipakai di aplikasi antara lain:
+schema ini), nilai yang dipakai di aplikasi antara lain:
 `admin`, `mentor`, `mentee`, `cm`, `curdev`, `guest`, `cw` - tapi ini
 observasi dari kode lain, bukan dari tabel ini. Untuk daftar yang pasti
 dan lengkap, sebaiknya dicek langsung isi tabel `roles` di database.
@@ -294,7 +294,7 @@ bernama `AdminActivityLog`, tapi tabel fisiknya `activity_logs` (tanpa kata
 `action` dan `type` dua-duanya freetext `VarChar` tanpa enum, dan dari
 contoh nilainya terlihat **saling tumpang tindih secara konsep** (`action`
 berisi istilah level-sistem seperti `LOGIN`, sementara `type` berisi
-istilah level-interaksi seperti `join`/`upload`) - kemungkinan penggunaan
+istilah level-interaksi seperti `join`/`upload`) -  penggunaan
 kedua kolom ini di kode aplikasi tidak sepenuhnya konsisten (mis. tidak
 semua baris log mengisi keduanya sekaligus). Tidak ada index tambahan
 selain PK/FK di tabel ini, jadi query log berdasarkan rentang waktu atau
@@ -314,7 +314,7 @@ dibuka dan berapa lama.
 |---|---|---|---|---|
 | `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | ID unik baris log. |
 | `userId` | String | `NOT NULL`, 🔗 FK | - | User yang mengunjungi halaman. |
-| `page` | String | `NOT NULL` | - | Halaman yang dikunjungi (freetext, kemungkinan path/URL). |
+| `page` | String | `NOT NULL` | - | Halaman yang dikunjungi (freetext,  path/URL). |
 | `durationSec` | Int | `NOT NULL` | `0` | Lama waktu di halaman tersebut (detik). |
 | `accessedAt` | DateTime | `NOT NULL` | `now()` | Waktu halaman diakses. |
 
@@ -327,7 +327,7 @@ dibuka dan berapa lama.
 
 Mirip fungsinya dengan `user_behavior` (5.3c) di bawah, tapi `userId` di
 sini **wajib diisi** (`NOT NULL`) - beda dari `user_behavior.userId` yang
-nullable (bisa mencatat pengunjung anonim/belum login). Kemungkinan
+nullable (bisa mencatat pengunjung anonim/belum login). 
 `user_activity_logs` khusus untuk user yang sudah login, sementara
 `user_behavior` mencakup semua pengunjung termasuk yang belum login.
 
@@ -364,7 +364,7 @@ Tabel ini, `activity_logs` (5.3a), dan `user_activity_logs` (5.3b)
 bersama-sama membentuk **3 sistem logging yang tumpang tindih** dan
 sepertinya dibangun secara terpisah di waktu yang berbeda (nama tabel/
 kolomnya juga tidak seragam - `pageVisited` di sini vs `page` di 5.3b,
-`timestamp`/`createdAt` dua-duanya ada di sini padahal isinya kemungkinan
+`timestamp`/`createdAt` dua-duanya ada di sini padahal isinya 
 sama). Ketiganya sama-sama punya kolom IP/user-agent kecuali 5.3b. Perlu
 dicek ke kode aplikasi mana yang benar-benar masih dipakai aktif sebelum
 mengandalkan salah satunya untuk analitik.
@@ -389,7 +389,7 @@ seluruh aplikasi.
 | `experience` | Text | `nullable` | - | Pengalaman kerja/mengajar mentor. |
 | `availabilitySchedule` | JSONB | `nullable` | - | Jadwal ketersediaan mentor. Strukturnya bebas (JSON), tidak didefinisikan di skema - cek kode FE/BE buat tahu bentuk pastinya. |
 | `hourlyRate` | Decimal | `nullable` | - | Tarif per jam mentor. |
-| `isVerified` | Boolean | `nullable` | `false` | Kemungkinan status "sudah diverifikasi admin" - `false` = belum diverifikasi (belum boleh tampil publik/terima booking?), `true` = sudah. *(interpretasi dari nama kolom, perlu dicek ke kode kalau mau pasti)* |
+| `isVerified` | Boolean | `nullable` | `false` |  status "sudah diverifikasi admin" - `false` = belum diverifikasi (belum boleh tampil publik/terima booking?), `true` = sudah. *(interpretasi dari nama kolom, perlu dicek ke kode kalau mau pasti)* |
 | `linkedin` | Text | `nullable` | - | Link profil LinkedIn mentor. |
 | `createdAt` | Timestamp(6) | `nullable` | `now()` | Waktu profil dibuat. |
 | `updatedAt` | Timestamp(6) | `nullable` | - | Waktu terakhir diupdate. Tidak pakai `@updatedAt`, jadi tidak auto-update. |
@@ -485,7 +485,7 @@ sesi-sesinya.
 | `difficultyOrder` | Int | `nullable` | - | Angka urutan untuk sorting berdasarkan tingkat kesulitan. |
 | `category` | VarChar | `nullable` | - | Kategori program. |
 | `level` | VarChar | `nullable` | - | Level kesulitan (nilai bebas, tidak di-enum). |
-| `isActive` | Boolean | `nullable` | `true` | Kemungkinan toggle publish/tayang - `false` = program disembunyikan dari listing publik, `true` = tampil. *(pola sama seperti `isActive` di `users`, sebaiknya dikonfirmasi ke kode)* |
+| `isActive` | Boolean | `nullable` | `true` |  toggle publish/tayang - `false` = program disembunyikan dari listing publik, `true` = tampil. *(pola sama seperti `isActive` di `users`, sebaiknya dikonfirmasi ke kode)* |
 | `installmentAvailable` | Boolean | `NOT NULL` | `false` | `true` = program ini bisa dibayar dengan cicilan. |
 | `maxInstallmentMonths` | Int | `nullable` | - | Jumlah bulan cicilan maksimal, kalau `installmentAvailable` true. |
 | `createdAt` | Timestamp | `nullable` | `now()` | Waktu dibuat. |
@@ -623,7 +623,7 @@ umum lain kalau ada modul testimoni terpisah).
 | `name` | Text | `NOT NULL` | - | Nama pemberi testimoni (teks bebas, bukan FK ke `users`). |
 | `role` | Text | `nullable` | - | Keterangan peran/status pemberi testimoni (mis. "Mahasiswa", "Career Switcher"). |
 | `comment` | Text | `NOT NULL` | - | Isi testimoni. |
-| `rating` | Int | `NOT NULL` | - | Rating angka. Tidak ada batas min/max di level skema - validasi rentang (mis. 1-5) kemungkinan di level aplikasi. |
+| `rating` | Int | `NOT NULL` | - | Rating angka. Tidak ada batas min/max di level skema - validasi rentang (mis. 1-5)  di level aplikasi. |
 
 #### Primary Key & Foreign Key
 
@@ -685,7 +685,7 @@ meeting, rekaman, dan materi presentasinya.
 | `meetingLink` | VarChar | `nullable` | - | Link meeting (mis. Zoom/Google Meet). |
 | `meetingId` | VarChar | `nullable` | - | ID meeting. |
 | `passcode` | VarChar | `nullable` | - | Passcode/kode akses meeting. |
-| `status` | VarChar | `nullable` | - | Status sesi. Nilai bebas (bukan enum) - cek kode aplikasi untuk daftar nilai pastinya (kemungkinan mis. "scheduled", "completed", "cancelled"). |
+| `status` | VarChar | `nullable` | - | Status sesi. Nilai bebas (bukan enum) - cek kode aplikasi untuk daftar nilai pastinya ( mis. "scheduled", "completed", "cancelled"). |
 | `notes` | Text | `nullable` | - | Catatan tambahan tentang sesi. |
 | `pptLink` | VarChar | `nullable` | - | Link slide presentasi sesi. |
 | `recordingLink` | VarChar | `nullable` | - | Link rekaman sesi. |
@@ -753,7 +753,7 @@ untuk satu program).
 | `mentoringServiceId` | String | `NOT NULL`, 🔗 FK | - | Program mentoring yang dibooking. |
 | `referralUsageId` | String | `nullable`, `@unique`, 🔗 FK | - | Terisi kalau booking ini pakai kode referral (relasi opsional 1:1 ke `ReferralUsage`, sudah dibahas di 5.88). |
 | `bookingDate` | Timestamp | `nullable` | `now()` | Tanggal booking dibuat. |
-| `status` | VarChar | `nullable` | - | Status booking. Nilai bebas (bukan enum) - perlu dicek ke kode untuk daftar pastinya (kemungkinan `pending`/`confirmed`/`cancelled`, dsb). |
+| `status` | VarChar | `nullable` | - | Status booking. Nilai bebas (bukan enum) - perlu dicek ke kode untuk daftar pastinya ( `pending`/`confirmed`/`cancelled`, dsb). |
 | `specialRequests` | Text | `nullable` | - | Permintaan khusus dari mentee. |
 | `material` | Text | `nullable` | - | Catatan materi yang diminta/dibawa. |
 | `expectedOutput` | Text | `nullable` | - | Ekspektasi hasil/output dari mentee. |
@@ -807,7 +807,7 @@ pembayaran sendiri-sendiri.
 
 #### 📌 Catatan Makna Nilai: `isLeader`
 
-Kemungkinan besar menandai **siapa pemesan utama/kontak utama** dalam
+ besar menandai **siapa pemesan utama/kontak utama** dalam
 satu booking grup - `true` = peserta ini yang jadi "ketua" (biasanya yang
 pertama kali melakukan booking), `false` = peserta tambahan biasa yang
 ikut ditambahkan ke booking yang sama.
@@ -853,7 +853,7 @@ E-Learning). Diterbitkan untuk mentee yang sudah menyelesaikan satu
 
 Nilai `status` (`generated`/`sent`/`viewed`) di tabel ini **konsisten**
 dengan pola `StatusBadge` yang sudah pernah kita lihat di komponen
-`CertificateVerifiedCard.tsx` untuk sertifikat e-learning - kemungkinan
+`CertificateVerifiedCard.tsx` untuk sertifikat e-learning - 
 besar dua sistem sertifikat ini (mentoring & e-learning) memang dirancang
 mengikuti alur status yang sama, meski disimpan di tabel terpisah.
 
@@ -907,7 +907,7 @@ seluruh riwayat transaksi setiap kali halaman dibuka.
 | `totalEarnings` | Decimal | `NOT NULL` | - | Total pendapatan *all-time*. Sesuai komentar developer: **sudah dipotong bagi hasil (share) platform**, jadi ini angka net, bukan gross transaksi. |
 | `totalThisMonth` | Decimal | `NOT NULL` | - | Total pendapatan bulan berjalan (net, sudah dipotong share). |
 | `totalLastMonth` | Decimal | `NOT NULL` | - | Total pendapatan bulan lalu (net, sudah dipotong share). |
-| `growthPercent` | Int | `NOT NULL` | - | Persentase pertumbuhan, kemungkinan dihitung dari perbandingan `totalThisMonth` vs `totalLastMonth`. |
+| `growthPercent` | Int | `NOT NULL` | - | Persentase pertumbuhan,  dihitung dari perbandingan `totalThisMonth` vs `totalLastMonth`. |
 | `updatedAt` | DateTime | `NOT NULL` | *(auto)* | Pakai `@updatedAt` - **otomatis** ter-update Prisma. |
 | `createdAt` | DateTime | `NOT NULL` | `now()` | Waktu baris dibuat. |
 
@@ -1062,7 +1062,7 @@ landing page.
 #### 📌 Catatan
 
 Tabel ini **tidak punya kolom `order`** (beda dengan `aycl_sections`)
-dan juga **tidak punya `createdAt`**. Urutan tampil materi kemungkinan
+dan juga **tidak punya `createdAt`**. Urutan tampil materi 
 cuma mengikuti urutan baris di database (insert order) - kalau butuh
 urutan yang bisa diatur manual, perlu ditambahkan kolom `order` di masa
 depan.
@@ -1128,7 +1128,7 @@ dsb.) yang tampak seperti bagian dari form screening peserta.
 | `currentStatus` | Text | `nullable` | - | Status pendaftar saat ini (freetext, mis. "Mahasiswa"/"Fresh Graduate"). |
 | `institution` | Text | `nullable` | - | Nama institusi/kampus pendaftar. |
 | `studyProgram` | Text | `nullable` | - | Program studi pendaftar. |
-| `semester` | Text | `nullable` | - | Semester pendaftar (bertipe teks, bukan angka - kemungkinan supaya bisa diisi nilai non-angka seperti "Sudah Lulus"). |
+| `semester` | Text | `nullable` | - | Semester pendaftar (bertipe teks, bukan angka -  supaya bisa diisi nilai non-angka seperti "Sudah Lulus"). |
 | `age` | Int | `nullable` | - | Usia pendaftar. |
 | `reason` | Text | `nullable` | - | Alasan mendaftar (freetext panjang). |
 | `familiarity` | Text | `nullable` | - | Tingkat familiaritas pendaftar dengan topik program (freetext). |
@@ -1147,7 +1147,7 @@ dsb.) yang tampak seperti bagian dari form screening peserta.
 - Field profiling (`currentStatus`, `institution`, `studyProgram`,
   `semester`, `age`, `reason`, `familiarity`) **tidak ada** di
   `bookings` (modul Mentoring) - jadi form pendaftaran AYCL memang
-  dirancang beda dari booking mentoring biasa, kemungkinan untuk
+  dirancang beda dari booking mentoring biasa,  untuk
   keperluan seleksi/screening calon peserta.
 - Berbeda dari `bookings.status` (modul Mentoring) yang tidak dikasih
   contoh nilai sama sekali di komentar developer, `status` di sini
@@ -1210,7 +1210,7 @@ masing-masing.)*
 > (`e_learning_courses`, `e_learning_sub_babs`, `e_learning_progress`, dst)
 > pakai prefix `e_learning_`, sedangkan tabel-tabel "tipe konten" di dalam
 > block (heading, paragraph, accordion, quiz, assignment, dst) pakai prefix
-> `ct_e_learning_` (kemungkinan "**c**ontent **t**ype") - kecuali
+> `ct_e_learning_` ( "**c**ontent **t**ype") - kecuali
 > `e_learning_code_runs`, yang walau termasuk keluarga "tipe konten" (log
 > eksekusi kode) tetap pakai prefix `e_learning_` biasa. Pemakaian `@map`
 > di level kolom juga tidak konsisten antar tabel (sebagian tabel mapping
@@ -1898,7 +1898,7 @@ soal matching (5.48).
 #### 📌 Catatan
 
 `matchWithId` tidak dideklarasikan sebagai relasi/FK Prisma - cuma kolom
-String biasa yang (kemungkinan besar) menyimpan `id` baris lain di tabel
+String biasa yang ( besar) menyimpan `id` baris lain di tabel
 yang sama untuk menandai pasangan LEFT-RIGHT yang benar. Karena bukan FK
 sungguhan, integritas datanya (memastikan `matchWithId` valid & konsisten
 dengan `side`-nya) sepenuhnya jadi tanggung jawab kode aplikasi, tidak
@@ -2002,7 +2002,7 @@ tersimpan di tabel terpisah (5.54).
 | `language` | Enum `CodeLanguage` | `NOT NULL` | - | `PYTHON`, `JAVASCRIPT`, `CPP`, `SQL`, atau `R`. |
 | `initialCode` | Text | `NOT NULL` | - | Kode awal yang ditampilkan ke peserta. |
 | `isEditable` | Boolean | `NOT NULL` | `true` | `false` = kode read-only, peserta cuma bisa run tanpa edit. |
-| `expectedResult` | Text | `nullable` | - | Output yang diharapkan, kemungkinan dipakai untuk auto-check hasil eksekusi. |
+| `expectedResult` | Text | `nullable` | - | Output yang diharapkan,  dipakai untuk auto-check hasil eksekusi. |
 | `createdAt` | DateTime | `nullable` | `now()` | Waktu dibuat. |
 | `updatedAt` | DateTime | `nullable` | `now()` | Punya default `now()` tapi bukan `@updatedAt` - manual, sama seperti pola di 5.31. |
 
@@ -2034,7 +2034,7 @@ seperti `e_learning_course_stream_counts`.
 | `output` | Text | `nullable` | - | Output hasil eksekusi. |
 | `error` | Text | `nullable` | - | Pesan error kalau eksekusi gagal. |
 | `executedAt` | DateTime | `nullable` | `now()` | Waktu eksekusi. |
-| `executionTime` | Int | `nullable` | - | Lama eksekusi (kemungkinan dalam milidetik). |
+| `executionTime` | Int | `nullable` | - | Lama eksekusi ( dalam milidetik). |
 | `isSuccess` | Boolean | `nullable` | `false` | Status berhasil/tidaknya eksekusi. |
 
 #### Primary Key & Foreign Key
@@ -2047,7 +2047,7 @@ seperti `e_learning_course_stream_counts`.
 #### 📌 Catatan
 
 Walau secara konsep termasuk keluarga tabel "tipe konten" (`ct_e_learning_*`),
-tabel ini tetap dipetakan dengan prefix `e_learning_` biasa - kemungkinan
+tabel ini tetap dipetakan dengan prefix `e_learning_` biasa - 
 karena sifatnya log transaksional (mirip `e_learning_quiz_attempts`,
 `e_learning_submissions`), bukan definisi konten statis.
 
@@ -2142,7 +2142,7 @@ mentor).
 
 #### 📌 Catatan
 
-`isAutoGraded` menandai apakah kuis ini dinilai otomatis (kemungkinan
+`isAutoGraded` menandai apakah kuis ini dinilai otomatis (
 dengan mencocokkan `answers` ke `correctAnswers` di `ct_e_learning_questions`)
 atau perlu dinilai manual oleh mentor (`gradedBy`/`gradedAt`/`remarks`
 terisi) - model grading hybrid. `gradedBy` sendiri disimpan sebagai String
@@ -2164,7 +2164,7 @@ peserta di tabel-tabel terpisah.
 | `textId` | String | `NOT NULL`, `@unique`, 🔗 FK | - | Text induk (1:1). |
 | `title` | VarChar | `NOT NULL` | - | Judul tugas. |
 | `description` | String | `nullable` | - | Deskripsi/instruksi umum tugas. |
-| `dueDays` | Int | `nullable` | - | Batas waktu pengumpulan dalam hitungan hari (relatif, bukan tanggal absolut - kemungkinan dihitung sejak materi diakses/dibuka). |
+| `dueDays` | Int | `nullable` | - | Batas waktu pengumpulan dalam hitungan hari (relatif, bukan tanggal absolut -  dihitung sejak materi diakses/dibuka). |
 | `createdAt` | Timestamp(6) | `nullable` | `now()` | Waktu dibuat. |
 | `updatedAt` | Timestamp(6) | `nullable` | - | Manual. |
 
@@ -2217,7 +2217,7 @@ disediakan mentor untuk satu tugas (5.58).
 | `name` | String | `NOT NULL` | - | Nama file. |
 | `type` | Enum `SupportingFileType` | `NOT NULL` | - | `DATASET`, `TEMPLATE`, atau `REFERENCE`. |
 | `url` | String | `NOT NULL` | - | URL/path file. |
-| `pageCount` | Int | `nullable` | - | Jumlah halaman - kemungkinan hanya relevan kalau file berupa dokumen/PDF referensi. |
+| `pageCount` | Int | `nullable` | - | Jumlah halaman -  hanya relevan kalau file berupa dokumen/PDF referensi. |
 | `format` | String | `nullable` | - | Format file (mis. "pdf", "csv"). |
 | `sizeKB` | Int | `nullable` | - | Ukuran file dalam KB. |
 | `createdAt` | DateTime | `nullable` | `now()` | Waktu dibuat. |
@@ -2367,7 +2367,7 @@ kolom auditnya.
 | `subBabId` | String | `NOT NULL`, 🔗 FK | - | Sub-bab yang dipelajari. |
 | `isCompleted` | Boolean | `nullable` | `false` | Status selesai/belum. |
 | `lastAccessed` | DateTime | `nullable` | - | Waktu terakhir diakses. |
-| `timeSpent` | Int | `nullable` | `0` | Total waktu belajar (kemungkinan detik). |
+| `timeSpent` | Int | `nullable` | `0` | Total waktu belajar ( detik). |
 | `lastActivityAt` | DateTime | `nullable` | - | Waktu aktivitas terakhir. |
 
 #### Primary Key & Foreign Key
@@ -2381,7 +2381,7 @@ kolom auditnya.
 
 Tabel ini tidak punya `createdAt`/`updatedAt` sama sekali - beda dari 3
 tabel progress lain (5.65-5.67) yang semuanya punya `createdAt` +
-`updatedAt` (dengan `@updatedAt`). Kemungkinan ini iterasi paling awal dari
+`updatedAt` (dengan `@updatedAt`).  ini iterasi paling awal dari
 fitur progress tracking (khusus level sub-bab, pakai flag boolean
 selesai/belum), sementara tracking di level sub-chapter/text/block
 ditambahkan belakangan dengan audit trail yang lebih lengkap.
@@ -2457,7 +2457,7 @@ ini.
 | `blockId` | String | `NOT NULL`, 🔗 FK | - | Block yang dipelajari. Tidak pakai `@map`. |
 | `progress` | Int | `NOT NULL` | `0` | Progress 0-100. **Bertipe `Int`**, berbeda dari `progressPercent`/`progress` di 5.65 & 5.66 yang bertipe `Float` - inkonsistensi tipe untuk konsep yang sama antar 3 tabel ini. |
 | `isCompleted` | Boolean | `NOT NULL` | `false` | Status selesai/belum. |
-| `timeSpent` | Int | `nullable` | `0` | Total waktu (kemungkinan detik). |
+| `timeSpent` | Int | `nullable` | `0` | Total waktu ( detik). |
 | `lastActivityAt` | DateTime | `nullable` | `now()` | Waktu aktivitas terakhir - satu-satunya di antara 4 tabel progress yang kolom "waktu terakhir"-nya punya default `now()`. |
 
 #### Primary Key & Foreign Key
@@ -2529,7 +2529,7 @@ sertifikat juga diterbitkan per sub-chapter, bukan per course.
 | `certificatePath` | VarChar | `nullable` | - | Path penyimpanan file sertifikat. |
 | `issuedAt` | DateTime | `nullable` | `now()` | Waktu diterbitkan. |
 | `certificateNumber` | VarChar | `NOT NULL`, `@unique` | - | Nomor sertifikat unik. |
-| `displayNumber` | VarChar | `NOT NULL`, `@unique` | - | Nomor tampilan unik - kemungkinan format berbeda dari `certificateNumber` untuk keperluan cetak/tampilan publik (perlu dicek ke kode generator sertifikat untuk kepastian mana yang internal vs mana yang dicetak). |
+| `displayNumber` | VarChar | `NOT NULL`, `@unique` | - | Nomor tampilan unik -  format berbeda dari `certificateNumber` untuk keperluan cetak/tampilan publik (perlu dicek ke kode generator sertifikat untuk kepastian mana yang internal vs mana yang dicetak). |
 | `status` | VarChar | `nullable` | - | Freetext, contoh dari komentar developer: generated, sent, viewed. |
 | `verifiedBy` | VarChar | `nullable` | - | ID admin/verifikator (opsional, freetext). **Bukan FK sungguhan** - lihat catatan. |
 | `note` | VarChar | `nullable` | - | Catatan tambahan. |
@@ -2808,7 +2808,7 @@ polanya mirip `e_learning_reviews`, tapi `rating` di sini bertipe `Int`
 #### 📌 Catatan
 
 Tabel ini punya `submittedDate` **dan** `createdAt` yang sama-sama default
-`now()` - kemungkinan redundan (dua kolom mencatat waktu yang praktis
+`now()` -  redundan (dua kolom mencatat waktu yang praktis
 sama), berbeda dari `e_learning_reviews` yang cuma punya `createdAt` saja.
 
 ---
@@ -2853,7 +2853,7 @@ Empat kolom penilaian (`kesesuaian`, `kualitas`, `kreativitas`,
 `kelengkapan`) dan dua kolom feedback (`komentar`, `saran`) memakai nama
 **Bahasa Indonesia**, berbeda dari konvensi penamaan Inggris di hampir
 semua tabel lain di skema ini. Semua nilai komponen penilaian juga bertipe
-`VarChar` (bukan `Int`/`Decimal`), jadi kemungkinan diisi label kualitatif
+`VarChar` (bukan `Int`/`Decimal`), jadi  diisi label kualitatif
 (mis. "Baik", "Cukup") bukan angka - berbeda dari `gradeBreakdown` (Json)
 di `e_learning_submissions` yang menyimpan skor numerik per komponen.
 `status` di sini tetap `String` biasa dengan default `"pending"`, tidak
@@ -2991,7 +2991,7 @@ review pakai enum, tautan ke sesi mentoring tertentu).
 Tabel submission paling detail di seluruh skema: skor dipisah jadi 3
 lapis - `plagiarismScore` (otomatis/sistem), 4 kolom skor per-metrik
 (`briefScore`/`technicalScore`/`creativityScore`/`completenessScore`, semua
-`String` - kemungkinan label kualitatif, bukan angka, sama seperti pola di
+`String` -  label kualitatif, bukan angka, sama seperti pola di
 `practice_submissions`), dan `score` (agregat, `Decimal`) - tapi tidak ada
 kolom di skema yang menjelaskan bagaimana `score` dihitung dari
 komponen-komponennya, jadi logikanya murni ada di kode aplikasi. Tidak
@@ -3005,7 +3005,7 @@ tabel submission serupa (`practice_submissions`,
 `e_learning_submissions`, tabel ini) yang memakai **enum sungguhan**
 (`ReviewStatus`) alih-alih `String` freetext - tapi enum-nya cuma 3 nilai
 (tidak ada `APPROVED`/`REJECTED` seperti `ELearningSubmissionStatus`),
-jadi status "disetujui/ditolak akhir" kemungkinan direpresentasikan lewat
+jadi status "disetujui/ditolak akhir"  direpresentasikan lewat
 kombinasi `reviewStatus` + `score`, bukan satu kolom status tunggal.
 
 ---
@@ -3110,7 +3110,7 @@ progres pelunasan lewat `paidAmount`/`remainingAmount`.
 | `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | ID unik invoice. |
 | `bookingId` | String | `NOT NULL`, `@unique`, 🔗 FK | - | Booking terkait (1:1). |
 | `totalAmount` | Decimal | `NOT NULL` | - | Total tagihan. |
-| `paidAmount` | Decimal | `NOT NULL` | `0` | Jumlah yang sudah dibayar (kemungkinan diakumulasi dari `payments` yang statusnya lunas). |
+| `paidAmount` | Decimal | `NOT NULL` | `0` | Jumlah yang sudah dibayar ( diakumulasi dari `payments` yang statusnya lunas). |
 | `remainingAmount` | Decimal | `NOT NULL` | - | Sisa yang belum dibayar. |
 | `paymentType` | VarChar | `NOT NULL` | - | Freetext, sesuai komentar developer: `FULL` atau `INSTALLMENT`. |
 | `installmentCount` | Int | `nullable` | - | Jumlah cicilan yang disepakati (relevan kalau `paymentType = INSTALLMENT`). |
@@ -3135,7 +3135,7 @@ contohnya (dari komentar developer) ditulis pakai `SCREAMING_SNAKE_CASE`
 berbeda dari kebanyakan kolom `status` freetext lain di skema ini yang
 biasanya dicontohkan pakai lowercase (mis. `pending`, `confirmed`).
 Penamaan `HAVENT_PAID` juga tata bahasanya agak janggal (harusnya
-`HAVE_NOT_PAID` atau `UNPAID`/`NOT_PAID`) - kemungkinan cuma typo di
+`HAVE_NOT_PAID` atau `UNPAID`/`NOT_PAID`) -  cuma typo di
 komentar developer, bukan sesuatu yang perlu diubah di kode, tapi baik
 untuk diketahui saat mencari nilai status ini di database/log.
 `paidAmount` + `remainingAmount` dua-duanya disimpan eksplisit (bukan
@@ -3362,7 +3362,7 @@ yang dibagikan afiliator ke calon pembeli untuk dipakai saat transaksi.
 tidak terikat langsung ke keberadaan `AffiliatorProfile`; keduanya
 dihubungkan lewat `userId`/`ownerId` yang sama-sama merujuk ke `users`,
 bukan lewat relasi langsung satu ke yang lain. `createdDate` dan
-`createdAt` sama-sama ada dan sama-sama default `now()` - kemungkinan
+`createdAt` sama-sama ada dan sama-sama default `now()` - 
 redundan (pola serupa juga terlihat di `practice_reviews`,
 `submittedDate` vs `createdAt`).
 
@@ -3384,7 +3384,7 @@ punya kolom `referralUsageId` sendiri menunjuk balik ke sini).
 | `userId` | String | `NOT NULL`, 🔗 FK | - | User yang memakai kode. |
 | `referralCodeId` | String | `NOT NULL`, 🔗 FK | - | Kode referral yang dipakai. |
 | `usedAt` | DateTime | `NOT NULL` | `now()` | Waktu kode dipakai. |
-| `context` | VarChar | `NOT NULL` | - | Freetext konteks pemakaian (kemungkinan menyimpan info produk/jenis transaksi, redundan secara konsep dengan relasi balik `booking`/`practicePurchase`/dst di bawah). |
+| `context` | VarChar | `NOT NULL` | - | Freetext konteks pemakaian ( menyimpan info produk/jenis transaksi, redundan secara konsep dengan relasi balik `booking`/`practicePurchase`/dst di bawah). |
 | `createdAt` | DateTime | `NOT NULL` | `now()` | Waktu baris dibuat. |
 | `updatedAt` | DateTime | `nullable` | *(tidak ada)* | Tidak punya default. |
 
@@ -3411,7 +3411,7 @@ Karena `@@unique([userId, referralCodeId])` cuma sepasang, dan tidak ada
 kolom di tabel ini yang membedakan "dipakai untuk transaksi yang mana",
 identitas transaksinya cuma bisa ditelusuri lewat 4 relasi balik opsional
 di atas - kode aplikasi perlu tahu dari konteks mana `ReferralUsage` ini
-dibuat (empat kemungkinan tabel pemanggil) untuk tahu baris mana yang
+dibuat (empat  tabel pemanggil) untuk tahu baris mana yang
 sebenarnya terhubung.
 
 ---
@@ -3434,7 +3434,7 @@ terjadi, untuk keperluan audit.
 |---|---|---|---|---|
 | `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | ID unik. |
 | `referralCodeId` | String | `NOT NULL`, 🔗 FK | - | Kode referral yang menghasilkan komisi ini. |
-| `transactionId` | String | `NOT NULL` | - | ID transaksi terkait (freetext, tidak dideklarasikan sebagai FK - kemungkinan menunjuk ke salah satu dari beberapa tabel transaksi berbeda, sama seperti pola `entityId` di `ELearningAuditLog`). |
+| `transactionId` | String | `NOT NULL` | - | ID transaksi terkait (freetext, tidak dideklarasikan sebagai FK -  menunjuk ke salah satu dari beberapa tabel transaksi berbeda, sama seperti pola `entityId` di `ELearningAuditLog`). |
 | `amount` | Decimal | `NOT NULL` | - | Komisi yang diterima (hasil kalkulasi saat itu, sesuai komentar developer). |
 | `tierAtTransaction` | String | `nullable` | - | Snapshot tier afiliator saat transaksi terjadi. |
 | `productType` | String | `nullable` | - | Snapshot jenis produk yang dibeli (freetext). |
@@ -3633,7 +3633,7 @@ klaim sukses otomatis membuat satu `ELearningSubscription` baru (dengan
 
 **Fungsi tabel**: Log **setiap percobaan** klaim redeem code (berhasil
 maupun gagal) - beda dari `redeem_code_usages` yang cuma mencatat klaim
-yang **berhasil**; kemungkinan dipakai untuk rate-limiting/deteksi abuse.
+yang **berhasil**;  dipakai untuk rate-limiting/deteksi abuse.
 
 #### Kolom
 
@@ -3752,11 +3752,11 @@ kasus non-unique seperti `bookingInvoiceId` di `Payment`), karena voucher
 berlaku sekali per transaksi, tidak per cicilan. Yang unik dari tabel ini
 dibanding semua tabel "usage/purchase" lain di skema: statusnya bukan
 cuma `String` freetext, tapi **enum sungguhan** dengan makna reservasi -
-kemungkinan alurnya: baris dibuat `RESERVED` begitu voucher dipilih saat
+ alurnya: baris dibuat `RESERVED` begitu voucher dipilih saat
 checkout (mengunci kuota supaya tidak direbut transaksi lain), lalu
 diubah jadi `USED` setelah pembayaran benar-benar sukses, atau
 `CANCELLED` kalau checkout dibatalkan/gagal (supaya kuota voucher tidak
-ikut terpotong sia-sia). `usageCount` di `vouchers` (5.95) kemungkinan
+ikut terpotong sia-sia). `usageCount` di `vouchers` (5.95) 
 cuma diincrement saat status berubah jadi `USED`, bukan saat `RESERVED` -
 tapi ini perlu dikonfirmasi ke kode aplikasi karena tidak ada logika
 seperti itu yang terlihat langsung dari skema.
@@ -4291,7 +4291,7 @@ INTERACTIVE_CODE tidak relevan untuk artikel).
 
 Karena `ArticleAdditionalContentType` sekarang cuma punya 1 nilai
 (`IMAGE_VIDEO`), kolom `type` di tabel ini jadi agak redundan secara
-fungsional (selalu bernilai sama) - kemungkinan tetap dipertahankan demi
+fungsional (selalu bernilai sama) -  tetap dipertahankan demi
 konsistensi struktural dengan `ct_e_learning_additional_contents` dan
 untuk memudahkan penambahan tipe interaktif lain di artikel nanti tanpa
 perlu migrasi skema besar.
@@ -4426,7 +4426,7 @@ Beda dari `parentId` di `e_learning_discussions` yang **tidak** punya
 artinya kalau sebuah komentar induk dihapus (hard delete, bukan lewat
 `deletedAt`), **seluruh balasannya ikut terhapus** secara berantai. Karena
 tabel ini juga punya `deletedAt` (soft delete), dalam praktiknya
-kemungkinan besar penghapusan komentar dilakukan lewat `deletedAt` (yang
+ besar penghapusan komentar dilakukan lewat `deletedAt` (yang
 tidak memicu cascade ke reply-nya), bukan lewat hard delete - tapi opsi
 hard-delete-berantai ini tetap ada di level skema.
 
@@ -4498,7 +4498,7 @@ dari modul E-Learning (5.47 & 5.52), tidak didefinisikan ulang di sini.)*
 
 Tidak ada kolom `userId` sama sekali di tabel ini - jadi log export tidak
 mencatat *siapa* yang melakukan export, cuma *apa* yang di-export dan
-*kapan*. Kalau butuh tahu siapa pelakunya, kemungkinan harus dicari lewat
+*kapan*. Kalau butuh tahu siapa pelakunya,  harus dicari lewat
 korelasi waktu dengan `activity_logs` (5.3a), bukan lewat relasi
 langsung.
 
@@ -4522,13 +4522,13 @@ baca-per-penerima dilacak di tabel terpisah (5.120).
 | `actionUrl` | VarChar | `nullable` | - | URL tujuan kalau notifikasi diklik. |
 | `sentAt` | Timestamp(6) | `nullable` | - | Waktu notifikasi benar-benar dikirim (terpisah dari `createdAt` - bisa dibuat/dijadwalkan lebih dulu, dikirim belakangan). |
 | `meta` | JsonB | `nullable` | - | Data tambahan bebas format (payload spesifik per jenis notifikasi). |
-| `targetRole` | VarChar[] | `NOT NULL` | - | Array peran yang dituju. Ada komentar developer `// fix this line` di kolom ini di skema aslinya - kemungkinan menandakan implementasi/tipe kolom ini belum final dan masih perlu ditinjau ulang oleh tim dev. |
+| `targetRole` | VarChar[] | `NOT NULL` | - | Array peran yang dituju. Ada komentar developer `// fix this line` di kolom ini di skema aslinya -  menandakan implementasi/tipe kolom ini belum final dan masih perlu ditinjau ulang oleh tim dev. |
 | `createdAt` | Timestamp(6) | `nullable` | `now()` | Waktu baris dibuat. |
 
 #### Primary Key & Foreign Key
 
 - 🔑 **PK**: `id`
-- 🔗 **FK**: *(tidak ada)* - notifikasi tidak terikat ke satu entitas sumber tertentu; keterkaitannya ke entitas lain (kalau ada) kemungkinan disimpan di dalam `meta` (Json) atau `actionUrl`, bukan lewat FK relasional.
+- 🔗 **FK**: *(tidak ada)* - notifikasi tidak terikat ke satu entitas sumber tertentu; keterkaitannya ke entitas lain (kalau ada)  disimpan di dalam `meta` (Json) atau `actionUrl`, bukan lewat FK relasional.
 
 #### Relasi ke Tabel Lain (ringkasan)
 
@@ -4605,7 +4605,7 @@ terjadi, cuma totalnya saja. Kalau butuh analitik klik yang lebih rinci
 ## Modul: Job Board *(Dummy)*
 
 > ℹ️ **Catatan**: Sesuai komentar `// WEBSITE DUMMY` langsung di atas model
-> `Company` pada skema aslinya, dua tabel ini kemungkinan besar adalah
+> `Company` pada skema aslinya, dua tabel ini  besar adalah
 > **data contoh/placeholder** untuk fitur lowongan kerja - tidak
 > berhubungan dengan modul-modul inti TemuDataku (Mentoring, E-Learning,
 > Practice, dll.) yang sudah dibahas sebelumnya. Dimasukkan di sini sebagai
@@ -4621,7 +4621,7 @@ terjadi, cuma totalnya saja. Kalau butuh analitik klik yang lebih rinci
 
 | Kolom | Tipe Data | Constraint | Default | Keterangan |
 |---|---|---|---|---|
-| `id` | String (uuid) | 🔑 PK, `NOT NULL` | `uuid()` | ID unik perusahaan. **Satu-satunya tabel di seluruh skema yang PK-nya pakai `uuid()`**, bukan `cuid()` seperti semua tabel lain - konsisten dengan sifatnya sebagai modul terpisah/dummy yang kemungkinan dibangun terpisah dari basis kode utama. |
+| `id` | String (uuid) | 🔑 PK, `NOT NULL` | `uuid()` | ID unik perusahaan. **Satu-satunya tabel di seluruh skema yang PK-nya pakai `uuid()`**, bukan `cuid()` seperti semua tabel lain - konsisten dengan sifatnya sebagai modul terpisah/dummy yang  dibangun terpisah dari basis kode utama. |
 | `companyName` | String | `NOT NULL`, `@unique` | - | Nama perusahaan. |
 | `industry` | String | `nullable` | - | Bidang industri. |
 | `companySize` | String | `nullable` | - | Ukuran perusahaan (freetext). |
@@ -4715,7 +4715,7 @@ relevan untuk ditindaklanjuti tim, bukan cuma catatan sepintas:
   `user_behavior`, semua di bagian Modul Pendukung) tumpang tindih dan
   tidak saling terhubung - perlu diperjelas mana yang jadi sumber
   kebenaran sebelum dipakai buat dashboard analitik apa pun.
-- `companies`/`jobs` (Job Board) kemungkinan besar cuma data dummy, bukan
+- `companies`/`jobs` (Job Board)  besar cuma data dummy, bukan
   fitur yang sedang berjalan - jangan kaget kalau suatu saat dihapus atau
   malah dibangun serius jadi fitur beneran.
 
