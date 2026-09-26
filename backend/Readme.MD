@@ -131,7 +131,7 @@ merujuk balik ke tabel ini untuk tahu "ini punya siapa".
 
 #### 📌 Catatan Makna Nilai: `isActive`
 
-Kolom ini kemungkinan besar berfungsi sebagai **flag aktif/nonaktif akun**
+Kolom ini berfungsi sebagai **flag aktif/nonaktif akun**
 (soft-deactivate), berdasarkan nama kolom dan nilai default-nya:
 
 - `true` (default) → akun aktif, bisa dipakai login & mengakses aplikasi
