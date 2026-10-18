@@ -507,6 +507,31 @@ export const createBooking = async (
       };
     }
 
+    // Booking minimal H+3 dari hari ini, biar jadwal nggak terlalu mepet.
+    // Patokan "hari ini" pakai tanggal WIB (UTC+7), sama kayak sisi frontend,
+    // supaya nggak geser kalau timezone server beda.
+    const MIN_BOOKING_DAYS_AHEAD = 3;
+    const nowWIB = new Date(Date.now() + 7 * 60 * 60 * 1000);
+    const minBookableDate = new Date(
+      Date.UTC(
+        nowWIB.getUTCFullYear(),
+        nowWIB.getUTCMonth(),
+        nowWIB.getUTCDate() + MIN_BOOKING_DAYS_AHEAD,
+      ),
+    );
+    const minBookableDateStr = minBookableDate.toISOString().slice(0, 10); // YYYY-MM-DD
+
+    // bookingDate sudah divalidasi format YYYY-MM-DD, jadi aman dibandingkan sebagai string
+    if (bookingDate < minBookableDateStr) {
+      throw {
+        status: 400,
+        message: `Booking minimal H+${MIN_BOOKING_DAYS_AHEAD} dari hari ini. Tanggal paling awal yang bisa dipilih adalah ${minBookableDate.toLocaleDateString(
+          "id-ID",
+          { timeZone: "UTC", day: "numeric", month: "long", year: "numeric" },
+        )}.`,
+      };
+    }
+
     sessionBookingDate = bookingDate;
   }
 

@@ -319,6 +319,7 @@ export default function AdminLayout({
     avatarUrl?: string;
     isActive: boolean;
   } | null>(null);
+  const [editFullName, setEditFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [preview, setPreview] = useState("/default-avatar.png");
@@ -364,6 +365,7 @@ export default function AdminLayout({
 
   useEffect(() => {
     if (isEditAdminOpen && currentAdmin) {
+      setEditFullName(currentAdmin.fullName);
       setEmail(currentAdmin.email);
       setPhone(currentAdmin.phone);
       setPreview(currentAdmin.avatarUrl || "/default-avatar.png");
@@ -619,6 +621,8 @@ export default function AdminLayout({
       setSaving(true);
       const toastId = toast.loading("Menyimpan perubahan...");
       const formData = new FormData();
+      if (editFullName.trim() && editFullName.trim() !== currentAdmin.fullName)
+        formData.append("fullName", editFullName.trim());
       if (email && email !== currentAdmin.email)
         formData.append("email", email);
       if (phone && phone !== currentAdmin.phone)
@@ -644,6 +648,7 @@ export default function AdminLayout({
           prev
             ? {
                 ...prev,
+                fullName: editFullName.trim() || prev.fullName,
                 email: email || prev.email,
                 phone: phone || prev.phone,
                 avatarUrl: selectedFile ? preview : prev.avatarUrl,
@@ -1062,9 +1067,9 @@ export default function AdminLayout({
                 </label>
                 <input
                   type="text"
-                  disabled
-                  value={currentAdmin?.fullName}
-                  className="w-full mt-1 px-3 py-2 border rounded-md text-[11px] bg-gray-100"
+                  value={editFullName}
+                  onChange={(e) => setEditFullName(e.target.value)}
+                  className="w-full mt-0.5 px-2 py-1.5 text-[11px] border rounded-md"
                 />
               </div>
               <div className="col-span-2">

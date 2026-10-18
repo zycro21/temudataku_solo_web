@@ -298,7 +298,17 @@ export default function ArticleDetail() {
 
   const shareUrl = typeof window !== "undefined" ? window.location.href : "";
   const dateLabel = formatArticleDate(article.publishedAt ?? article.createdAt);
-  const roleLabel = article.author?.roles?.join(" & ") ?? "";
+  // Role "cw" / "admin" ditampilin sebagai "Content Writer TemuDataku".
+  // Di-dedupe biar kalau user punya dua-duanya nggak muncul dobel.
+  const roleLabel = Array.from(
+    new Set(
+      (article.author?.roles ?? []).map((r) =>
+        ["cw", "admin"].includes(r.trim().toLowerCase())
+          ? "Content Writer TemuDataku"
+          : r,
+      ),
+    ),
+  ).join(" & ");
 
   return (
     <main className={jakartaSans.className}>

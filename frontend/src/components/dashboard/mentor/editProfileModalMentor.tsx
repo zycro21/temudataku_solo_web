@@ -34,6 +34,7 @@ export default function EditProfileMentorModal({
   // inputan yang bisa diubah
   const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
+  const [fullName, setFullName] = useState("");
 
   // foto profil
   const [preview, setPreview] = useState(
@@ -57,6 +58,7 @@ export default function EditProfileMentorModal({
 
           setPhoneNumber(data?.phoneNumber || "");
           setEmail(data?.email || "");
+          setFullName(data?.fullName || "");
 
           const avatarUrl =
             data?.profilePicture && data?.profilePicture !== "default.jpg"
@@ -82,11 +84,15 @@ export default function EditProfileMentorModal({
         formData.append("email", email);
       }
 
+      if (fullName.trim()) {
+        formData.append("fullName", fullName.trim());
+      }
+
       if (selectedFile) {
         formData.append("profilePicture", selectedFile);
       }
 
-      if (!phoneNumber && !email && !selectedFile) {
+      if (!phoneNumber && !email && !fullName.trim() && !selectedFile) {
         toast.info("Tidak ada perubahan yang disimpan.");
         return;
       }
@@ -207,9 +213,9 @@ export default function EditProfileMentorModal({
               <label className="text-xs font-medium">Nama Lengkap</label>
               <input
                 type="text"
-                value={mentorData?.fullName || "-"}
-                disabled
-                className="w-full mt-1 px-3 py-1.5 border rounded-md text-sm bg-gray-100 cursor-not-allowed"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="w-full mt-1 px-3 py-1.5 border rounded-md text-sm"
               />
             </div>
             <div className="col-span-2">

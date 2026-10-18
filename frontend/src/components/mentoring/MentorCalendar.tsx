@@ -7,6 +7,8 @@ import {
   type MonthCaptionProps,
 } from "react-day-picker";
 import "react-day-picker/dist/style.css";
+import { Info } from "lucide-react";
+import { createPortal } from "react-dom";
 
 interface TimeSlot {
   start: string;
@@ -78,7 +80,16 @@ export default function MentorCalendar({
   );
 
   const today = new Date();
-  const disableDays = { before: today };
+
+  // Booking minimal H+3 dari hari ini, biar jadwal nggak terlalu mepet.
+  // Tanggal sebelum H+3 di-disable di kalender.
+  const MIN_BOOKING_DAYS_AHEAD = 3;
+  const minBookableDate = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate() + MIN_BOOKING_DAYS_AHEAD,
+  );
+  const disableDays = { before: minBookableDate };
 
   const [month, setMonth] = useState(new Date());
 
@@ -110,7 +121,7 @@ export default function MentorCalendar({
             const rect = (e.target as HTMLElement).getBoundingClientRect();
             setTooltipPos({
               x: rect.left + rect.width / 2,
-              y: rect.top - 10,
+              y: rect.top - 6,
             });
           }
         }}
@@ -137,27 +148,49 @@ export default function MentorCalendar({
         className="w-full"
       />
 
-      {/* Tooltip */}
-      {hoveredDate && tooltipPos && (
-        <div
-          className="fixed bg-gray-800 text-white text-[10px] px-1.5 py-0.5 rounded shadow z-50 pointer-events-none"
-          style={{
-            top: tooltipPos.y,
-            left: tooltipPos.x,
-            transform: "translateX(-50%)",
-          }}
-        >
-          {getSlotsForDate(hoveredDate).length > 0 ? (
-            getSlotsForDate(hoveredDate).map((slot, idx) => (
-              <div key={idx}>
-                {slot}
-              </div>
-            ))
-          ) : (
-            <div>Tidak ada jadwal</div>
-          )}
-        </div>
-      )}
+      {/* Keterangan batas minimal booking */}
+      <div className="mt-4 mb-4 flex items-start gap-2 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2.5">
+        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />
+        <p className="text-[11px] leading-relaxed text-emerald-800">
+          Booking minimal{" "}
+          <span className="font-semibold">H+{MIN_BOOKING_DAYS_AHEAD}</span> dari
+          hari ini. Tanggal sebelum{" "}
+          <span className="font-semibold">
+            {minBookableDate.toLocaleDateString("id-ID", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
+          </span>{" "}
+          tidak dapat dipilih.
+        </p>
+      </div>
+
+      {/* Tooltip — di-portal ke body karena DialogContent punya transform,
+          yang bikin "fixed" relatif ke modal (bukan viewport) dan posisinya geser. */}
+      {hoveredDate &&
+        tooltipPos &&
+        createPortal(
+          <div
+            className="fixed bg-gray-800 text-white text-[10px] px-1.5 py-0.5 rounded shadow z-[100] pointer-events-none whitespace-nowrap"
+            style={{
+              top: tooltipPos.y,
+              left: tooltipPos.x,
+              transform: "translate(-50%, -100%)",
+            }}
+          >
+            {hoveredDate < minBookableDate ? (
+              <div>Booking minimal H+{MIN_BOOKING_DAYS_AHEAD}</div>
+            ) : getSlotsForDate(hoveredDate).length > 0 ? (
+              getSlotsForDate(hoveredDate).map((slot, idx) => (
+                <div key={idx}>{slot}</div>
+              ))
+            ) : (
+              <div>Tidak ada jadwal</div>
+            )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
