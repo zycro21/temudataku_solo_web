@@ -1436,6 +1436,42 @@ export interface AuthenticatedRequestRedeemCode extends Request {
   };
 }
 
+export interface AuthenticatedRequestForm extends Request {
+  user?: {
+    userId: string;
+    roles: string[];
+    mentorProfileId?: string;
+    email?: string;
+    phoneNumber?: string;
+    fullName?: string;
+  };
+  // Bentuk body beda-beda per endpoint (lihat z.infer di file validation),
+  // jadi controller melakukan cast ke tipe input masing-masing.
+  validatedBody?: Record<string, any>;
+  validatedParams?: {
+    id?: string; // formId
+    slug?: string; // slug form (endpoint publik)
+    itemId?: string;
+    responseId?: string;
+    fileId?: string;
+    eventId?: string;
+  };
+  validatedQuery?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    type?: "EVENT" | "NON_EVENT";
+    status?: "DRAFT" | "PUBLISHED" | "ARCHIVED" | "SUBMITTED" | "ALL";
+    sortBy?: "createdAt" | "updatedAt" | "submittedAt";
+    sortOrder?: "asc" | "desc";
+    startDate?: string; // yyyy-mm-dd (WIB)
+    endDate?: string; // yyyy-mm-dd (WIB)
+    format?: "csv";
+    editToken?: string;
+  };
+}
+ 
+
 export const authenticate = (
   req: AuthenticatedRequest,
   res: Response,

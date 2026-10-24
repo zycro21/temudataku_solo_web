@@ -1729,6 +1729,316 @@ model Feedback {
   @@map("feedback")
 }
 
+enum FormType {
+  EVENT       // Form Event: terkait ke Event non-kelas, bisa tampil di halaman Event
+  NON_EVENT   // Form Non Event: tidak terkait Event, diakses lewat direct link
+}
+
+enum FormStatus {
+  DRAFT       // juga dipakai saat Unpublish (konfigurasi & response tetap aman)
+  PUBLISHED
+  ARCHIVED
+}
+
+enum FormResponderAccess {
+  ANYONE_WITH_LINK
+  LOGIN_REQUIRED
+}
+
+// Dipakai untuk navigasi akhir section DAN branching per option
+enum FormNavigationAction {
+  NEXT            // lanjut ke section berikutnya (urutan normal)
+  GO_TO_SECTION   // lompat ke section tertentu
+  SUBMIT          // langsung akhiri form
+}
+
+enum FormItemType {
+  // --- pertanyaan (punya jawaban) ---
+  SHORT_ANSWER
+  PARAGRAPH
+  MULTIPLE_CHOICE
+  CHECKBOXES
+  DROPDOWN
+  FILE_UPLOAD
+  LINEAR_SCALE
+  RATING
+  MULTIPLE_CHOICE_GRID
+  CHECKBOX_GRID
+  DATE
+  TIME_DURATION
+  // --- elemen konten (tidak punya jawaban) ---
+  TITLE_DESCRIPTION
+  IMAGE
+  VIDEO
+}
+
+enum FormOptionKind {
+  CHOICE        // pilihan biasa (MC, Checkboxes, Dropdown)
+  GRID_ROW      // baris pada grid
+  GRID_COLUMN   // kolom pada grid
+}
+
+enum FormResponseStatus {
+  DRAFT       // autosave responder, BELUM dihitung submission final
+  SUBMITTED
+}
+
+model Form {
+  id          String     @id @default(cuid())
+  type        FormType                      // dikunci setelah dibuat (V1)
+  status      FormStatus @default(DRAFT)
+
+  title       String     @db.VarChar
+  description String?    @db.Text
+
+  // Dipakai di URL responder (/form/{slug}). Random, BUKAN dari judul,
+  // supaya link yang sudah dibagikan tidak rusak kalau judul diedit.
+  slug        String     @unique @db.VarChar
+
+  // ---------- Relasi Event (khusus type = EVENT) ----------
+  // TODO: setelah model Event ada, tambah relasi:
+  //   event Event? @relation(fields: [eventId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+    eventId         String?  @map("event_id")
+  eventNameSnapshot String?  @db.VarChar @map("event_name_snapshot") // nama Event saat dikaitkan, buat info kalau Event dihapus
+  showOnEventPage   Boolean  @default(true) @map("show_on_event_page") // pisah dari status Publish; hanya berlaku type EVENT
+
+  // ---------- Penerimaan response (BEDA dari status Publish) ----------
+  acceptingResponses     Boolean   @default(true)  @map("accepting_responses") // switch manual
+  responseLimitEnabled   Boolean   @default(false) @map("response_limit_enabled")
+  responseLimit          Int?                      @map("response_limit")
+  periodEnabled          Boolean   @default(false) @map("period_enabled")
+  openAt                 DateTime? @db.Timestamp(6) @map("open_at")
+  closeAt                DateTime? @db.Timestamp(6) @map("close_at")
+  submittedResponseCount Int       @default(0)     @map("submitted_response_count") // counter submission final, dipakai cek limit secara atomic
+
+  // ---------- Pengaturan responder ----------
+  responderAccess            FormResponderAccess @default(ANYONE_WITH_LINK) @map("responder_access")
+  collectEmail               Boolean @default(false) @map("collect_email")
+  limitOneResponsePerAccount Boolean @default(false) @map("limit_one_response_per_account")
+  allowEditResponse          Boolean @default(false) @map("allow_edit_response")
+  sendResponseReceipt        Boolean @default(false) @map("send_response_receipt")
+  allowResponderDraft        Boolean @default(false) @map("allow_responder_draft")
+  shuffleQuestionOrder       Boolean @default(false) @map("shuffle_question_order")
+  notifyOnNewResponse        Boolean @default(false) @map("notify_on_new_response")
+  confirmationMessage        String? @db.Text @map("confirmation_message")
+  closedMessage              String? @db.Text @map("closed_message")
+
+  // ---------- Tampilan / tema ----------
+  headerImage     String? @db.VarChar @map("header_image")
+  themeColor      String? @db.VarChar @map("theme_color")      // hex, contoh "#10B981"
+  backgroundColor String? @db.VarChar @map("background_color") // hex
+  fontPreset      String? @db.VarChar @map("font_preset")      // key preset dari sistem
+
+  // ---------- Lifecycle ----------
+  publishedAt DateTime? @db.Timestamp(6) @map("published_at")
+  archivedAt  DateTime? @db.Timestamp(6) @map("archived_at")
+  createdById String?   @map("created_by_id")
+  createdAt   DateTime  @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt   DateTime  @updatedAt @db.Timestamp(6) @map("updated_at")
+
+  // Relations
+  createdBy        User?             @relation(fields: [createdById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  sections         FormSection[]
+  items            FormItem[]
+  responses        FormResponse[]
+
+  @@index([type, status])
+  @@index([eventId])
+  @@index([createdById])
+  @@map("forms")
+}
+
+// Section = halaman/bagian form. Setiap form minimal punya 1 section
+// (dibuat otomatis bareng form), jadi FormItem.sectionId selalu terisi.
+model FormSection {
+  id          String   @id @default(cuid())
+  formId      String   @map("form_id")
+  title       String?  @db.VarChar
+  description String?  @db.Text
+  orderNumber Int      @map("order_number")
+
+  // Navigasi setelah section ini selesai
+  nextAction    FormNavigationAction @default(NEXT) @map("next_action")
+  nextSectionId String?              @map("next_section_id")
+
+  deletedAt   DateTime? @db.Timestamp(6) @map("deleted_at") // soft delete
+  createdAt   DateTime  @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt   DateTime  @updatedAt @db.Timestamp(6) @map("updated_at")
+
+  form             Form          @relation(fields: [formId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  nextSection      FormSection?  @relation("FormSectionNext", fields: [nextSectionId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  previousSections FormSection[] @relation("FormSectionNext")
+  items            FormItem[]
+  branchingOptions FormOption[]  @relation("FormOptionBranch")
+
+  @@index([formId, orderNumber])
+  @@map("form_sections")
+}
+
+// Satu tabel untuk pertanyaan DAN elemen konten (title/desc, image, video)
+// supaya urutannya satu daftar dan reorder cukup ubah orderNumber.
+// ID stabil (cuid) — jangan pernah di-recreate saat label diedit.
+// Hapus = soft delete (deletedAt) supaya response lama tetap valid.
+model FormItem {
+  id          String       @id @default(cuid())
+  formId      String       @map("form_id")      // redundan dgn section.formId, biar query "semua item form" cukup 1 query
+  sectionId   String       @map("section_id")
+  orderNumber Int          @map("order_number")
+  type        FormItemType
+
+  title       String?      @db.Text             // label pertanyaan / judul blok (null utk IMAGE/VIDEO)
+  description String?      @db.Text
+  isRequired     Boolean   @default(false) @map("is_required")
+  shuffleOptions Boolean   @default(false) @map("shuffle_options")
+
+  // Aturan validasi per tipe + custom error message, contoh:
+  //  {"kind":"number","op":"between","min":1,"max":10,"message":"..."}
+  //  {"kind":"length","op":"max","value":100,"message":"..."}
+  //  {"kind":"regex","value":"^[0-9]+$","message":"..."}
+  //  {"kind":"selectCount","op":"atLeast|atMost|exactly","value":2,"message":"..."}  // Checkboxes
+  validation  Json?        @db.JsonB
+
+  // Config khusus tipe, contoh:
+  //  LINEAR_SCALE  {"min":1,"max":5,"minLabel":"Buruk","maxLabel":"Bagus"}
+  //  RATING        {"max":5}
+  //  FILE_UPLOAD   {"maxFiles":1,"maxSizeMb":10,"allowedTypes":["pdf","image"]}
+  //  DATE          {"includeYear":true}
+  //  TIME_DURATION {"mode":"time"|"duration"}
+  //  GRID          {"requireEachRow":true,"oneResponsePerColumn":false}
+  //  IMAGE/VIDEO   {"url":"...","caption":"...","widthPercent":100}
+  config      Json?        @db.JsonB
+
+  deletedAt   DateTime?    @db.Timestamp(6) @map("deleted_at") // soft delete
+  createdAt   DateTime     @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt   DateTime     @updatedAt @db.Timestamp(6) @map("updated_at")
+
+  form    Form          @relation(fields: [formId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  section FormSection   @relation(fields: [sectionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  options FormOption[]
+  answers FormAnswer[]
+
+  @@index([formId])
+  @@index([sectionId, orderNumber])
+  @@map("form_items")
+}
+
+// Pilihan jawaban + baris/kolom grid (dibedakan lewat kind).
+// Branching hanya dipakai untuk MULTIPLE_CHOICE & DROPDOWN.
+model FormOption {
+  id          String         @id @default(cuid())
+  itemId      String         @map("item_id")
+  kind        FormOptionKind @default(CHOICE)
+  label       String         @db.VarChar
+  orderNumber Int            @map("order_number")
+
+  branchAction    FormNavigationAction @default(NEXT) @map("branch_action")
+  branchSectionId String?              @map("branch_section_id")
+
+  deletedAt   DateTime? @db.Timestamp(6) @map("deleted_at") // soft delete
+  createdAt   DateTime  @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt   DateTime  @updatedAt @db.Timestamp(6) @map("updated_at")
+
+  item          FormItem              @relation(fields: [itemId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  branchSection FormSection?          @relation("FormOptionBranch", fields: [branchSectionId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  selections    FormAnswerSelection[] @relation("SelectionOption")
+  rowSelections FormAnswerSelection[] @relation("SelectionRow")
+
+  @@index([itemId, orderNumber])
+  @@index([branchSectionId])
+  @@map("form_options")
+}
+
+// Satu baris = satu submission (atau draft autosave responder).
+// Preview TIDAK menyimpan apa pun ke tabel ini.
+model FormResponse {
+  id     String  @id @default(cuid())
+  formId String  @map("form_id")
+  userId String? @map("user_id") // null kalau responder anonim (access = ANYONE_WITH_LINK)
+
+  respondentEmail String?            @db.VarChar @map("respondent_email")
+  status          FormResponseStatus @default(DRAFT)
+  submittedAt     DateTime?          @db.Timestamp(6) @map("submitted_at")
+
+  // Akses edit response untuk responder anonim (dikirim lewat link/receipt)
+  editToken      String? @unique @db.VarChar @map("edit_token")
+  // Dikirim client per percobaan submit; retry dengan key sama tidak bikin duplikat
+  idempotencyKey String? @db.VarChar @map("idempotency_key")
+
+  createdAt DateTime @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt DateTime @updatedAt @db.Timestamp(6) @map("updated_at")
+
+  // Restrict: form yang sudah punya response tidak bisa dihapus permanen
+  form    Form         @relation(fields: [formId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  user    User?        @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  answers FormAnswer[]
+
+  @@unique([formId, idempotencyKey])
+  @@index([formId, status, submittedAt])
+  @@index([userId])
+  @@map("form_responses")
+}
+
+// Satu baris per (response, item). Snapshot judul & tipe disimpan supaya
+// response lama tetap terbaca persis seperti saat dikirim walau item diedit.
+model FormAnswer {
+  id         String @id @default(cuid())
+  responseId String @map("response_id")
+  itemId     String @map("item_id")
+
+  itemTypeSnapshot  FormItemType @map("item_type_snapshot")
+  itemTitleSnapshot String?      @db.Text @map("item_title_snapshot")
+
+  valueText   String?   @db.Text @map("value_text")   // short answer, paragraph, time/duration ("HH:mm:ss")
+  valueNumber Int?               @map("value_number") // linear scale, rating
+  valueDate   DateTime? @db.Date @map("value_date")   // date
+
+  response   FormResponse          @relation(fields: [responseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  item       FormItem              @relation(fields: [itemId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  selections FormAnswerSelection[]
+  files      FormAnswerFile[]
+
+  @@unique([responseId, itemId])
+  @@index([itemId])
+  @@map("form_answers")
+}
+
+// Jawaban bertipe pilihan (MC, Checkboxes, Dropdown, Grid).
+// Grid: optionId = kolom yang dipilih, rowOptionId = barisnya.
+model FormAnswerSelection {
+  id          String  @id @default(cuid())
+  answerId    String  @map("answer_id")
+  optionId    String  @map("option_id")
+  rowOptionId String? @map("row_option_id")
+
+  optionLabelSnapshot String  @db.VarChar @map("option_label_snapshot")
+  rowLabelSnapshot    String? @db.VarChar @map("row_label_snapshot")
+
+  answer    FormAnswer  @relation(fields: [answerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  option    FormOption  @relation("SelectionOption", fields: [optionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  rowOption FormOption? @relation("SelectionRow", fields: [rowOptionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([answerId])
+  @@index([optionId]) // buat Summary view (hitung per option)
+  @@map("form_answer_selections")
+}
+
+// File upload dari responder. Akses harus lewat endpoint ber-permission
+// (hanya yang berhak atas form/response), jangan diserve sebagai static public.
+model FormAnswerFile {
+  id           String   @id @default(cuid())
+  answerId     String   @map("answer_id")
+  originalName String   @db.VarChar @map("original_name")
+  storagePath  String   @db.VarChar @map("storage_path")
+  mimeType     String?  @db.VarChar @map("mime_type")
+  sizeBytes    Int      @map("size_bytes")
+  createdAt    DateTime @default(now()) @db.Timestamp(6) @map("created_at")
+
+  answer FormAnswer @relation(fields: [answerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([answerId])
+  @@map("form_answer_files")
+}
+
 model MentorProfile {
   id                   String                  @id @default(cuid())
   userId               String                  @unique @map("user_id")
@@ -2534,6 +2844,8 @@ model User {
   articleLikes        ArticleLike[]
   articleComments     ArticleComment[]
   articleCommentLikes ArticleCommentLike[]
+  forms               Form[]
+  formResponses       FormResponse[]
 
   @@map("users")
 }

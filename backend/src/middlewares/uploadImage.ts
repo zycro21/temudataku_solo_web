@@ -2,6 +2,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { Request } from "express";
+import crypto from "crypto";
 
 import { PrismaClient } from "@prisma/client";
 
@@ -1013,3 +1014,146 @@ export const handleArticleContentFilesUpload = multer({
 }).array("mediaFiles", 50);
 
 export { cleanArticleMediaPath as articleMediaPath };
+
+function ensureDir(dir: string) {
+  const clean = path.normalize(dir).replace(/^\\/, ""); // buang "\" di depan "D:\"
+  if (!fs.existsSync(clean)) fs.mkdirSync(clean, { recursive: true });
+  return clean;
+}
+
+function dateStamp() {
+  const now = new Date();
+  return `${now.getFullYear()}${(now.getMonth() + 1)
+    .toString()
+    .padStart(2, "0")}${now.getDate().toString().padStart(2, "0")}`;
+}
+
+function randomString(bytes = 6) {
+  return crypto.randomBytes(bytes).toString("hex");
+}
+
+// ─── Lokasi penyimpanan ─────────────────────────────────────────────────────
+// header image  -> images/formHeaders        (publik via /images)
+// media konten  -> uploads/formMediaContents (publik via /uploads)
+// file jawaban  -> private/formAnswerFiles   (PRIVATE, jangan di-serve static!
+//                  akses lewat endpoint ber-permission, lihat PRD FR-52)
+const formHeaderPath = ensureDir(
+  path.join(__dirname, "../../images/formHeaders"),
+);
+const formMediaPath = ensureDir(
+  path.join(__dirname, "../../uploads/formMediaContents"),
+);
+const formAnswerFilesPath = ensureDir(
+  path.join(__dirname, "../../private/formAnswerFiles"),
+);
+
+// ─── 1. Header image form (single file) ─────────────────────────────────────
+const headerImageExtensions = [".jpg", ".jpeg", ".png", ".webp"];
+
+export const handleFormHeaderImageUpload = (field: string = "headerImage") =>
+  multer({
+    storage: multer.diskStorage({
+      destination: (req, file, cb) => cb(null, formHeaderPath),
+      filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname).toLowerCase();
+        cb(null, `form-header-${dateStamp()}-${randomString()}${ext}`);
+      },
+    }),
+    limits: { files: 1, fileSize: 5 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase();
+      if (!headerImageExtensions.includes(ext)) {
+        return cb(
+          new Error("Format header image harus jpg, jpeg, png, atau webp"),
+        );
+      }
+      cb(null, true);
+    },
+  }).single(field);
+
+// ─── 2. Media konten form: elemen Image / Video (single file) ───────────────
+const formMediaExtensions = [
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".gif",
+  ".webp",
+  ".mp4",
+  ".mov",
+  ".avi",
+  ".mkv",
+  ".webm",
+];
+
+export const handleFormMediaUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, formMediaPath),
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase();
+      const safeName = path
+        .basename(file.originalname, ext)
+        .toLowerCase()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9-]/g, "")
+        .slice(0, 40);
+      cb(null, `form-media-${safeName}-${dateStamp()}-${randomString()}${ext}`);
+    },
+  }),
+  limits: { files: 1, fileSize: 100 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (!formMediaExtensions.includes(ext)) {
+      return cb(new Error("Format image/video tidak didukung"));
+    }
+    cb(null, true);
+  },
+}).single("mediaFile");
+
+// ─── 3. File jawaban responder (pertanyaan bertipe File Upload) ─────────────
+// Field name WAJIB "file:<itemId>" supaya service tahu file milik pertanyaan
+// mana. Contoh: formData.append(`file:${itemId}`, file)
+// Grup tipe di bawah dipakai juga oleh service buat cek config.allowedTypes
+// per pertanyaan; filter di sini cuma gerbang kasar (gabungan semua grup).
+export const formAnswerFileTypeGroups: Record<string, string[]> = {
+  image: [".jpg", ".jpeg", ".png", ".gif", ".webp"],
+  pdf: [".pdf"],
+  document: [".doc", ".docx", ".txt"],
+  spreadsheet: [".xls", ".xlsx", ".csv"],
+  presentation: [".ppt", ".pptx"],
+  video: [".mp4", ".mov", ".webm"],
+  audio: [".mp3", ".wav"],
+  archive: [".zip"],
+};
+
+const allAnswerExtensions = Object.values(formAnswerFileTypeGroups).flat();
+
+export const FORM_ANSWER_MAX_FILES_PER_REQUEST = 20;
+export const FORM_ANSWER_MAX_FILE_SIZE_MB = 50;
+
+export const handleFormAnswerFilesUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, formAnswerFilesPath),
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase();
+      // Nama asli TIDAK dipakai di disk (hindari karakter aneh / traversal).
+      // Nama asli disimpan di DB (form_answer_files.original_name).
+      cb(null, `ans-${dateStamp()}-${randomString(12)}${ext}`);
+    },
+  }),
+  limits: {
+    files: FORM_ANSWER_MAX_FILES_PER_REQUEST,
+    fileSize: FORM_ANSWER_MAX_FILE_SIZE_MB * 1024 * 1024,
+  },
+  fileFilter: (req, file, cb) => {
+    if (!file.fieldname.startsWith("file:")) {
+      return cb(new Error('Nama field file harus diawali "file:<itemId>"'));
+    }
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (!allAnswerExtensions.includes(ext)) {
+      return cb(new Error("Format file tidak didukung"));
+    }
+    cb(null, true);
+  },
+}).any();
+
+export { formHeaderPath, formMediaPath, formAnswerFilesPath };
