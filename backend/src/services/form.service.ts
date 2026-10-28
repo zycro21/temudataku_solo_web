@@ -2,6 +2,7 @@ import { PrismaClient, Prisma } from "@prisma/client";
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
+import { newFormId } from "./form_id.js";
 import { formHeaderPath } from "../middlewares/uploadImage.js";
 import type {
   CreateFormInput,
@@ -266,6 +267,7 @@ export async function createForm(actor: FormActor, input: CreateFormInput) {
     try {
       const created = await prisma.form.create({
         data: {
+          id: newFormId("form"),
           type: input.type,
           title: input.title,
           description: input.description ?? null,
@@ -275,7 +277,7 @@ export async function createForm(actor: FormActor, input: CreateFormInput) {
           showOnEventPage: input.type === "EVENT",
           createdById: actor.userId,
           // Setiap form selalu punya minimal 1 section
-          sections: { create: { orderNumber: 1 } },
+          sections: { create: { id: newFormId("section"), orderNumber: 1 } },
         },
         select: { id: true },
       });
@@ -643,7 +645,7 @@ export async function saveFormStructure(
           id = s.id;
         } else {
           const created = await t.formSection.create({
-            data: { ...data, formId },
+            data: { ...data, id: newFormId("section"), formId },
             select: { id: true },
           });
           id = created.id;
@@ -717,7 +719,7 @@ export async function saveFormStructure(
             itemId = it.id;
           } else {
             const created = await t.formItem.create({
-              data: { ...data, formId },
+              data: { ...data, id: newFormId("item"), formId },
               select: { id: true },
             });
             itemId = created.id;
@@ -749,7 +751,7 @@ export async function saveFormStructure(
               optionId = o.id;
             } else {
               const created = await t.formOption.create({
-                data: { ...optionData, itemId },
+                data: { ...optionData, id: newFormId("option"), itemId },
                 select: { id: true },
               });
               optionId = created.id;
@@ -902,12 +904,13 @@ export async function duplicateForm(
 
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const newFormId: string = await prisma.$transaction(
+      const duplicatedFormId: string = await prisma.$transaction(
         async (tx: Prisma.TransactionClient) => {
           const t = tx as any;
 
           const created = await t.form.create({
             data: {
+              id: newFormId("form"),
               type,
               status: "DRAFT",
               title,
@@ -946,6 +949,7 @@ export async function duplicateForm(
           for (const s of src.sections) {
             const ns = await t.formSection.create({
               data: {
+                id: newFormId("section"),
                 formId: created.id,
                 title: s.title,
                 description: s.description,
@@ -969,6 +973,7 @@ export async function duplicateForm(
             for (const it of s.items) {
               const ni = await t.formItem.create({
                 data: {
+                  id: newFormId("item"),
                   formId: created.id,
                   sectionId: sectionMap.get(s.id),
                   orderNumber: it.orderNumber,
@@ -985,6 +990,7 @@ export async function duplicateForm(
               for (const o of it.options) {
                 await t.formOption.create({
                   data: {
+                    id: newFormId("option"),
                     itemId: ni.id,
                     kind: o.kind,
                     label: o.label,
@@ -1004,7 +1010,7 @@ export async function duplicateForm(
         { maxWait: 10000, timeout: 60000 },
       );
 
-      return getFormDetail(actor, newFormId);
+      return getFormDetail(actor, duplicatedFormId);
     } catch (err: any) {
       if (err?.code === "P2002" && attempt < 2) continue; // slug bentrok
       throw err;

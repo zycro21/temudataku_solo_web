@@ -334,6 +334,12 @@ export default function AdminLayout({
     if (pathname.startsWith("/admin/elearning")) {
       setOpenDropdown("E-Learning");
     }
+    if (
+      pathname.startsWith("/admin/produk-event") ||
+      pathname.startsWith("/admin/form-builder")
+    ) {
+      setOpenDropdown("Produk & Event");
+    }
   }, [pathname]);
 
   useEffect(() => {
@@ -588,9 +594,23 @@ export default function AdminLayout({
     },
     {
       name: "Produk & Event",
-      href: "/admin/produk-event",
       icon: "/assets/admin/pro.svg",
       activeIcon: "/assets/admin/whitepro.svg",
+      hasSubmenu: true,
+      children: [
+        {
+          name: "Event",
+          href: "/admin/produk-event",
+          icon: "/assets/admin/pro.svg",
+          activeIcon: "/assets/admin/whitepro.svg",
+        },
+        {
+          name: "Form Builder",
+          href: "/admin/form-builder",
+          icon: "/assets/admin/tugas.svg",
+          activeIcon: "/assets/admin/whitetugas.svg",
+        },
+      ],
     },
     {
       name: "Transaksi",
@@ -687,7 +707,12 @@ export default function AdminLayout({
     // diakses — menang dibanding daftar allowedPaths restricted role lain.
     const allowedPaths = roles.includes("cw")
       ? ["/admin/artikel"]
-      : ["/admin/elearning", "/admin/artikel", "/admin/produk-event"];
+      : [
+          "/admin/elearning",
+          "/admin/artikel",
+          "/admin/produk-event",
+          "/admin/form-builder",
+        ];
     const isAllowed = allowedPaths.some((path) => pathname.startsWith(path));
     if (!isAllowed) {
       return null; // Akan redirect oleh useEffect di atas

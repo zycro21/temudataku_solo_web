@@ -1783,6 +1783,24 @@ enum FormResponseStatus {
   SUBMITTED
 }
 
+// Jenis form: pengelompokan form per tipe (mis. Pendaftaran, Presensi, Feedback)
+model FormCategory {
+  id          String   @id
+  type        FormType                       // EVENT atau NON_EVENT, tidak dicampur
+  name        String   @db.VarChar(80)
+  description String?  @db.Text
+  createdById String?  @map("created_by_id")
+  createdAt   DateTime @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt   DateTime @updatedAt @db.Timestamp(6) @map("updated_at")
+
+  createdBy User? @relation(fields: [createdById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  forms     Form[]
+
+  @@unique([type, name])
+  @@index([type])
+  @@map("form_categories")
+}
+
 model Form {
   id          String     @id @default(cuid())
   type        FormType                      // dikunci setelah dibuat (V1)
@@ -1791,6 +1809,8 @@ model Form {
   title       String     @db.VarChar
   description String?    @db.Text
 
+  categoryId String? @map("category_id")
+
   // Dipakai di URL responder (/form/{slug}). Random, BUKAN dari judul,
   // supaya link yang sudah dibagikan tidak rusak kalau judul diedit.
   slug        String     @unique @db.VarChar
@@ -1798,7 +1818,7 @@ model Form {
   // ---------- Relasi Event (khusus type = EVENT) ----------
   // TODO: setelah model Event ada, tambah relasi:
   //   event Event? @relation(fields: [eventId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-    eventId         String?  @map("event_id")
+  eventId         String?  @map("event_id")
   eventNameSnapshot String?  @db.VarChar @map("event_name_snapshot") // nama Event saat dikaitkan, buat info kalau Event dihapus
   showOnEventPage   Boolean  @default(true) @map("show_on_event_page") // pisah dari status Publish; hanya berlaku type EVENT
 
@@ -1838,11 +1858,13 @@ model Form {
 
   // Relations
   createdBy        User?             @relation(fields: [createdById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  category         FormCategory? @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   sections         FormSection[]
   items            FormItem[]
   responses        FormResponse[]
 
   @@index([type, status])
+  @@index([categoryId])
   @@index([eventId])
   @@index([createdById])
   @@map("forms")
@@ -2846,6 +2868,7 @@ model User {
   articleCommentLikes ArticleCommentLike[]
   forms               Form[]
   formResponses       FormResponse[]
+  formCategories FormCategory[]
 
   @@map("users")
 }

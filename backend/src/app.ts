@@ -20,7 +20,7 @@ import certificateRoute from "./routes/certificate.route.js";
 import practiceRoute from "./routes/practice.route.js";
 import behaviorRoute from "./routes/behavior.route.js";
 import referralRoute from "./routes/referral.route.js";
-import paymentRoute from "./routes/payment.route.js"; 
+import paymentRoute from "./routes/payment.route.js";
 import withdrawalRoute from "./routes/withdrawal.route.js";
 import mentorReportRoute from "./routes/mentor_report.route.js";
 import userActivityLog from "./routes/userActivityLog.route.js";
@@ -48,6 +48,9 @@ import voucherRoutes from "./routes/voucher.route.js";
 import articleRoutes from "./routes/articles.route.js";
 import articleContentRoutes from "./routes/article_content.route.js";
 import redeemCodeRoutes from "./routes/redeemCode.route.js";
+import formRoutes from "./routes/form.route.js";
+import formPublicRoutes from "./routes/form_public.route.js";
+import formResponseRoutes from "./routes/form_response.route.js";
 import { redirectShortCodeController } from "./controllers/short_link.controller.js";
 import "./schedulers/cron.js";
 import { fileURLToPath } from "url";
@@ -125,6 +128,9 @@ app.use("/api/voucher", voucherRoutes);
 app.use("/api/article", articleRoutes);
 app.use("/api/articlecontent", articleContentRoutes);
 app.use("/api/redeemCode", redeemCodeRoutes);
+app.use("/api/form", formRoutes);
+app.use("/api/formpublic", formPublicRoutes);
+app.use("/api/formresponse", formResponseRoutes);
 
 // Path Static untuk Images
 // Perbaikan di sini, mengganti __dirname dengan yang benar menggunakan import.meta.url
@@ -138,7 +144,7 @@ app.use(
     console.log("Looking for file:", filePath);
     next();
   },
-  express.static(imagesPath)
+  express.static(imagesPath),
 );
 
 const uploadsPath = path.join(__dirname, "../uploads");
@@ -151,7 +157,7 @@ app.use(
     console.log("Looking for file:", filePath);
     next();
   },
-  express.static(uploadsPath)
+  express.static(uploadsPath),
 );
 
 const certificatesPath = path.join(__dirname, "../uploads/certificate");
@@ -164,7 +170,7 @@ app.use(
     console.log("Looking for file:", filePath);
     next();
   },
-  express.static(certificatesPath)
+  express.static(certificatesPath),
 );
 
 const practiceFilesPath = path.join(__dirname, "../uploads/practiceFile");
@@ -182,12 +188,12 @@ app.use(
     console.log("Looking for file:", filePath);
     next();
   },
-  express.static(supportDocPath)
+  express.static(supportDocPath),
 );
 
 const practiceSubmissionsPath = path.join(
   __dirname,
-  "../uploads/practice/submissions"
+  "../uploads/practice/submissions",
 );
 console.log("Serving practice submissions from:", practiceSubmissionsPath);
 
@@ -199,13 +205,13 @@ app.use(
     console.log("Looking for file:", filePath);
     next();
   },
-  express.static(practiceSubmissionsPath)
+  express.static(practiceSubmissionsPath),
 );
 
 // === E-Learning Submissions ===
 const elearningSubmissionsPath = path.join(
   __dirname,
-  "../uploads/elearning/submissions"
+  "../uploads/elearning/submissions",
 );
 console.log("Serving e-learning submissions from:", elearningSubmissionsPath);
 
@@ -217,13 +223,13 @@ app.use(
     console.log("Looking for file:", filePath);
     next();
   },
-  express.static(elearningSubmissionsPath)
+  express.static(elearningSubmissionsPath),
 );
 
 // === E-Learning Certificates (PDF) ===
 const elearningCertificatesPath = path.join(
   __dirname,
-  "../uploads/elearning_certificate"
+  "../uploads/elearning_certificate",
 );
 
 console.log("Serving e-learning certificates from:", elearningCertificatesPath);
@@ -236,7 +242,7 @@ app.use(
     console.log("Looking for file:", filePath);
     next();
   },
-  express.static(elearningCertificatesPath)
+  express.static(elearningCertificatesPath),
 );
 
 // === E-Learning Videos (Static Access) ===
@@ -252,7 +258,7 @@ app.use(
     console.log("Looking for video file:", filePath);
     next();
   },
-  express.static(elearningVideosPath)
+  express.static(elearningVideosPath),
 );
 
 // Swagger Docs

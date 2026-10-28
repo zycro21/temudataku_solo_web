@@ -2,6 +2,7 @@ import { PrismaClient, Prisma } from "@prisma/client";
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
+import { newFormId } from "./form_id.js";
 import {
   formAnswerFilesPath,
   formAnswerFileTypeGroups,
@@ -868,6 +869,7 @@ async function replaceAnswers(
 
     await tx.formAnswer.create({
       data: {
+        id: newFormId("answer"),
         responseId,
         itemId: a.itemId,
         itemTypeSnapshot: a.item.type,
@@ -877,13 +879,14 @@ async function replaceAnswers(
         valueDate: a.valueDate,
         selections: {
           create: a.selections.map((s) => ({
+            id: newFormId("selection"),
             optionId: s.optionId,
             rowOptionId: s.rowOptionId,
             optionLabelSnapshot: s.optionLabel,
             rowLabelSnapshot: s.rowLabel,
           })),
         },
-        files: { create: files },
+        files: { create: files.map((f) => ({ id: newFormId("file"), ...f })) },
       },
     });
   }
@@ -1124,6 +1127,7 @@ export async function submitFormResponse(
           } else {
             const row = await t.formResponse.create({
               data: {
+                id: newFormId("response"),
                 formId: form.id,
                 userId: user?.userId ?? null,
                 respondentEmail: email,
@@ -1370,6 +1374,7 @@ export async function saveFormDraft(
         if (!draft) {
           draft = await t.formResponse.create({
             data: {
+              id: newFormId("response"),
               formId: form.id,
               userId: user!.userId,
               respondentEmail: input.email ?? user!.email ?? null,
