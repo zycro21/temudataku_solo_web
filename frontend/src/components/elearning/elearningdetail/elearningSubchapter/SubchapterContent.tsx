@@ -1395,8 +1395,12 @@ function AssignmentRenderer({
   }
 
   return (
-    <div className="w-full max-w-full h-auto lg:h-[calc(100vh-270px)] lg:overflow-hidden">
-      {/* 300px = navbar + hero + footer space (cuma relevan di layout 2 kolom lg:) */}
+    <div className="w-full max-w-full h-auto lg:h-[calc(100vh-199px)] lg:overflow-hidden">
+      {/* 204px (desktop, layout 2 kolom lg:) = hero ±88px + footer 48px
+          + padding atas-bawah <main> 64px (lg:py-8) + sedikit toleransi.
+          Navbar putih sudah tidak ada di desktop (profil pindah ke hero),
+          jadi tidak dihitung lagi. Kalau tinggi hero/footer/padding main
+          diubah lagi, sesuaikan angka ini. */}
 
       <div className="grid grid-cols-1 lg:grid-cols-[65%_35%] gap-6 lg:h-full px-4 sm:px-6 min-h-0">
         {/* ================= LEFT (65%) ================= */}

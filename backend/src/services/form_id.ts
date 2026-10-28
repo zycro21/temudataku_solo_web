@@ -10,6 +10,7 @@ const PREFIX = {
   answer: "fan",
   selection: "fas",
   file: "faf",
+  category: "fct",
 } as const;
 
 export type FormIdKind = keyof typeof PREFIX;

@@ -471,6 +471,7 @@ export const listFormsSchema = z.object({
     page: z.coerce.number().int().min(1).default(1),
     limit: z.coerce.number().int().min(1).max(100).default(10),
     type: z.enum(["EVENT", "NON_EVENT"]).optional(), // tab aktif
+    categoryId: idString.optional(), // filter per jenis form
     status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).optional(),
     search: z.string().trim().max(100).optional(),
     sortBy: z.enum(["createdAt", "updatedAt"]).default("updatedAt"),
@@ -486,6 +487,7 @@ export const createFormSchema = z.object({
       type: z.enum(["EVENT", "NON_EVENT"]),
       title: z.string().trim().min(1).max(200).default("Form Tanpa Judul"),
       description: z.string().trim().max(5000).nullable().optional(),
+      categoryId: idString.optional(), // jenis form (FormCategory)
       eventId: idString.optional(),
     })
     .superRefine((b, ctx) => {

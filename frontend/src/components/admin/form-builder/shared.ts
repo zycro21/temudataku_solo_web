@@ -20,8 +20,21 @@ export interface FormListItem {
   eventId: string | null;
   eventNameSnapshot: string | null;
   showOnEventPage: boolean;
+  categoryId?: string | null;
+  category?: { id: string; name: string } | null;
   responseCount: number;
   publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Jenis form, dari GET /api/form/categories
+export interface FormCategory {
+  id: string;
+  type: FormType;
+  name: string;
+  description: string | null;
+  formCount: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -64,6 +77,8 @@ export const STATUS_LABEL: Record<FormStatus, string> = {
 // ubah di dua fungsi ini.
 export const formCreateHref = "/admin/form-builder/create";
 export const formListHref = "/admin/form-builder";
+// Halaman "Buat Form" (setup form baru: event, judul, dst). Belum dibuat.
+export const formNewHref = "/admin/form-builder/new";
 export const formEditHref = (id: string) => `/admin/form-builder/${id}`;
 export const formResponsesHref = (id: string) =>
   `/admin/form-builder/${id}/responses`;

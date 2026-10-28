@@ -30,7 +30,7 @@ export default function SubchapterFooter({
   nextLocked = false,
 }: Props) {
   return (
-    <footer className="h-14 sm:h-16 shrink-0 bg-[#F8FAFC] border-t border-gray-200 z-50">
+    <footer className="h-14 sm:h-12 shrink-0 bg-[#F8FAFC] border-t border-gray-200 z-50">
       <div className="h-full flex items-center justify-between px-2 sm:px-6 gap-1 sm:gap-2">
         {/* PREV */}
         <Button
@@ -58,10 +58,10 @@ export default function SubchapterFooter({
 
           {/* TEXT */}
           <div className="leading-tight min-w-0">
-            <p className="hidden sm:block text-[11px] text-gray-500 truncate">
+            <p className="hidden sm:block text-[10px] text-gray-500 truncate">
               {prev?.moduleTitle}
             </p>
-            <p className="text-[10px] sm:text-xs font-semibold text-gray-800 truncate max-w-[70px] sm:max-w-[180px]">
+            <p className="text-[10px] sm:text-[11px] font-semibold text-gray-800 truncate max-w-[70px] sm:max-w-[260px] lg:max-w-[340px]">
               {prev?.title}
             </p>
           </div>
@@ -81,10 +81,10 @@ export default function SubchapterFooter({
         >
           {/* TEXT */}
           <div className="leading-tight min-w-0">
-            <p className="hidden sm:block text-[11px] text-gray-500 truncate">
+            <p className="hidden sm:block text-[10px] text-gray-500 truncate">
               {next?.moduleTitle}
             </p>
-            <p className="text-[10px] sm:text-xs font-semibold text-gray-800 truncate max-w-[70px] sm:max-w-[180px]">
+            <p className="text-[10px] sm:text-[11px] font-semibold text-gray-800 truncate max-w-[70px] sm:max-w-[260px] lg:max-w-[340px]">
               {next?.title}
             </p>
           </div>

@@ -1,64 +1,34 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { Menu, ChevronDown } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
-import { useAuth } from "@/context/AuthContext";
-import { useLogout } from "@/hooks/useLogout";
+import { Menu } from "lucide-react";
+import SubchapterProfileMenu from "./SubchapterProfileMenu";
 
 interface Props {
   practiceId: string;
-  // 🔥 BARU: dipanggil saat tombol hamburger di-klik — dipakai SubchapterDetail.tsx
-  // buat membuka drawer SubchapterSidebar di mobile/tablet. Kalau tidak
-  // dikirim (mis. dipakai di tempat lain nanti), tombolnya tetap tampil
-  // tapi tidak melakukan apa-apa saat diklik.
+  // Dipanggil saat tombol hamburger di-klik — dipakai SubchapterDetail.tsx
+  // buat membuka drawer SubchapterSidebar di mobile/tablet.
   onMenuClick?: () => void;
+  // true → navbar putih tetap tampil di desktop juga. Dipakai saat hero hijau
+  // tidak dirender (mis. mode sertifikat), supaya profil tetap bisa diakses.
+  showOnDesktop?: boolean;
 }
 
-export default function SubchapterNavbar({ practiceId, onMenuClick }: Props) {
-  const [open, setOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // 🔥 Sama seperti Navbar.tsx (menu utama) — pakai AuthContext & hook
-  // logout yang sama, supaya data user & perilaku "Keluar" konsisten di
-  // semua navbar, bukan data statis hardcode kayak sebelumnya.
-  const { currentUser } = useAuth();
-  const logout = useLogout();
-
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
-
-  // 🔥 Sama persis dengan resolveProfileImage di Navbar.tsx — foto profil
-  // bisa berupa URL absolute (Google/OAuth) atau nama file relatif yang
-  // di-serve dari backend.
-  const profileImage = (() => {
-    if (!currentUser?.profilePicture) {
-      return "/assets/dashboard/user/avatar.png";
-    }
-    if (currentUser.profilePicture.startsWith("http")) {
-      return currentUser.profilePicture;
-    }
-    return `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${currentUser.profilePicture}`;
-  })();
-
+export default function SubchapterNavbar({
+  practiceId,
+  onMenuClick,
+  showOnDesktop = false,
+}: Props) {
   return (
-    <header className="h-14 bg-white border-b flex items-center justify-between px-4">
+    // 🔥 Di desktop navbar putih ini dihilangkan (lg:hidden), profil pindah ke
+    // hero hijau (lihat SubchapterHeroNavigation.tsx) — kecuali showOnDesktop.
+    // Di mobile/tablet tampilan tetap seperti semula.
+    <header
+      className={`h-14 bg-white border-b flex items-center justify-between px-4 ${
+        showOnDesktop ? "" : "lg:hidden"
+      }`}
+    >
       {/* ========== LEFT ========== */}
       <div className="flex items-center gap-3">
-        {/* 🔥 BARU: cuma tampil di mobile/tablet (`lg:hidden`) — di
-            desktop sidebar materi selalu kelihatan statis di kiri, jadi
-            tombol buka-drawer ini tidak relevan di sana. */}
         <button
           onClick={onMenuClick}
           aria-label="Buka menu materi"
@@ -70,122 +40,7 @@ export default function SubchapterNavbar({ practiceId, onMenuClick }: Props) {
 
       {/* ========== RIGHT ========== */}
       <div className="flex items-center gap-4">
-        {/* Profile */}
-        <div className="relative" ref={dropdownRef}>
-          <button
-            onClick={() => setOpen(!open)}
-            className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-gray-100"
-          >
-            {/* Avatar (diperkecil) */}
-            <Image
-              src={profileImage}
-              alt="avatar"
-              width={26}
-              height={26}
-              unoptimized
-              className="rounded-full object-cover"
-            />
-
-            {/* Name & Role */}
-            <div className="hidden sm:flex flex-col text-left leading-tight">
-              <span className="text-xs font-semibold text-gray-800 max-w-[110px] truncate">
-                {currentUser?.fullName ?? "Pengguna"}
-              </span>
-              <span className="text-[11px] text-gray-500">Mentee</span>
-            </div>
-
-            <ChevronDown
-              size={12}
-              className={`text-gray-500 transition-transform ${
-                open ? "rotate-180" : ""
-              }`}
-            />
-          </button>
-
-          {/* 🔥 Dropdown — isinya disamakan dengan dropdown profil di
-              Navbar.tsx (menu utama/home): link & urutan menu sama persis,
-              cuma ukuran teks & ikon dikecilkan supaya proporsional dengan
-              navbar subchapter yang lebih ramping (h-14). */}
-          {open && (
-            <ul className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-md py-1.5 z-50 text-xs">
-              <li>
-                <Link
-                  href="/dashboard/user/"
-                  className="flex items-center gap-3 px-3 py-1.5 hover:bg-gray-100"
-                >
-                  <Image
-                    src="/assets/navbar/profile.svg"
-                    alt="Profil"
-                    width={10}
-                    height={10}
-                    className="relative top-[-0.5px]"
-                  />
-                  Profil Saya
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/dashboard/user/"
-                  className="flex items-center gap-3 px-3 py-1.5 hover:bg-gray-100"
-                >
-                  <Image
-                    src="/assets/navbar/dashboard.svg"
-                    alt="Dashboard"
-                    width={10}
-                    height={10}
-                    className="relative top-[-0.5px]"
-                  />
-                  Dashboard Saya
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/dashboard/user/jadwal"
-                  className="flex items-center gap-3 px-3 py-1.5 hover:bg-gray-100"
-                >
-                  <Image
-                    src="/assets/navbar/class.svg"
-                    alt="Kelas Saya"
-                    width={10}
-                    height={10}
-                    className="relative top-[-0.5px]"
-                  />
-                  Kelas Saya
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/dashboard/user/transaction"
-                  className="flex items-center gap-3 px-3 py-1.5 hover:bg-gray-100"
-                >
-                  <Image
-                    src="/assets/navbar/transaction.svg"
-                    alt="Transaksi Saya"
-                    width={10}
-                    height={10}
-                    className="relative top-[-0.5px]"
-                  />
-                  Transaksi Saya
-                </Link>
-              </li>
-              <li>
-                <button
-                  onClick={() => logout("/")}
-                  className="flex items-center gap-3 w-full text-left px-3 py-1.5 text-red-600 hover:bg-gray-100"
-                >
-                  <Image
-                    src="/assets/navbar/exit.svg"
-                    alt="Keluar"
-                    width={10}
-                    height={10}
-                    className="relative top-[-0.5px]"
-                  />
-                  Keluar
-                </button>
-              </li>
-            </ul>
-          )}
-        </div>
+        <SubchapterProfileMenu />
       </div>
     </header>
   );

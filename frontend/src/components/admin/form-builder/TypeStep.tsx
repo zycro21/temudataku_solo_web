@@ -32,7 +32,7 @@ const OPTIONS: {
   },
   {
     value: "NON_EVENT",
-    title: "Form Standalone",
+    title: "Form Non-Event",
     desc: "Form yang tidak terkait dengan event. Digunakan untuk presensi, survei, feedback internal, pendataan, dan lainnya.",
     features: [
       "Tidak terkait dengan event",

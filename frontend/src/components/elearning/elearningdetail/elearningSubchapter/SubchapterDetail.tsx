@@ -1389,6 +1389,7 @@ export default function SubChapterDetail({ practiceId, subChapterId }: Props) {
           <SubchapterNavbar
             practiceId={practiceId}
             onMenuClick={() => setIsMobileSidebarOpen(true)}
+            showOnDesktop={!heroMeta}
           />
 
           {heroMeta && (

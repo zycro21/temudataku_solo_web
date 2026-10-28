@@ -3,6 +3,7 @@ import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import { newFormId } from "./form_id.js";
+import { assertCategoryMatchesType } from "./form_category.service.js";
 import { formHeaderPath } from "../middlewares/uploadImage.js";
 import type {
   CreateFormInput,
@@ -202,6 +203,7 @@ export async function listForms(actor: FormActor, query: ListFormsQuery) {
   const where: any = {};
 
   if (query.type) where.type = query.type;
+  if (query.categoryId) where.categoryId = query.categoryId;
   // Form yang diarsipkan disembunyikan kecuali difilter eksplisit
   where.status = query.status ?? { not: "ARCHIVED" };
   if (!actor.roles.includes("admin")) where.createdById = actor.userId;
@@ -229,6 +231,8 @@ export async function listForms(actor: FormActor, query: ListFormsQuery) {
         eventId: true,
         eventNameSnapshot: true,
         showOnEventPage: true,
+        categoryId: true,
+        category: { select: { id: true, name: true } },
         submittedResponseCount: true,
         publishedAt: true,
         createdAt: true,
@@ -254,6 +258,11 @@ export async function listForms(actor: FormActor, query: ListFormsQuery) {
 // ─── Buat form ──────────────────────────────────────────────────────────────
 
 export async function createForm(actor: FormActor, input: CreateFormInput) {
+  // Jenis form (opsional): harus ada dan bertipe sama dengan form
+  const categoryId = await assertCategoryMatchesType(
+    input.categoryId,
+    input.type,
+  );
   let eventId: string | null = null;
   let eventNameSnapshot: string | null = null;
 
@@ -272,6 +281,7 @@ export async function createForm(actor: FormActor, input: CreateFormInput) {
           title: input.title,
           description: input.description ?? null,
           slug: generateSlug(),
+          categoryId,
           eventId,
           eventNameSnapshot,
           showOnEventPage: input.type === "EVENT",
@@ -916,6 +926,8 @@ export async function duplicateForm(
               title,
               description: src.description,
               slug: generateSlug(),
+              // Jenis hanya berlaku di tipe yang sama; ganti tipe = tanpa jenis
+              categoryId: type === src.type ? src.categoryId : null,
               eventId,
               eventNameSnapshot,
               showOnEventPage: type === "EVENT" ? src.showOnEventPage : false,

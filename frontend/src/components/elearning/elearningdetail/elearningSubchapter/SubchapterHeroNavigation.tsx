@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import SubchapterProfileMenu from "./SubchapterProfileMenu";
 
 interface Props {
   moduleNumber: number;
@@ -373,9 +374,11 @@ export default function SubchapterHeroNavigation({
   const DecorVariant = DECOR_VARIANTS[decorIndex];
 
   return (
-    <section className="relative overflow-hidden bg-[#0CAF6F] text-white">
+    <section className="relative z-20 bg-[#0CAF6F] text-white">
+      {/* z-20 + overflow-hidden dipindah ke layer dekor: dropdown profil
+          (desktop) harus bisa keluar dari batas hero & menimpa konten di bawah. */}
       {/* ================= DECORATIVE BACKGROUND ================= */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
         <AmbientGlow />
         <DecorVariant />
       </div>
@@ -397,7 +400,7 @@ export default function SubchapterHeroNavigation({
              baris baru) alih-alih maksa parent melebar horizontal.
           2) `shrink-0` di badge skor (kanan) → badge nggak ikut kepenyet
              kalau judul di kiri butuh ruang lebih banyak. */}
-      <div className="relative z-10 px-4 py-5 sm:px-6 sm:py-6 w-full flex items-center justify-between gap-4">
+      <div className="relative z-10 px-4 py-3 sm:px-6 sm:py-3.5 w-full flex items-center justify-between gap-4">
         <div className="min-w-0 flex-1">
           <p className="text-xs md:text-sm text-white/90 font-medium mb-1.5 tracking-wide">
             {overrideDescription ?? (
@@ -411,22 +414,31 @@ export default function SubchapterHeroNavigation({
             )}
           </p>
 
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold leading-tight break-words">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold leading-tight break-words">
             {overrideTitle ?? subModuleTitle}
           </h1>
         </div>
 
-        {/* SCORE BADGE */}
-        {quizScore !== null && (
-          <div className="ml-auto pr-2 text-right shrink-0">
-            <p className="text-xs sm:text-sm font-semibold text-white mb-0.5">
-              Skor Anda:
-            </p>
-            <p className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
-              {quizScore}/100
-            </p>
+        {/* KANAN: badge skor (kiri) + profil (khusus desktop, kanan).
+            Kolom ini shrink-0, jadi judul di kiri (flex-1 min-w-0) otomatis
+            menyempit & wrap supaya tidak menabrak skor maupun profil. */}
+        <div className="ml-auto flex shrink-0 items-center gap-4">
+          {/* SCORE BADGE */}
+          {quizScore !== null && (
+            <div className="text-right">
+              <p className="text-xs sm:text-sm font-semibold text-white mb-0.5">
+                Skor Anda:
+              </p>
+              <p className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
+                {quizScore}/100
+              </p>
+            </div>
+          )}
+
+          <div className="hidden lg:block">
+            <SubchapterProfileMenu variant="onGreen" />
           </div>
-        )}
+        </div>
       </div>
     </section>
   );
