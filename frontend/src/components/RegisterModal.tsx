@@ -31,6 +31,11 @@ export default function RegisterModal({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  // Di halaman form publik (/form/...) dan daftar event (/event) tetap di
+  // halaman yang sama setelah login
+  const isPublicFormPage =
+    pathname.startsWith("/form/") || pathname === "/event";
+
   const isElearningDetailPage = pathname.startsWith("/elearning/");
   const isElearningListPage =
     pathname === "/elearning" || pathname === "/elearningfull";
@@ -44,7 +49,8 @@ export default function RegisterModal({
           pathname === "/redeem" ||
           pathname.startsWith("/programs/") ||
           pathname === "/artikel" ||
-          pathname.startsWith("/artikel/")
+          pathname.startsWith("/artikel/") ||
+          isPublicFormPage
         ? `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`
         : null;
 
@@ -303,7 +309,10 @@ export default function RegisterModal({
                         const savedReturnUrl =
                           localStorage.getItem("returnUrl");
 
-                        if (isCwRole) {
+                        if (isPublicFormPage) {
+                          // Tetap di halaman form; returnUrl tidak dipakai
+                          localStorage.removeItem("returnUrl");
+                        } else if (isCwRole) {
                           router.push("/admin/artikel");
                         } else if (roles.some((r) => adminRoles.includes(r))) {
                           router.push("/admin");

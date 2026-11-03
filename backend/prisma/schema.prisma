@@ -1783,6 +1783,12 @@ enum FormResponseStatus {
   SUBMITTED
 }
 
+enum FormEventMode {
+  ONLINE
+  OFFLINE
+  HYBRID
+}
+
 // Jenis form: pengelompokan form per tipe (mis. Pendaftaran, Presensi, Feedback)
 model FormCategory {
   id          String   @id
@@ -1821,6 +1827,20 @@ model Form {
   eventId         String?  @map("event_id")
   eventNameSnapshot String?  @db.VarChar @map("event_name_snapshot") // nama Event saat dikaitkan, buat info kalau Event dihapus
   showOnEventPage   Boolean  @default(true) @map("show_on_event_page") // pisah dari status Publish; hanya berlaku type EVENT
+
+  // ---------- Info Event (khusus type = EVENT, tampil di halaman publik) ----------
+  eventTitle         String?        @db.VarChar(200) @map("event_title")           // judul besar di halaman publik (beda dari judul form)
+  eventDescription   String?        @db.Text @map("event_description")            // isi tab "Deskripsi"
+  eventStartAt       DateTime?      @db.Timestamp(6) @map("event_start_at")
+  eventEndAt         DateTime?      @db.Timestamp(6) @map("event_end_at")
+  eventMode          FormEventMode? @map("event_mode")
+  eventLocation      String?        @db.VarChar(255) @map("event_location")       // "Online" / nama tempat / link platform
+  eventOrganizer     String?        @db.VarChar(150) @map("event_organizer")      // Penyelenggara
+  eventCategoryLabel String?        @db.VarChar(80)  @map("event_category_label") // mis. "Hackathon" (BUKAN FormCategory)
+  // [{ id, title, description?, date? "YYYY-MM-DD", time? "09.00 - 12.00 WIB" }]  maks 30
+  eventTimeline      Json?          @db.JsonB @map("event_timeline")
+  // [{ id, question, answer }]  maks 30
+  eventFaqs          Json?          @db.JsonB @map("event_faqs")
 
   // ---------- Penerimaan response (BEDA dari status Publish) ----------
   acceptingResponses     Boolean   @default(true)  @map("accepting_responses") // switch manual

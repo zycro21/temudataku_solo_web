@@ -10,7 +10,9 @@ import type {
   ListFormsQuery,
   PrefillLinkInput,
   SaveFormStructureInput,
+  SlugAvailabilityQuery,
   UpdateFormInput,
+  UpdateFormSlugInput,
 } from "../validations/form.validation.js";
 
 // Class Manager + admin. Kepemilikan form (siapa boleh buka form siapa)
@@ -355,6 +357,41 @@ export default {
     }
   },
 
+  // DELETE /forms/:id — hapus permanen (hanya form tanpa response)
+  async deleteForm(
+    req: AuthenticatedRequestForm,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const actor = getManagerActor(req, res);
+      if (!actor) return;
+      if (!req.validatedParams?.id) {
+        res
+          .status(400)
+          .json({ success: false, message: "Data request tidak valid" });
+        return;
+      }
+
+      const data = await FormService.deleteForm(actor, req.validatedParams.id);
+
+      await logSafely(
+        req,
+        "DELETE_FORM",
+        "DELETE",
+        `Menghapus form ${req.validatedParams.id}.`,
+      );
+
+      res.status(200).json({
+        success: true,
+        message: "Form berhasil dihapus",
+        data,
+      });
+    } catch (err: any) {
+      handleFormError(err, res, next);
+    }
+  },
+
   // POST /forms/:id/duplicate
   async duplicateForm(
     req: AuthenticatedRequestForm,
@@ -387,6 +424,65 @@ export default {
       res.status(201).json({
         success: true,
         message: "Form berhasil diduplikasi",
+        data,
+      });
+    } catch (err: any) {
+      handleFormError(err, res, next);
+    }
+  },
+
+  // GET /slug-availability — cek link form (unik di form & short link)
+  async checkSlugAvailability(
+    req: AuthenticatedRequestForm,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const actor = getManagerActor(req, res);
+      if (!actor) return;
+
+      const data = await FormService.checkSlugAvailability(
+        actor,
+        req.validatedQuery as unknown as SlugAvailabilityQuery,
+      );
+      res.status(200).json({ success: true, data });
+    } catch (err: any) {
+      handleFormError(err, res, next);
+    }
+  },
+
+  // PATCH /forms/:id/slug — atur link form (manual atau acak)
+  async updateFormSlug(
+    req: AuthenticatedRequestForm,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const actor = getManagerActor(req, res);
+      if (!actor) return;
+      if (!req.validatedParams?.id || !req.validatedBody) {
+        res
+          .status(400)
+          .json({ success: false, message: "Data request tidak valid" });
+        return;
+      }
+
+      const data = await FormService.updateFormSlug(
+        actor,
+        req.validatedParams.id,
+        req.validatedBody as UpdateFormSlugInput,
+      );
+
+      await logSafely(
+        req,
+        "UPDATE_FORM_LINK",
+        "UPDATE",
+        `Mengubah link form ${req.validatedParams.id} menjadi /form/${data.slug}.`,
+      );
+
+      res.status(200).json({
+        success: true,
+        message: "Link form berhasil diperbarui",
         data,
       });
     } catch (err: any) {

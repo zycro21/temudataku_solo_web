@@ -491,13 +491,8 @@ export const createFormSchema = z.object({
       eventId: idString.optional(),
     })
     .superRefine((b, ctx) => {
-      if (b.type === "EVENT" && !b.eventId) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["eventId"],
-          message: "eventId wajib diisi untuk Form Event",
-        });
-      }
+      // eventId untuk Form Event diwajibkan/tidaknya diatur di service
+      // (REQUIRE_EVENT_FOR_EVENT_FORMS) sampai modul Event tersedia.
       if (b.type === "NON_EVENT" && b.eventId) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -519,6 +514,29 @@ export const formIdParamSchema = z.object({
 const hexColor = z
   .string()
   .regex(/^#[0-9a-fA-F]{6}$/, "Warna harus format hex, contoh #10B981");
+
+// Info khusus Form Event (tab "Info Event" di builder)
+const eventTimelineItem = z
+  .object({
+    id: z.string().trim().min(1).max(40),
+    title: z.string().trim().min(1).max(150),
+    description: z.string().trim().max(1000).nullable().optional(),
+    date: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal harus format YYYY-MM-DD")
+      .nullable()
+      .optional(),
+    time: z.string().trim().max(40).nullable().optional(),
+  })
+  .strict();
+
+const eventFaqItem = z
+  .object({
+    id: z.string().trim().min(1).max(40),
+    question: z.string().trim().min(1).max(300),
+    answer: z.string().trim().min(1).max(3000),
+  })
+  .strict();
 
 export const updateFormSchema = z.object({
   params: z.object({ id: idString }),
@@ -554,10 +572,29 @@ export const updateFormSchema = z.object({
       themeColor: hexColor.nullable().optional(),
       backgroundColor: hexColor.nullable().optional(),
       fontPreset: z.string().trim().min(1).max(50).nullable().optional(),
+
+      // info event (hanya Form Event, dicek di service)
+      eventTitle: z.string().trim().max(200).nullable().optional(),
+      eventDescription: z.string().trim().max(5000).nullable().optional(),
+      eventStartAt: z.coerce.date().nullable().optional(),
+      eventEndAt: z.coerce.date().nullable().optional(),
+      eventMode: z.enum(["ONLINE", "OFFLINE", "HYBRID"]).nullable().optional(),
+      eventLocation: z.string().trim().max(255).nullable().optional(),
+      eventOrganizer: z.string().trim().max(150).nullable().optional(),
+      eventCategoryLabel: z.string().trim().max(80).nullable().optional(),
+      eventTimeline: z.array(eventTimelineItem).max(30).nullable().optional(),
+      eventFaqs: z.array(eventFaqItem).max(30).nullable().optional(),
     })
     .refine((d) => Object.keys(d).length > 0, {
       message: "Minimal satu field harus diupdate",
-    }),
+    })
+    .refine(
+      (d) => !d.eventStartAt || !d.eventEndAt || d.eventEndAt >= d.eventStartAt,
+      {
+        path: ["eventEndAt"],
+        message: "Tanggal selesai event tidak boleh sebelum tanggal mulai",
+      },
+    ),
 });
 
 // ─── Endpoint: POST /forms/:id/duplicate ────────────────────────────────────
@@ -605,6 +642,42 @@ export const listEligibleEventsSchema = z.object({
   }),
 });
 
+// ─── Endpoint: PATCH /forms/:id/slug (link form manual / acak) ──────────────
+// Kirim salah satu: slug (manual) ATAU random: true.
+
+export const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+export const updateFormSlugSchema = z.object({
+  params: z.object({ id: idString }),
+  body: z
+    .object({
+      slug: z
+        .string()
+        .trim()
+        .toLowerCase()
+        .min(3, "Link minimal 3 karakter")
+        .max(60, "Link maksimal 60 karakter")
+        .regex(
+          SLUG_PATTERN,
+          "Link hanya boleh huruf kecil, angka, dan tanda hubung (tidak di awal/akhir)",
+        )
+        .optional(),
+      random: z.boolean().optional(),
+    })
+    .refine((b) => (b.slug !== undefined) !== (b.random === true), {
+      message: "Kirim slug (manual) ATAU random: true, pilih salah satu",
+    }),
+});
+
+// ─── Endpoint: GET /slug-availability (cek link sebelum disimpan) ───────────
+
+export const slugAvailabilitySchema = z.object({
+  query: z.object({
+    slug: z.string().trim().toLowerCase().max(100),
+    formId: idString.optional(), // form yang sedang diedit (dikecualikan dari cek)
+  }),
+});
+
 // ─── Tipe input (dipakai service) ───────────────────────────────────────────
 
 export type ListFormsQuery = z.infer<typeof listFormsSchema>["query"];
@@ -614,6 +687,10 @@ export type SaveFormStructureInput = z.infer<
   typeof saveFormStructureSchema
 >["body"];
 export type DuplicateFormInput = z.infer<typeof duplicateFormSchema>["body"];
+export type UpdateFormSlugInput = z.infer<typeof updateFormSlugSchema>["body"];
+export type SlugAvailabilityQuery = z.infer<
+  typeof slugAvailabilitySchema
+>["query"];
 export type PrefillLinkInput = z.infer<typeof prefillLinkSchema>["body"];
 export type ListEligibleEventsQuery = z.infer<
   typeof listEligibleEventsSchema

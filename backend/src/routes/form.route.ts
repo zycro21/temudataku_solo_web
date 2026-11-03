@@ -17,6 +17,8 @@ import {
   duplicateFormSchema,
   prefillLinkSchema,
   listEligibleEventsSchema,
+  updateFormSlugSchema,
+  slugAvailabilitySchema,
 } from "../validations/form.validation.js";
 
 // Dipasang di app dengan: app.use("/api/form", formRoutes)
@@ -80,7 +82,8 @@ router.get(
  *   get:
  *     summary: Pilih Event Non-Kelas — daftar Event yang eligible dan boleh dikelola
  *     description:
- *       - BELUM AKTIF sampai modul Event ada: sementara membalas 501 (EVENT_MODULE_NOT_READY).
+ *       - Sampai modul Event ada, daftar selalu kosong (items: []), bukan error.
+ *       - Satu Event boleh punya lebih dari satu form, jadi Event yang sudah punya form tetap ditampilkan.
  *       - Filtering Event eligible dilakukan di backend (bukan cuma disembunyikan di frontend).
  *     tags: [Forms]
  *     security:
@@ -115,7 +118,8 @@ router.get(
  *   post:
  *     summary: Buat form baru (setelah memilih tipe)
  *     description:
- *       - type = EVENT wajib mengirim eventId (divalidasi backend; sementara 501 sampai modul Event ada).
+ *       - type = EVENT: eventId opsional selama modul Event belum ada (flag REQUIRE_EVENT_FOR_EVENT_FORMS di service). Kalau dikirim, divalidasi backend (sementara 501).
+ *       - Satu Event boleh punya lebih dari satu form (FR-12).
  *       - type = NON_EVENT tidak boleh mengirim eventId.
  *       - Form baru berstatus DRAFT dan otomatis punya 1 section kosong.
  *       - Tipe form TIDAK bisa diubah setelah dibuat — pakai endpoint duplicate buat ganti tipe.
@@ -397,6 +401,41 @@ router.post(
 
 /**
  * @swagger
+ * /api/form/forms/{id}:
+ *   delete:
+ *     summary: Hapus permanen form (hanya yang belum punya response)
+ *     description:
+ *       - Hanya untuk form DRAFT atau ARCHIVED. Form PUBLISHED harus dibatalkan publikasinya atau diarsipkan dulu (409 FORM_PUBLISHED).
+ *       - Form yang sudah punya response (termasuk draft autosave responder) tidak bisa dihapus permanen (409 FORM_HAS_RESPONSES); arsipkan saja.
+ *       - Section, pertanyaan, dan pilihan ikut terhapus. Link (slug) form bisa dipakai lagi setelahnya.
+ *     tags: [Forms]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Form dihapus
+ *       403:
+ *         description: Bukan form milik kamu
+ *       404:
+ *         description: Form tidak ditemukan
+ *       409:
+ *         description: Form masih dipublikasikan atau sudah punya response
+ */
+router.delete(
+  "/forms/:id",
+  authenticate,
+  managers,
+  validate(formIdParamSchema),
+  FormController.deleteForm,
+);
+
+/**
+ * @swagger
  * /api/form/forms/{id}/duplicate:
  *   post:
  *     summary: Duplicate form (juga dipakai untuk "mengganti tipe" form)
@@ -438,7 +477,7 @@ router.post(
  * /api/form/forms/{id}/share:
  *   get:
  *     summary: Info panel Bagikan Link Form (URL; QR Code dibuat di frontend)
- *     description: Hanya tersedia setelah form Published (409 FORM_NOT_PUBLISHED untuk Draft).
+ *     description: Tersedia untuk Draft maupun Published. isPublished = false berarti link belum bisa dibuka responder.
  *     tags: [Forms]
  *     security:
  *       - bearerAuth: []
@@ -449,9 +488,7 @@ router.post(
  *         schema: { type: string }
  *     responses:
  *       200:
- *         description: "{ url, slug, isShownOnEventPage }"
- *       409:
- *         description: Form belum dipublikasikan
+ *         description: "{ url, slug, isPublished, isShownOnEventPage }"
  */
 router.get(
   "/forms/:id/share",
@@ -459,6 +496,80 @@ router.get(
   managers,
   validate(formIdParamSchema),
   FormController.getShareInfo,
+);
+
+/**
+ * @swagger
+ * /api/form/slug-availability:
+ *   get:
+ *     summary: Cek ketersediaan link form (slug)
+ *     description:
+ *       - Link harus unik di semua form DAN semua short link (tanpa membedakan huruf besar/kecil).
+ *       - Format: 3-60 karakter, huruf kecil/angka/tanda hubung, tidak diawali atau diakhiri tanda hubung. Beberapa kata dicadangkan sistem.
+ *       - formId = form yang sedang diedit, dikecualikan dari pengecekan.
+ *     tags: [Forms]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: slug
+ *         required: true
+ *         schema: { type: string }
+ *       - in: query
+ *         name: formId
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: "{ slug, available, reason?: INVALID_FORMAT | RESERVED | TAKEN_BY_FORM | TAKEN_BY_SHORTLINK, message? }"
+ */
+router.get(
+  "/slug-availability",
+  authenticate,
+  managers,
+  validate(slugAvailabilitySchema),
+  FormController.checkSlugAvailability,
+);
+
+/**
+ * @swagger
+ * /api/form/forms/{id}/slug:
+ *   patch:
+ *     summary: Atur link form (manual atau acak)
+ *     description:
+ *       - Berlaku untuk Form Event maupun Form Non Event.
+ *       - Kirim slug (manual) ATAU random true. Link lama tidak berlaku lagi setelah diganti.
+ *       - Ditolak 409 SLUG_TAKEN kalau sudah dipakai form atau short link lain, 400 SLUG_INVALID kalau formatnya salah.
+ *     tags: [Forms]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               slug: { type: string, example: "hackathon-2027" }
+ *               random: { type: boolean }
+ *     responses:
+ *       200:
+ *         description: "{ url, slug, isPublished, isShownOnEventPage }"
+ *       400:
+ *         description: Format link tidak valid
+ *       409:
+ *         description: Link sudah dipakai / form diarsipkan
+ */
+router.patch(
+  "/forms/:id/slug",
+  authenticate,
+  managers,
+  validate(updateFormSlugSchema),
+  FormController.updateFormSlug,
 );
 
 /**

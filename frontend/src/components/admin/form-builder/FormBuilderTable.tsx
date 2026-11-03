@@ -21,6 +21,8 @@ import {
 
 interface Props {
   type: FormType;
+  /** Opsional: tampilkan hanya form milik satu jenis */
+  categoryId?: string;
   search: string;
   statusFilter: StatusFilter;
   sortOrder: SortOrder;
@@ -60,6 +62,7 @@ function pageNumbers(current: number, total: number): (number | "…")[] {
 
 export default function FormBuilderTable({
   type,
+  categoryId,
   search,
   statusFilter,
   sortOrder,
@@ -85,6 +88,7 @@ export default function FormBuilderTable({
       .get(`${FORM_API}/forms`, {
         params: {
           type,
+          categoryId: categoryId || undefined,
           status: statusFilter || undefined,
           search: debouncedSearch || undefined,
           sortBy: "updatedAt",
@@ -113,6 +117,7 @@ export default function FormBuilderTable({
     return () => controller.abort();
   }, [
     type,
+    categoryId,
     statusFilter,
     debouncedSearch,
     sortOrder,
@@ -138,7 +143,7 @@ export default function FormBuilderTable({
             <tr className="bg-gray-50 text-xs font-semibold text-gray-500">
               <th className="px-4 py-3">Judul Form</th>
               <th className="px-4 py-3">Tipe</th>
-              <th className="px-4 py-3">Event Terkait</th>
+              <th className="px-4 py-3">Jenis</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Responden</th>
               <th className="px-4 py-3">Terakhir Diperbarui</th>
@@ -203,7 +208,7 @@ export default function FormBuilderTable({
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500">
                     <span className="line-clamp-2 max-w-[11rem]">
-                      {f.eventNameSnapshot || "-"}
+                      {f.category?.name || "-"}
                     </span>
                   </td>
                   <td className="px-4 py-3">

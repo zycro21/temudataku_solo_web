@@ -80,8 +80,13 @@ export const formListHref = "/admin/form-builder";
 // Halaman "Buat Form" (setup form baru: event, judul, dst). Belum dibuat.
 export const formNewHref = "/admin/form-builder/new";
 export const formEditHref = (id: string) => `/admin/form-builder/${id}`;
-export const formResponsesHref = (id: string) =>
-  `/admin/form-builder/${id}/responses`;
+// Menu sidebar "Respon" punya section sendiri (terpisah dari Form Builder):
+// hub = pilih form, lalu daftar respons dan detail respons per form.
+export const formResponseHubHref = "/admin/form-respon";
+export const formResponsesHref = (id: string) => `/admin/form-respon/${id}`;
+// Halaman daftar form milik satu jenis (dibuka dari kartu jenis). Belum dibuat.
+export const formCategoryHref = (id: string) =>
+  `/admin/form-builder/categories/${id}`;
 
 // ─── Format tanggal (WIB) ────────────────────────────────────────────────────
 export function formatDate(iso: string): string {

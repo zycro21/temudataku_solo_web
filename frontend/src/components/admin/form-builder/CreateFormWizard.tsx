@@ -8,7 +8,13 @@ import { Button } from "@/components/ui/button";
 import CategoryStep from "./CategoryStep";
 import CreateCategoryModal from "./CreateCategoryModal";
 import TypeStep from "./TypeStep";
-import { FormCategory, FormType, formListHref, formNewHref } from "./shared";
+import {
+  FormCategory,
+  FormType,
+  formCreateHref,
+  formListHref,
+  formNewHref,
+} from "./shared";
 
 type Step = "type" | "category";
 
@@ -25,7 +31,11 @@ export default function CreateFormWizard() {
   const initialType: FormType =
     searchParams.get("type") === "NON_EVENT" ? "NON_EVENT" : "EVENT";
 
-  const [step, setStep] = useState<Step>("type");
+  // Langkah aktif disimpan di URL (?step=category), bukan di state, supaya
+  // refresh / tombol back browser tetap di langkah yang sama.
+  const step: Step =
+    searchParams.get("step") === "category" ? "category" : "type";
+
   const [type, setType] = useState<FormType>(initialType);
   const [category, setCategory] = useState<FormCategory | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -36,15 +46,25 @@ export default function CreateFormWizard() {
     setCategory(null); // jenis milik satu tipe saja
   };
 
+  // Pindah langkah = ganti URL; tipe ikut dibawa supaya tetap benar setelah refresh
+  const goToStep = (s: Step) => {
+    router.push(
+      s === "category"
+        ? `${formCreateHref}?type=${type}&step=category`
+        : `${formCreateHref}?type=${type}`,
+    );
+  };
+
   const handleBack = () => {
-    if (step === "category") setStep("type");
+    if (step === "category") goToStep("type");
     else router.push(formListHref);
   };
 
-  // Halaman setup form (event, judul, dst) dikerjakan terpisah; bawa tipe + jenis.
+  // Lanjut ke halaman Pilih Event. Jenis form opsional: kalau baru saja dibuat
+  // lewat "Buat Jenis" ia ikut dibawa, kalau tidak bisa dipilih di halaman berikutnya.
   const handleCreateForm = () => {
-    if (!category) return;
-    router.push(`${formNewHref}?type=${type}&categoryId=${category.id}`);
+    const base = `${formNewHref}?type=${type}`;
+    router.push(category ? `${base}&categoryId=${category.id}` : base);
   };
 
   const crumbs = step === "type" ? ["Buat Form"] : ["Buat Form", "Pilih Jenis"];
@@ -93,9 +113,7 @@ export default function CreateFormWizard() {
             </Button>
             <Button
               onClick={handleCreateForm}
-              disabled={!category}
-              title={category ? undefined : "Pilih jenis form dulu"}
-              className="bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50"
+              className="bg-emerald-500 text-white hover:bg-emerald-600"
             >
               <Plus className="mr-1 h-4 w-4" />
               Buat Form
@@ -107,12 +125,7 @@ export default function CreateFormWizard() {
       {step === "type" ? (
         <TypeStep value={type} onChange={changeType} />
       ) : (
-        <CategoryStep
-          type={type}
-          selectedId={category?.id ?? ""}
-          onSelect={setCategory}
-          refreshKey={refreshKey}
-        />
+        <CategoryStep type={type} refreshKey={refreshKey} />
       )}
 
       {/* Navigasi */}
@@ -123,7 +136,7 @@ export default function CreateFormWizard() {
         </Button>
         {step === "type" && (
           <Button
-            onClick={() => setStep("category")}
+            onClick={() => goToStep("category")}
             className="bg-emerald-500 text-white hover:bg-emerald-600"
           >
             Lanjutkan

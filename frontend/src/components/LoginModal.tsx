@@ -30,6 +30,11 @@ export default function LoginModal({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  // Di halaman form publik (/form/...) dan daftar event (/event) tetap di
+  // halaman yang sama setelah login, apa pun rolenya.
+  const isPublicFormPage =
+    pathname.startsWith("/form/") || pathname === "/event";
+
   const isElearningDetailPage = pathname.startsWith("/elearning/");
   const isElearningListPage =
     pathname === "/elearning" || pathname === "/elearningfull";
@@ -106,7 +111,10 @@ export default function LoginModal({
         // 🔥 TAMBAHAN: role CW → langsung ke /admin/artikel. Dicek PALING
         // AWAL supaya kalaupun user kebetulan juga punya role restricted
         // lain (guest/curdev/cm), CW tetap menang.
-        if (isCwRole) {
+        if (isPublicFormPage) {
+          // Tetap di halaman form; halaman form memuat ulang dirinya sendiri
+          // begitu user login (lewat AuthContext).
+        } else if (isCwRole) {
           router.push("/admin/artikel");
         } else if (hasRestrictedRole) {
           // 🔥 GUEST, CURDEV, CM: redirect ke /admin/elearning
@@ -297,7 +305,9 @@ export default function LoginModal({
 
                         // 🔥 TAMBAHAN: role CW → /admin/artikel, dicek
                         // paling awal (menang dibanding restrictedRoles lain).
-                        if (isCwRole) {
+                        if (isPublicFormPage) {
+                          // Tetap di halaman form (lihat catatan di login manual)
+                        } else if (isCwRole) {
                           router.push("/admin/artikel");
                         } else if (hasRestrictedRole) {
                           router.push("/admin/elearning");

@@ -64,6 +64,20 @@ export default {
     }
   },
 
+  // GET /events — daftar semua Form Event yang tampil di halaman Event (publik)
+  async listEvents(
+    _req: AuthenticatedRequestForm,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const data = await FormPublicService.listPublicEventForms();
+      res.status(200).json({ success: true, data });
+    } catch (err: any) {
+      handleFormError(err, res, next);
+    }
+  },
+
   // GET /events/:eventId/forms — daftar form Published di halaman Event
   async listEventForms(
     req: AuthenticatedRequestForm,

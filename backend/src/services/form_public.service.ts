@@ -4,6 +4,10 @@ import fs from "fs";
 import path from "path";
 import { newFormId } from "./form_id.js";
 import {
+  sendFormNewResponseNotificationEmail,
+  sendFormResponseReceiptEmail,
+} from "../utils/formEmail.js";
+import {
   formAnswerFilesPath,
   formAnswerFileTypeGroups,
 } from "../middlewares/uploadImage.js";
@@ -168,6 +172,21 @@ function serializeForRenderer(form: any) {
       form.type === "EVENT" && form.eventId
         ? { id: form.eventId, name: form.eventNameSnapshot }
         : null,
+    eventInfo:
+      form.type === "EVENT"
+        ? {
+            title: form.eventTitle,
+            description: form.eventDescription,
+            startAt: form.eventStartAt,
+            endAt: form.eventEndAt,
+            mode: form.eventMode,
+            location: form.eventLocation,
+            organizer: form.eventOrganizer,
+            categoryLabel: form.eventCategoryLabel,
+            timeline: form.eventTimeline ?? [],
+            faqs: form.eventFaqs ?? [],
+          }
+        : null,
     theme: {
       headerImage: form.headerImage,
       themeColor: form.themeColor,
@@ -314,6 +333,99 @@ export async function listEventForms(eventId: string) {
     requiresLogin: f.responderAccess === "LOGIN_REQUIRED",
     availability: computeAvailability(f, now),
   }));
+}
+
+// Potong teks panjang di batas kata supaya kartu daftar tidak membawa 5000 karakter
+function truncateText(text: string | null | undefined, max: number) {
+  const t = (text ?? "").replace(/\s+/g, " ").trim();
+  if (t.length <= max) return t || null;
+  const cut = t.slice(0, max);
+  const lastSpace = cut.lastIndexOf(" ");
+  return `${(lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`;
+}
+
+// Daftar SEMUA Form Event yang tampil di halaman Event (menu "Event" di navbar).
+// Hanya type EVENT dan PUBLISHED. Switch "Tampilkan di halaman Event" dihormati
+// kalau form terkait sebuah Event; form tanpa Event tidak punya switch itu di
+// admin (showOnEventPage-nya selalu false sejak dibuat), jadi tetap ditampilkan.
+// Urutan: yang belum selesai & masih dibuka dulu, lalu yang belum selesai tapi
+// tutup, terakhir yang acaranya sudah lewat.
+export async function listPublicEventForms() {
+  const forms = await prisma.form.findMany({
+    where: {
+      type: "EVENT",
+      status: "PUBLISHED",
+      OR: [{ showOnEventPage: true }, { eventId: null }],
+    },
+    orderBy: { publishedAt: "desc" },
+    take: 200,
+    select: {
+      slug: true,
+      title: true,
+      description: true,
+      headerImage: true,
+      themeColor: true,
+      responderAccess: true,
+      acceptingResponses: true,
+      responseLimitEnabled: true,
+      responseLimit: true,
+      periodEnabled: true,
+      openAt: true,
+      closeAt: true,
+      submittedResponseCount: true,
+      closedMessage: true,
+      eventTitle: true,
+      eventDescription: true,
+      eventStartAt: true,
+      eventEndAt: true,
+      eventMode: true,
+      eventLocation: true,
+      eventOrganizer: true,
+      eventCategoryLabel: true,
+    },
+  });
+
+  const now = new Date();
+  const DAY = 24 * 60 * 60 * 1000;
+
+  const items = forms.map((f: any) => {
+    // Tanpa tanggal selesai, event dianggap berlangsung sampai 1 hari setelah mulai
+    const endsAt: Date | null =
+      f.eventEndAt ??
+      (f.eventStartAt ? new Date(f.eventStartAt.getTime() + DAY) : null);
+    const hasEnded = endsAt ? endsAt < now : false;
+    const availability = computeAvailability(f, now);
+
+    return {
+      slug: f.slug,
+      title: f.eventTitle?.trim() || f.title,
+      formTitle: f.title,
+      summary: truncateText(f.eventDescription || f.description, 180),
+      headerImage: f.headerImage,
+      themeColor: f.themeColor,
+      categoryLabel: f.eventCategoryLabel,
+      mode: f.eventMode,
+      location: f.eventLocation,
+      organizer: f.eventOrganizer,
+      startAt: f.eventStartAt,
+      endAt: f.eventEndAt,
+      hasEnded,
+      requiresLogin: f.responderAccess === "LOGIN_REQUIRED",
+      availability,
+      _group: hasEnded ? 2 : availability.isOpen ? 0 : 1,
+    };
+  });
+
+  const time = (d: Date | null) => (d ? d.getTime() : Number.POSITIVE_INFINITY);
+  items.sort((a, b) => {
+    if (a._group !== b._group) return a._group - b._group;
+    // event yang sudah lewat: terbaru dulu; sisanya: yang paling dekat dulu
+    return a._group === 2
+      ? time(b.startAt) - time(a.startAt)
+      : time(a.startAt) - time(b.startAt);
+  });
+
+  return items.map(({ _group, ...rest }) => rest);
 }
 
 // ─── Validasi aturan jawaban (FormItem.validation) ──────────────────────────
@@ -975,20 +1087,121 @@ function resolveEmail(
   return email;
 }
 
+// Inbox tim yang ikut menerima notifikasi respons baru, selain pembuat form
+const FORM_NOTIFY_TEAM_EMAIL = "temudataku@gmail.com";
+
+function frontendBaseUrl() {
+  return (
+    process.env.FRONTEND_URL ||
+    process.env.APP_URL ||
+    "http://localhost:3000"
+  ).replace(/\/+$/, "");
+}
+
 // Hook setelah submit berhasil (receipt ke responder, notifikasi ke pembuat
 // form). Dipanggil best-effort: kegagalan di sini TIDAK boleh menggagalkan
-// submit yang sudah tersimpan.
-async function afterResponseSubmitted(_ctx: {
+// submit yang sudah tersimpan. Email dikirim di belakang layar (tidak di-await)
+// supaya responder tidak menunggu SMTP.
+async function afterResponseSubmitted(ctx: {
   form: any;
   responseId: string;
   email: string | null;
   editToken: string | null;
+  user: PublicUser;
+  submittedAt: Date;
 }) {
-  // TODO: sambungkan ke mailer yang sudah ada.
-  //  - form.sendResponseReceipt && email   -> kirim receipt (sertakan link edit
-  //    bila form.allowEditResponse; untuk anonim pakai editToken)
-  //  - form.notifyOnNewResponse            -> kirim email ke pembuat form
-  //    (form.createdById) — penerima belum ditentukan di PRD
+  const { form, responseId, email, editToken, user, submittedAt } = ctx;
+  const jobs: Promise<void>[] = [];
+
+  // Tanda terima ke responder (butuh email: dari akun login atau kolom email)
+  if (form.sendResponseReceipt && email) {
+    let editUrl: string | null = null;
+    if (form.allowEditResponse) {
+      const params = new URLSearchParams({ responseId });
+      if (editToken) params.set("editToken", editToken); // anonim
+      editUrl = `${frontendBaseUrl()}/form/${form.slug}?${params.toString()}`;
+    }
+    jobs.push(
+      sendFormResponseReceiptEmail({
+        email,
+        respondentName: user?.fullName ?? null,
+        formTitle: form.title,
+        responseId,
+        submittedAt,
+        confirmationMessage: form.confirmationMessage,
+        editUrl,
+      }),
+    );
+  }
+
+  // Notifikasi respons baru: ke pembuat form + inbox tim TemuDataku
+  if (form.notifyOnNewResponse) {
+    jobs.push(
+      (async () => {
+        const owner = form.createdById
+          ? await prisma.user.findUnique({
+              where: { id: form.createdById },
+              select: { email: true, fullName: true },
+            })
+          : null;
+
+        // Alamat kembar dibuang (mis. pembuat form memakai email tim)
+        const recipients: { email: string; name: string | null }[] = [];
+        if (owner?.email) {
+          recipients.push({ email: owner.email, name: owner.fullName });
+        }
+        if (
+          !recipients.some(
+            (r) => r.email.toLowerCase() === FORM_NOTIFY_TEAM_EMAIL,
+          )
+        ) {
+          recipients.push({
+            email: FORM_NOTIFY_TEAM_EMAIL,
+            name: "Tim TemuDataku",
+          });
+        }
+
+        const totalResponses = await prisma.formResponse.count({
+          where: { formId: form.id, status: "SUBMITTED" },
+        });
+        const base = frontendBaseUrl();
+
+        // Satu email per penerima; gagal ke satu alamat tidak menggagalkan yang lain
+        const results = await Promise.allSettled(
+          recipients.map((r) =>
+            sendFormNewResponseNotificationEmail({
+              email: r.email,
+              ownerName: r.name,
+              formTitle: form.title,
+              respondentName: user?.fullName ?? null,
+              respondentEmail: email,
+              responseId,
+              submittedAt,
+              totalResponses,
+              detailUrl: `${base}/admin/form-respon/${form.id}/${responseId}`,
+              responsesUrl: `${base}/admin/form-respon/${form.id}`,
+            }),
+          ),
+        );
+        results.forEach((r, idx) => {
+          if (r.status === "rejected") {
+            console.error(
+              `[form] gagal kirim notifikasi ke ${recipients[idx].email}:`,
+              r.reason,
+            );
+          }
+        });
+      })(),
+    );
+  }
+
+  void Promise.allSettled(jobs).then((results) => {
+    for (const r of results) {
+      if (r.status === "rejected") {
+        console.error("[form] gagal kirim email:", r.reason);
+      }
+    }
+  });
 }
 
 function submitResult(form: any, response: any, replay: boolean) {
@@ -1182,6 +1395,8 @@ export async function submitFormResponse(
         responseId: created.id,
         email,
         editToken,
+        user,
+        submittedAt: created.submittedAt,
       });
     } catch (err) {
       console.error("[form] post-submit error:", err);

@@ -36,6 +36,22 @@ const answerUploadChain = [
 
 /**
  * @swagger
+ * /api/formpublic/events:
+ *   get:
+ *     summary: Daftar semua Form Event untuk halaman Event (menu Event di navbar)
+ *     description:
+ *       - Publik, tanpa login. Hanya Form Event berstatus PUBLISHED dengan "Tampilkan di halaman Event" aktif.
+ *       - Urutan: event yang masih berjalan/akan datang dan pendaftarannya dibuka lebih dulu, lalu yang pendaftarannya tutup, terakhir event yang sudah selesai.
+ *       - Tiap item membawa availability (isOpen, reason, message) dan hasEnded.
+ *     tags: [Form Public]
+ *     responses:
+ *       200:
+ *         description: Daftar form event
+ */
+router.get("/events", FormPublicController.listEvents);
+
+/**
+ * @swagger
  * /api/formpublic/events/{eventId}/forms:
  *   get:
  *     summary: Daftar form Published untuk ditampilkan di halaman Event

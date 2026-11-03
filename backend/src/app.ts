@@ -49,6 +49,7 @@ import articleRoutes from "./routes/articles.route.js";
 import articleContentRoutes from "./routes/article_content.route.js";
 import redeemCodeRoutes from "./routes/redeemCode.route.js";
 import formRoutes from "./routes/form.route.js";
+import formCategoryRoutes from "./routes/form_category.route.js";
 import formPublicRoutes from "./routes/form_public.route.js";
 import formResponseRoutes from "./routes/form_response.route.js";
 import { redirectShortCodeController } from "./controllers/short_link.controller.js";
@@ -129,6 +130,7 @@ app.use("/api/article", articleRoutes);
 app.use("/api/articlecontent", articleContentRoutes);
 app.use("/api/redeemCode", redeemCodeRoutes);
 app.use("/api/form", formRoutes);
+app.use("/api/form", formCategoryRoutes);
 app.use("/api/formpublic", formPublicRoutes);
 app.use("/api/formresponse", formResponseRoutes);
 

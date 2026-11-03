@@ -327,6 +327,9 @@ export default function Navbar() {
           <Link href="/mentor">Mentor</Link>
         </li>
         <li className="px-3 py-2 rounded-md hover:bg-gray-50 transition">
+          <Link href="/event">Event</Link>
+        </li>
+        <li className="px-3 py-2 rounded-md hover:bg-gray-50 transition">
           <Link href="/#faq">FAQ</Link>
         </li>
         <li className="px-3 py-2 rounded-md hover:bg-gray-50 transition">
@@ -531,6 +534,9 @@ export default function Navbar() {
             )}
             <li className="px-4 py-2 text-center hover:bg-gray-50">
               <Link href="/mentor">Mentor</Link>
+            </li>
+            <li className="px-4 py-2 text-center hover:bg-gray-50">
+              <Link href="/event">Event</Link>
             </li>
             <li className="px-4 py-2 text-center hover:bg-gray-50">
               <Link href="/#faq">FAQ</Link>

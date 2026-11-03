@@ -41,6 +41,8 @@ type MenuItem =
         href: string;
         icon: string;
         activeIcon: string;
+        // true = menu tetap menyala di halaman turunannya (href + "/...")
+        matchNested?: boolean;
       }[];
     };
 
@@ -336,7 +338,8 @@ export default function AdminLayout({
     }
     if (
       pathname.startsWith("/admin/produk-event") ||
-      pathname.startsWith("/admin/form-builder")
+      pathname.startsWith("/admin/form-builder") ||
+      pathname.startsWith("/admin/form-respon")
     ) {
       setOpenDropdown("Produk & Event");
     }
@@ -609,6 +612,14 @@ export default function AdminLayout({
           href: "/admin/form-builder",
           icon: "/assets/admin/tugas.svg",
           activeIcon: "/assets/admin/whitetugas.svg",
+          matchNested: true,
+        },
+        {
+          name: "Respon Form",
+          href: "/admin/form-respon",
+          icon: "/assets/dashboard/mentor/report.svg",
+          activeIcon: "/assets/dashboard/mentor/reportwhite.svg",
+          matchNested: true,
         },
       ],
     },
@@ -712,6 +723,7 @@ export default function AdminLayout({
           "/admin/artikel",
           "/admin/produk-event",
           "/admin/form-builder",
+          "/admin/form-respon",
         ];
     const isAllowed = allowedPaths.some((path) => pathname.startsWith(path));
     if (!isAllowed) {
@@ -810,7 +822,10 @@ export default function AdminLayout({
                         {item.hasSubmenu && openDropdown === item.name && (
                           <div className="ml-8 mt-0.5 space-y-0.5">
                             {item.children.map((child) => {
-                              const isChildActive = pathname === child.href;
+                              const isChildActive =
+                                pathname === child.href ||
+                                (!!child.matchNested &&
+                                  pathname.startsWith(`${child.href}/`));
                               return (
                                 <Link
                                   key={child.name}

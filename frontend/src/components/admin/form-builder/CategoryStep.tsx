@@ -1,30 +1,122 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import axios from "axios";
-import { ClipboardList, Search } from "lucide-react";
+import {
+  Award,
+  BarChart3,
+  Briefcase,
+  CalendarCheck,
+  ChevronRight,
+  ClipboardList,
+  CreditCard,
+  Database,
+  FileUp,
+  Mail,
+  MessageSquareText,
+  Presentation,
+  Search,
+  Trophy,
+  UserPlus,
+  Users,
+  Vote,
+  type LucideIcon,
+} from "lucide-react";
 import {
   FORM_API,
   FormCategory,
   FormType,
+  formCategoryHref,
   getApiErrorMessage,
   useDebouncedValue,
 } from "./shared";
 
 interface Props {
   type: FormType;
-  selectedId: string;
-  onSelect: (c: FormCategory) => void;
   /** Naikkan nilainya dari luar (mis. setelah buat jenis) untuk memuat ulang. */
   refreshKey: number;
 }
 
-export default function CategoryStep({
-  type,
-  selectedId,
-  onSelect,
-  refreshKey,
-}: Props) {
+// Ikon + warna dipilih dari kata kunci di nama jenis, jadi tiap jenis terlihat
+// berbeda. Urutan penting: yang cocok pertama dipakai. Kalau tidak ada yang
+// cocok, pakai ikon default.
+interface IconStyle {
+  Icon: LucideIcon;
+  box: string; // kelas bg + warna ikon
+}
+
+const ICON_RULES: { keywords: string[]; style: IconStyle }[] = [
+  {
+    keywords: ["hackathon", "lomba", "kompetisi", "competition", "kontes"],
+    style: { Icon: Trophy, box: "bg-amber-100 text-amber-600" },
+  },
+  {
+    keywords: ["daftar", "registrasi", "register", "pendaftaran"],
+    style: { Icon: UserPlus, box: "bg-blue-100 text-blue-600" },
+  },
+  {
+    keywords: ["presensi", "absen", "kehadiran", "attendance"],
+    style: { Icon: CalendarCheck, box: "bg-teal-100 text-teal-600" },
+  },
+  {
+    keywords: ["survei", "survey", "kuesioner", "angket"],
+    style: { Icon: BarChart3, box: "bg-violet-100 text-violet-600" },
+  },
+  {
+    keywords: ["feedback", "masukan", "umpan", "evaluasi", "review", "saran"],
+    style: { Icon: MessageSquareText, box: "bg-rose-100 text-rose-600" },
+  },
+  {
+    keywords: ["seminar", "webinar", "workshop", "pelatihan", "training"],
+    style: { Icon: Presentation, box: "bg-indigo-100 text-indigo-600" },
+  },
+  {
+    keywords: ["rekrut", "recruit", "lowongan", "karir", "karier", "career"],
+    style: { Icon: Briefcase, box: "bg-orange-100 text-orange-600" },
+  },
+  {
+    keywords: ["submission", "submit", "kumpul", "tugas", "proyek", "project"],
+    style: { Icon: FileUp, box: "bg-sky-100 text-sky-600" },
+  },
+  {
+    keywords: ["data", "pendataan"],
+    style: { Icon: Database, box: "bg-cyan-100 text-cyan-600" },
+  },
+  {
+    keywords: ["kontak", "contact", "hubungi"],
+    style: { Icon: Mail, box: "bg-pink-100 text-pink-600" },
+  },
+  {
+    keywords: ["voting", "vote", "polling", "poll", "pemilihan"],
+    style: { Icon: Vote, box: "bg-fuchsia-100 text-fuchsia-600" },
+  },
+  {
+    keywords: ["sertifikat", "certificate", "penghargaan"],
+    style: { Icon: Award, box: "bg-yellow-100 text-yellow-600" },
+  },
+  {
+    keywords: ["komunitas", "community", "anggota", "member"],
+    style: { Icon: Users, box: "bg-lime-100 text-lime-600" },
+  },
+  {
+    keywords: ["pembayaran", "payment", "bayar", "tiket", "ticket"],
+    style: { Icon: CreditCard, box: "bg-emerald-100 text-emerald-600" },
+  },
+];
+
+const DEFAULT_ICON_STYLE: IconStyle = {
+  Icon: ClipboardList,
+  box: "bg-gray-100 text-gray-600",
+};
+
+function getIconStyle(name: string): IconStyle {
+  const n = name.toLowerCase();
+  const hit = ICON_RULES.find((r) => r.keywords.some((k) => n.includes(k)));
+  return hit?.style ?? DEFAULT_ICON_STYLE;
+}
+
+export default function CategoryStep({ type, refreshKey }: Props) {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search.trim());
   const [items, setItems] = useState<FormCategory[]>([]);
@@ -73,7 +165,7 @@ export default function CategoryStep({
         />
       </div>
 
-      <div role="radiogroup" aria-label="Jenis form" className="space-y-2">
+      <div className="space-y-2">
         {loading &&
           Array.from({ length: 4 }).map((_, i) => (
             <div
@@ -106,22 +198,17 @@ export default function CategoryStep({
         {!loading &&
           !error &&
           items.map((c) => {
-            const active = c.id === selectedId;
+            const { Icon, box } = getIconStyle(c.name);
             return (
-              <button
+              <Link
                 key={c.id}
-                type="button"
-                role="radio"
-                aria-checked={active}
-                onClick={() => onSelect(c)}
-                className={`flex w-full items-center gap-3 rounded-xl border p-3.5 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
-                  active
-                    ? "border-emerald-500 bg-emerald-50/40"
-                    : "border-gray-200 bg-white hover:border-emerald-300"
-                }`}
+                href={`${formCategoryHref(c.id)}?type=${c.type}`}
+                className="group flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-white p-3.5 text-left transition-colors hover:border-emerald-300 hover:bg-emerald-50/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
               >
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">
-                  <ClipboardList className="h-5 w-5" />
+                <span
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${box}`}
+                >
+                  <Icon className="h-5 w-5" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-bold text-gray-900">
@@ -136,16 +223,8 @@ export default function CategoryStep({
                 <span className="shrink-0 rounded-md bg-gray-100 px-2.5 py-1 text-xs text-gray-600">
                   {c.formCount.toLocaleString("id-ID")} form
                 </span>
-                <span
-                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
-                    active ? "border-emerald-500" : "border-gray-300"
-                  }`}
-                >
-                  {active && (
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                  )}
-                </span>
-              </button>
+                <ChevronRight className="h-4 w-4 shrink-0 text-gray-400 transition-transform group-hover:translate-x-0.5 group-hover:text-emerald-500" />
+              </Link>
             );
           })}
       </div>

@@ -12,7 +12,9 @@ import type {
   ListFormsQuery,
   PrefillLinkInput,
   SaveFormStructureInput,
+  SlugAvailabilityQuery,
   UpdateFormInput,
+  UpdateFormSlugInput,
 } from "../validations/form.validation.js";
 
 const prisma = new PrismaClient();
@@ -93,6 +95,119 @@ function frontendBaseUrl() {
   ).replace(/\/+$/, "");
 }
 
+// ─── Link form (slug) ───────────────────────────────────────────────────────
+// Link responder = {FRONTEND_URL}/form/{slug}. Slug boleh diatur manual atau
+// diacak, dan HARUS unik di semua form DAN semua short link (tanpa membedakan
+// huruf besar/kecil).
+const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const SLUG_MIN = 3;
+const SLUG_MAX = 60;
+// Kata yang tidak boleh jadi link (bentrok dengan rute / istilah sistem)
+const RESERVED_SLUGS = new Set([
+  "admin",
+  "api",
+  "app",
+  "create",
+  "dashboard",
+  "draft",
+  "edit",
+  "form",
+  "forms",
+  "login",
+  "logout",
+  "new",
+  "preview",
+  "register",
+  "responses",
+  "s",
+  "settings",
+  "share",
+]);
+
+export type SlugCheck = {
+  slug: string;
+  available: boolean;
+  reason?:
+    | "INVALID_FORMAT"
+    | "RESERVED"
+    | "TAKEN_BY_FORM"
+    | "TAKEN_BY_SHORTLINK";
+  message?: string;
+};
+
+function randomSlug(length = 8) {
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let s = "";
+  for (let i = 0; i < length; i++) s += chars[crypto.randomInt(chars.length)];
+  return s;
+}
+
+async function inspectSlug(
+  raw: string,
+  exceptFormId?: string,
+): Promise<SlugCheck> {
+  const slug = raw.trim().toLowerCase();
+  if (
+    slug.length < SLUG_MIN ||
+    slug.length > SLUG_MAX ||
+    !SLUG_REGEX.test(slug)
+  ) {
+    return {
+      slug,
+      available: false,
+      reason: "INVALID_FORMAT",
+      message: `Link harus ${SLUG_MIN}-${SLUG_MAX} karakter: huruf kecil, angka, dan tanda hubung (tidak di awal/akhir)`,
+    };
+  }
+  if (RESERVED_SLUGS.has(slug)) {
+    return {
+      slug,
+      available: false,
+      reason: "RESERVED",
+      message: "Kata ini dicadangkan sistem, pilih link lain",
+    };
+  }
+
+  const [form, shortLink] = await Promise.all([
+    prisma.form.findFirst({
+      where: {
+        slug: { equals: slug, mode: "insensitive" },
+        ...(exceptFormId && { id: { not: exceptFormId } }),
+      },
+      select: { id: true },
+    }),
+    prisma.shortLink.findFirst({
+      where: { shortCode: { equals: slug, mode: "insensitive" } },
+      select: { id: true },
+    }),
+  ]);
+  if (form) {
+    return {
+      slug,
+      available: false,
+      reason: "TAKEN_BY_FORM",
+      message: "Link ini sudah dipakai form lain",
+    };
+  }
+  if (shortLink) {
+    return {
+      slug,
+      available: false,
+      reason: "TAKEN_BY_SHORTLINK",
+      message: "Link ini sudah dipakai short link",
+    };
+  }
+  return { slug, available: true };
+}
+
+async function generateUniqueSlug(): Promise<string> {
+  for (let i = 0; i < 10; i++) {
+    const slug = randomSlug();
+    if ((await inspectSlug(slug)).available) return slug;
+  }
+  return randomSlug(12);
+}
+
 // Struktur lengkap form (tanpa data yang sudah soft-delete)
 const structureInclude = {
   sections: {
@@ -162,9 +277,13 @@ export function computeAvailability(
 
 // ─── Modul Event (BELUM ADA) ────────────────────────────────────────────────
 // Model Event belum ada di schema. Dua fungsi di bawah adalah SATU-SATUNYA
-// tempat yang perlu diganti begitu model Event dibuat. Sampai saat itu,
-// membuat Form Event akan ditolak (501) supaya eventId sembarangan nggak
-// bisa masuk (PRD: filtering Event eligible WAJIB divalidasi di backend).
+// tempat yang perlu diganti begitu model Event dibuat.
+//
+// Aturan bisnis (PRD FR-12): satu Event non-kelas boleh punya LEBIH DARI SATU
+// Form Event, dan satu form hanya terkait ke SATU Event. Selama modul Event
+// belum ada, pengaitan Event bersifat opsional (lihat flag di bawah). Kalau
+// eventId tetap dikirim, ditolak (501) supaya eventId sembarangan nggak bisa
+// masuk (PRD: filtering Event eligible WAJIB divalidasi di backend).
 //
 // Contoh setelah model Event ada:
 //   const ev = await prisma.event.findFirst({ where: { id: eventId, isActive: true, /* + scope Class Manager */ } });
@@ -172,6 +291,10 @@ export function computeAvailability(
 //   return { id: ev.id, name: ev.name };
 //
 // Untuk testing lokal sementara, ganti isi fungsi jadi: return { id: eventId, name: "Event Dummy" };
+
+// Ubah ke true begitu modul Event ada: Form Event wajib dikaitkan ke Event
+// (saat dibuat dan saat dipublish), sesuai PRD.
+const REQUIRE_EVENT_FOR_EVENT_FORMS = false;
 
 async function getEligibleEvent(
   _eventId: string,
@@ -186,15 +309,23 @@ async function getEligibleEvent(
 
 export async function listEligibleEvents(
   _actor: FormActor,
-  _query: ListEligibleEventsQuery,
+  query: ListEligibleEventsQuery,
 ) {
-  // Harus mengembalikan: { items: [{ id, name, date, mode: "online"|"offline" }], pagination }
+  // Sampai modul Event ada, daftarnya kosong (bukan error) supaya halaman tetap
+  // tampil dengan keterangan "belum ada event".
+  //
+  // Setelah model Event ada, kembalikan: { items: [{ id, name, date, mode: "online"|"offline" }], pagination }
   // Hanya Event non-kelas yang boleh dikelola actor (Bootcamp/AYCL/E-Learning/Mentoring jangan muncul).
-  throw new FormError(
-    501,
-    "Modul Event belum tersedia, daftar Event belum bisa ditampilkan",
-    "EVENT_MODULE_NOT_READY",
-  );
+  // Event yang sudah punya form TETAP ditampilkan (satu Event boleh banyak form).
+  return {
+    items: [] as { id: string; name: string; date: string; mode: string }[],
+    pagination: {
+      page: query.page,
+      limit: query.limit,
+      total: 0,
+      totalPages: 0,
+    },
+  };
 }
 
 // ─── Kelola Form: list ──────────────────────────────────────────────────────
@@ -267,9 +398,13 @@ export async function createForm(actor: FormActor, input: CreateFormInput) {
   let eventNameSnapshot: string | null = null;
 
   if (input.type === "EVENT") {
-    const ev = await getEligibleEvent(input.eventId!, actor);
-    eventId = ev.id;
-    eventNameSnapshot = ev.name;
+    if (input.eventId) {
+      const ev = await getEligibleEvent(input.eventId, actor);
+      eventId = ev.id;
+      eventNameSnapshot = ev.name;
+    } else if (REQUIRE_EVENT_FOR_EVENT_FORMS) {
+      throw new FormError(400, "Form Event harus dikaitkan ke sebuah Event");
+    }
   }
 
   for (let attempt = 0; attempt < 5; attempt++) {
@@ -280,11 +415,11 @@ export async function createForm(actor: FormActor, input: CreateFormInput) {
           type: input.type,
           title: input.title,
           description: input.description ?? null,
-          slug: generateSlug(),
+          slug: await generateUniqueSlug(),
           categoryId,
           eventId,
           eventNameSnapshot,
-          showOnEventPage: input.type === "EVENT",
+          showOnEventPage: input.type === "EVENT" && !!eventId,
           createdById: actor.userId,
           // Setiap form selalu punya minimal 1 section
           sections: { create: { id: newFormId("section"), orderNumber: 1 } },
@@ -313,6 +448,20 @@ export async function getFormDetail(actor: FormActor, formId: string) {
 
 // ─── Update judul, deskripsi, pengaturan, tema ──────────────────────────────
 
+// Field info event di PATCH /forms/:id (khusus type EVENT)
+const EVENT_INFO_FIELDS = [
+  "eventTitle",
+  "eventDescription",
+  "eventStartAt",
+  "eventEndAt",
+  "eventMode",
+  "eventLocation",
+  "eventOrganizer",
+  "eventCategoryLabel",
+  "eventTimeline",
+  "eventFaqs",
+] as const;
+
 export async function updateForm(
   actor: FormActor,
   formId: string,
@@ -330,6 +479,33 @@ export async function updateForm(
       400,
       "Pengaturan tampil di halaman Event hanya untuk Form Event",
     );
+  }
+
+  // Info event hanya untuk Form Event
+  if (form.type === "NON_EVENT") {
+    const sentEventField = EVENT_INFO_FIELDS.find(
+      (k) => (input as Record<string, unknown>)[k] !== undefined,
+    );
+    if (sentEventField) {
+      throw new FormError(
+        400,
+        "Info event hanya bisa diisi pada Form Event",
+        undefined,
+        [{ path: [sentEventField], message: "Hanya untuk Form Event" }],
+      );
+    }
+  }
+  {
+    const start =
+      input.eventStartAt !== undefined ? input.eventStartAt : form.eventStartAt;
+    const end =
+      input.eventEndAt !== undefined ? input.eventEndAt : form.eventEndAt;
+    if (start && end && end < start) {
+      throw new FormError(
+        400,
+        "Tanggal selesai event tidak boleh sebelum tanggal mulai",
+      );
+    }
   }
 
   // Cek konsistensi pengaturan setelah digabung dengan nilai yang sudah ada
@@ -363,9 +539,13 @@ export async function updateForm(
     }
   }
 
-  const data = Object.fromEntries(
+  const data: Record<string, unknown> = Object.fromEntries(
     Object.entries(input).filter(([, v]) => v !== undefined),
   );
+  // Kolom JSON nullable: null harus lewat Prisma.DbNull
+  for (const k of ["eventTimeline", "eventFaqs"]) {
+    if (data[k] === null) data[k] = Prisma.DbNull;
+  }
 
   await prisma.form.update({ where: { id: formId }, data });
   return getFormDetail(actor, formId);
@@ -432,7 +612,7 @@ export function collectPublishIssues(form: any): string[] {
 
   if (!form.title || !form.title.trim()) issues.push("Judul form wajib diisi");
 
-  if (form.type === "EVENT" && !form.eventId) {
+  if (REQUIRE_EVENT_FOR_EVENT_FORMS && form.type === "EVENT" && !form.eventId) {
     issues.push("Form Event harus dikaitkan ke sebuah Event");
   }
   if (form.type === "NON_EVENT" && form.eventId) {
@@ -886,6 +1066,55 @@ export async function archiveForm(actor: FormActor, formId: string) {
   return getFormDetail(actor, formId);
 }
 
+// ─── Hapus permanen ─────────────────────────────────────────────────────────
+// Hard delete HANYA untuk form yang belum punya response sama sekali (relasi
+// FormResponse -> Form memakai onDelete: Restrict). Form yang sudah punya
+// response cukup diarsipkan supaya data jawaban tetap aman.
+
+export async function deleteForm(actor: FormActor, formId: string) {
+  const form = await prisma.form.findUnique({
+    where: { id: formId },
+    select: { id: true, createdById: true, status: true, headerImage: true },
+  });
+  if (!form) throw new FormError(404, "Form tidak ditemukan");
+  assertManage(actor, form);
+
+  if (form.status === "PUBLISHED") {
+    throw new FormError(
+      409,
+      "Form yang sedang dipublikasikan tidak bisa dihapus. Batalkan publikasi atau arsipkan form ini terlebih dahulu",
+      "FORM_PUBLISHED",
+    );
+  }
+
+  const hasResponsesMessage =
+    "Form ini sudah punya respons sehingga tidak bisa dihapus permanen. Arsipkan form ini untuk menyembunyikannya dari daftar";
+
+  // Semua status ikut dihitung, termasuk draft autosave responder
+  const responseCount = await prisma.formResponse.count({ where: { formId } });
+  if (responseCount > 0) {
+    throw new FormError(409, hasResponsesMessage, "FORM_HAS_RESPONSES");
+  }
+
+  try {
+    // Section, pertanyaan, dan pilihan ikut terhapus (onDelete: Cascade)
+    await prisma.form.delete({ where: { id: formId } });
+  } catch (err: any) {
+    // Ada response yang masuk tepat saat proses hapus berjalan
+    if (err?.code === "P2003") {
+      throw new FormError(409, hasResponsesMessage, "FORM_HAS_RESPONSES");
+    }
+    // Form sudah terhapus oleh request lain
+    if (err?.code === "P2025") {
+      throw new FormError(404, "Form tidak ditemukan");
+    }
+    throw err;
+  }
+
+  await deleteHeaderFileIfUnused(form.headerImage, formId);
+  return { id: formId };
+}
+
 // ─── Duplicate (juga dipakai buat "ganti tipe form") ────────────────────────
 
 export async function duplicateForm(
@@ -901,13 +1130,15 @@ export async function duplicateForm(
   let eventNameSnapshot: string | null = null;
 
   if (type === "EVENT") {
+    // Salinan boleh tetap di Event yang sama (satu Event boleh banyak form)
     const wanted = input.eventId ?? (src.type === "EVENT" ? src.eventId : null);
-    if (!wanted) {
+    if (wanted) {
+      const ev = await getEligibleEvent(wanted, actor);
+      eventId = ev.id;
+      eventNameSnapshot = ev.name;
+    } else if (REQUIRE_EVENT_FOR_EVENT_FORMS) {
       throw new FormError(400, "eventId wajib diisi untuk Form Event");
     }
-    const ev = await getEligibleEvent(wanted, actor);
-    eventId = ev.id;
-    eventNameSnapshot = ev.name;
   }
 
   const title = (input.title ?? `${src.title} (Salinan)`).slice(0, 200);
@@ -925,12 +1156,13 @@ export async function duplicateForm(
               status: "DRAFT",
               title,
               description: src.description,
-              slug: generateSlug(),
+              slug: await generateUniqueSlug(),
               // Jenis hanya berlaku di tipe yang sama; ganti tipe = tanpa jenis
               categoryId: type === src.type ? src.categoryId : null,
               eventId,
               eventNameSnapshot,
-              showOnEventPage: type === "EVENT" ? src.showOnEventPage : false,
+              showOnEventPage:
+                type === "EVENT" && eventId ? src.showOnEventPage : false,
               acceptingResponses: src.acceptingResponses,
               responseLimitEnabled: src.responseLimitEnabled,
               responseLimit: src.responseLimit,
@@ -951,6 +1183,20 @@ export async function duplicateForm(
               themeColor: src.themeColor,
               backgroundColor: src.backgroundColor,
               fontPreset: src.fontPreset,
+              ...(type === "EVENT"
+                ? {
+                    eventTitle: src.eventTitle,
+                    eventDescription: src.eventDescription,
+                    eventStartAt: src.eventStartAt,
+                    eventEndAt: src.eventEndAt,
+                    eventMode: src.eventMode,
+                    eventLocation: src.eventLocation,
+                    eventOrganizer: src.eventOrganizer,
+                    eventCategoryLabel: src.eventCategoryLabel,
+                    eventTimeline: src.eventTimeline ?? Prisma.DbNull,
+                    eventFaqs: src.eventFaqs ?? Prisma.DbNull,
+                  }
+                : {}),
               createdById: actor.userId,
             },
             select: { id: true },
@@ -1036,21 +1282,84 @@ export async function getShareInfo(actor: FormActor, formId: string) {
   const form = await getFormOrThrow(formId);
   assertManage(actor, form);
 
-  if (form.status !== "PUBLISHED") {
-    throw new FormError(
-      409,
-      "Link form baru tersedia setelah form dipublikasikan",
-      "FORM_NOT_PUBLISHED",
-    );
-  }
-
+  // Link sudah ada sejak form dibuat (bisa diatur di Pengaturan), tapi baru bisa
+  // dibuka responder setelah Published. isPublished memberi tahu UI.
   const url = `${frontendBaseUrl()}/form/${form.slug}`;
   return {
     url, // QR Code dibuat di frontend dari URL ini
     slug: form.slug,
+    isPublished: form.status === "PUBLISHED",
     isShownOnEventPage:
       form.type === "EVENT" && form.showOnEventPage && !!form.eventId,
   };
+}
+
+// Dipakai SHORT LINK service: tolak kode short link yang sama dengan link form
+// (supaya unik di kedua arah). Contoh di service pembuatan short link:
+//   if (await isFormSlugTaken(code)) throw new Error("Kode sudah dipakai form");
+export async function isFormSlugTaken(code: string): Promise<boolean> {
+  const hit = await prisma.form.findFirst({
+    where: { slug: { equals: code.trim(), mode: "insensitive" } },
+    select: { id: true },
+  });
+  return !!hit;
+}
+
+// Cek ketersediaan link (dipakai UI saat mengetik, juga cek lintas short link)
+export async function checkSlugAvailability(
+  _actor: FormActor,
+  query: SlugAvailabilityQuery,
+): Promise<SlugCheck> {
+  return inspectSlug(query.slug, query.formId);
+}
+
+// Atur link form: manual (slug) atau acak (random: true). Berlaku untuk Form
+// Event maupun Non Event. Link lama berhenti berfungsi setelah diganti.
+export async function updateFormSlug(
+  actor: FormActor,
+  formId: string,
+  input: UpdateFormSlugInput,
+) {
+  const form = await getFormOrThrow(formId);
+  assertManage(actor, form);
+
+  if (form.status === "ARCHIVED") {
+    throw new FormError(409, "Form sudah diarsipkan dan tidak bisa diubah");
+  }
+
+  let slug: string;
+  if (input.random) {
+    slug = await generateUniqueSlug();
+  } else {
+    const check = await inspectSlug(input.slug!, formId);
+    if (!check.available) {
+      const invalid =
+        check.reason === "INVALID_FORMAT" || check.reason === "RESERVED";
+      throw new FormError(
+        invalid ? 400 : 409,
+        check.message ?? "Link tidak bisa dipakai",
+        invalid ? "SLUG_INVALID" : "SLUG_TAKEN",
+      );
+    }
+    slug = check.slug;
+  }
+
+  if (slug !== form.slug) {
+    try {
+      await prisma.form.update({ where: { id: formId }, data: { slug } });
+    } catch (err: any) {
+      // dua request bersamaan dengan link sama: unique index jadi pengaman
+      if (err?.code === "P2002") {
+        throw new FormError(
+          409,
+          "Link ini sudah dipakai form lain",
+          "SLUG_TAKEN",
+        );
+      }
+      throw err;
+    }
+  }
+  return getShareInfo(actor, formId);
 }
 
 export async function buildPrefillLink(
@@ -1145,6 +1454,21 @@ function serializeForRenderer(form: any) {
     event:
       form.type === "EVENT" && form.eventId
         ? { id: form.eventId, name: form.eventNameSnapshot }
+        : null,
+    eventInfo:
+      form.type === "EVENT"
+        ? {
+            title: form.eventTitle,
+            description: form.eventDescription,
+            startAt: form.eventStartAt,
+            endAt: form.eventEndAt,
+            mode: form.eventMode,
+            location: form.eventLocation,
+            organizer: form.eventOrganizer,
+            categoryLabel: form.eventCategoryLabel,
+            timeline: form.eventTimeline ?? [],
+            faqs: form.eventFaqs ?? [],
+          }
         : null,
     theme: {
       headerImage: form.headerImage,

@@ -13,6 +13,7 @@ import {
   MoreHorizontal,
   Pencil,
   Send,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,6 +44,7 @@ export default function FormRowActions({ form, onChanged }: Props) {
   const menuRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const [confirmArchive, setConfirmArchive] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const close = useCallback(() => setPos(null), []);
@@ -99,6 +101,25 @@ export default function FormRowActions({ form, onChanged }: Props) {
       onChanged();
     } catch (err) {
       toast.error(getApiErrorMessage(err, errorText), { id: toastId });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Hapus permanen: backend menolak (409) kalau form sudah punya respons
+  const handleDelete = async () => {
+    setBusy(true);
+    const toastId = toast.loading("Menghapus form...");
+    try {
+      await axios.delete(`${FORM_API}/forms/${form.id}`, {
+        withCredentials: true,
+      });
+      toast.success("Form berhasil dihapus", { id: toastId });
+      onChanged();
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Gagal menghapus form"), {
+        id: toastId,
+      });
     } finally {
       setBusy(false);
     }
@@ -217,20 +238,33 @@ export default function FormRowActions({ form, onChanged }: Props) {
               </>
             )}
 
+            <div className="my-1 border-t border-gray-100" />
+
             {form.status !== "ARCHIVED" && (
-              <>
-                <div className="my-1 border-t border-gray-100" />
-                <button
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-red-600 hover:bg-red-50"
-                  onClick={() => {
-                    close();
-                    setConfirmArchive(true);
-                  }}
-                >
-                  <Archive className="h-3.5 w-3.5" />
-                  Arsipkan
-                </button>
-              </>
+              <button
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-red-600 hover:bg-red-50"
+                onClick={() => {
+                  close();
+                  setConfirmArchive(true);
+                }}
+              >
+                <Archive className="h-3.5 w-3.5" />
+                Arsipkan
+              </button>
+            )}
+
+            {/* Form yang sedang Published harus dibatalkan/diarsipkan dulu */}
+            {form.status !== "PUBLISHED" && (
+              <button
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-red-600 hover:bg-red-50"
+                onClick={() => {
+                  close();
+                  setConfirmDelete(true);
+                }}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Hapus
+              </button>
             )}
           </div>,
           document.body,
@@ -266,6 +300,68 @@ export default function FormRowActions({ form, onChanged }: Props) {
             >
               Arsipkan
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader className="flex items-start justify-between">
+            <DialogTitle>
+              {form.responseCount > 0
+                ? "Form ini tidak bisa dihapus"
+                : "Hapus form ini?"}
+            </DialogTitle>
+            <DialogClose />
+          </DialogHeader>
+          {form.responseCount > 0 ? (
+            <p className="text-sm text-gray-600">
+              <span className="font-semibold text-gray-800">{form.title}</span>{" "}
+              sudah punya {form.responseCount.toLocaleString("id-ID")} respons
+              sehingga tidak bisa dihapus permanen. Arsipkan form ini untuk
+              menyembunyikannya dari daftar, datanya tetap tersimpan.
+            </p>
+          ) : (
+            <p className="text-sm text-gray-600">
+              <span className="font-semibold text-gray-800">{form.title}</span>{" "}
+              akan dihapus permanen beserta seluruh pertanyaannya dan tidak bisa
+              dikembalikan. Link form ini juga berhenti berfungsi.
+            </p>
+          )}
+          <div className="mt-2 flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setConfirmDelete(false)}>
+              {form.responseCount > 0 ? "Tutup" : "Batal"}
+            </Button>
+            {form.responseCount > 0 ? (
+              form.status !== "ARCHIVED" && (
+                <Button
+                  disabled={busy}
+                  className="bg-red-500 text-white hover:bg-red-600"
+                  onClick={() => {
+                    setConfirmDelete(false);
+                    run(
+                      "archive",
+                      "Mengarsipkan form...",
+                      "Form berhasil diarsipkan",
+                      "Gagal mengarsipkan form",
+                    );
+                  }}
+                >
+                  Arsipkan
+                </Button>
+              )
+            ) : (
+              <Button
+                disabled={busy}
+                className="bg-red-500 text-white hover:bg-red-600"
+                onClick={() => {
+                  setConfirmDelete(false);
+                  handleDelete();
+                }}
+              >
+                Hapus
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>
