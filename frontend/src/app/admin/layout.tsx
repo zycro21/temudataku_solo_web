@@ -50,7 +50,22 @@ type MenuItem =
 // Role yang tidak ada di sini tampil apa adanya (huruf pertama kapital).
 const ROLE_DISPLAY_LABELS: Record<string, string> = {
   cm: "Class Manager & Community",
+  cw: "Content Writer",
+  curdev: "Curriculum Developer",
 };
+
+// Prioritas role kalau satu user punya lebih dari satu role restricted.
+// cw paling atas supaya hasilnya tidak tergantung urutan role dari backend.
+const RESTRICTED_ROLE_PRIORITY = ["cw", "curdev", "cm", "guest"];
+
+// Ambil role yang dipakai untuk label header/profil.
+function pickDisplayRoleName(userRoles?: any[]): string | undefined {
+  const names: string[] = (userRoles ?? [])
+    .map((r: any) => r?.role?.roleName?.toLowerCase())
+    .filter(Boolean);
+  const restricted = RESTRICTED_ROLE_PRIORITY.find((r) => names.includes(r));
+  return restricted ?? names[0];
+}
 
 function formatRoleLabel(roleName?: string | null): string {
   if (!roleName) return "Admin";
@@ -58,6 +73,8 @@ function formatRoleLabel(roleName?: string | null): string {
   if (mapped) return mapped;
   return roleName.charAt(0).toUpperCase() + roleName.slice(1);
 }
+
+const DEFAULT_AVATAR = "/assets/dashboard/user/avatar.png";
 
 // ─── Routes yang tidak perlu sidebar + navbar admin ───────────────────────────
 const FULLSCREEN_ROUTES = [/\/materials\/create$/, /^\/admin\/artikel\/[^/]+$/];
@@ -337,7 +354,7 @@ export default function AdminLayout({
   const [editFullName, setEditFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [preview, setPreview] = useState("/default-avatar.png");
+  const [preview, setPreview] = useState(DEFAULT_AVATAR);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -371,7 +388,7 @@ export default function AdminLayout({
             fullName: user.fullName,
             email: user.email,
             phone: user.phoneNumber || "-",
-            role: formatRoleLabel(user.userRoles?.[0]?.role?.roleName),
+            role: formatRoleLabel(pickDisplayRoleName(user.userRoles)),
             avatarUrl:
               user.profilePicture && user.profilePicture !== "default.jpg"
                 ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${user.profilePicture}`
@@ -387,8 +404,8 @@ export default function AdminLayout({
     if (isEditAdminOpen && currentAdmin) {
       setEditFullName(currentAdmin.fullName);
       setEmail(currentAdmin.email);
-      setPhone(currentAdmin.phone);
-      setPreview(currentAdmin.avatarUrl || "/default-avatar.png");
+      setPhone(currentAdmin.phone === "-" ? "" : currentAdmin.phone);
+      setPreview(currentAdmin.avatarUrl || DEFAULT_AVATAR);
     }
   }, [isEditAdminOpen, currentAdmin]);
 
@@ -400,15 +417,32 @@ export default function AdminLayout({
   const restrictedRoles = ["guest", "curdev", "cm", "cw"];
   const isRestricted = roles.some((r) => restrictedRoles.includes(r));
 
-  // 🔥 Guest/curdev/cm guard: redirect dari /admin ke /admin/elearning
+  // Role restricted yang aktif (urutan prioritas: cw > curdev > cm > guest)
+  const activeRestrictedRole = RESTRICTED_ROLE_PRIORITY.find((r) =>
+    roles.includes(r),
+  );
+
+  // Halaman awal & path yang boleh diakses per role restricted
+  const RESTRICTED_HOME: Record<string, string> = {
+    cw: "/admin/artikel",
+    curdev: "/admin/elearning",
+    cm: "/admin/produk-event",
+    guest: "/admin/elearning",
+  };
+  const RESTRICTED_PATHS: Record<string, string[]> = {
+    cw: ["/admin/artikel"],
+    curdev: ["/admin/elearning", "/admin/produk-event"],
+    cm: ["/admin/produk-event", "/admin/form-builder", "/admin/form-respon"],
+    guest: ["/admin/elearning"],
+  };
+  const restrictedHome =
+    RESTRICTED_HOME[activeRestrictedRole ?? ""] ?? "/admin";
+
+  // 🔥 Guest/curdev/cm/cw guard: redirect dari /admin ke /admin/elearning
   useEffect(() => {
     if (!authLoading && currentUser && isRestricted) {
       if (pathname === "/admin" || pathname === "/admin/") {
-        // 🔥 TAMBAHAN: role CW diarahkan ke /admin/artikel, bukan
-        // /admin/elearning seperti restricted role lainnya.
-        router.replace(
-          roles.includes("cw") ? "/admin/artikel" : "/admin/elearning",
-        );
+        router.replace(restrictedHome);
       }
     }
   }, [authLoading, currentUser, isRestricted, pathname, router]);
@@ -436,8 +470,8 @@ export default function AdminLayout({
       "Produk & Event",
       "History",
     ],
-    cm: ["E-Learning", "Kelola Artikel", "Produk & Event"],
-    curdev: ["E-Learning", "Kelola Artikel", "Produk & Event"],
+    cm: ["Produk & Event"],
+    curdev: ["E-Learning", "Produk & Event"],
     guest: ["E-Learning"],
     cw: ["Kelola Artikel"],
   };
@@ -447,25 +481,18 @@ export default function AdminLayout({
     permissions[r]?.forEach((menu) => allowedMenus.add(menu));
   });
 
-  // 🔥 Jika user adalah restricted, pastikan hanya menu yang diizinkan
+  // 🔥 Jika user restricted, menu ditentukan oleh role restricted yang aktif
   if (isRestricted) {
     allowedMenus.clear();
-    // 🔥 TAMBAHAN: kalau ada role CW, PASTIKAN cuma "Kelola Artikel" yang
-    // muncul — dicek eksplisit duluan, tidak lewat roles.find(...) di
-    // bawah supaya hasilnya tidak tergantung urutan role dari backend
-    // (misal user kebetulan juga punya role restricted lain).
-    if (roles.includes("cw")) {
-      allowedMenus.add("Kelola Artikel");
-    } else {
-      const allowedMenusForRole =
-        permissions[
-          roles.find((r) =>
-            restrictedRoles.includes(r),
-          ) as keyof typeof permissions
-        ] || [];
-      allowedMenusForRole.forEach((menu) => allowedMenus.add(menu));
-    }
+    (permissions[activeRestrictedRole ?? ""] || []).forEach((menu) =>
+      allowedMenus.add(menu),
+    );
   }
+
+  // curdev: di "Produk & Event" hanya submenu Event yang tampil
+  const allowedChildrenByRole: Record<string, Record<string, string[]>> = {
+    curdev: { "Produk & Event": ["Event"] },
+  };
 
   const avatarUrl =
     currentUser?.profilePicture && currentUser.profilePicture !== "default.jpg"
@@ -473,7 +500,7 @@ export default function AdminLayout({
       : "/assets/dashboard/user/avatar.png";
 
   const fullName = currentUser?.fullName || "Guest Admin";
-  const role = formatRoleLabel(currentUser?.userRoles?.[0]?.role?.roleName);
+  const role = formatRoleLabel(pickDisplayRoleName(currentUser?.userRoles));
 
   const adminMenu: MenuItem[] = [
     {
@@ -648,6 +675,11 @@ export default function AdminLayout({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 4 * 1024 * 1024) {
+      toast.error("Ukuran file maksimal 4MB");
+      e.target.value = "";
+      return;
+    }
     setSelectedFile(file);
     const reader = new FileReader();
     reader.onloadend = () => setPreview(reader.result as string);
@@ -664,7 +696,7 @@ export default function AdminLayout({
         formData.append("fullName", editFullName.trim());
       if (email && email !== currentAdmin.email)
         formData.append("email", email);
-      if (phone && phone !== currentAdmin.phone)
+      if (phone && phone !== currentAdmin.phone && phone !== "-")
         formData.append("phoneNumber", phone);
       if (selectedFile) formData.append("profilePicture", selectedFile);
       if (Array.from(formData.keys()).length === 0) {
@@ -722,17 +754,7 @@ export default function AdminLayout({
 
   // 🔥 Restricted roles: hanya boleh mengakses beberapa area tertentu
   if (isRestricted) {
-    // 🔥 TAMBAHAN: kalau ada role CW, HANYA /admin/artikel yang boleh
-    // diakses — menang dibanding daftar allowedPaths restricted role lain.
-    const allowedPaths = roles.includes("cw")
-      ? ["/admin/artikel"]
-      : [
-          "/admin/elearning",
-          "/admin/artikel",
-          "/admin/produk-event",
-          "/admin/form-builder",
-          "/admin/form-respon",
-        ];
+    const allowedPaths = RESTRICTED_PATHS[activeRestrictedRole ?? ""] ?? [];
     const isAllowed = allowedPaths.some((path) => pathname.startsWith(path));
     if (!isAllowed) {
       return null; // Akan redirect oleh useEffect di atas
@@ -773,6 +795,21 @@ export default function AdminLayout({
                     return allowedMenus.has(item.name);
                   })
                   .map((item) => {
+                    // Batasi submenu sesuai role (mis. curdev → hanya Event)
+                    const childFilter =
+                      isRestricted && item.hasSubmenu
+                        ? allowedChildrenByRole[activeRestrictedRole ?? ""]?.[
+                            item.name
+                          ]
+                        : undefined;
+                    if (childFilter && item.hasSubmenu) {
+                      item = {
+                        ...item,
+                        children: item.children.filter((c) =>
+                          childFilter.includes(c.name),
+                        ),
+                      };
+                    }
                     const isActive =
                       !item.hasSubmenu &&
                       (pathname === item.href || pathname === item.href + "/");
@@ -965,7 +1002,7 @@ export default function AdminLayout({
       {/* ── Profile Dialog ───────────────────────────────────────────────── */}
       <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
         <DialogContent
-          className="sm:max-w-lg"
+          className="sm:max-w-md"
           onInteractOutside={(e) => e.preventDefault()}
         >
           <DialogHeader className="flex justify-between items-start">
@@ -973,71 +1010,52 @@ export default function AdminLayout({
             <DialogClose />
           </DialogHeader>
           <div className="border-b border-gray-200 my-1" />
-          <div>
-            <p className="text-sm font-medium text-gray-600 mb-2">Foto Admin</p>
-            <div className="w-full h-[180px] rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
+
+          {/* Foto: bulat, rasio 1:1, tidak ditarik/blur */}
+          <div className="flex flex-col items-center gap-2 py-2">
+            <div className="w-28 h-28 rounded-full overflow-hidden bg-gray-100 ring-2 ring-emerald-100 shrink-0">
               <Image
-                src={currentAdmin?.avatarUrl || "/default-avatar.png"}
+                src={currentAdmin?.avatarUrl || DEFAULT_AVATAR}
                 alt="Foto Admin"
-                width={400}
-                height={180}
+                width={112}
+                height={112}
                 unoptimized
                 className="object-cover w-full h-full"
               />
             </div>
-          </div>
-          <div className="mt-4 max-h-[200px] overflow-y-auto pr-1 scroll-thin">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="space-y-4">
-                <div className="min-w-0">
-                  <p className="text-[10px] font-medium text-gray-500">
-                    ID Admin
-                  </p>
-                  <p className="text-[11px] font-semibold text-gray-800 break-words">
-                    {currentAdmin?.id || "-"}
-                  </p>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] font-medium text-gray-500">
-                    No Telepon
-                  </p>
-                  <p className="text-[11px] font-semibold text-gray-800 break-words">
-                    {currentAdmin?.phone || "-"}
-                  </p>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] font-medium text-gray-500">Peran</p>
-                  <p className="text-[11px] font-semibold text-gray-800 break-words">
-                    {currentAdmin?.role || "Admin"}
-                  </p>
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div className="min-w-0">
-                  <p className="text-[10px] font-medium text-gray-500">
-                    Nama Lengkap
-                  </p>
-                  <p className="text-[11px] font-semibold text-gray-800 break-words">
-                    {currentAdmin?.fullName || "-"}
-                  </p>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] font-medium text-gray-500">Email</p>
-                  <p className="text-[11px] font-semibold text-gray-800 break-words">
-                    {currentAdmin?.email || "-"}
-                  </p>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] font-medium text-gray-500">
-                    Status Akun
-                  </p>
-                  <p className="text-[11px] font-semibold text-gray-800 break-words">
-                    {currentAdmin?.isActive ? "Aktif" : "Tidak Aktif"}
-                  </p>
-                </div>
-              </div>
+            <div className="text-center">
+              <p className="text-sm font-semibold text-gray-800">
+                {currentAdmin?.fullName || "-"}
+              </p>
+              <span className="inline-block mt-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-medium text-emerald-700">
+                {currentAdmin?.role || "Admin"}
+              </span>
             </div>
           </div>
+
+          <div className="grid grid-cols-2 gap-x-4 gap-y-3 mt-2">
+            {[
+              { label: "ID Admin", value: currentAdmin?.id || "-" },
+              { label: "Nama Lengkap", value: currentAdmin?.fullName || "-" },
+              { label: "No Telepon", value: currentAdmin?.phone || "-" },
+              { label: "Email", value: currentAdmin?.email || "-" },
+              { label: "Peran", value: currentAdmin?.role || "Admin" },
+              {
+                label: "Status Akun",
+                value: currentAdmin?.isActive ? "Aktif" : "Tidak Aktif",
+              },
+            ].map((f) => (
+              <div key={f.label} className="min-w-0">
+                <p className="text-[10px] font-medium text-gray-500">
+                  {f.label}
+                </p>
+                <p className="text-[11px] font-semibold text-gray-800 break-words">
+                  {f.value}
+                </p>
+              </div>
+            ))}
+          </div>
+
           <div className="mt-4">
             <Button
               onClick={() => {
@@ -1069,7 +1087,7 @@ export default function AdminLayout({
                 Foto Admin
               </p>
               <div className="flex items-center gap-4">
-                <div className="w-[80px] h-[80px] rounded-full overflow-hidden bg-gray-100">
+                <div className="w-[80px] h-[80px] rounded-full overflow-hidden bg-gray-100 shrink-0">
                   <Image
                     src={preview}
                     alt="Foto Admin"
@@ -1090,7 +1108,13 @@ export default function AdminLayout({
                     </Button>
                     <Button
                       variant="destructive"
-                      onClick={() => setPreview("/default-avatar.png")}
+                      disabled={saving}
+                      onClick={() => {
+                        setPreview(DEFAULT_AVATAR);
+                        setSelectedFile(null);
+                        if (fileInputRef.current)
+                          fileInputRef.current.value = "";
+                      }}
                     >
                       Hapus
                     </Button>
@@ -1108,7 +1132,7 @@ export default function AdminLayout({
                 onChange={handleFileChange}
               />
             </div>
-            <div className="grid grid-cols-2 gap-2 mt-3">
+            <div className="grid grid-cols-2 gap-3 mt-4">
               <div className="col-span-2">
                 <label className="text-[11px] font-medium text-gray-600">
                   Nama Lengkap
@@ -1117,7 +1141,7 @@ export default function AdminLayout({
                   type="text"
                   value={editFullName}
                   onChange={(e) => setEditFullName(e.target.value)}
-                  className="w-full mt-0.5 px-2 py-1.5 text-[11px] border rounded-md"
+                  className="w-full mt-0.5 px-2 py-1.5 text-[11px] border rounded-md focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                 />
               </div>
               <div className="col-span-2">
@@ -1128,7 +1152,7 @@ export default function AdminLayout({
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full mt-0.5 px-2 py-1.5 text-[11px] border rounded-md"
+                  className="w-full mt-0.5 px-2 py-1.5 text-[11px] border rounded-md focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                 />
               </div>
               <div className="col-span-2">
@@ -1139,7 +1163,7 @@ export default function AdminLayout({
                   type="text"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full mt-0.5 px-2 py-1.5 text-[11px] border rounded-md"
+                  className="w-full mt-0.5 px-2 py-1.5 text-[11px] border rounded-md focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                 />
               </div>
               <div>
@@ -1149,8 +1173,8 @@ export default function AdminLayout({
                 <input
                   type="text"
                   disabled
-                  value={currentAdmin?.role}
-                  className="w-full mt-1 px-3 py-2 border rounded-md text-[11px] bg-gray-100"
+                  value={currentAdmin?.role ?? ""}
+                  className="w-full mt-0.5 px-2 py-1.5 border rounded-md text-[11px] bg-gray-100 text-gray-500 cursor-not-allowed"
                 />
               </div>
               <div>
@@ -1161,7 +1185,7 @@ export default function AdminLayout({
                   type="text"
                   disabled
                   value={currentAdmin?.isActive ? "Aktif" : "Tidak Aktif"}
-                  className="w-full mt-1 px-3 py-2 border rounded-md text-[11px] bg-gray-100"
+                  className="w-full mt-0.5 px-2 py-1.5 border rounded-md text-[11px] bg-gray-100 text-gray-500 cursor-not-allowed"
                 />
               </div>
             </div>
