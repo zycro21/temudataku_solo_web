@@ -32,7 +32,7 @@ mencakup seluruh domain bisnis aplikasi, di antaranya:
   dan lain-lain.
 
 Per catatan terakhir, skema ini terdiri dari **135 model (tabel)** dan
-**31 enum**, dikelola dalam satu file `schema.prisma`.
+**32 enum**, dikelola dalam satu file `schema.prisma`.
 
 ## 3. Cakupan & Cara Membaca Dokumen Ini
 
@@ -54,21 +54,21 @@ konsisten, mencakup:
 
 ### Legenda
 
-| Simbol/Istilah | Arti |
-|---|---|
-| 🔑 PK | Primary Key |
-| 🔗 FK | Foreign Key (relasi ke tabel lain) |
-| `NOT NULL` | Kolom wajib diisi |
-| `nullable` | Kolom boleh kosong (`NULL`) |
-| `@default(...)` | Nilai default kalau tidak diisi saat insert |
-| `@unique` | Nilai di kolom ini harus unik se-tabel |
+| Simbol/Istilah      | Arti                                                                 |
+| ------------------- | -------------------------------------------------------------------- |
+| 🔑 PK               | Primary Key                                                          |
+| 🔗 FK               | Foreign Key (relasi ke tabel lain)                                   |
+| `NOT NULL`          | Kolom wajib diisi                                                    |
+| `nullable`          | Kolom boleh kosong (`NULL`)                                          |
+| `@default(...)`     | Nilai default kalau tidak diisi saat insert                          |
+| `@unique`           | Nilai di kolom ini harus unik se-tabel                               |
 | `onDelete: Cascade` | Kalau baris induk (parent) dihapus, baris ini ikut terhapus otomatis |
-| `onDelete: SetNull` | Kalau baris induk dihapus, kolom FK ini otomatis jadi `NULL` |
+| `onDelete: SetNull` | Kalau baris induk dihapus, kolom FK ini otomatis jadi `NULL`         |
 
 ## 4. Daftar Modul
 
-*(Tiap modul di bawah akan didokumentasikan tabel-per-tabel di bagian
-selanjutnya dari dokumen ini.)*
+_(Tiap modul di bawah akan didokumentasikan tabel-per-tabel di bagian
+selanjutnya dari dokumen ini.)_
 
 - [x] E-Learning
 - [x] Article
@@ -97,39 +97,39 @@ merujuk balik ke tabel ini untuk tahu "ini punya siapa".
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (custom) | 🔑 PK, `NOT NULL` | `custom` | `000004` | ID unik user, digenerate otomatis. |
-| `email` | VarChar | `NOT NULL`, `@unique` | - | `budi.santoso@email.com` | Alamat email; dipakai untuk login & identitas unik akun. |
-| `passwordHash` | VarChar | `nullable` | - | `$2b$10$abcdefghijklmnopqrstuv` | Hasil hashing password. `NULL` kalau user daftar/login lewat Google OAuth (tidak pernah set password manual). |
-| `googleId` | VarChar | `nullable`, `@unique` | - | `104829384756201938475` | ID akun Google. Terisi kalau user pernah login/daftar pakai "Sign in with Google". |
-| `fullName` | VarChar | `NOT NULL` | - | `Budi Santoso` | Nama lengkap user. |
-| `phoneNumber` | VarChar | `nullable` | - | `081234567890` | Nomor telepon/WhatsApp. |
-| `profilePicture` | VarChar | `nullable` | - | `https://lh3.googleusercontent.com/a/ACg8ocJIbX8aG8jQfSwR2wp-kwIFd10p-4MFP6w=s96-c` | Path atau nama file foto profil. |
-| `city` | VarChar | `nullable` | - | `Surabaya` | Kota domisili. |
-| `province` | VarChar | `nullable` | - | `Jawa Timur` | Provinsi domisili. |
-| `isEmailVerified` | Boolean | `nullable` | `false` | `true` | `false` = email belum diverifikasi, `true` = sudah. |
-| `verificationToken` | VarChar | `nullable` | - | `a1b2c3d4e5f6...` | Token yang dikirim ke email untuk proses verifikasi akun / reset password. |
-| `verificationTokenExpires` | Timestamp(6) | `nullable` | - | `2025-04-17T08:18:57.733Z` | Batas waktu berlakunya `verificationToken`. |
-| `registrationDate` | Timestamp(6) | `nullable` | `now()` | `2025-04-17T07:18:57.738Z` | Tanggal user pertama kali mendaftar. |
-| `lastLogin` | Timestamp(6) | `nullable` | - | `2026-03-16T07:00:00Z` | Waktu login terakhir tercatat. |
-| `isActive` | Boolean | `nullable` | `true` | `true` | **Lihat catatan khusus di bawah.** |
-| `fcmToken` | VarChar | `nullable` | - | `f7Xk...token...9dQ` | Firebase Cloud Messaging token - dipakai buat kirim push notification ke device user. |
-| `createdAt` | Timestamp(6) | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu baris ini pertama kali dibuat. |
-| `updatedAt` | Timestamp(6) | `nullable` | - | `2026-03-16T08:00:00Z` | Waktu baris ini terakhir diupdate. ⚠️ Tidak pakai `@updatedAt` bawaan Prisma, jadi kolom ini **tidak otomatis** ke-update - harus di-set manual di kode tiap kali ada perubahan. |
-| `instagram` | VarChar | `nullable` | - | `@temudataku` | Link/username Instagram. |
-| `twitter` | VarChar | `nullable` | - | `@temudataku` | Link/username Twitter/X. |
-| `youtube` | VarChar | `nullable` | - | `youtube.com/@temudataku` | Link/username YouTube. |
-| `tiktok` | VarChar | `nullable` | - | `@temudataku` | Link/username TikTok. |
-| `otherSocialMedia` | VarChar | `nullable` | - | `facebook.com/temudataku` | Link media sosial lain di luar 4 platform di atas. |
+| Kolom                      | Tipe Data       | Constraint            | Default  | Contoh Value                                                                        | Keterangan                                                                                                                                                                       |
+| -------------------------- | --------------- | --------------------- | -------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                       | String (custom) | 🔑 PK, `NOT NULL`     | `custom` | `000004`                                                                            | ID unik user, digenerate otomatis.                                                                                                                                               |
+| `email`                    | VarChar         | `NOT NULL`, `@unique` | -        | `budi.santoso@email.com`                                                            | Alamat email; dipakai untuk login & identitas unik akun.                                                                                                                         |
+| `passwordHash`             | VarChar         | `nullable`            | -        | `$2b$10$abcdefghijklmnopqrstuv`                                                     | Hasil hashing password. `NULL` kalau user daftar/login lewat Google OAuth (tidak pernah set password manual).                                                                    |
+| `googleId`                 | VarChar         | `nullable`, `@unique` | -        | `104829384756201938475`                                                             | ID akun Google. Terisi kalau user pernah login/daftar pakai "Sign in with Google".                                                                                               |
+| `fullName`                 | VarChar         | `NOT NULL`            | -        | `Budi Santoso`                                                                      | Nama lengkap user.                                                                                                                                                               |
+| `phoneNumber`              | VarChar         | `nullable`            | -        | `081234567890`                                                                      | Nomor telepon/WhatsApp.                                                                                                                                                          |
+| `profilePicture`           | VarChar         | `nullable`            | -        | `https://lh3.googleusercontent.com/a/ACg8ocJIbX8aG8jQfSwR2wp-kwIFd10p-4MFP6w=s96-c` | Path atau nama file foto profil.                                                                                                                                                 |
+| `city`                     | VarChar         | `nullable`            | -        | `Surabaya`                                                                          | Kota domisili.                                                                                                                                                                   |
+| `province`                 | VarChar         | `nullable`            | -        | `Jawa Timur`                                                                        | Provinsi domisili.                                                                                                                                                               |
+| `isEmailVerified`          | Boolean         | `nullable`            | `false`  | `true`                                                                              | `false` = email belum diverifikasi, `true` = sudah.                                                                                                                              |
+| `verificationToken`        | VarChar         | `nullable`            | -        | `a1b2c3d4e5f6...`                                                                   | Token yang dikirim ke email untuk proses verifikasi akun / reset password.                                                                                                       |
+| `verificationTokenExpires` | Timestamp(6)    | `nullable`            | -        | `2025-04-17T08:18:57.733Z`                                                          | Batas waktu berlakunya `verificationToken`.                                                                                                                                      |
+| `registrationDate`         | Timestamp(6)    | `nullable`            | `now()`  | `2025-04-17T07:18:57.738Z`                                                          | Tanggal user pertama kali mendaftar.                                                                                                                                             |
+| `lastLogin`                | Timestamp(6)    | `nullable`            | -        | `2026-03-16T07:00:00Z`                                                              | Waktu login terakhir tercatat.                                                                                                                                                   |
+| `isActive`                 | Boolean         | `nullable`            | `true`   | `true`                                                                              | **Lihat catatan khusus di bawah.**                                                                                                                                               |
+| `fcmToken`                 | VarChar         | `nullable`            | -        | `f7Xk...token...9dQ`                                                                | Firebase Cloud Messaging token - dipakai buat kirim push notification ke device user.                                                                                            |
+| `createdAt`                | Timestamp(6)    | `nullable`            | `now()`  | `2026-03-15T10:30:00Z`                                                              | Waktu baris ini pertama kali dibuat.                                                                                                                                             |
+| `updatedAt`                | Timestamp(6)    | `nullable`            | -        | `2026-03-16T08:00:00Z`                                                              | Waktu baris ini terakhir diupdate. ⚠️ Tidak pakai `@updatedAt` bawaan Prisma, jadi kolom ini **tidak otomatis** ke-update - harus di-set manual di kode tiap kali ada perubahan. |
+| `instagram`                | VarChar         | `nullable`            | -        | `@temudataku`                                                                       | Link/username Instagram.                                                                                                                                                         |
+| `twitter`                  | VarChar         | `nullable`            | -        | `@temudataku`                                                                       | Link/username Twitter/X.                                                                                                                                                         |
+| `youtube`                  | VarChar         | `nullable`            | -        | `youtube.com/@temudataku`                                                           | Link/username YouTube.                                                                                                                                                           |
+| `tiktok`                   | VarChar         | `nullable`            | -        | `@temudataku`                                                                       | Link/username TikTok.                                                                                                                                                            |
+| `otherSocialMedia`         | VarChar         | `nullable`            | -        | `facebook.com/temudataku`                                                           | Link media sosial lain di luar 4 platform di atas.                                                                                                                               |
 
 #### Primary Key & Foreign Key
 
 - 🔑 **PK**: `id`
-- 🔗 **FK**: *(tidak ada)* - `users` adalah tabel induk. Semua kolom
+- 🔗 **FK**: _(tidak ada)_ - `users` adalah tabel induk. Semua kolom
   relasi yang tercantum di model Prisma-nya (`bookings`, `certificates`,
   `eLearningSubscriptions`, dst.) adalah **relasi balik** (reverse
-  relation) - FK-nya justru ada di tabel-tabel *lain* yang menunjuk ke
+  relation) - FK-nya justru ada di tabel-tabel _lain_ yang menunjuk ke
   `users.id`, bukan kolom fisik di tabel `users` sendiri.
 
 #### 📌 Catatan Makna Nilai: `isActive`
@@ -149,25 +149,25 @@ Kolom ini berfungsi sebagai **flag aktif/nonaktif akun**
 Daftar tabel yang mereferensikan `users.id` (akan didokumentasikan
 detail satu per satu di bagian selanjutnya):
 
-| Modul | Tabel Terkait |
-|---|---|
-| Admin | `AdminActivityLog` |
-| Mentoring/Booking | `Booking`, `BookingParticipant` |
-| Sertifikat (mentoring) | `Certificate` |
-| Feedback | `Feedback` |
-| Mentor | `MentorProfile` (1:1) |
-| Notifikasi | `NotificationRecipient` |
-| Practice | `PracticeProgress`, `PracticePurchase`, `PracticeReview`, `PracticeSubmission` (sbg mentee & reviewer), `ProjectSubmission` (sbg mentee & grader) |
-| Affiliator/Referral | `ReferralCode`, `ReferralUsage`, `AffiliatorProfile` (1:1), `WithdrawalMethod` |
-| Aktivitas | `UserActivityLog`, `UserBehavior` |
-| Role | `UserRole` |
-| Short Link | `ShortLink` |
-| E-Learning | `ELearningSubscription`, `ELearningReview`, `ELearningProgress`, `ELearningSubChapterProgress`, `ELearningBlockProgress`, `ELearningTextProgress`, `ELearningQuizAttempt`, `ELearningSubmission` (sbg pengumpul & reviewer), `ELearningCertificate`, `ELearningDiscussion`, `ELearningBookmark`, `ELearningCodeRun`, `ELearningAuditLog`, `ELearningCourseStreamCount` |
-| AYCL | `AYCLBooking` |
-| Voucher | `Voucher` (sbg pembuat), `VoucherUsage` |
-| Redeem Code | `RedeemCode` (sbg pembuat), `RedeemCodeUsage`, `RedeemCodeAttempt` |
-| Article | `Article`, `ArticleElementFavorite`, `ArticleLike`, `ArticleComment`, `ArticleCommentLike` |
-| Form | `Form` (sbg pembuat), `FormCategory` (sbg pembuat jenis form, nullable), `FormResponse` (sbg responder, nullable - bisa anonim) |
+| Modul                  | Tabel Terkait                                                                                                                                                                                                                                                                                                                                                          |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Admin                  | `AdminActivityLog`                                                                                                                                                                                                                                                                                                                                                     |
+| Mentoring/Booking      | `Booking`, `BookingParticipant`                                                                                                                                                                                                                                                                                                                                        |
+| Sertifikat (mentoring) | `Certificate`                                                                                                                                                                                                                                                                                                                                                          |
+| Feedback               | `Feedback`                                                                                                                                                                                                                                                                                                                                                             |
+| Mentor                 | `MentorProfile` (1:1)                                                                                                                                                                                                                                                                                                                                                  |
+| Notifikasi             | `NotificationRecipient`                                                                                                                                                                                                                                                                                                                                                |
+| Practice               | `PracticeProgress`, `PracticePurchase`, `PracticeReview`, `PracticeSubmission` (sbg mentee & reviewer), `ProjectSubmission` (sbg mentee & grader)                                                                                                                                                                                                                      |
+| Affiliator/Referral    | `ReferralCode`, `ReferralUsage`, `AffiliatorProfile` (1:1), `WithdrawalMethod`                                                                                                                                                                                                                                                                                         |
+| Aktivitas              | `UserActivityLog`, `UserBehavior`                                                                                                                                                                                                                                                                                                                                      |
+| Role                   | `UserRole`                                                                                                                                                                                                                                                                                                                                                             |
+| Short Link             | `ShortLink`                                                                                                                                                                                                                                                                                                                                                            |
+| E-Learning             | `ELearningSubscription`, `ELearningReview`, `ELearningProgress`, `ELearningSubChapterProgress`, `ELearningBlockProgress`, `ELearningTextProgress`, `ELearningQuizAttempt`, `ELearningSubmission` (sbg pengumpul & reviewer), `ELearningCertificate`, `ELearningDiscussion`, `ELearningBookmark`, `ELearningCodeRun`, `ELearningAuditLog`, `ELearningCourseStreamCount` |
+| AYCL                   | `AYCLBooking`                                                                                                                                                                                                                                                                                                                                                          |
+| Voucher                | `Voucher` (sbg pembuat), `VoucherUsage`                                                                                                                                                                                                                                                                                                                                |
+| Redeem Code            | `RedeemCode` (sbg pembuat), `RedeemCodeUsage`, `RedeemCodeAttempt`                                                                                                                                                                                                                                                                                                     |
+| Article                | `Article`, `ArticleElementFavorite`, `ArticleLike`, `ArticleComment`, `ArticleCommentLike`                                                                                                                                                                                                                                                                             |
+| Form                   | `Form` (sbg pembuat), `FormCategory` (sbg pembuat jenis form, nullable), `FormResponse` (sbg responder, nullable - bisa anonim)                                                                                                                                                                                                                                        |
 
 ---
 
@@ -183,13 +183,13 @@ User↔Role tidak bisa langsung disimpan sebagai satu kolom di tabel
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (custom) | 🔑 PK, `NOT NULL` | `custom` | `caffiliator-U6hbhm8LjH` | ID unik baris penugasan role. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000009` | Menunjuk ke `users.id` - user mana yang dapat role ini. |
-| `roleId` | String | `NOT NULL`, 🔗 FK | - | `3` | Menunjuk ke `roles.id` - role apa yang diberikan. |
-| `assignedDate` | Timestamp(6) | `nullable` | `now()` | `2025-09-29T03:04:58.477Z` | Tanggal role ini diberikan ke user. |
-| `createdAt` | Timestamp(6) | `nullable` | `now()` | `2026-07-25T18:50:36.233Z` | Waktu baris ini dibuat (biasanya sama dengan `assignedDate`). |
+| Kolom          | Tipe Data       | Constraint        | Default  | Contoh Value               | Keterangan                                                    |
+| -------------- | --------------- | ----------------- | -------- | -------------------------- | ------------------------------------------------------------- |
+| `id`           | String (custom) | 🔑 PK, `NOT NULL` | `custom` | `caffiliator-U6hbhm8LjH`   | ID unik baris penugasan role.                                 |
+| `userId`       | String          | `NOT NULL`, 🔗 FK | -        | `000009`                   | Menunjuk ke `users.id` - user mana yang dapat role ini.       |
+| `roleId`       | String          | `NOT NULL`, 🔗 FK | -        | `3`                        | Menunjuk ke `roles.id` - role apa yang diberikan.             |
+| `assignedDate` | Timestamp(6)    | `nullable`        | `now()`  | `2025-09-29T03:04:58.477Z` | Tanggal role ini diberikan ke user.                           |
+| `createdAt`    | Timestamp(6)    | `nullable`        | `now()`  | `2026-07-25T18:50:36.233Z` | Waktu baris ini dibuat (biasanya sama dengan `assignedDate`). |
 
 #### Primary Key & Foreign Key
 
@@ -220,17 +220,17 @@ user.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String | 🔑 PK, `NOT NULL` | `custom` | `1` | ID unik role. |
-| `roleName` | VarChar | `NOT NULL`, `@unique` | - | `mentor` | Nama role, mis. `admin`, `mentor`, `mentee`, dll. |
-| `description` | Text | `nullable` | - | `Deskripsi singkat mengenai konten ini.` | Deskripsi/keterangan role, buat referensi tim (bukan dipakai logic). |
-| `createdAt` | Timestamp(6) | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu role ini dibuat. |
+| Kolom         | Tipe Data    | Constraint            | Default  | Contoh Value                             | Keterangan                                                           |
+| ------------- | ------------ | --------------------- | -------- | ---------------------------------------- | -------------------------------------------------------------------- |
+| `id`          | String       | 🔑 PK, `NOT NULL`     | `custom` | `1`                                      | ID unik role.                                                        |
+| `roleName`    | VarChar      | `NOT NULL`, `@unique` | -        | `mentor`                                 | Nama role, mis. `admin`, `mentor`, `mentee`, dll.                    |
+| `description` | Text         | `nullable`            | -        | `Deskripsi singkat mengenai konten ini.` | Deskripsi/keterangan role, buat referensi tim (bukan dipakai logic). |
+| `createdAt`   | Timestamp(6) | `nullable`            | `now()`  | `2026-03-15T10:30:00Z`                   | Waktu role ini dibuat.                                               |
 
 #### Primary Key & Foreign Key
 
 - 🔑 **PK**: `id`
-- 🔗 **FK**: *(tidak ada)* - `roles` adalah tabel master, tidak
+- 🔗 **FK**: _(tidak ada)_ - `roles` adalah tabel master, tidak
   bergantung ke tabel lain manapun.
 
 #### 📌 Catatan
@@ -239,7 +239,7 @@ Kolom `roleName` **tidak dibatasi lewat `enum` di level database** -
 cuma `VarChar` biasa, jadi nilai apa pun bisa dimasukkan lewat baris
 data, tidak ada validasi di level skema. Berdasarkan pemakaian
 `authorizeRoles(...)` yang pernah kita temui di kode backend (bukan dari
-schema ini),  nilai yang dipakai di aplikasi antara lain:
+schema ini), nilai yang dipakai di aplikasi antara lain:
 `admin`, `mentor`, `mentee`, `cm`, `curdev`, `guest`, `cw`.
 
 ---
@@ -263,16 +263,16 @@ bernama `AdminActivityLog`, tapi tabel fisiknya `activity_logs` (tanpa kata
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl2cb62936682ba6e1904e86` | ID unik baris log. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000001` | User yang melakukan aksi. |
-| `action` | VarChar | `NOT NULL` | - | `GET_ALL_PAYMENTS` | Nama aksi (freetext), contoh dari komentar developer: `LOGIN`, `CREATE_SERVICE`, `UPDATE_PROFILE`. |
-| `description` | Text | `nullable` | - | `Admin mengambil daftar booking dengan filter: status=-, menteeName=-, page=1.` | Detail tambahan aksi. |
-| `ipAddress` | VarChar | `nullable` | - | `103.10.24.5` | Alamat IP user saat aksi dilakukan. |
-| `userAgent` | VarChar | `nullable` | - | `PostmanRuntime/7.49.1` | Info browser/perangkat. |
-| `type` | VarChar | `nullable` | - | `READ` | Freetext, contoh dari komentar: `READ`, `EXPORT`, `UPDATE`, `AUTH`, dll. |
-| `createdAt` | DateTime | `NOT NULL` | `now()` | `2026-03-15T10:30:00Z` | Waktu aksi terjadi. |
+| Kolom         | Tipe Data     | Constraint        | Default  | Contoh Value                                                                    | Keterangan                                                                                         |
+| ------------- | ------------- | ----------------- | -------- | ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `id`          | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl2cb62936682ba6e1904e86`                                                      | ID unik baris log.                                                                                 |
+| `userId`      | String        | `NOT NULL`, 🔗 FK | -        | `000001`                                                                        | User yang melakukan aksi.                                                                          |
+| `action`      | VarChar       | `NOT NULL`        | -        | `GET_ALL_PAYMENTS`                                                              | Nama aksi (freetext), contoh dari komentar developer: `LOGIN`, `CREATE_SERVICE`, `UPDATE_PROFILE`. |
+| `description` | Text          | `nullable`        | -        | `Admin mengambil daftar booking dengan filter: status=-, menteeName=-, page=1.` | Detail tambahan aksi.                                                                              |
+| `ipAddress`   | VarChar       | `nullable`        | -        | `103.10.24.5`                                                                   | Alamat IP user saat aksi dilakukan.                                                                |
+| `userAgent`   | VarChar       | `nullable`        | -        | `PostmanRuntime/7.49.1`                                                         | Info browser/perangkat.                                                                            |
+| `type`        | VarChar       | `nullable`        | -        | `READ`                                                                          | Freetext, contoh dari komentar: `READ`, `EXPORT`, `UPDATE`, `AUTH`, dll.                           |
+| `createdAt`   | DateTime      | `NOT NULL`        | `now()`  | `2026-03-15T10:30:00Z`                                                          | Waktu aksi terjadi.                                                                                |
 
 #### Primary Key & Foreign Key
 
@@ -284,7 +284,7 @@ bernama `AdminActivityLog`, tapi tabel fisiknya `activity_logs` (tanpa kata
 `action` dan `type` dua-duanya freetext `VarChar` tanpa enum, dan dari
 contoh nilainya terlihat **saling tumpang tindih secara konsep** (`action`
 berisi istilah level-sistem seperti `LOGIN`, sementara `type` berisi
-istilah level-interaksi seperti `join`/`upload`) -  penggunaan
+istilah level-interaksi seperti `join`/`upload`) - penggunaan
 kedua kolom ini di kode aplikasi tidak sepenuhnya konsisten (mis. tidak
 semua baris log mengisi keduanya sekaligus). Tidak ada index tambahan
 selain PK/FK di tabel ini, jadi query log berdasarkan rentang waktu atau
@@ -300,13 +300,13 @@ dibuka dan berapa lama.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (custom) | 🔑 PK, `NOT NULL` | `custom()` | `log_1760367016723_ZKoyOr` | ID unik baris log. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000016` | User yang mengunjungi halaman. |
-| `page` | String | `NOT NULL` | - | `/dashboard/mentor/services/project` | Halaman yang dikunjungi (freetext,  path/URL). |
-| `durationSec` | Int | `NOT NULL` | `0` | `45` | Lama waktu di halaman tersebut (detik). |
-| `accessedAt` | DateTime | `NOT NULL` | `now()` | `2026-03-16T07:45:00Z` | Waktu halaman diakses. |
+| Kolom         | Tipe Data       | Constraint        | Default    | Contoh Value                         | Keterangan                                    |
+| ------------- | --------------- | ----------------- | ---------- | ------------------------------------ | --------------------------------------------- |
+| `id`          | String (custom) | 🔑 PK, `NOT NULL` | `custom()` | `log_1760367016723_ZKoyOr`           | ID unik baris log.                            |
+| `userId`      | String          | `NOT NULL`, 🔗 FK | -          | `000016`                             | User yang mengunjungi halaman.                |
+| `page`        | String          | `NOT NULL`        | -          | `/dashboard/mentor/services/project` | Halaman yang dikunjungi (freetext, path/URL). |
+| `durationSec` | Int             | `NOT NULL`        | `0`        | `45`                                 | Lama waktu di halaman tersebut (detik).       |
+| `accessedAt`  | DateTime        | `NOT NULL`        | `now()`    | `2026-03-16T07:45:00Z`               | Waktu halaman diakses.                        |
 
 #### Primary Key & Foreign Key
 
@@ -317,7 +317,7 @@ dibuka dan berapa lama.
 
 Mirip fungsinya dengan `user_behavior` (5.3c) di bawah, tapi `userId` di
 sini **wajib diisi** (`NOT NULL`) - beda dari `user_behavior.userId` yang
-nullable (bisa mencatat pengunjung anonim/belum login). 
+nullable (bisa mencatat pengunjung anonim/belum login).
 `user_activity_logs` khusus untuk user yang sudah login, sementara
 `user_behavior` mencakup semua pengunjung termasuk yang belum login.
 
@@ -332,16 +332,16 @@ seperti `activity_logs` (5.3a).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl762855b3f62c1a860ee698` | ID unik baris log. |
-| `userId` | String | `nullable`, 🔗 FK | - | `000008` | User terkait - **nullable**, jadi bisa mencatat pengunjung yang belum login. |
-| `pageVisited` | VarChar | `NOT NULL` | - | `/dashboard` | Halaman yang dikunjungi. |
-| `action` | VarChar | `nullable` | - | `enroll_course` | Aksi yang dilakukan di halaman tersebut (freetext). |
-| `timestamp` | Timestamp(6) | `nullable` | `now()` | `2026-03-16T07:45:00Z` | Waktu kejadian. |
-| `ipAddress` | VarChar | `nullable` | - | `103.10.24.5` | Alamat IP pengunjung. |
-| `userAgent` | VarChar | `nullable` | - | `Mozilla/5.0 (Windows NT 10.0; Win64; x64)` | Info browser/perangkat. |
-| `createdAt` | Timestamp(6) | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu baris dibuat. |
+| Kolom         | Tipe Data     | Constraint        | Default  | Contoh Value                                | Keterangan                                                                   |
+| ------------- | ------------- | ----------------- | -------- | ------------------------------------------- | ---------------------------------------------------------------------------- |
+| `id`          | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl762855b3f62c1a860ee698`                  | ID unik baris log.                                                           |
+| `userId`      | String        | `nullable`, 🔗 FK | -        | `000008`                                    | User terkait - **nullable**, jadi bisa mencatat pengunjung yang belum login. |
+| `pageVisited` | VarChar       | `NOT NULL`        | -        | `/dashboard`                                | Halaman yang dikunjungi.                                                     |
+| `action`      | VarChar       | `nullable`        | -        | `enroll_course`                             | Aksi yang dilakukan di halaman tersebut (freetext).                          |
+| `timestamp`   | Timestamp(6)  | `nullable`        | `now()`  | `2026-03-16T07:45:00Z`                      | Waktu kejadian.                                                              |
+| `ipAddress`   | VarChar       | `nullable`        | -        | `103.10.24.5`                               | Alamat IP pengunjung.                                                        |
+| `userAgent`   | VarChar       | `nullable`        | -        | `Mozilla/5.0 (Windows NT 10.0; Win64; x64)` | Info browser/perangkat.                                                      |
+| `createdAt`   | Timestamp(6)  | `nullable`        | `now()`  | `2026-03-15T10:30:00Z`                      | Waktu baris dibuat.                                                          |
 
 #### Primary Key & Foreign Key
 
@@ -354,7 +354,7 @@ Tabel ini, `activity_logs` (5.3a), dan `user_activity_logs` (5.3b)
 bersama-sama membentuk **3 sistem logging yang tumpang tindih** dan
 sepertinya dibangun secara terpisah di waktu yang berbeda (nama tabel/
 kolomnya juga tidak seragam - `pageVisited` di sini vs `page` di 5.3b,
-`timestamp`/`createdAt` dua-duanya ada di sini padahal isinya 
+`timestamp`/`createdAt` dua-duanya ada di sini padahal isinya
 sama). Ketiganya sama-sama punya kolom IP/user-agent kecuali 5.3b. Perlu
 dicek ke kode aplikasi mana yang benar-benar masih dipakai aktif sebelum
 mengandalkan salah satunya untuk analitik.
@@ -369,19 +369,19 @@ mentor). Ini tabel "hub" untuk sisi mentor.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (custom) | 🔑 PK, `NOT NULL` | `Mentor-....` | `Mentor-000002` | ID unik profil mentor. |
-| `userId` | String | `NOT NULL`, `@unique`, 🔗 FK | - | `000011` | Menunjuk ke `users.id`. `@unique` di sini yang bikin relasinya 1:1 (bukan 1:banyak). |
-| `expertise` | Text | `nullable` | - | `Data Science, Machine Learning` | Bidang keahlian mentor (mis. "Data Science", "Machine Learning"). |
-| `bio` | Text | `nullable` | - | `Data scientist dengan 5 tahun pengalaman.` | Deskripsi/bio singkat mentor. |
-| `experience` | Text | `nullable` | - | `5 tahun ` | Pengalaman kerja/mengajar mentor. |
-| `availabilitySchedule` | JSONB | `nullable` | - | `{"tuesday":["10.00 - 12.00","15.00 - 17.00"],"saturday":["13.00 - 15.00"],"thursday":["09.00 - 11.00"]}` | Jadwal ketersediaan mentor. Strukturnya bebas (JSON). |
-| `hourlyRate` | Decimal | `nullable` | - | `200` | Tarif per jam mentor. |
-| `isVerified` | Boolean | `nullable` | `false` | `true` |  status "sudah diverifikasi admin" - `false` = belum diverifikasi (belum boleh tampil publik/terima booking?), `true` = sudah. |
-| `linkedin` | Text | `nullable` | - | `https://www.linkedin.com/in/mochamaddimasputrahermawan` | Link profil LinkedIn mentor. |
-| `createdAt` | Timestamp(6) | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu profil dibuat. |
-| `updatedAt` | Timestamp(6) | `nullable` | - | `2026-03-16T08:00:00Z` | Waktu terakhir diupdate. Tidak pakai `@updatedAt`, jadi tidak auto-update. |
+| Kolom                  | Tipe Data       | Constraint                   | Default       | Contoh Value                                                                                              | Keterangan                                                                                                                    |
+| ---------------------- | --------------- | ---------------------------- | ------------- | --------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `id`                   | String (custom) | 🔑 PK, `NOT NULL`            | `Mentor-....` | `Mentor-000002`                                                                                           | ID unik profil mentor.                                                                                                        |
+| `userId`               | String          | `NOT NULL`, `@unique`, 🔗 FK | -             | `000011`                                                                                                  | Menunjuk ke `users.id`. `@unique` di sini yang bikin relasinya 1:1 (bukan 1:banyak).                                          |
+| `expertise`            | Text            | `nullable`                   | -             | `Data Science, Machine Learning`                                                                          | Bidang keahlian mentor (mis. "Data Science", "Machine Learning").                                                             |
+| `bio`                  | Text            | `nullable`                   | -             | `Data scientist dengan 5 tahun pengalaman.`                                                               | Deskripsi/bio singkat mentor.                                                                                                 |
+| `experience`           | Text            | `nullable`                   | -             | `5 tahun `                                                                                                | Pengalaman kerja/mengajar mentor.                                                                                             |
+| `availabilitySchedule` | JSONB           | `nullable`                   | -             | `{"tuesday":["10.00 - 12.00","15.00 - 17.00"],"saturday":["13.00 - 15.00"],"thursday":["09.00 - 11.00"]}` | Jadwal ketersediaan mentor. Strukturnya bebas (JSON).                                                                         |
+| `hourlyRate`           | Decimal         | `nullable`                   | -             | `200`                                                                                                     | Tarif per jam mentor.                                                                                                         |
+| `isVerified`           | Boolean         | `nullable`                   | `false`       | `true`                                                                                                    | status "sudah diverifikasi admin" - `false` = belum diverifikasi (belum boleh tampil publik/terima booking?), `true` = sudah. |
+| `linkedin`             | Text            | `nullable`                   | -             | `https://www.linkedin.com/in/mochamaddimasputrahermawan`                                                  | Link profil LinkedIn mentor.                                                                                                  |
+| `createdAt`            | Timestamp(6)    | `nullable`                   | `now()`       | `2026-03-15T10:30:00Z`                                                                                    | Waktu profil dibuat.                                                                                                          |
+| `updatedAt`            | Timestamp(6)    | `nullable`                   | -             | `2026-03-16T08:00:00Z`                                                                                    | Waktu terakhir diupdate. Tidak pakai `@updatedAt`, jadi tidak auto-update.                                                    |
 
 #### Primary Key & Foreign Key
 
@@ -405,19 +405,19 @@ peserta di sesi ini".
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl8e9375e382022f41f5cb73` | ID unik laporan. |
-| `sessionId` | String | `NOT NULL`, 🔗 FK | - | `cl1e208481c9d2435e707c90` | Menunjuk ke `mentoring_sessions.id`. |
-| `mentorProfileId` | String | `NOT NULL`, 🔗 FK | - | `cld37ab94293c5c322214c71` | Menunjuk ke `mentor_profiles.id` - mentor yang menulis laporan. |
-| `understanding` | Text | `nullable` | - | `Cukup baik, perlu latihan lebih banyak.` | Catatan tingkat pemahaman peserta. |
-| `participation` | Text | `nullable` | - | `Aktif bertanya dan mengerjakan tugas.` | Catatan keaktifan/partisipasi peserta. |
-| `challenges` | Text | `nullable` | - | `Membersihkan dataset yang berantakan.` | Kendala yang ditemui selama sesi. |
-| `commonQuestions` | Text | `nullable` | - | `Apakah cocok untuk pemula?` | Pertanyaan yang sering muncul dari peserta. |
-| `nextFocus` | Text | `nullable` | - | `Latihan studi kasus regresi logistik.` | Rencana fokus untuk sesi berikutnya. |
-| `additionalNotes` | Text | `nullable` | - | `Mentee disarankan ikut sesi tambahan.` | Catatan tambahan bebas. |
-| `createdAt` | DateTime | `NOT NULL` | `now()` | `2026-03-15T10:30:00Z` | Waktu laporan dibuat. |
-| `updatedAt` | DateTime | `NOT NULL` | auto | `2026-03-16T08:00:00Z` | Pakai `@updatedAt` - **otomatis** ter-update Prisma tiap ada perubahan baris (beda dari kebanyakan tabel lain di skema ini yang harus di-set manual). |
+| Kolom             | Tipe Data     | Constraint        | Default  | Contoh Value                              | Keterangan                                                                                                                                            |
+| ----------------- | ------------- | ----------------- | -------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`              | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl8e9375e382022f41f5cb73`                | ID unik laporan.                                                                                                                                      |
+| `sessionId`       | String        | `NOT NULL`, 🔗 FK | -        | `cl1e208481c9d2435e707c90`                | Menunjuk ke `mentoring_sessions.id`.                                                                                                                  |
+| `mentorProfileId` | String        | `NOT NULL`, 🔗 FK | -        | `cld37ab94293c5c322214c71`                | Menunjuk ke `mentor_profiles.id` - mentor yang menulis laporan.                                                                                       |
+| `understanding`   | Text          | `nullable`        | -        | `Cukup baik, perlu latihan lebih banyak.` | Catatan tingkat pemahaman peserta.                                                                                                                    |
+| `participation`   | Text          | `nullable`        | -        | `Aktif bertanya dan mengerjakan tugas.`   | Catatan keaktifan/partisipasi peserta.                                                                                                                |
+| `challenges`      | Text          | `nullable`        | -        | `Membersihkan dataset yang berantakan.`   | Kendala yang ditemui selama sesi.                                                                                                                     |
+| `commonQuestions` | Text          | `nullable`        | -        | `Apakah cocok untuk pemula?`              | Pertanyaan yang sering muncul dari peserta.                                                                                                           |
+| `nextFocus`       | Text          | `nullable`        | -        | `Latihan studi kasus regresi logistik.`   | Rencana fokus untuk sesi berikutnya.                                                                                                                  |
+| `additionalNotes` | Text          | `nullable`        | -        | `Mentee disarankan ikut sesi tambahan.`   | Catatan tambahan bebas.                                                                                                                               |
+| `createdAt`       | DateTime      | `NOT NULL`        | `now()`  | `2026-03-15T10:30:00Z`                    | Waktu laporan dibuat.                                                                                                                                 |
+| `updatedAt`       | DateTime      | `NOT NULL`        | auto     | `2026-03-16T08:00:00Z`                    | Pakai `@updatedAt` - **otomatis** ter-update Prisma tiap ada perubahan baris (beda dari kebanyakan tabel lain di skema ini yang harus di-set manual). |
 
 #### Primary Key & Foreign Key
 
@@ -446,38 +446,38 @@ sesi-sesinya.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (custom) | 🔑 PK, `NOT NULL` | `(type mentoringservice)-....` | `bootcamp-000003` | ID unik program. |
-| `serviceName` | VarChar | `NOT NULL` | - | `Data Science Bootcamp` | Nama program mentoring. |
-| `description` | Text | `nullable` | - | `Deskripsi singkat mengenai konten ini.` | Deskripsi program. |
-| `price` | Decimal | `NOT NULL` | - | `150000` | Harga jual program. |
-| `strikePrice` | Decimal | `nullable` | - | `300000` | "Harga coret" - harga asal sebelum diskon, ditampilkan dicoret di UI |
-| `serviceType` | VarChar | `nullable` | - | `(freetext)` | Jenis/kategori layanan (nilai bebas, tidak di-enum). |
-| `maxParticipants` | Int | `nullable` | - | `30` | Kapasitas maksimal peserta. |
-| `durationDays` | Int | `NOT NULL` | - | `30` | Lama program berjalan (hari). |
-| `startDate` | Timestamp | `nullable` | - | `22026-05-06T00:00:00.000Z` | Tanggal mulai program. |
-| `endDate` | Timestamp | `nullable` | - | `2026-05-06T00:00:00.000Z` | Tanggal selesai program. |
-| `thumbnail` | VarChar | `nullable` | - | `/images/mentoringThumbnail/thumbnail-mentoring-mentoring-20260626-jnply.jpg` | Path/nama file gambar thumbnail. |
-| `whatsappGroup` | VarChar | `nullable` | - | `https://chat.whatsapp.com/AbCdEfGhIj` | Link grup WhatsApp untuk peserta program ini. |
-| `programAbout` | Text | `nullable` | - | `Program mentoring intensif 8 minggu.` | Ringkasan "tentang program". |
-| `totalWeeks` | Int | `nullable` | - | `8` | Total durasi program dalam minggu. |
-| `totalProjects` | Int | `nullable` | - | `4` | Total jumlah project dalam program. |
-| `slug` | VarChar | `nullable`, `@unique` | - | `belajar-python-untuk-pemula` | Slug URL untuk halaman detail program. |
-| `isFeatured` | Boolean | `NOT NULL` | `false` | `true` | `true` = program ditandai unggulan/ditampilkan menonjol di listing. |
-| `difficultyOrder` | Int | `nullable` | - | `1` | Angka urutan untuk sorting berdasarkan tingkat kesulitan. |
-| `category` | VarChar | `nullable` | - | `Data Science` | Kategori program. |
-| `level` | VarChar | `nullable` | - | `Intermediate` | Level kesulitan (nilai bebas, tidak di-enum). |
-| `isActive` | Boolean | `nullable` | `true` | `true` |  toggle publish/tayang - `false` = program disembunyikan dari listing publik, `true` = tampil. *(pola sama seperti `isActive` di `users` |
-| `installmentAvailable` | Boolean | `NOT NULL` | `false` | `true` | `true` = program ini bisa dibayar dengan cicilan. |
-| `maxInstallmentMonths` | Int | `nullable` | - | `3` | Jumlah bulan cicilan maksimal, kalau `installmentAvailable` true. |
-| `createdAt` | Timestamp | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | Timestamp | `nullable` | - | `2026-03-16T08:00:00Z` | Waktu terakhir diupdate (tidak auto). |
+| Kolom                  | Tipe Data       | Constraint            | Default                        | Contoh Value                                                                  | Keterangan                                                                                                                               |
+| ---------------------- | --------------- | --------------------- | ------------------------------ | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                   | String (custom) | 🔑 PK, `NOT NULL`     | `(type mentoringservice)-....` | `bootcamp-000003`                                                             | ID unik program.                                                                                                                         |
+| `serviceName`          | VarChar         | `NOT NULL`            | -                              | `Data Science Bootcamp`                                                       | Nama program mentoring.                                                                                                                  |
+| `description`          | Text            | `nullable`            | -                              | `Deskripsi singkat mengenai konten ini.`                                      | Deskripsi program.                                                                                                                       |
+| `price`                | Decimal         | `NOT NULL`            | -                              | `150000`                                                                      | Harga jual program.                                                                                                                      |
+| `strikePrice`          | Decimal         | `nullable`            | -                              | `300000`                                                                      | "Harga coret" - harga asal sebelum diskon, ditampilkan dicoret di UI                                                                     |
+| `serviceType`          | VarChar         | `nullable`            | -                              | `(freetext)`                                                                  | Jenis/kategori layanan (nilai bebas, tidak di-enum).                                                                                     |
+| `maxParticipants`      | Int             | `nullable`            | -                              | `30`                                                                          | Kapasitas maksimal peserta.                                                                                                              |
+| `durationDays`         | Int             | `NOT NULL`            | -                              | `30`                                                                          | Lama program berjalan (hari).                                                                                                            |
+| `startDate`            | Timestamp       | `nullable`            | -                              | `22026-05-06T00:00:00.000Z`                                                   | Tanggal mulai program.                                                                                                                   |
+| `endDate`              | Timestamp       | `nullable`            | -                              | `2026-05-06T00:00:00.000Z`                                                    | Tanggal selesai program.                                                                                                                 |
+| `thumbnail`            | VarChar         | `nullable`            | -                              | `/images/mentoringThumbnail/thumbnail-mentoring-mentoring-20260626-jnply.jpg` | Path/nama file gambar thumbnail.                                                                                                         |
+| `whatsappGroup`        | VarChar         | `nullable`            | -                              | `https://chat.whatsapp.com/AbCdEfGhIj`                                        | Link grup WhatsApp untuk peserta program ini.                                                                                            |
+| `programAbout`         | Text            | `nullable`            | -                              | `Program mentoring intensif 8 minggu.`                                        | Ringkasan "tentang program".                                                                                                             |
+| `totalWeeks`           | Int             | `nullable`            | -                              | `8`                                                                           | Total durasi program dalam minggu.                                                                                                       |
+| `totalProjects`        | Int             | `nullable`            | -                              | `4`                                                                           | Total jumlah project dalam program.                                                                                                      |
+| `slug`                 | VarChar         | `nullable`, `@unique` | -                              | `belajar-python-untuk-pemula`                                                 | Slug URL untuk halaman detail program.                                                                                                   |
+| `isFeatured`           | Boolean         | `NOT NULL`            | `false`                        | `true`                                                                        | `true` = program ditandai unggulan/ditampilkan menonjol di listing.                                                                      |
+| `difficultyOrder`      | Int             | `nullable`            | -                              | `1`                                                                           | Angka urutan untuk sorting berdasarkan tingkat kesulitan.                                                                                |
+| `category`             | VarChar         | `nullable`            | -                              | `Data Science`                                                                | Kategori program.                                                                                                                        |
+| `level`                | VarChar         | `nullable`            | -                              | `Intermediate`                                                                | Level kesulitan (nilai bebas, tidak di-enum).                                                                                            |
+| `isActive`             | Boolean         | `nullable`            | `true`                         | `true`                                                                        | toggle publish/tayang - `false` = program disembunyikan dari listing publik, `true` = tampil. \*(pola sama seperti `isActive` di `users` |
+| `installmentAvailable` | Boolean         | `NOT NULL`            | `false`                        | `true`                                                                        | `true` = program ini bisa dibayar dengan cicilan.                                                                                        |
+| `maxInstallmentMonths` | Int             | `nullable`            | -                              | `3`                                                                           | Jumlah bulan cicilan maksimal, kalau `installmentAvailable` true.                                                                        |
+| `createdAt`            | Timestamp       | `nullable`            | `now()`                        | `2026-03-15T10:30:00Z`                                                        | Waktu dibuat.                                                                                                                            |
+| `updatedAt`            | Timestamp       | `nullable`            | -                              | `2026-03-16T08:00:00Z`                                                        | Waktu terakhir diupdate (tidak auto).                                                                                                    |
 
 #### Primary Key & Foreign Key
 
 - 🔑 **PK**: `id`
-- 🔗 **FK**: *(tidak ada)* - tabel induk/master produk mentoring.
+- 🔗 **FK**: _(tidak ada)_ - tabel induk/master produk mentoring.
 
 ---
 
@@ -485,12 +485,12 @@ sesi-sesinya.
 
 Dipakai di kolom `type` pada tabel `mentoring_sections`.
 
-| Nilai | Keterangan |
-|---|---|
-| `BENEFIT` | Section berisi manfaat/keuntungan ikut program. |
-| `MECHANISM` | Section berisi mekanisme/cara program berjalan. |
-| `SYLLABUS` | Section berisi silabus/materi yang diajarkan. |
-| `TARGET` | Section berisi target peserta yang cocok ikut program. |
+| Nilai       | Keterangan                                             |
+| ----------- | ------------------------------------------------------ |
+| `BENEFIT`   | Section berisi manfaat/keuntungan ikut program.        |
+| `MECHANISM` | Section berisi mekanisme/cara program berjalan.        |
+| `SYLLABUS`  | Section berisi silabus/materi yang diajarkan.          |
+| `TARGET`    | Section berisi target peserta yang cocok ikut program. |
 
 ---
 
@@ -502,14 +502,14 @@ silabus, atau target peserta).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `clc42c9113845a8d34c4e0f6` | ID unik section. |
-| `serviceId` | String | `NOT NULL`, 🔗 FK | - | `bootcamp-000012` | Menunjuk ke `mentoring_services.id`. |
-| `type` | Enum `MentoringSectionType` | `NOT NULL` | - | `MECHANISM` | Jenis section - lihat tabel enum di atas. |
-| `title` | Text | `NOT NULL` | - | `Belajar Python untuk Pemula` | Judul section. |
-| `content` | JSON | `NOT NULL` | - | `{"title":"Foundation of Production-Ready ML & API Development","description":"Mempelajari cara mengubah model machine learning (scikit-learn/TensorFlow) menjadi layanan mandiri menggunakan FastAPI atau Flask, termasuk implementasi request validation, error handling, dan pembuatan dokumentasi API otomatis dengan Swagger."}` | Isi section. Strukturnya menurut komentar developer di skema: untuk **semua** nilai `type` saat ini selalu berbentuk `{ title: string, description: string }`. |
-| `order` | Int | `NOT NULL` | - | `1` | Urutan tampil section di halaman. |
+| Kolom       | Tipe Data                   | Constraint        | Default  | Contoh Value                                                                                                                                                                                                                                                                                                                          | Keterangan                                                                                                                                                     |
+| ----------- | --------------------------- | ----------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`        | String (cuid)               | 🔑 PK, `NOT NULL` | `cuid()` | `clc42c9113845a8d34c4e0f6`                                                                                                                                                                                                                                                                                                            | ID unik section.                                                                                                                                               |
+| `serviceId` | String                      | `NOT NULL`, 🔗 FK | -        | `bootcamp-000012`                                                                                                                                                                                                                                                                                                                     | Menunjuk ke `mentoring_services.id`.                                                                                                                           |
+| `type`      | Enum `MentoringSectionType` | `NOT NULL`        | -        | `MECHANISM`                                                                                                                                                                                                                                                                                                                           | Jenis section - lihat tabel enum di atas.                                                                                                                      |
+| `title`     | Text                        | `NOT NULL`        | -        | `Belajar Python untuk Pemula`                                                                                                                                                                                                                                                                                                         | Judul section.                                                                                                                                                 |
+| `content`   | JSON                        | `NOT NULL`        | -        | `{"title":"Foundation of Production-Ready ML & API Development","description":"Mempelajari cara mengubah model machine learning (scikit-learn/TensorFlow) menjadi layanan mandiri menggunakan FastAPI atau Flask, termasuk implementasi request validation, error handling, dan pembuatan dokumentasi API otomatis dengan Swagger."}` | Isi section. Strukturnya menurut komentar developer di skema: untuk **semua** nilai `type` saat ini selalu berbentuk `{ title: string, description: string }`. |
+| `order`     | Int                         | `NOT NULL`        | -        | `1`                                                                                                                                                                                                                                                                                                                                   | Urutan tampil section di halaman.                                                                                                                              |
 
 #### Primary Key & Foreign Key
 
@@ -533,11 +533,11 @@ sebagai badge/list di halaman detail program.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl589ca72d179e3e2f4a2284` | ID unik baris tool. |
-| `serviceId` | String | `NOT NULL`, 🔗 FK | - | `bootcamp-000012` | Menunjuk ke `mentoring_services.id`. |
-| `name` | Text | `NOT NULL` | - | `Budi Santoso` | Nama tool. |
+| Kolom       | Tipe Data     | Constraint        | Default  | Contoh Value               | Keterangan                           |
+| ----------- | ------------- | ----------------- | -------- | -------------------------- | ------------------------------------ |
+| `id`        | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl589ca72d179e3e2f4a2284` | ID unik baris tool.                  |
+| `serviceId` | String        | `NOT NULL`, 🔗 FK | -        | `bootcamp-000012`          | Menunjuk ke `mentoring_services.id`. |
+| `name`      | Text          | `NOT NULL`        | -        | `Budi Santoso`             | Nama tool.                           |
 
 #### Primary Key & Foreign Key
 
@@ -553,11 +553,11 @@ mentoring (mis. tanggal-tanggal sesi live yang dijadwalkan).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl20b99334fec59e591d4214` | ID unik baris jadwal. |
-| `serviceId` | String | `NOT NULL`, 🔗 FK | - | `bootcamp-000013` | Menunjuk ke `mentoring_services.id`. |
-| `date` | Timestamp | `NOT NULL` | - | `2026-03-16T08:00:00Z` | Tanggal pelaksanaan. |
+| Kolom       | Tipe Data     | Constraint        | Default  | Contoh Value               | Keterangan                           |
+| ----------- | ------------- | ----------------- | -------- | -------------------------- | ------------------------------------ |
+| `id`        | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl20b99334fec59e591d4214` | ID unik baris jadwal.                |
+| `serviceId` | String        | `NOT NULL`, 🔗 FK | -        | `bootcamp-000013`          | Menunjuk ke `mentoring_services.id`. |
+| `date`      | Timestamp     | `NOT NULL`        | -        | `2026-03-16T08:00:00Z`     | Tanggal pelaksanaan.                 |
 
 #### Primary Key & Foreign Key
 
@@ -574,15 +574,15 @@ program.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl15506ac1ddc5820251ba96` | ID unik portofolio. |
-| `serviceId` | String | `NOT NULL`, 🔗 FK | - | `bootcamp-000015` | Menunjuk ke `mentoring_services.id`. |
-| `title` | Text | `NOT NULL` | - | `Belajar Python untuk Pemula` | Judul portofolio. |
-| `description` | Text | `nullable` | - | `Deskripsi singkat mengenai konten ini.` | Deskripsi portofolio. |
-| `menteeName` | Text | `NOT NULL` | - | `Siti Rahma` | Nama mentee pemilik portofolio (teks bebas, bukan FK ke `users` - jadi tidak wajib akun mentee itu masih terdaftar/ada). |
-| `projectLink` | Text | `NOT NULL` | - | `https://x.com/home` | Link menuju hasil karya/project. |
-| `thumbnail` | Text | `nullable` | - | `https://cdn.temudataku.com/thumb/thumb-01.jpg` | Gambar thumbnail portofolio. |
+| Kolom         | Tipe Data     | Constraint        | Default  | Contoh Value                                    | Keterangan                                                                                                               |
+| ------------- | ------------- | ----------------- | -------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `id`          | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl15506ac1ddc5820251ba96`                      | ID unik portofolio.                                                                                                      |
+| `serviceId`   | String        | `NOT NULL`, 🔗 FK | -        | `bootcamp-000015`                               | Menunjuk ke `mentoring_services.id`.                                                                                     |
+| `title`       | Text          | `NOT NULL`        | -        | `Belajar Python untuk Pemula`                   | Judul portofolio.                                                                                                        |
+| `description` | Text          | `nullable`        | -        | `Deskripsi singkat mengenai konten ini.`        | Deskripsi portofolio.                                                                                                    |
+| `menteeName`  | Text          | `NOT NULL`        | -        | `Siti Rahma`                                    | Nama mentee pemilik portofolio (teks bebas, bukan FK ke `users` - jadi tidak wajib akun mentee itu masih terdaftar/ada). |
+| `projectLink` | Text          | `NOT NULL`        | -        | `https://x.com/home`                            | Link menuju hasil karya/project.                                                                                         |
+| `thumbnail`   | Text          | `nullable`        | -        | `https://cdn.temudataku.com/thumb/thumb-01.jpg` | Gambar thumbnail portofolio.                                                                                             |
 
 #### Primary Key & Foreign Key
 
@@ -599,14 +599,14 @@ umum lain kalau ada modul testimoni terpisah).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl6e0af4bec48eedf898657d` | ID unik testimoni. |
-| `serviceId` | String | `NOT NULL`, 🔗 FK | - | `bootcamp-000013` | Menunjuk ke `mentoring_services.id`. |
-| `name` | Text | `NOT NULL` | - | `Budi Santoso` | Nama pemberi testimoni (teks bebas, bukan FK ke `users`). |
-| `role` | Text | `nullable` | - | `Backend Developer` | Keterangan peran/status pemberi testimoni (mis. "Mahasiswa", "Career Switcher"). |
-| `comment` | Text | `NOT NULL` | - | `Materinya jelas dan mudah dipahami!` | Isi testimoni. |
-| `rating` | Int | `NOT NULL` | - | `3` | Rating angka. Tidak ada batas min/max di level skema - validasi rentang (mis. 1-5)  di level aplikasi. |
+| Kolom       | Tipe Data     | Constraint        | Default  | Contoh Value                          | Keterangan                                                                                            |
+| ----------- | ------------- | ----------------- | -------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `id`        | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl6e0af4bec48eedf898657d`            | ID unik testimoni.                                                                                    |
+| `serviceId` | String        | `NOT NULL`, 🔗 FK | -        | `bootcamp-000013`                     | Menunjuk ke `mentoring_services.id`.                                                                  |
+| `name`      | Text          | `NOT NULL`        | -        | `Budi Santoso`                        | Nama pemberi testimoni (teks bebas, bukan FK ke `users`).                                             |
+| `role`      | Text          | `nullable`        | -        | `Backend Developer`                   | Keterangan peran/status pemberi testimoni (mis. "Mahasiswa", "Career Switcher").                      |
+| `comment`   | Text          | `NOT NULL`        | -        | `Materinya jelas dan mudah dipahami!` | Isi testimoni.                                                                                        |
+| `rating`    | Int           | `NOT NULL`        | -        | `3`                                   | Rating angka. Tidak ada batas min/max di level skema - validasi rentang (mis. 1-5) di level aplikasi. |
 
 #### Primary Key & Foreign Key
 
@@ -624,11 +624,11 @@ bisa mengampu banyak program).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `clfd50fbe155e2a1e831d8f6` | ID unik baris penugasan. |
-| `mentoringServiceId` | String | `NOT NULL`, 🔗 FK | - | `bootcamp-000001` | Menunjuk ke `mentoring_services.id`. |
-| `mentorProfileId` | String | `NOT NULL`, 🔗 FK | - | `Mentor-000002` | Menunjuk ke `mentor_profiles.id`. |
+| Kolom                | Tipe Data     | Constraint        | Default  | Contoh Value               | Keterangan                           |
+| -------------------- | ------------- | ----------------- | -------- | -------------------------- | ------------------------------------ |
+| `id`                 | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `clfd50fbe155e2a1e831d8f6` | ID unik baris penugasan.             |
+| `mentoringServiceId` | String        | `NOT NULL`, 🔗 FK | -        | `bootcamp-000001`          | Menunjuk ke `mentoring_services.id`. |
+| `mentorProfileId`    | String        | `NOT NULL`, 🔗 FK | -        | `Mentor-000002`            | Menunjuk ke `mentor_profiles.id`.    |
 
 #### Primary Key & Foreign Key
 
@@ -657,23 +657,23 @@ meeting, rekaman, dan materi presentasinya.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (custom) | 🔑 PK, `NOT NULL` | `custom(session-....-type)` | `Session-7kwdWGr0cl-bootcamp-000007` | ID unik sesi. |
-| `serviceId` | String | `NOT NULL`, 🔗 FK | - | `bootcamp-000007` | Menunjuk ke `mentoring_services.id`. |
-| `date` | **String** | `NOT NULL` | - | `19-03-2026` | Tanggal sesi. ⚠️ Disimpan sebagai **teks bebas**, bukan tipe `Date`/`Timestamp` asli Postgres - format & validasinya sepenuhnya tanggung jawab aplikasi. |
-| `startTime` | **String** | `NOT NULL` | - | `2026-03-19T12:30:00.000Z` | Jam mulai. ⚠️ Sama seperti `date`, bertipe teks bebas, bukan `Time`. |
-| `endTime` | **String** | `NOT NULL` | - | `2026-03-19T14:30:00.000Z` | Jam selesai. ⚠️ Sama, teks bebas. |
-| `durationMinutes` | Int | `NOT NULL` | - | `60` | Durasi sesi dalam menit. |
-| `meetingLink` | VarChar | `nullable` | - | `https://meet.google.com/abc-defg-hij` | Link meeting (mis. Zoom/Google Meet). |
-| `meetingId` | VarChar | `nullable` | - | `ML-777-06` | ID meeting. |
-| `passcode` | VarChar | `nullable` | - | `482913` | Passcode/kode akses meeting. |
-| `status` | VarChar | `nullable` | - | `scheduled` | Status sesi. Nilai bebas (bukan enum) - cek kode aplikasi untuk daftar nilai pastinya ( mis. "scheduled", "completed", "cancelled"). |
-| `notes` | Text | `nullable` | - | `Revisi bagian analisis data.` | Catatan tambahan tentang sesi. |
-| `pptLink` | VarChar | `nullable` | - | `https://docs.google.com/presentation/d/abc123` | Link slide presentasi sesi. |
-| `recordingLink` | VarChar | `nullable` | - | `https://drive.google.com/file/d/rec123` | Link rekaman sesi. |
-| `createdAt` | Timestamp(6) | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu baris dibuat. |
-| `updatedAt` | Timestamp(6) | `nullable` | - | `2026-03-16T08:00:00Z` | Waktu terakhir diupdate (tidak auto). |
+| Kolom             | Tipe Data       | Constraint        | Default                     | Contoh Value                                    | Keterangan                                                                                                                                               |
+| ----------------- | --------------- | ----------------- | --------------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`              | String (custom) | 🔑 PK, `NOT NULL` | `custom(session-....-type)` | `Session-7kwdWGr0cl-bootcamp-000007`            | ID unik sesi.                                                                                                                                            |
+| `serviceId`       | String          | `NOT NULL`, 🔗 FK | -                           | `bootcamp-000007`                               | Menunjuk ke `mentoring_services.id`.                                                                                                                     |
+| `date`            | **String**      | `NOT NULL`        | -                           | `19-03-2026`                                    | Tanggal sesi. ⚠️ Disimpan sebagai **teks bebas**, bukan tipe `Date`/`Timestamp` asli Postgres - format & validasinya sepenuhnya tanggung jawab aplikasi. |
+| `startTime`       | **String**      | `NOT NULL`        | -                           | `2026-03-19T12:30:00.000Z`                      | Jam mulai. ⚠️ Sama seperti `date`, bertipe teks bebas, bukan `Time`.                                                                                     |
+| `endTime`         | **String**      | `NOT NULL`        | -                           | `2026-03-19T14:30:00.000Z`                      | Jam selesai. ⚠️ Sama, teks bebas.                                                                                                                        |
+| `durationMinutes` | Int             | `NOT NULL`        | -                           | `60`                                            | Durasi sesi dalam menit.                                                                                                                                 |
+| `meetingLink`     | VarChar         | `nullable`        | -                           | `https://meet.google.com/abc-defg-hij`          | Link meeting (mis. Zoom/Google Meet).                                                                                                                    |
+| `meetingId`       | VarChar         | `nullable`        | -                           | `ML-777-06`                                     | ID meeting.                                                                                                                                              |
+| `passcode`        | VarChar         | `nullable`        | -                           | `482913`                                        | Passcode/kode akses meeting.                                                                                                                             |
+| `status`          | VarChar         | `nullable`        | -                           | `scheduled`                                     | Status sesi. Nilai bebas (bukan enum) - cek kode aplikasi untuk daftar nilai pastinya ( mis. "scheduled", "completed", "cancelled").                     |
+| `notes`           | Text            | `nullable`        | -                           | `Revisi bagian analisis data.`                  | Catatan tambahan tentang sesi.                                                                                                                           |
+| `pptLink`         | VarChar         | `nullable`        | -                           | `https://docs.google.com/presentation/d/abc123` | Link slide presentasi sesi.                                                                                                                              |
+| `recordingLink`   | VarChar         | `nullable`        | -                           | `https://drive.google.com/file/d/rec123`        | Link rekaman sesi.                                                                                                                                       |
+| `createdAt`       | Timestamp(6)    | `nullable`        | `now()`                     | `2026-03-15T10:30:00Z`                          | Waktu baris dibuat.                                                                                                                                      |
+| `updatedAt`       | Timestamp(6)    | `nullable`        | -                           | `2026-03-16T08:00:00Z`                          | Waktu terakhir diupdate (tidak auto).                                                                                                                    |
 
 #### Primary Key & Foreign Key
 
@@ -696,15 +696,15 @@ tanggal SQL langsung.
 **Fungsi tabel**: Tabel pivot many-to-many antara `mentoring_sessions`
 dan `mentor_profiles` - menentukan mentor mana yang bertugas di satu
 sesi spesifik (beda dari `mentoring_service_mentors` yang levelnya per
-*program*, ini levelnya per *sesi individual*).
+_program_, ini levelnya per _sesi individual_).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl54912540daf3b6ca67e980` | ID unik baris penugasan. |
-| `mentoringSessionId` | String | `NOT NULL`, 🔗 FK | - | `Session-9ksKLL3VGm-bootcamp-000002` | Menunjuk ke `mentoring_sessions.id`. |
-| `mentorProfileId` | String | `NOT NULL`, 🔗 FK | - | `Mentor-000002` | Menunjuk ke `mentor_profiles.id`. |
+| Kolom                | Tipe Data     | Constraint        | Default  | Contoh Value                         | Keterangan                           |
+| -------------------- | ------------- | ----------------- | -------- | ------------------------------------ | ------------------------------------ |
+| `id`                 | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl54912540daf3b6ca67e980`           | ID unik baris penugasan.             |
+| `mentoringSessionId` | String        | `NOT NULL`, 🔗 FK | -        | `Session-9ksKLL3VGm-bootcamp-000002` | Menunjuk ke `mentoring_sessions.id`. |
+| `mentorProfileId`    | String        | `NOT NULL`, 🔗 FK | -        | `Mentor-000002`                      | Menunjuk ke `mentor_profiles.id`.    |
 
 #### Primary Key & Foreign Key
 
@@ -729,20 +729,20 @@ untuk satu program).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (custom) | 🔑 PK, `NOT NULL` | `custom()` | `Booking-bootcamp-2650556436` | ID unik booking. |
-| `menteeId` | String | `NOT NULL`, 🔗 FK | - | `000016` | Mentee yang melakukan booking. |
-| `mentoringServiceId` | String | `NOT NULL`, 🔗 FK | - | `bootcamp-000009` | Program mentoring yang dibooking. |
-| `referralUsageId` | String | `nullable`, `@unique`, 🔗 FK | - | `clb1c23af6f78f71fa085593` | Terisi kalau booking ini pakai kode referral (relasi opsional 1:1 ke `ReferralUsage`, sudah dibahas di 5.88). |
-| `bookingDate` | Timestamp | `nullable` | `now()` | `2025-10-13T22:44:04.214Z` | Tanggal booking dibuat. |
-| `status` | VarChar | `nullable` | - | `completed` | Status booking. Nilai bebas (bukan enum) - perlu dicek ke kode untuk daftar pastinya ( `pending`/`confirmed`/`completed`/`cancelled`, dsb). |
-| `specialRequests` | Text | `nullable` | - | `Mohon jadwalkan sesi malam hari.` | Permintaan khusus dari mentee. |
-| `material` | Text | `nullable` | - | `Etika Bisnis dalam Data` | Catatan materi yang diminta/dibawa. |
-| `expectedOutput` | Text | `nullable` | - | `Hello World` | Ekspektasi hasil/output dari mentee. |
-| `supportDocument` | Text | `nullable` | - | `[https://cdn.temudataku.com/docs/panduan.pdf]` | Dokumen pendukung (path/link). |
-| `createdAt` | Timestamp | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu baris dibuat. |
-| `updatedAt` | Timestamp | `nullable` | - | `2026-03-16T08:00:00Z` | Tidak `@updatedAt` - manual. |
+| Kolom                | Tipe Data       | Constraint                   | Default    | Contoh Value                                    | Keterangan                                                                                                                                  |
+| -------------------- | --------------- | ---------------------------- | ---------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                 | String (custom) | 🔑 PK, `NOT NULL`            | `custom()` | `Booking-bootcamp-2650556436`                   | ID unik booking.                                                                                                                            |
+| `menteeId`           | String          | `NOT NULL`, 🔗 FK            | -          | `000016`                                        | Mentee yang melakukan booking.                                                                                                              |
+| `mentoringServiceId` | String          | `NOT NULL`, 🔗 FK            | -          | `bootcamp-000009`                               | Program mentoring yang dibooking.                                                                                                           |
+| `referralUsageId`    | String          | `nullable`, `@unique`, 🔗 FK | -          | `clb1c23af6f78f71fa085593`                      | Terisi kalau booking ini pakai kode referral (relasi opsional 1:1 ke `ReferralUsage`, sudah dibahas di 5.88).                               |
+| `bookingDate`        | Timestamp       | `nullable`                   | `now()`    | `2025-10-13T22:44:04.214Z`                      | Tanggal booking dibuat.                                                                                                                     |
+| `status`             | VarChar         | `nullable`                   | -          | `completed`                                     | Status booking. Nilai bebas (bukan enum) - perlu dicek ke kode untuk daftar pastinya ( `pending`/`confirmed`/`completed`/`cancelled`, dsb). |
+| `specialRequests`    | Text            | `nullable`                   | -          | `Mohon jadwalkan sesi malam hari.`              | Permintaan khusus dari mentee.                                                                                                              |
+| `material`           | Text            | `nullable`                   | -          | `Etika Bisnis dalam Data`                       | Catatan materi yang diminta/dibawa.                                                                                                         |
+| `expectedOutput`     | Text            | `nullable`                   | -          | `Hello World`                                   | Ekspektasi hasil/output dari mentee.                                                                                                        |
+| `supportDocument`    | Text            | `nullable`                   | -          | `[https://cdn.temudataku.com/docs/panduan.pdf]` | Dokumen pendukung (path/link).                                                                                                              |
+| `createdAt`          | Timestamp       | `nullable`                   | `now()`    | `2026-03-15T10:30:00Z`                          | Waktu baris dibuat.                                                                                                                         |
+| `updatedAt`          | Timestamp       | `nullable`                   | -          | `2026-03-16T08:00:00Z`                          | Tidak `@updatedAt` - manual.                                                                                                                |
 
 #### Primary Key & Foreign Key
 
@@ -772,21 +772,21 @@ pembayaran sendiri-sendiri.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl81b435bddc260408b68cc6` | ID unik baris peserta. |
-| `bookingId` | String | `NOT NULL`, 🔗 FK | - | `Booking-bootcamp-7415093928` | Booking mana yang diikuti peserta ini. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000001` | User yang jadi peserta. |
-| `paymentStatus` | String | `NOT NULL` | - | `confirmed` | Status pembayaran peserta ini. Menurut komentar developer di skema: contoh nilainya `'pending'`, `'confirmed'`, dsb - tapi tetap bukan `enum` (bebas, tidak divalidasi database). |
-| `paymentId` | String | `nullable`, 🔗 FK | - | `PAY-BKG-20251005-6408633176` | Menunjuk ke transaksi `Payment` terkait peserta ini (sudah dibahas di 5.81). |
-| `isLeader` | Boolean | `NOT NULL` | `false` | `true` | Lihat catatan di bawah. |
+| Kolom           | Tipe Data     | Constraint        | Default  | Contoh Value                  | Keterangan                                                                                                                                                                        |
+| --------------- | ------------- | ----------------- | -------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`            | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl81b435bddc260408b68cc6`    | ID unik baris peserta.                                                                                                                                                            |
+| `bookingId`     | String        | `NOT NULL`, 🔗 FK | -        | `Booking-bootcamp-7415093928` | Booking mana yang diikuti peserta ini.                                                                                                                                            |
+| `userId`        | String        | `NOT NULL`, 🔗 FK | -        | `000001`                      | User yang jadi peserta.                                                                                                                                                           |
+| `paymentStatus` | String        | `NOT NULL`        | -        | `confirmed`                   | Status pembayaran peserta ini. Menurut komentar developer di skema: contoh nilainya `'pending'`, `'confirmed'`, dsb - tapi tetap bukan `enum` (bebas, tidak divalidasi database). |
+| `paymentId`     | String        | `nullable`, 🔗 FK | -        | `PAY-BKG-20251005-6408633176` | Menunjuk ke transaksi `Payment` terkait peserta ini (sudah dibahas di 5.81).                                                                                                      |
+| `isLeader`      | Boolean       | `NOT NULL`        | `false`  | `true`                        | Lihat catatan di bawah.                                                                                                                                                           |
 
 #### Primary Key & Foreign Key
 
 - 🔑 **PK**: `id`
 - 🔗 **FK 1**: `bookingId` → `bookings.id` - `onDelete: Cascade`.
 - 🔗 **FK 2**: `userId` → `users.id` - `onDelete: Cascade`.
-- 🔗 **FK 3**: `paymentId` → `payments.id` (relasi `"ParticipantPayment"`) - *(tidak ada `onDelete` eksplisit, pakai default provider.)*
+- 🔗 **FK 3**: `paymentId` → `payments.id` (relasi `"ParticipantPayment"`) - _(tidak ada `onDelete` eksplisit, pakai default provider.)_
 
 #### 📌 Catatan Makna Nilai: `isLeader`
 
@@ -807,21 +807,21 @@ E-Learning). Diterbitkan untuk mentee yang sudah menyelesaikan satu
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cld9fb2dbf6a7d10d2b4d8f2` | ID unik sertifikat. |
-| `menteeId` | String | `NOT NULL`, 🔗 FK | - | `000008` | Mentee penerima sertifikat. |
-| `serviceId` | String | `NOT NULL`, 🔗 FK | - | `bootcamp-000004` | Program mentoring yang diselesaikan. |
-| `certificateNumber` | VarChar | `NOT NULL`, `@unique` | - | `CERT-1766404211677-8N5RH` | Nomor sertifikat, dipakai juga di halaman verifikasi publik. |
-| `issueDate` | Timestamp(6) | `nullable` | `now()` | `2025-12-22T11:50:33.594Z` | Tanggal sertifikat diterbitkan. |
-| `certificatePath` | VarChar | `nullable` | - | `/certificates/CERT-1766404211677-8N5RH-000016.pdf` | Path file sertifikat di server. |
-| `googleDriveUrl` | VarChar | `nullable` | - | `https://drive.google.com/file/d/abc123` | Link Google Drive sertifikat (pola sama seperti sertifikat e-learning - dipakai untuk preview `/preview` di iframe). |
-| `projectCertificatePath` | VarChar | `nullable` | - | `/certs/project-001.pdf` | Path sertifikat halaman ke-2 (kompetensi/project) - mirip pola dokumen 2-halaman "Sertifikat & Kompetensi" di e-learning. |
-| `status` | VarChar | `nullable` | - | `generated` | Menurut komentar developer di skema: nilainya `generated`, `sent`, atau `viewed` |
-| `verifiedBy` | VarChar | `nullable` | - | `(freetext)` | ID admin/mentor yang memverifikasi (opsional). ⚠️ **Bukan foreign key sungguhan** - cuma kolom teks biasa yang menyimpan ID, tidak ada relasi/`onDelete` yang menjaga integritasnya ke tabel `users`. |
-| `note` | VarChar | `nullable` | - | `Sertifikat dikirim ulang atas permintaan user.` | Catatan internal admin (tidak untuk publik). |
-| `createdAt` | Timestamp(6) | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu baris dibuat. |
-| `updatedAt` | Timestamp(6) | `nullable` | - | `2026-03-16T08:00:00Z` | Tidak `@updatedAt` - manual. |
+| Kolom                    | Tipe Data     | Constraint            | Default  | Contoh Value                                        | Keterangan                                                                                                                                                                                            |
+| ------------------------ | ------------- | --------------------- | -------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                     | String (cuid) | 🔑 PK, `NOT NULL`     | `cuid()` | `cld9fb2dbf6a7d10d2b4d8f2`                          | ID unik sertifikat.                                                                                                                                                                                   |
+| `menteeId`               | String        | `NOT NULL`, 🔗 FK     | -        | `000008`                                            | Mentee penerima sertifikat.                                                                                                                                                                           |
+| `serviceId`              | String        | `NOT NULL`, 🔗 FK     | -        | `bootcamp-000004`                                   | Program mentoring yang diselesaikan.                                                                                                                                                                  |
+| `certificateNumber`      | VarChar       | `NOT NULL`, `@unique` | -        | `CERT-1766404211677-8N5RH`                          | Nomor sertifikat, dipakai juga di halaman verifikasi publik.                                                                                                                                          |
+| `issueDate`              | Timestamp(6)  | `nullable`            | `now()`  | `2025-12-22T11:50:33.594Z`                          | Tanggal sertifikat diterbitkan.                                                                                                                                                                       |
+| `certificatePath`        | VarChar       | `nullable`            | -        | `/certificates/CERT-1766404211677-8N5RH-000016.pdf` | Path file sertifikat di server.                                                                                                                                                                       |
+| `googleDriveUrl`         | VarChar       | `nullable`            | -        | `https://drive.google.com/file/d/abc123`            | Link Google Drive sertifikat (pola sama seperti sertifikat e-learning - dipakai untuk preview `/preview` di iframe).                                                                                  |
+| `projectCertificatePath` | VarChar       | `nullable`            | -        | `/certs/project-001.pdf`                            | Path sertifikat halaman ke-2 (kompetensi/project) - mirip pola dokumen 2-halaman "Sertifikat & Kompetensi" di e-learning.                                                                             |
+| `status`                 | VarChar       | `nullable`            | -        | `generated`                                         | Menurut komentar developer di skema: nilainya `generated`, `sent`, atau `viewed`                                                                                                                      |
+| `verifiedBy`             | VarChar       | `nullable`            | -        | `(freetext)`                                        | ID admin/mentor yang memverifikasi (opsional). ⚠️ **Bukan foreign key sungguhan** - cuma kolom teks biasa yang menyimpan ID, tidak ada relasi/`onDelete` yang menjaga integritasnya ke tabel `users`. |
+| `note`                   | VarChar       | `nullable`            | -        | `Sertifikat dikirim ulang atas permintaan user.`    | Catatan internal admin (tidak untuk publik).                                                                                                                                                          |
+| `createdAt`              | Timestamp(6)  | `nullable`            | `now()`  | `2026-03-15T10:30:00Z`                              | Waktu baris dibuat.                                                                                                                                                                                   |
+| `updatedAt`              | Timestamp(6)  | `nullable`            | -        | `2026-03-16T08:00:00Z`                              | Tidak `@updatedAt` - manual.                                                                                                                                                                          |
 
 #### Primary Key & Foreign Key
 
@@ -836,7 +836,7 @@ E-Learning). Diterbitkan untuk mentee yang sudah menyelesaikan satu
 
 Nilai `status` (`generated`/`sent`/`viewed`) di tabel ini **konsisten**
 dengan pola `StatusBadge` yang sudah pernah kita lihat di komponen
-`CertificateVerifiedCard.tsx` untuk sertifikat e-learning - 
+`CertificateVerifiedCard.tsx` untuk sertifikat e-learning -
 besar dua sistem sertifikat ini (mentoring & e-learning) memang dirancang
 mengikuti alur status yang sama, meski disimpan di tabel terpisah.
 
@@ -850,18 +850,18 @@ keseluruhan program, tapi per pertemuan individual.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl38c22f11a63c5fd8df2501` | ID unik feedback. |
-| `sessionId` | String | `NOT NULL`, 🔗 FK | - | `Session-9ksKLL3VGm-bootcamp-000002` | Sesi mentoring yang diberi feedback. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000001` | User yang memberi feedback. |
-| `rating` | Decimal(3,1) | `NOT NULL` | - | `3.9` | Angka rating, mendukung 1 desimal (mis. `4.5`). Rentang nilai tidak dibatasi `CHECK` di database. |
-| `comment` | Text | `nullable` | - | `Materinya jelas dan mudah dipahami!` | Isi komentar/feedback. |
-| `submittedDate` | Timestamp(6) | `nullable` | `now()` | `2026-03-20T14:00:00Z` | Tanggal feedback dikirim. |
-| `createdAt` | Timestamp(6) | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu baris dibuat. |
-| `updatedAt` | Timestamp(6) | `nullable` | - | `2026-03-16T08:00:00Z` | Tidak `@updatedAt` - manual. |
-| `isAnonymous` | Boolean | `NOT NULL` | `false` | `false` | Sesuai komentar developer di skema: **"Jika true, nama user tidak ditampilkan"**. |
-| `isVisible` | Boolean | `NOT NULL` | `true` | `true` | Sesuai komentar developer di skema: **"Bisa di-hide admin dari publik"** - jadi `false` berarti feedback ini sengaja disembunyikan admin dari tampilan publik, bukan dihapus. |
+| Kolom           | Tipe Data     | Constraint        | Default  | Contoh Value                          | Keterangan                                                                                                                                                                    |
+| --------------- | ------------- | ----------------- | -------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`            | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl38c22f11a63c5fd8df2501`            | ID unik feedback.                                                                                                                                                             |
+| `sessionId`     | String        | `NOT NULL`, 🔗 FK | -        | `Session-9ksKLL3VGm-bootcamp-000002`  | Sesi mentoring yang diberi feedback.                                                                                                                                          |
+| `userId`        | String        | `NOT NULL`, 🔗 FK | -        | `000001`                              | User yang memberi feedback.                                                                                                                                                   |
+| `rating`        | Decimal(3,1)  | `NOT NULL`        | -        | `3.9`                                 | Angka rating, mendukung 1 desimal (mis. `4.5`). Rentang nilai tidak dibatasi `CHECK` di database.                                                                             |
+| `comment`       | Text          | `nullable`        | -        | `Materinya jelas dan mudah dipahami!` | Isi komentar/feedback.                                                                                                                                                        |
+| `submittedDate` | Timestamp(6)  | `nullable`        | `now()`  | `2026-03-20T14:00:00Z`                | Tanggal feedback dikirim.                                                                                                                                                     |
+| `createdAt`     | Timestamp(6)  | `nullable`        | `now()`  | `2026-03-15T10:30:00Z`                | Waktu baris dibuat.                                                                                                                                                           |
+| `updatedAt`     | Timestamp(6)  | `nullable`        | -        | `2026-03-16T08:00:00Z`                | Tidak `@updatedAt` - manual.                                                                                                                                                  |
+| `isAnonymous`   | Boolean       | `NOT NULL`        | `false`  | `false`                               | Sesuai komentar developer di skema: **"Jika true, nama user tidak ditampilkan"**.                                                                                             |
+| `isVisible`     | Boolean       | `NOT NULL`        | `true`   | `true`                                | Sesuai komentar developer di skema: **"Bisa di-hide admin dari publik"** - jadi `false` berarti feedback ini sengaja disembunyikan admin dari tampilan publik, bukan dihapus. |
 
 #### Primary Key & Foreign Key
 
@@ -883,16 +883,16 @@ seluruh riwayat transaksi setiap kali halaman dibuka.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `clce8a3d4f22726ccd812dae` | ID unik ringkasan. |
-| `mentorProfileId` | String | `NOT NULL`, `@unique`, 🔗 FK | - | `Mentor-000002` | Mentor pemilik ringkasan ini (1:1). |
-| `totalEarnings` | Decimal | `NOT NULL` | - | `1250000` | Total pendapatan *all-time*. Sesuai komentar developer: **sudah dipotong bagi hasil (share) platform**, jadi ini angka net, bukan gross transaksi. |
-| `totalThisMonth` | Decimal | `NOT NULL` | - | `600000` | Total pendapatan bulan berjalan (net, sudah dipotong share). |
-| `totalLastMonth` | Decimal | `NOT NULL` | - | `450000` | Total pendapatan bulan lalu (net, sudah dipotong share). |
-| `growthPercent` | Int | `NOT NULL` | - | `12.5` | Persentase pertumbuhan,  dihitung dari perbandingan `totalThisMonth` vs `totalLastMonth`. |
-| `updatedAt` | DateTime | `NOT NULL` | *(auto)* | `2026-03-16T08:00:00Z` | Pakai `@updatedAt` - **otomatis** ter-update Prisma. |
-| `createdAt` | DateTime | `NOT NULL` | `now()` | `2026-03-15T10:30:00Z` | Waktu baris dibuat. |
+| Kolom             | Tipe Data     | Constraint                   | Default  | Contoh Value               | Keterangan                                                                                                                                         |
+| ----------------- | ------------- | ---------------------------- | -------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`              | String (cuid) | 🔑 PK, `NOT NULL`            | `cuid()` | `clce8a3d4f22726ccd812dae` | ID unik ringkasan.                                                                                                                                 |
+| `mentorProfileId` | String        | `NOT NULL`, `@unique`, 🔗 FK | -        | `Mentor-000002`            | Mentor pemilik ringkasan ini (1:1).                                                                                                                |
+| `totalEarnings`   | Decimal       | `NOT NULL`                   | -        | `1250000`                  | Total pendapatan _all-time_. Sesuai komentar developer: **sudah dipotong bagi hasil (share) platform**, jadi ini angka net, bukan gross transaksi. |
+| `totalThisMonth`  | Decimal       | `NOT NULL`                   | -        | `600000`                   | Total pendapatan bulan berjalan (net, sudah dipotong share).                                                                                       |
+| `totalLastMonth`  | Decimal       | `NOT NULL`                   | -        | `450000`                   | Total pendapatan bulan lalu (net, sudah dipotong share).                                                                                           |
+| `growthPercent`   | Int           | `NOT NULL`                   | -        | `12.5`                     | Persentase pertumbuhan, dihitung dari perbandingan `totalThisMonth` vs `totalLastMonth`.                                                           |
+| `updatedAt`       | DateTime      | `NOT NULL`                   | _(auto)_ | `2026-03-16T08:00:00Z`     | Pakai `@updatedAt` - **otomatis** ter-update Prisma.                                                                                               |
+| `createdAt`       | DateTime      | `NOT NULL`                   | `now()`  | `2026-03-15T10:30:00Z`     | Waktu baris dibuat.                                                                                                                                |
 
 #### Primary Key & Foreign Key
 
@@ -931,26 +931,26 @@ aktif program.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (custom) | 🔑 PK, `NOT NULL` | `custom(AYCL-....-....)` | `AYCL-1780092850103-3D7232` | ID unik batch. |
-| `title` | Text | `NOT NULL` | - | `Belajar Python untuk Pemula` | Nama batch. |
-| `slug` | Text | `NOT NULL`, `@unique` | - | `belajar-python-untuk-pemula` | Slug URL-friendly untuk halaman detail. |
-| `headline` | Text | `NOT NULL` | - | `Belajar Data Science dari Nol` | Judul besar di hero landing page. Contoh dari komentar developer: *"All You Can Learn • Data Analyst Program"*. |
-| `subHeadline` | Text | `nullable` | - | `Kelas untuk pemula tanpa background IT` | Sub-judul pendukung headline. Contoh: *"Upgrade skill Data Analyst..."*. |
-| `description` | Text | `nullable` | - | `Deskripsi singkat mengenai konten ini.` | Intro singkat program. |
-| `whatsappGroupLink` | Text | `nullable` | - | `https://chat.whatsapp.com/AbCdEfGhIj` | Link grup WhatsApp peserta. |
-| `price` | Decimal | `NOT NULL` | - | `150000` | Harga program. |
-| `startDate` | DateTime | `nullable` | - | `2026-04-01` | Tanggal mulai batch. |
-| `endDate` | DateTime | `nullable` | - | `2026-05-01` | Tanggal selesai batch. |
-| `isActive` | Boolean | `NOT NULL` | `true` | `true` | `false` = batch tidak ditampilkan/tidak bisa dibooking lagi. |
-| `createdAt` | DateTime | `NOT NULL` | `now()` | `2026-03-15T10:30:00Z` | Waktu baris dibuat. |
-| `updatedAt` | DateTime | `nullable` | *(auto)* | `2026-03-16T08:00:00Z` | Pakai `@updatedAt` - otomatis ter-update Prisma (walau tipe kolomnya tetap nullable di skema). |
+| Kolom               | Tipe Data       | Constraint            | Default                  | Contoh Value                             | Keterangan                                                                                                      |
+| ------------------- | --------------- | --------------------- | ------------------------ | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `id`                | String (custom) | 🔑 PK, `NOT NULL`     | `custom(AYCL-....-....)` | `AYCL-1780092850103-3D7232`              | ID unik batch.                                                                                                  |
+| `title`             | Text            | `NOT NULL`            | -                        | `Belajar Python untuk Pemula`            | Nama batch.                                                                                                     |
+| `slug`              | Text            | `NOT NULL`, `@unique` | -                        | `belajar-python-untuk-pemula`            | Slug URL-friendly untuk halaman detail.                                                                         |
+| `headline`          | Text            | `NOT NULL`            | -                        | `Belajar Data Science dari Nol`          | Judul besar di hero landing page. Contoh dari komentar developer: _"All You Can Learn • Data Analyst Program"_. |
+| `subHeadline`       | Text            | `nullable`            | -                        | `Kelas untuk pemula tanpa background IT` | Sub-judul pendukung headline. Contoh: _"Upgrade skill Data Analyst..."_.                                        |
+| `description`       | Text            | `nullable`            | -                        | `Deskripsi singkat mengenai konten ini.` | Intro singkat program.                                                                                          |
+| `whatsappGroupLink` | Text            | `nullable`            | -                        | `https://chat.whatsapp.com/AbCdEfGhIj`   | Link grup WhatsApp peserta.                                                                                     |
+| `price`             | Decimal         | `NOT NULL`            | -                        | `150000`                                 | Harga program.                                                                                                  |
+| `startDate`         | DateTime        | `nullable`            | -                        | `2026-04-01`                             | Tanggal mulai batch.                                                                                            |
+| `endDate`           | DateTime        | `nullable`            | -                        | `2026-05-01`                             | Tanggal selesai batch.                                                                                          |
+| `isActive`          | Boolean         | `NOT NULL`            | `true`                   | `true`                                   | `false` = batch tidak ditampilkan/tidak bisa dibooking lagi.                                                    |
+| `createdAt`         | DateTime        | `NOT NULL`            | `now()`                  | `2026-03-15T10:30:00Z`                   | Waktu baris dibuat.                                                                                             |
+| `updatedAt`         | DateTime        | `nullable`            | _(auto)_                 | `2026-03-16T08:00:00Z`                   | Pakai `@updatedAt` - otomatis ter-update Prisma (walau tipe kolomnya tetap nullable di skema).                  |
 
 #### Primary Key & Foreign Key
 
 - 🔑 **PK**: `id`
-- 🔗 **FK**: *(tidak ada)* - tabel induk modul AYCL.
+- 🔗 **FK**: _(tidak ada)_ - tabel induk modul AYCL.
 
 #### Relasi ke Tabel Lain (ringkasan)
 
@@ -969,25 +969,25 @@ dari `mentoring_sections` yang formatnya seragam untuk semua tipe).
 **Enum `AYCLSectionType`** (dengan makna dari komentar developer di
 skema):
 
-| Nilai | Makna (label yang ditampilkan) |
-|---|---|
-| `PROGRAM_INFO` | "Ini Program Apa?" |
-| `CHALLENGE` | "Biasanya Tantangannya..." |
-| `TARGET` | "Cocok untuk Siapa?" |
-| `DIFFERENTIATOR` | "Kenapa AYCL .... berbeda?" |
-| `BENEFIT` | "Apa yang kamu dapatkan?" |
-| `CLOSING` | Penutup |
+| Nilai            | Makna (label yang ditampilkan) |
+| ---------------- | ------------------------------ |
+| `PROGRAM_INFO`   | "Ini Program Apa?"             |
+| `CHALLENGE`      | "Biasanya Tantangannya..."     |
+| `TARGET`         | "Cocok untuk Siapa?"           |
+| `DIFFERENTIATOR` | "Kenapa AYCL .... berbeda?"    |
+| `BENEFIT`        | "Apa yang kamu dapatkan?"      |
+| `CLOSING`        | Penutup                        |
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (custom) | 🔑 PK, `NOT NULL` | `custom(SEC-....-....)` | `SEC-1780092850150-A00D2B` | ID unik section. |
-| `batchId` | String | `NOT NULL`, 🔗 FK | - | `AYCL-1780092850103-3D7232` | Section ini milik batch yang mana. |
-| `type` | Enum `AYCLSectionType` | `NOT NULL` | - | `TARGET` | Jenis section (lihat tabel makna di atas). |
-| `title` | Text | `NOT NULL` | - | `Target` | Judul section. |
-| `content` | Json | `NOT NULL` | - | `{"items":["sgsgsgsg","sgsdgsgsgsg"]}` | Struktur **berbeda tiap `type`** - lihat catatan di bawah. |
-| `order` | Int | `NOT NULL` | - | `1` | Urutan tampil section. |
+| Kolom     | Tipe Data              | Constraint        | Default                 | Contoh Value                           | Keterangan                                                 |
+| --------- | ---------------------- | ----------------- | ----------------------- | -------------------------------------- | ---------------------------------------------------------- |
+| `id`      | String (custom)        | 🔑 PK, `NOT NULL` | `custom(SEC-....-....)` | `SEC-1780092850150-A00D2B`             | ID unik section.                                           |
+| `batchId` | String                 | `NOT NULL`, 🔗 FK | -                       | `AYCL-1780092850103-3D7232`            | Section ini milik batch yang mana.                         |
+| `type`    | Enum `AYCLSectionType` | `NOT NULL`        | -                       | `TARGET`                               | Jenis section (lihat tabel makna di atas).                 |
+| `title`   | Text                   | `NOT NULL`        | -                       | `Target`                               | Judul section.                                             |
+| `content` | Json                   | `NOT NULL`        | -                       | `{"items":["sgsgsgsg","sgsdgsgsgsg"]}` | Struktur **berbeda tiap `type`** - lihat catatan di bawah. |
+| `order`   | Int                    | `NOT NULL`        | -                       | `1`                                    | Urutan tampil section.                                     |
 
 #### Primary Key & Foreign Key
 
@@ -1002,14 +1002,14 @@ skema):
 **beda-beda tergantung nilai `type`** (langsung dari komentar developer
 di skema):
 
-| `type` | Struktur `content` |
-|---|---|
-| `PROGRAM_INFO` | `{ text: string }` |
-| `CHALLENGE` | `{ items: string[] }` |
-| `TARGET` | `{ items: string[] }` |
+| `type`           | Struktur `content`                             |
+| ---------------- | ---------------------------------------------- |
+| `PROGRAM_INFO`   | `{ text: string }`                             |
+| `CHALLENGE`      | `{ items: string[] }`                          |
+| `TARGET`         | `{ items: string[] }`                          |
 | `DIFFERENTIATOR` | `{ items: { title: string, desc: string }[] }` |
-| `BENEFIT` | `{ items: string[] }` |
-| `CLOSING` | `{ text: string }` |
+| `BENEFIT`        | `{ items: string[] }`                          |
+| `CLOSING`        | `{ text: string }`                             |
 
 Kode yang membaca kolom ini **wajib** cek `type` dulu sebelum parsing
 `content`, karena bentuknya tidak seragam.
@@ -1025,12 +1025,12 @@ landing page.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (custom) | 🔑 PK, `NOT NULL` | `custom(MAT-...-...)` | `MAT-1780092850161-2CF585` | ID unik materi. |
-| `batchId` | String | `NOT NULL`, 🔗 FK | - | `AYCL-1780092850103-3D7232` | Materi ini milik batch yang mana. |
-| `title` | Text | `NOT NULL` | - | `Belajar Python untuk Pemula` | Judul materi/topik. |
-| `description` | Text | `nullable` | - | `Deskripsi singkat mengenai konten ini.` | Deskripsi singkat topik. |
+| Kolom         | Tipe Data       | Constraint        | Default               | Contoh Value                             | Keterangan                        |
+| ------------- | --------------- | ----------------- | --------------------- | ---------------------------------------- | --------------------------------- |
+| `id`          | String (custom) | 🔑 PK, `NOT NULL` | `custom(MAT-...-...)` | `MAT-1780092850161-2CF585`               | ID unik materi.                   |
+| `batchId`     | String          | `NOT NULL`, 🔗 FK | -                     | `AYCL-1780092850103-3D7232`              | Materi ini milik batch yang mana. |
+| `title`       | Text            | `NOT NULL`        | -                     | `Belajar Python untuk Pemula`            | Judul materi/topik.               |
+| `description` | Text            | `nullable`        | -                     | `Deskripsi singkat mengenai konten ini.` | Deskripsi singkat topik.          |
 
 #### Primary Key & Foreign Key
 
@@ -1046,17 +1046,17 @@ peran `mentoring_sessions`, plus kolom kuota peserta per jadwal.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (custom) | 🔑 PK, `NOT NULL` | `custom(SCH-...-...)` | `SCH-1782473579840-58B63C` | ID unik jadwal. |
-| `batchId` | String | `NOT NULL`, 🔗 FK | - | `cAYCL-1782473579819-F9CDBF` | Jadwal ini bagian dari batch yang mana. |
-| `title` | Text | `NOT NULL` | - | `Belajar Python untuk Pemula` | Judul sesi. |
-| `date` | **DateTime** | `NOT NULL` | - | `2026-03-16T08:00:00Z` | Tanggal sesi. |
-| `startTime` | **DateTime** | `NOT NULL` | - | `2026-06-30T06:02:00.000Z` | Jam mulai. |
-| `endTime` | **DateTime** | `NOT NULL` | - | `2026-06-30T07:02:00.000Z` | Jam selesai. |
-| `googleMeetLink` | Text | `nullable` | - | `https://meet.google.com/abc-defg-hij` | Link Google Meet. |
-| `quota` | Int | `nullable` | - | `30` | Kapasitas maksimal peserta jadwal ini. |
-| `createdAt` | DateTime | `NOT NULL` | `now()` | `2026-03-15T10:30:00Z` | Waktu baris dibuat. |
+| Kolom            | Tipe Data       | Constraint        | Default               | Contoh Value                           | Keterangan                              |
+| ---------------- | --------------- | ----------------- | --------------------- | -------------------------------------- | --------------------------------------- |
+| `id`             | String (custom) | 🔑 PK, `NOT NULL` | `custom(SCH-...-...)` | `SCH-1782473579840-58B63C`             | ID unik jadwal.                         |
+| `batchId`        | String          | `NOT NULL`, 🔗 FK | -                     | `cAYCL-1782473579819-F9CDBF`           | Jadwal ini bagian dari batch yang mana. |
+| `title`          | Text            | `NOT NULL`        | -                     | `Belajar Python untuk Pemula`          | Judul sesi.                             |
+| `date`           | **DateTime**    | `NOT NULL`        | -                     | `2026-03-16T08:00:00Z`                 | Tanggal sesi.                           |
+| `startTime`      | **DateTime**    | `NOT NULL`        | -                     | `2026-06-30T06:02:00.000Z`             | Jam mulai.                              |
+| `endTime`        | **DateTime**    | `NOT NULL`        | -                     | `2026-06-30T07:02:00.000Z`             | Jam selesai.                            |
+| `googleMeetLink` | Text            | `nullable`        | -                     | `https://meet.google.com/abc-defg-hij` | Link Google Meet.                       |
+| `quota`          | Int             | `nullable`        | -                     | `30`                                   | Kapasitas maksimal peserta jadwal ini.  |
+| `createdAt`      | DateTime        | `NOT NULL`        | `now()`               | `2026-03-15T10:30:00Z`                 | Waktu baris dibuat.                     |
 
 #### Primary Key & Foreign Key
 
@@ -1079,21 +1079,21 @@ dsb.) yang tampak seperti bagian dari form screening peserta.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (custom) | 🔑 PK, `NOT NULL` | `custom()` | `AYCLBook-20260627-yR44ua` | ID unik booking. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000001` | User yang mendaftar. |
-| `batchId` | String | `NOT NULL`, 🔗 FK | - | `AYCL-1782473579819-F9CDBF` | Batch yang didaftar. |
-| `referralUsageId` | String | `nullable`, `@unique`, 🔗 FK | - | `cl9fadba819445cd50ce643e` | Terisi kalau booking ini pakai kode referral (opsional 1:1). |
-| `status` | String | `NOT NULL` | - | `pending` | Sesuai komentar developer di skema: nilainya `pending`, `confirmed`, `completed`, atau `cancelled`. Bukan `enum` - tetap tidak divalidasi database. |
-| `createdAt` | DateTime | `NOT NULL` | `now()` | `2026-03-15T10:30:00Z` | Waktu booking dibuat. |
-| `currentStatus` | Text | `nullable` | - | `Mahasiswa aktif semester 5` | Status pendaftar saat ini (freetext, mis. "Mahasiswa"/"Fresh Graduate"). |
-| `institution` | Text | `nullable` | - | `Universitas Airlangga` | Nama institusi/kampus pendaftar. |
-| `studyProgram` | Text | `nullable` | - | `Statistika` | Program studi pendaftar. |
-| `semester` | Text | `nullable` | - | `5` | Semester pendaftar (bertipe teks, bukan angka -  supaya bisa diisi nilai non-angka seperti "Sudah Lulus"). |
-| `age` | Int | `nullable` | - | `22` | Usia pendaftar. |
-| `reason` | Text | `nullable` | - | `Ingin belajar analisis data untuk kerjaan.` | Alasan mendaftar (freetext panjang). |
-| `familiarity` | Text | `nullable` | - | `Pernah belajar Python dasar` | Tingkat familiaritas pendaftar dengan topik program (freetext). |
+| Kolom             | Tipe Data       | Constraint                   | Default    | Contoh Value                                 | Keterangan                                                                                                                                          |
+| ----------------- | --------------- | ---------------------------- | ---------- | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`              | String (custom) | 🔑 PK, `NOT NULL`            | `custom()` | `AYCLBook-20260627-yR44ua`                   | ID unik booking.                                                                                                                                    |
+| `userId`          | String          | `NOT NULL`, 🔗 FK            | -          | `000001`                                     | User yang mendaftar.                                                                                                                                |
+| `batchId`         | String          | `NOT NULL`, 🔗 FK            | -          | `AYCL-1782473579819-F9CDBF`                  | Batch yang didaftar.                                                                                                                                |
+| `referralUsageId` | String          | `nullable`, `@unique`, 🔗 FK | -          | `cl9fadba819445cd50ce643e`                   | Terisi kalau booking ini pakai kode referral (opsional 1:1).                                                                                        |
+| `status`          | String          | `NOT NULL`                   | -          | `pending`                                    | Sesuai komentar developer di skema: nilainya `pending`, `confirmed`, `completed`, atau `cancelled`. Bukan `enum` - tetap tidak divalidasi database. |
+| `createdAt`       | DateTime        | `NOT NULL`                   | `now()`    | `2026-03-15T10:30:00Z`                       | Waktu booking dibuat.                                                                                                                               |
+| `currentStatus`   | Text            | `nullable`                   | -          | `Mahasiswa aktif semester 5`                 | Status pendaftar saat ini (freetext, mis. "Mahasiswa"/"Fresh Graduate").                                                                            |
+| `institution`     | Text            | `nullable`                   | -          | `Universitas Airlangga`                      | Nama institusi/kampus pendaftar.                                                                                                                    |
+| `studyProgram`    | Text            | `nullable`                   | -          | `Statistika`                                 | Program studi pendaftar.                                                                                                                            |
+| `semester`        | Text            | `nullable`                   | -          | `5`                                          | Semester pendaftar (bertipe teks, bukan angka - supaya bisa diisi nilai non-angka seperti "Sudah Lulus").                                           |
+| `age`             | Int             | `nullable`                   | -          | `22`                                         | Usia pendaftar.                                                                                                                                     |
+| `reason`          | Text            | `nullable`                   | -          | `Ingin belajar analisis data untuk kerjaan.` | Alasan mendaftar (freetext panjang).                                                                                                                |
+| `familiarity`     | Text            | `nullable`                   | -          | `Pernah belajar Python dasar`                | Tingkat familiaritas pendaftar dengan topik program (freetext).                                                                                     |
 
 #### Primary Key & Foreign Key
 
@@ -1101,7 +1101,7 @@ dsb.) yang tampak seperti bagian dari form screening peserta.
 - 🔗 **FK 1**: `userId` → `users.id` - `onDelete: Cascade`.
 - 🔗 **FK 2**: `batchId` → `aycl_batches.id` - `onDelete: Cascade`.
 - 🔗 **FK 3**: `referralUsageId` → `referral_usages.id` (relasi
-  `"ReferralUsageAYCL"`) - *(tidak ada `onDelete` eksplisit)*. Opsional
+  `"ReferralUsageAYCL"`) - _(tidak ada `onDelete` eksplisit)_. Opsional
   1:1.
 
 #### Relasi ke Tabel Lain (ringkasan)
@@ -1120,12 +1120,12 @@ bisa mengikuti lebih dari satu jadwal sesi dalam batch yang sama.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cldc750497b83ca1e747b4aa` | ID unik baris partisipasi. |
-| `bookingId` | String | `NOT NULL`, 🔗 FK | - | `AYCLBook-20260627-yR44ua` | Booking mana yang berpartisipasi. |
-| `scheduleId` | String | `NOT NULL`, 🔗 FK | - | `SCH-1782472339769-8DC522` | Jadwal sesi yang diikuti. |
-| `createdAt` | DateTime | `NOT NULL` | `now()` | `2026-03-15T10:30:00Z` | Waktu baris dibuat. |
+| Kolom        | Tipe Data     | Constraint        | Default  | Contoh Value               | Keterangan                        |
+| ------------ | ------------- | ----------------- | -------- | -------------------------- | --------------------------------- |
+| `id`         | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cldc750497b83ca1e747b4aa` | ID unik baris partisipasi.        |
+| `bookingId`  | String        | `NOT NULL`, 🔗 FK | -        | `AYCLBook-20260627-yR44ua` | Booking mana yang berpartisipasi. |
+| `scheduleId` | String        | `NOT NULL`, 🔗 FK | -        | `SCH-1782472339769-8DC522` | Jadwal sesi yang diikuti.         |
+| `createdAt`  | DateTime      | `NOT NULL`        | `now()`  | `2026-03-15T10:30:00Z`     | Waktu baris dibuat.               |
 
 #### Primary Key & Foreign Key
 
@@ -1161,6 +1161,7 @@ bisa mengikuti lebih dari satu jadwal sesi dalam batch yang sama.
 > eksekusi kode) tetap pakai prefix `e_learning_` biasa. Pemakaian `@map`
 > di level kolom juga tidak konsisten antar tabel (sebagian tabel mapping
 > penuh ke snake_case, sebagian membiarkan nama kolom fisik tetap camelCase)
+>
 > - dicatat per tabel kalau relevan.
 
 ### 5.26 `e_learning_audit_logs`
@@ -1172,17 +1173,17 @@ snapshot nilai lama & baru.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cldd45b4c1011e24ae1dde32` | ID unik baris log. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000001` | User (mentor/admin) yang melakukan aksi. |
-| `entityType` | Enum `ELearningAuditEntityType` | `NOT NULL` | - | `COURSE` | Entitas yang diaudit: `COURSE`, `SUB_CHAPTER`, `SUB_BAB`, atau `TEXT`. |
-| `entityId` | String | `NOT NULL` | - | `elearn-20260620-9df175` | ID baris entitas yang diaudit. **Bukan FK sungguhan** - lihat catatan. |
-| `action` | Enum `ELearningAuditAction` | `NOT NULL` | - | `UPDATE` | `CREATE`, `UPDATE`, `DELETE`, `PUBLISH`, atau `ARCHIVE`. |
-| `description` | VarChar | `nullable` | - | `Deskripsi singkat mengenai konten ini.` | Deskripsi ringkas perubahan (biasanya teks dinamis, mis. "mengubah judul dari X ke Y"). |
-| `oldValue` | Json | `nullable` | - | `{"title": "Judul Lama"}` | Snapshot nilai sebelum perubahan. |
-| `newValue` | Json | `nullable` | - | `{"title": "Judul Baru"}` | Snapshot nilai setelah perubahan. |
-| `createdAt` | DateTime | `NOT NULL` | `now()` | `2026-03-15T10:30:00Z` | Waktu aksi terjadi. |
+| Kolom         | Tipe Data                       | Constraint        | Default  | Contoh Value                             | Keterangan                                                                              |
+| ------------- | ------------------------------- | ----------------- | -------- | ---------------------------------------- | --------------------------------------------------------------------------------------- |
+| `id`          | String (cuid)                   | 🔑 PK, `NOT NULL` | `cuid()` | `cldd45b4c1011e24ae1dde32`               | ID unik baris log.                                                                      |
+| `userId`      | String                          | `NOT NULL`, 🔗 FK | -        | `000001`                                 | User (mentor/admin) yang melakukan aksi.                                                |
+| `entityType`  | Enum `ELearningAuditEntityType` | `NOT NULL`        | -        | `COURSE`                                 | Entitas yang diaudit: `COURSE`, `SUB_CHAPTER`, `SUB_BAB`, atau `TEXT`.                  |
+| `entityId`    | String                          | `NOT NULL`        | -        | `elearn-20260620-9df175`                 | ID baris entitas yang diaudit. **Bukan FK sungguhan** - lihat catatan.                  |
+| `action`      | Enum `ELearningAuditAction`     | `NOT NULL`        | -        | `UPDATE`                                 | `CREATE`, `UPDATE`, `DELETE`, `PUBLISH`, atau `ARCHIVE`.                                |
+| `description` | VarChar                         | `nullable`        | -        | `Deskripsi singkat mengenai konten ini.` | Deskripsi ringkas perubahan (biasanya teks dinamis, mis. "mengubah judul dari X ke Y"). |
+| `oldValue`    | Json                            | `nullable`        | -        | `{"title": "Judul Lama"}`                | Snapshot nilai sebelum perubahan.                                                       |
+| `newValue`    | Json                            | `nullable`        | -        | `{"title": "Judul Baru"}`                | Snapshot nilai setelah perubahan.                                                       |
+| `createdAt`   | DateTime                        | `NOT NULL`        | `now()`  | `2026-03-15T10:30:00Z`                   | Waktu aksi terjadi.                                                                     |
 
 #### Primary Key & Foreign Key
 
@@ -1207,25 +1208,25 @@ induk tertinggi dari struktur konten belajar di modul ini.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (custom) | 🔑 PK, `NOT NULL` | `custom(elearn-....-.....)` | `elearn-20251220-4df3df` | ID unik course. |
-| `mentorId` | String | `NOT NULL`, 🔗 FK | - | `Mentor-000002` | Mentor pemilik course (dirandom). |
-| `title` | VarChar | `NOT NULL` | - | `Belajar Python untuk Pemula` | Judul course. |
-| `description` | Text | `nullable` | - | `Deskripsi singkat mengenai konten ini.` | Deskripsi course. |
-| `thumbnailImages` | VarChar[] | `NOT NULL` | - | `["thumb1.jpg", "thumb2.jpg"]` | Array URL/path gambar thumbnail. |
-| `category` | VarChar | `nullable` | - | `Data Science` | Kategori course (freetext). |
-| `tags` | VarChar[] | `NOT NULL` | - | `["python", "data-science"]` | Array tag/topik course. |
-| `targetAudience` | VarChar | `nullable` | - | `Mahasiswa & fresh graduate` | Target peserta yang dituju. |
-| `level` | VarChar | `nullable` | - | `beginner` | Tingkat kesulitan (freetext, contoh dari komentar developer: Beginner/Intermediate/Advanced). |
-| `estimatedDuration` | VarChar | `nullable` | - | `200` | Estimasi durasi belajar (freetext, mis. "4 minggu"). |
-| `benefits` | Text | `nullable` | - | `Mendapat sertifikat & akses grup alumni.` | Manfaat mengikuti course. |
-| `toolsUsed` | Text | `nullable` | - | `Python, Jupyter Notebook, Pandas` | Tools/software yang dipakai di course. |
-| `isActive` | Boolean | `nullable` | `true` | `true` | `false` = course tidak ditampilkan/dinonaktifkan. |
-| `slug` | String | `nullable`, `@unique` | - | `belajar-python-untuk-pemula` | Slug URL-friendly. Nullable + unique - boleh kosong sebelum course siap dipublikasikan. |
-| `status` | Enum `CourseStatus` | `nullable` | `DRAFT` | `PUBLISHED` | `DRAFT`, `PUBLISHED`, atau `ARCHIVED`. |
-| `createdAt` | Timestamp(6) | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | Timestamp(6) | `nullable` | - | `2026-03-16T08:00:00Z` | Waktu terakhir diupdate - manual, tidak pakai `@updatedAt`. |
+| Kolom               | Tipe Data           | Constraint            | Default                     | Contoh Value                               | Keterangan                                                                                    |
+| ------------------- | ------------------- | --------------------- | --------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| `id`                | String (custom)     | 🔑 PK, `NOT NULL`     | `custom(elearn-....-.....)` | `elearn-20251220-4df3df`                   | ID unik course.                                                                               |
+| `mentorId`          | String              | `NOT NULL`, 🔗 FK     | -                           | `Mentor-000002`                            | Mentor pemilik course (dirandom).                                                             |
+| `title`             | VarChar             | `NOT NULL`            | -                           | `Belajar Python untuk Pemula`              | Judul course.                                                                                 |
+| `description`       | Text                | `nullable`            | -                           | `Deskripsi singkat mengenai konten ini.`   | Deskripsi course.                                                                             |
+| `thumbnailImages`   | VarChar[]           | `NOT NULL`            | -                           | `["thumb1.jpg", "thumb2.jpg"]`             | Array URL/path gambar thumbnail.                                                              |
+| `category`          | VarChar             | `nullable`            | -                           | `Data Science`                             | Kategori course (freetext).                                                                   |
+| `tags`              | VarChar[]           | `NOT NULL`            | -                           | `["python", "data-science"]`               | Array tag/topik course.                                                                       |
+| `targetAudience`    | VarChar             | `nullable`            | -                           | `Mahasiswa & fresh graduate`               | Target peserta yang dituju.                                                                   |
+| `level`             | VarChar             | `nullable`            | -                           | `beginner`                                 | Tingkat kesulitan (freetext, contoh dari komentar developer: Beginner/Intermediate/Advanced). |
+| `estimatedDuration` | VarChar             | `nullable`            | -                           | `200`                                      | Estimasi durasi belajar (freetext, mis. "4 minggu").                                          |
+| `benefits`          | Text                | `nullable`            | -                           | `Mendapat sertifikat & akses grup alumni.` | Manfaat mengikuti course.                                                                     |
+| `toolsUsed`         | Text                | `nullable`            | -                           | `Python, Jupyter Notebook, Pandas`         | Tools/software yang dipakai di course.                                                        |
+| `isActive`          | Boolean             | `nullable`            | `true`                      | `true`                                     | `false` = course tidak ditampilkan/dinonaktifkan.                                             |
+| `slug`              | String              | `nullable`, `@unique` | -                           | `belajar-python-untuk-pemula`              | Slug URL-friendly. Nullable + unique - boleh kosong sebelum course siap dipublikasikan.       |
+| `status`            | Enum `CourseStatus` | `nullable`            | `DRAFT`                     | `PUBLISHED`                                | `DRAFT`, `PUBLISHED`, atau `ARCHIVED`.                                                        |
+| `createdAt`         | Timestamp(6)        | `nullable`            | `now()`                     | `2026-03-15T10:30:00Z`                     | Waktu dibuat.                                                                                 |
+| `updatedAt`         | Timestamp(6)        | `nullable`            | -                           | `2026-03-16T08:00:00Z`                     | Waktu terakhir diupdate - manual, tidak pakai `@updatedAt`.                                   |
 
 #### Primary Key & Foreign Key
 
@@ -1247,14 +1248,14 @@ cap anti-spam.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cld26d11e65d1e5ce36dd867` | ID unik baris. |
-| `courseId` | String | `NOT NULL`, 🔗 FK | - | `elearn-20260628-c8cfc7` | Course yang di-stream. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000001` | Akun yang melakukan klik stream. |
-| `streamCount` | Int | `NOT NULL` | `0` | `3` | Jumlah klik stream akun ini untuk course ini. **Di-cap MAX 10 di level service** (bukan di DB). |
-| `createdAt` | Timestamp(6) | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu baris pertama dibuat. |
-| `updatedAt` | Timestamp(6) | `nullable` | *(auto)* | `2026-03-16T08:00:00Z` | Pakai `@updatedAt`. |
+| Kolom         | Tipe Data     | Constraint        | Default  | Contoh Value               | Keterangan                                                                                      |
+| ------------- | ------------- | ----------------- | -------- | -------------------------- | ----------------------------------------------------------------------------------------------- |
+| `id`          | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cld26d11e65d1e5ce36dd867` | ID unik baris.                                                                                  |
+| `courseId`    | String        | `NOT NULL`, 🔗 FK | -        | `elearn-20260628-c8cfc7`   | Course yang di-stream.                                                                          |
+| `userId`      | String        | `NOT NULL`, 🔗 FK | -        | `000001`                   | Akun yang melakukan klik stream.                                                                |
+| `streamCount` | Int           | `NOT NULL`        | `0`      | `3`                        | Jumlah klik stream akun ini untuk course ini. **Di-cap MAX 10 di level service** (bukan di DB). |
+| `createdAt`   | Timestamp(6)  | `nullable`        | `now()`  | `2026-03-15T10:30:00Z`     | Waktu baris pertama dibuat.                                                                     |
+| `updatedAt`   | Timestamp(6)  | `nullable`        | _(auto)_ | `2026-03-16T08:00:00Z`     | Pakai `@updatedAt`.                                                                             |
 
 #### Primary Key & Foreign Key
 
@@ -1266,10 +1267,10 @@ cap anti-spam.
 #### 📌 Catatan
 
 Sesuai komentar developer di skema: begitu `streamCount` sampai 10, klik
-berikutnya dari akun yang sama jadi *no-op* (tidak menambah angka lagi),
+berikutnya dari akun yang sama jadi _no-op_ (tidak menambah angka lagi),
 supaya satu akun tidak bisa nge-spam angka "peserta" jadi tidak wajar. Satu
 baris per pasangan (course, user) - ini yang membuat cap-nya gampang
-di-enforce: service meng-*upsert* ke baris yang sama, bukan bikin baris baru
+di-enforce: service meng-_upsert_ ke baris yang sama, bukan bikin baris baru
 tiap klik.
 
 ---
@@ -1282,20 +1283,20 @@ tempat menempelnya rating (`ELearningReview`) dan sertifikat kelulusan
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (custom) | 🔑 PK, `NOT NULL` | `custom(subc-....-.....)` | `subc-20251106-ffca8483cdee` | ID unik sub-chapter. |
-| `courseId` | String | `NOT NULL`, 🔗 FK | - | `elearn-20251105-dde12d` | Course induk. |
-| `title` | VarChar | `NOT NULL` | - | `Belajar Python untuk Pemula` | Judul sub-chapter. |
-| `coverImage` | Text | `nullable` | - | `https://cdn.temudataku.com/covers/cover-01.jpg` | Gambar sampul. |
-| `description` | Text | `nullable` | - | `Deskripsi singkat mengenai konten ini.` | Deskripsi. |
-| `orderNumber` | Int | `NOT NULL` | - | `1` | Urutan tampil dalam course. |
-| `estimatedTime` | VarChar | `nullable` | - | `30` | Estimasi waktu pengerjaan (freetext). |
-| `taskType` | Enum `TaskType` | `nullable` | - | `QUIZ` | `QUIZ`, `PROJECT`, atau `QUIZ_AND_PROJECT` - jenis tugas yang ada di sub-chapter ini. |
-| `status` | Enum `CourseStatus` | `NOT NULL` | `DRAFT` | `PUBLISHED` | `DRAFT`, `PUBLISHED`, atau `ARCHIVED`. |
-| `level` | VarChar | `nullable` | - | `advanced` | Freetext, contoh: Beginner/Intermediate/Advanced/Professional. |
-| `createdAt` | Timestamp(6) | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | Timestamp(6) | `nullable` | - | `2026-03-16T08:00:00Z` | Manual, tidak `@updatedAt`. |
+| Kolom           | Tipe Data           | Constraint        | Default                   | Contoh Value                                     | Keterangan                                                                            |
+| --------------- | ------------------- | ----------------- | ------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| `id`            | String (custom)     | 🔑 PK, `NOT NULL` | `custom(subc-....-.....)` | `subc-20251106-ffca8483cdee`                     | ID unik sub-chapter.                                                                  |
+| `courseId`      | String              | `NOT NULL`, 🔗 FK | -                         | `elearn-20251105-dde12d`                         | Course induk.                                                                         |
+| `title`         | VarChar             | `NOT NULL`        | -                         | `Belajar Python untuk Pemula`                    | Judul sub-chapter.                                                                    |
+| `coverImage`    | Text                | `nullable`        | -                         | `https://cdn.temudataku.com/covers/cover-01.jpg` | Gambar sampul.                                                                        |
+| `description`   | Text                | `nullable`        | -                         | `Deskripsi singkat mengenai konten ini.`         | Deskripsi.                                                                            |
+| `orderNumber`   | Int                 | `NOT NULL`        | -                         | `1`                                              | Urutan tampil dalam course.                                                           |
+| `estimatedTime` | VarChar             | `nullable`        | -                         | `30`                                             | Estimasi waktu pengerjaan (freetext).                                                 |
+| `taskType`      | Enum `TaskType`     | `nullable`        | -                         | `QUIZ`                                           | `QUIZ`, `PROJECT`, atau `QUIZ_AND_PROJECT` - jenis tugas yang ada di sub-chapter ini. |
+| `status`        | Enum `CourseStatus` | `NOT NULL`        | `DRAFT`                   | `PUBLISHED`                                      | `DRAFT`, `PUBLISHED`, atau `ARCHIVED`.                                                |
+| `level`         | VarChar             | `nullable`        | -                         | `advanced`                                       | Freetext, contoh: Beginner/Intermediate/Advanced/Professional.                        |
+| `createdAt`     | Timestamp(6)        | `nullable`        | `now()`                   | `2026-03-15T10:30:00Z`                           | Waktu dibuat.                                                                         |
+| `updatedAt`     | Timestamp(6)        | `nullable`        | -                         | `2026-03-16T08:00:00Z`                           | Manual, tidak `@updatedAt`.                                                           |
 
 #### Primary Key & Foreign Key
 
@@ -1319,16 +1320,16 @@ level granularitas untuk bookmark & satu varian progress tracking
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (custom) | 🔑 PK, `NOT NULL` | `custom(subbab-....-...)` | `subbab-20260414-338a52089af0` | ID unik sub-bab. |
-| `subChapterId` | String | `NOT NULL`, 🔗 FK | - | `subbab-20260414-338a52089af0` | Sub-chapter induk. |
-| `title` | VarChar | `NOT NULL` | - | `Belajar Python untuk Pemula` | Judul sub-bab. |
-| `orderNumber` | Int | `nullable` | - | `1` | Urutan tampil. Nullable, berbeda dari `orderNumber` di `e_learning_sub_chapters` yang `NOT NULL`. |
-| `estimatedTime` | VarChar | `nullable` | - | `300` | Estimasi waktu (freetext). |
-| `status` | Enum `CourseStatus` | `NOT NULL` | `DRAFT` | `PUBLISHED` | `DRAFT`, `PUBLISHED`, atau `ARCHIVED`. |
-| `createdAt` | Timestamp(6) | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | Timestamp(6) | `nullable` | - | `2026-03-16T08:00:00Z` | Manual. |
+| Kolom           | Tipe Data           | Constraint        | Default                   | Contoh Value                   | Keterangan                                                                                        |
+| --------------- | ------------------- | ----------------- | ------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------- |
+| `id`            | String (custom)     | 🔑 PK, `NOT NULL` | `custom(subbab-....-...)` | `subbab-20260414-338a52089af0` | ID unik sub-bab.                                                                                  |
+| `subChapterId`  | String              | `NOT NULL`, 🔗 FK | -                         | `subbab-20260414-338a52089af0` | Sub-chapter induk.                                                                                |
+| `title`         | VarChar             | `NOT NULL`        | -                         | `Belajar Python untuk Pemula`  | Judul sub-bab.                                                                                    |
+| `orderNumber`   | Int                 | `nullable`        | -                         | `1`                            | Urutan tampil. Nullable, berbeda dari `orderNumber` di `e_learning_sub_chapters` yang `NOT NULL`. |
+| `estimatedTime` | VarChar             | `nullable`        | -                         | `300`                          | Estimasi waktu (freetext).                                                                        |
+| `status`        | Enum `CourseStatus` | `NOT NULL`        | `DRAFT`                   | `PUBLISHED`                    | `DRAFT`, `PUBLISHED`, atau `ARCHIVED`.                                                            |
+| `createdAt`     | Timestamp(6)        | `nullable`        | `now()`                   | `2026-03-15T10:30:00Z`         | Waktu dibuat.                                                                                     |
+| `updatedAt`     | Timestamp(6)        | `nullable`        | -                         | `2026-03-16T08:00:00Z`         | Manual.                                                                                           |
 
 #### Primary Key & Foreign Key
 
@@ -1345,22 +1346,22 @@ level granularitas untuk bookmark & satu varian progress tracking
 ### 5.31 `e_learning_texts`
 
 **Fungsi tabel**: Unit materi terkecil dalam satu sub-bab. Sesuai komentar
-developer di skema ("*Tabel baru untuk menyimpan teks/penjelasan materi per
-SubBab*"), satu `Text` bisa berupa materi biasa (kumpulan `blocks`), ATAU
+developer di skema ("_Tabel baru untuk menyimpan teks/penjelasan materi per
+SubBab_"), satu `Text` bisa berupa materi biasa (kumpulan `blocks`), ATAU
 punya satu `quiz` terlampir, ATAU satu `assignment` terlampir (opsional
 1:1, saling eksklusif secara konsep meski tidak dipaksakan DB).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (custom) | 🔑 PK, `NOT NULL` | `custom(ETXT-...-....)` | `ETXT-1776387622489-8DA5DB` | ID unik text. |
-| `subBabId` | String | `NOT NULL`, 🔗 FK | - | `subbab-20260414-338a52089af0` | Sub-bab induk. |
-| `title` | VarChar | `nullable` | - | `Belajar Python untuk Pemula` | Judul unit materi. |
-| `orderNumber` | Int | `nullable` | - | `1` | Urutan tampil. |
-| `status` | Enum `CourseStatus` | `NOT NULL` | `DRAFT` | `PUBLISHED` | `DRAFT`, `PUBLISHED`, atau `ARCHIVED`. |
-| `createdAt` | DateTime | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | DateTime | `nullable` | `now()` | `2026-03-16T08:00:00Z` | ⚠️ Punya default `now()` tapi **bukan** `@updatedAt` - jadi tidak otomatis ter-update saat baris diubah, harus di-set manual di kode. |
+| Kolom         | Tipe Data           | Constraint        | Default                 | Contoh Value                   | Keterangan                                                                                                                            |
+| ------------- | ------------------- | ----------------- | ----------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`          | String (custom)     | 🔑 PK, `NOT NULL` | `custom(ETXT-...-....)` | `ETXT-1776387622489-8DA5DB`    | ID unik text.                                                                                                                         |
+| `subBabId`    | String              | `NOT NULL`, 🔗 FK | -                       | `subbab-20260414-338a52089af0` | Sub-bab induk.                                                                                                                        |
+| `title`       | VarChar             | `nullable`        | -                       | `Belajar Python untuk Pemula`  | Judul unit materi.                                                                                                                    |
+| `orderNumber` | Int                 | `nullable`        | -                       | `1`                            | Urutan tampil.                                                                                                                        |
+| `status`      | Enum `CourseStatus` | `NOT NULL`        | `DRAFT`                 | `PUBLISHED`                    | `DRAFT`, `PUBLISHED`, atau `ARCHIVED`.                                                                                                |
+| `createdAt`   | DateTime            | `nullable`        | `now()`                 | `2026-03-15T10:30:00Z`         | Waktu dibuat.                                                                                                                         |
+| `updatedAt`   | DateTime            | `nullable`        | `now()`                 | `2026-03-16T08:00:00Z`         | ⚠️ Punya default `now()` tapi **bukan** `@updatedAt` - jadi tidak otomatis ter-update saat baris diubah, harus di-set manual di kode. |
 
 #### Primary Key & Foreign Key
 
@@ -1384,12 +1385,12 @@ membawa satu atau lebih `ContentBlock` (konten struktural) dan/atau
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl39ef17f9e8ac9ade5ee848` | ID unik block. |
-| `textId` | String | `NOT NULL`, 🔗 FK | - | `ETXT-1785934283622-71261E` | Text induk. |
-| `orderNumber` | Int | `nullable` | - | `1` | Urutan block dalam text. |
-| `createdAt` | DateTime | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
+| Kolom         | Tipe Data     | Constraint        | Default  | Contoh Value                | Keterangan               |
+| ------------- | ------------- | ----------------- | -------- | --------------------------- | ------------------------ |
+| `id`          | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl39ef17f9e8ac9ade5ee848`  | ID unik block.           |
+| `textId`      | String        | `NOT NULL`, 🔗 FK | -        | `ETXT-1785934283622-71261E` | Text induk.              |
+| `orderNumber` | Int           | `nullable`        | -        | `1`                         | Urutan block dalam text. |
+| `createdAt`   | DateTime      | `nullable`        | `now()`  | `2026-03-15T10:30:00Z`      | Waktu dibuat.            |
 
 #### Primary Key & Foreign Key
 
@@ -1413,13 +1414,13 @@ sungguh-sungguh terisi untuk baris ini.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl06eb4372d778e78b1619c7` | ID unik content block. |
-| `blockId` | String | `NOT NULL`, 🔗 FK | - | `cl1e3da5abe655460e84e5bc` | Text block induk. |
-| `type` | Enum `ContentBlockType` | `NOT NULL` | - | `LOGIN` | `HEADING`, `PARAGRAPH`, `ACCORDION`, `CAROUSEL`, `CONTENT_CARD`, `TAB_NAVIGATION`, `HIGHLIGHT`, atau `SUMMARY`. |
-| `orderNumber` | Int | `nullable` | - | `1` | Urutan dalam block. |
-| `createdAt` | DateTime | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
+| Kolom         | Tipe Data               | Constraint        | Default  | Contoh Value               | Keterangan                                                                                                      |
+| ------------- | ----------------------- | ----------------- | -------- | -------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `id`          | String (cuid)           | 🔑 PK, `NOT NULL` | `cuid()` | `cl06eb4372d778e78b1619c7` | ID unik content block.                                                                                          |
+| `blockId`     | String                  | `NOT NULL`, 🔗 FK | -        | `cl1e3da5abe655460e84e5bc` | Text block induk.                                                                                               |
+| `type`        | Enum `ContentBlockType` | `NOT NULL`        | -        | `LOGIN`                    | `HEADING`, `PARAGRAPH`, `ACCORDION`, `CAROUSEL`, `CONTENT_CARD`, `TAB_NAVIGATION`, `HIGHLIGHT`, atau `SUMMARY`. |
+| `orderNumber` | Int                     | `nullable`        | -        | `1`                        | Urutan dalam block.                                                                                             |
+| `createdAt`   | DateTime                | `nullable`        | `now()`  | `2026-03-15T10:30:00Z`     | Waktu dibuat.                                                                                                   |
 
 #### Primary Key & Foreign Key
 
@@ -1449,12 +1450,12 @@ memvalidasi keselarasan ini - kalau ada bug di kode penyimpanan, bisa saja
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cla20f71bc7bca01917a058b` | ID unik. |
-| `contentId` | String | `NOT NULL`, `@unique`, 🔗 FK | - | `cl6644ea40e53fb3f54f5c9c` | Content block induk (1:1). |
-| `level` | Int | `NOT NULL` | - | `2` | Level heading (mis. setara h1-h6). |
-| `text` | Text | `NOT NULL` | - | `Ini adalah contoh isi teks konten.` | Teks heading. |
+| Kolom       | Tipe Data     | Constraint                   | Default  | Contoh Value                         | Keterangan                         |
+| ----------- | ------------- | ---------------------------- | -------- | ------------------------------------ | ---------------------------------- |
+| `id`        | String (cuid) | 🔑 PK, `NOT NULL`            | `cuid()` | `cla20f71bc7bca01917a058b`           | ID unik.                           |
+| `contentId` | String        | `NOT NULL`, `@unique`, 🔗 FK | -        | `cl6644ea40e53fb3f54f5c9c`           | Content block induk (1:1).         |
+| `level`     | Int           | `NOT NULL`                   | -        | `2`                                  | Level heading (mis. setara h1-h6). |
+| `text`      | Text          | `NOT NULL`                   | -        | `Ini adalah contoh isi teks konten.` | Teks heading.                      |
 
 #### Primary Key & Foreign Key
 
@@ -1469,11 +1470,11 @@ memvalidasi keselarasan ini - kalau ada bug di kode penyimpanan, bisa saja
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl1dc0f2ab31dcb16d69284a` | ID unik. |
-| `contentId` | String | `NOT NULL`, `@unique`, 🔗 FK | - | `cl0d0a1aeac5fd59a9358ef6` | Content block induk (1:1). |
-| `text` | Text | `NOT NULL` | - | `{fstyle:paragraph:14}Secara umum, proses Supervised Learning dimulai dengan mengumpulkan data yang telah memiliki label. Data tersebut kemudian dibersihkan, diproses, dan dibagi menjadi data latih (training data) serta data uji (testing data).Model kemudian dilatih menggunakan data latih. Selama proses ini, algoritma akan terus melakukan penyesuaian parameter agar hasil prediksi semakin mendekati nilai sebenarnya.Setelah proses pelatihan selesai, model diuji menggunakan data yang belum pernah digunakan sebelumnya. Hasil pengujian ini memberikan gambaran mengenai kemampuan model dalam melakukan prediksi terhadap data baru.` | Isi paragraf. |
+| Kolom       | Tipe Data     | Constraint                   | Default  | Contoh Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Keterangan                 |
+| ----------- | ------------- | ---------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| `id`        | String (cuid) | 🔑 PK, `NOT NULL`            | `cuid()` | `cl1dc0f2ab31dcb16d69284a`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | ID unik.                   |
+| `contentId` | String        | `NOT NULL`, `@unique`, 🔗 FK | -        | `cl0d0a1aeac5fd59a9358ef6`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Content block induk (1:1). |
+| `text`      | Text          | `NOT NULL`                   | -        | `{fstyle:paragraph:14}Secara umum, proses Supervised Learning dimulai dengan mengumpulkan data yang telah memiliki label. Data tersebut kemudian dibersihkan, diproses, dan dibagi menjadi data latih (training data) serta data uji (testing data).Model kemudian dilatih menggunakan data latih. Selama proses ini, algoritma akan terus melakukan penyesuaian parameter agar hasil prediksi semakin mendekati nilai sebenarnya.Setelah proses pelatihan selesai, model diuji menggunakan data yang belum pernah digunakan sebelumnya. Hasil pengujian ini memberikan gambaran mengenai kemampuan model dalam melakukan prediksi terhadap data baru.` | Isi paragraf.              |
 
 #### Primary Key & Foreign Key
 
@@ -1489,11 +1490,11 @@ content block.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl5789b7c83a89a2b90a0649` | ID unik. |
-| `contentId` | String | `NOT NULL`, `@unique`, 🔗 FK | - | `cl87e315d3cc22337a4ad1f9` | Content block induk (1:1). |
-| `text` | VarChar(1250) | `NOT NULL` | - | `{fstyle:paragraph:16}{align:justify}💡 Machine Learning bukan solusi untuk semua permasalahan. Gunakan pendekatan ini ketika terdapat cukup data dan masalah yang ingin diselesaikan memang sulit dipecahkan menggunakan aturan biasa.{/align}` | Isi highlight. Satu-satunya konten teks di modul ini dengan **batas panjang eksplisit** (1250 karakter) - tipe konten teks lain (paragraph, dst.) pakai `Text` tanpa batas. |
+| Kolom       | Tipe Data     | Constraint                   | Default  | Contoh Value                                                                                                                                                                                                                                     | Keterangan                                                                                                                                                                  |
+| ----------- | ------------- | ---------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`        | String (cuid) | 🔑 PK, `NOT NULL`            | `cuid()` | `cl5789b7c83a89a2b90a0649`                                                                                                                                                                                                                       | ID unik.                                                                                                                                                                    |
+| `contentId` | String        | `NOT NULL`, `@unique`, 🔗 FK | -        | `cl87e315d3cc22337a4ad1f9`                                                                                                                                                                                                                       | Content block induk (1:1).                                                                                                                                                  |
+| `text`      | VarChar(1250) | `NOT NULL`                   | -        | `{fstyle:paragraph:16}{align:justify}💡 Machine Learning bukan solusi untuk semua permasalahan. Gunakan pendekatan ini ketika terdapat cukup data dan masalah yang ingin diselesaikan memang sulit dipecahkan menggunakan aturan biasa.{/align}` | Isi highlight. Satu-satunya konten teks di modul ini dengan **batas panjang eksplisit** (1250 karakter) - tipe konten teks lain (paragraph, dst.) pakai `Text` tanpa batas. |
 
 #### Primary Key & Foreign Key
 
@@ -1509,12 +1510,12 @@ dibuka-tutup); item-item accordion-nya sendiri ada di tabel terpisah (5.38).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl4d220a62c3560fbfc4349a` | ID unik. |
-| `contentId` | String | `NOT NULL`, `@unique`, 🔗 FK | - | `clabb32d847a384a415b834b` | Content block induk (1:1). |
-| `title` | String | `NOT NULL` | - | `Belajar Python untuk Pemula` | Judul accordion. |
-| `description` | String | `nullable` | - | `{fstyle:paragraph:16}Rest API terdiri dari beberapa komponen *utama*` | Deskripsi accordion. |
+| Kolom         | Tipe Data     | Constraint                   | Default  | Contoh Value                                                           | Keterangan                 |
+| ------------- | ------------- | ---------------------------- | -------- | ---------------------------------------------------------------------- | -------------------------- |
+| `id`          | String (cuid) | 🔑 PK, `NOT NULL`            | `cuid()` | `cl4d220a62c3560fbfc4349a`                                             | ID unik.                   |
+| `contentId`   | String        | `NOT NULL`, `@unique`, 🔗 FK | -        | `clabb32d847a384a415b834b`                                             | Content block induk (1:1). |
+| `title`       | String        | `NOT NULL`                   | -        | `Belajar Python untuk Pemula`                                          | Judul accordion.           |
+| `description` | String        | `nullable`                   | -        | `{fstyle:paragraph:16}Rest API terdiri dari beberapa komponen *utama*` | Deskripsi accordion.       |
 
 #### Primary Key & Foreign Key
 
@@ -1533,13 +1534,13 @@ dibuka-tutup); item-item accordion-nya sendiri ada di tabel terpisah (5.38).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl7ffea69c3c041e4780ca43` | ID unik. |
-| `accordionId` | String | `NOT NULL`, 🔗 FK | - | `cldf79976aec0a9197eb9ab6` | Accordion induk. |
-| `title` | String | `NOT NULL` | - | `Belajar Python untuk Pemula` | Judul panel. |
-| `content` | String | `NOT NULL` | - | `Isi konten di sini.` | Isi panel saat dibuka. |
-| `orderNumber` | Int | `NOT NULL` | - | `1` | Urutan panel. |
+| Kolom         | Tipe Data     | Constraint        | Default  | Contoh Value                  | Keterangan             |
+| ------------- | ------------- | ----------------- | -------- | ----------------------------- | ---------------------- |
+| `id`          | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl7ffea69c3c041e4780ca43`    | ID unik.               |
+| `accordionId` | String        | `NOT NULL`, 🔗 FK | -        | `cldf79976aec0a9197eb9ab6`    | Accordion induk.       |
+| `title`       | String        | `NOT NULL`        | -        | `Belajar Python untuk Pemula` | Judul panel.           |
+| `content`     | String        | `NOT NULL`        | -        | `Isi konten di sini.`         | Isi panel saat dibuka. |
+| `orderNumber` | Int           | `NOT NULL`        | -        | `1`                           | Urutan panel.          |
 
 #### Primary Key & Foreign Key
 
@@ -1555,13 +1556,13 @@ item-itemnya ada di tabel terpisah (5.40).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cld02734612a6fb54a7a60e2` | ID unik. |
-| `contentId` | String | `NOT NULL`, `@unique`, 🔗 FK | - | `clfbe30acee5fd34bdd7a73c` | Content block induk (1:1). |
-| `title` | String | `NOT NULL` | - | `Belajar Python untuk Pemula` | Judul carousel. |
-| `description` | String | `nullable` | - | `Deskripsi singkat mengenai konten ini.` | Deskripsi carousel. |
-| `cardsPerSlide` | Int | `nullable` | - | `3` | Jumlah kartu yang tampil per slide. |
+| Kolom           | Tipe Data     | Constraint                   | Default  | Contoh Value                             | Keterangan                          |
+| --------------- | ------------- | ---------------------------- | -------- | ---------------------------------------- | ----------------------------------- |
+| `id`            | String (cuid) | 🔑 PK, `NOT NULL`            | `cuid()` | `cld02734612a6fb54a7a60e2`               | ID unik.                            |
+| `contentId`     | String        | `NOT NULL`, `@unique`, 🔗 FK | -        | `clfbe30acee5fd34bdd7a73c`               | Content block induk (1:1).          |
+| `title`         | String        | `NOT NULL`                   | -        | `Belajar Python untuk Pemula`            | Judul carousel.                     |
+| `description`   | String        | `nullable`                   | -        | `Deskripsi singkat mengenai konten ini.` | Deskripsi carousel.                 |
+| `cardsPerSlide` | Int           | `nullable`                   | -        | `3`                                      | Jumlah kartu yang tampil per slide. |
 
 #### Primary Key & Foreign Key
 
@@ -1580,14 +1581,14 @@ item-itemnya ada di tabel terpisah (5.40).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cle458dd853a8497485ea119` | ID unik. |
-| `carouselId` | String | `NOT NULL`, 🔗 FK | - | `cl6c880fdb82e7954d5aa29a` | Carousel induk. |
-| `title` | String | `NOT NULL` | - | `Belajar Python untuk Pemula` | Judul kartu. |
-| `image` | String | `nullable` | - | `https://cdn.temudataku.com/img/slide-01.jpg` | Gambar kartu. |
-| `content` | String | `nullable` | - | `Isi konten di sini.` | Isi teks kartu. |
-| `orderNumber` | Int | `NOT NULL` | - | `1` | Urutan kartu. |
+| Kolom         | Tipe Data     | Constraint        | Default  | Contoh Value                                  | Keterangan      |
+| ------------- | ------------- | ----------------- | -------- | --------------------------------------------- | --------------- |
+| `id`          | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cle458dd853a8497485ea119`                    | ID unik.        |
+| `carouselId`  | String        | `NOT NULL`, 🔗 FK | -        | `cl6c880fdb82e7954d5aa29a`                    | Carousel induk. |
+| `title`       | String        | `NOT NULL`        | -        | `Belajar Python untuk Pemula`                 | Judul kartu.    |
+| `image`       | String        | `nullable`        | -        | `https://cdn.temudataku.com/img/slide-01.jpg` | Gambar kartu.   |
+| `content`     | String        | `nullable`        | -        | `Isi konten di sini.`                         | Isi teks kartu. |
+| `orderNumber` | Int           | `NOT NULL`        | -        | `1`                                           | Urutan kartu.   |
 
 #### Primary Key & Foreign Key
 
@@ -1603,14 +1604,14 @@ opsi konten yang bisa di-expand); item-itemnya ada di tabel terpisah (5.42).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl8ab3291c292ab3cad5e87b` | ID unik. |
-| `contentId` | String | `NOT NULL`, `@unique`, 🔗 FK | - | `cl989fc282a22683e67534e6` | Content block induk (1:1). |
-| `title` | String | `NOT NULL` | - | `Belajar Python untuk Pemula` | Judul grup kartu. |
-| `description` | String | `nullable` | - | `Deskripsi singkat mengenai konten ini.` | Deskripsi grup kartu. |
-| `disableExpandableContent` | Boolean | `NOT NULL` | *(tidak ada)* | `false` | Mematikan fitur expand konten kartu. **Tidak punya `@default`** - berbeda dari mayoritas kolom Boolean lain di modul ini yang selalu punya default - jadi kode penyimpanan **wajib** selalu mengirim nilai eksplisit untuk kolom ini. |
-| `items` | - | - | - | `(freetext)` | *(relasi, lihat di bawah)* |
+| Kolom                      | Tipe Data     | Constraint                   | Default       | Contoh Value                             | Keterangan                                                                                                                                                                                                                            |
+| -------------------------- | ------------- | ---------------------------- | ------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                       | String (cuid) | 🔑 PK, `NOT NULL`            | `cuid()`      | `cl8ab3291c292ab3cad5e87b`               | ID unik.                                                                                                                                                                                                                              |
+| `contentId`                | String        | `NOT NULL`, `@unique`, 🔗 FK | -             | `cl989fc282a22683e67534e6`               | Content block induk (1:1).                                                                                                                                                                                                            |
+| `title`                    | String        | `NOT NULL`                   | -             | `Belajar Python untuk Pemula`            | Judul grup kartu.                                                                                                                                                                                                                     |
+| `description`              | String        | `nullable`                   | -             | `Deskripsi singkat mengenai konten ini.` | Deskripsi grup kartu.                                                                                                                                                                                                                 |
+| `disableExpandableContent` | Boolean       | `NOT NULL`                   | _(tidak ada)_ | `false`                                  | Mematikan fitur expand konten kartu. **Tidak punya `@default`** - berbeda dari mayoritas kolom Boolean lain di modul ini yang selalu punya default - jadi kode penyimpanan **wajib** selalu mengirim nilai eksplisit untuk kolom ini. |
+| `items`                    | -             | -                            | -             | `(freetext)`                             | _(relasi, lihat di bawah)_                                                                                                                                                                                                            |
 
 #### Primary Key & Foreign Key
 
@@ -1629,14 +1630,14 @@ opsi konten yang bisa di-expand); item-itemnya ada di tabel terpisah (5.42).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl2157328ff86f80f35ef313` | ID unik. |
-| `cardId` | String | `NOT NULL`, 🔗 FK | - | `clbba2204d3134f864b8e14e` | Grup kartu induk. |
-| `title` | String | `NOT NULL` | - | `Belajar Python untuk Pemula` | Judul kartu. |
-| `content` | String | `NOT NULL` | - | `Isi konten di sini.` | Isi ringkas kartu (selalu tampil). |
-| `expandableContent` | String | `nullable` | - | `Penjelasan lebih detail tentang topik ini.` | Isi tambahan yang muncul saat kartu di-expand (kalau `disableExpandableContent` di induknya `false`). |
-| `orderNumber` | Int | `NOT NULL` | - | `1` | Urutan kartu. |
+| Kolom               | Tipe Data     | Constraint        | Default  | Contoh Value                                 | Keterangan                                                                                            |
+| ------------------- | ------------- | ----------------- | -------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `id`                | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl2157328ff86f80f35ef313`                   | ID unik.                                                                                              |
+| `cardId`            | String        | `NOT NULL`, 🔗 FK | -        | `clbba2204d3134f864b8e14e`                   | Grup kartu induk.                                                                                     |
+| `title`             | String        | `NOT NULL`        | -        | `Belajar Python untuk Pemula`                | Judul kartu.                                                                                          |
+| `content`           | String        | `NOT NULL`        | -        | `Isi konten di sini.`                        | Isi ringkas kartu (selalu tampil).                                                                    |
+| `expandableContent` | String        | `nullable`        | -        | `Penjelasan lebih detail tentang topik ini.` | Isi tambahan yang muncul saat kartu di-expand (kalau `disableExpandableContent` di induknya `false`). |
+| `orderNumber`       | Int           | `NOT NULL`        | -        | `1`                                          | Urutan kartu.                                                                                         |
 
 #### Primary Key & Foreign Key
 
@@ -1652,12 +1653,12 @@ tabel terpisah (5.44).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl9648f8a0c8d66c2fa15e1c` | ID unik. |
-| `contentId` | String | `NOT NULL`, `@unique`, 🔗 FK | - | `cld820b695c517894b92162f` | Content block induk (1:1). |
-| `title` | String | `NOT NULL` | - | `Belajar Python untuk Pemula` | Judul grup tab. |
-| `description` | String | `nullable` | - | `Deskripsi singkat mengenai konten ini.` | Deskripsi grup tab. |
+| Kolom         | Tipe Data     | Constraint                   | Default  | Contoh Value                             | Keterangan                 |
+| ------------- | ------------- | ---------------------------- | -------- | ---------------------------------------- | -------------------------- |
+| `id`          | String (cuid) | 🔑 PK, `NOT NULL`            | `cuid()` | `cl9648f8a0c8d66c2fa15e1c`               | ID unik.                   |
+| `contentId`   | String        | `NOT NULL`, `@unique`, 🔗 FK | -        | `cld820b695c517894b92162f`               | Content block induk (1:1). |
+| `title`       | String        | `NOT NULL`                   | -        | `Belajar Python untuk Pemula`            | Judul grup tab.            |
+| `description` | String        | `nullable`                   | -        | `Deskripsi singkat mengenai konten ini.` | Deskripsi grup tab.        |
 
 #### Primary Key & Foreign Key
 
@@ -1676,13 +1677,13 @@ tabel terpisah (5.44).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl1256c94efe4eececa0c833` | ID unik. |
-| `tabId` | String | `NOT NULL`, 🔗 FK | - | `cl2989bed80b0b2b27e467ad` | Grup tab induk. |
-| `title` | String | `NOT NULL` | - | `Belajar Python untuk Pemula` | Judul/label tab. |
-| `content` | String | `NOT NULL` | - | `Isi konten di sini.` | Isi konten tab. |
-| `orderNumber` | Int | `NOT NULL` | - | `1` | Urutan tab. |
+| Kolom         | Tipe Data     | Constraint        | Default  | Contoh Value                  | Keterangan       |
+| ------------- | ------------- | ----------------- | -------- | ----------------------------- | ---------------- |
+| `id`          | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl1256c94efe4eececa0c833`    | ID unik.         |
+| `tabId`       | String        | `NOT NULL`, 🔗 FK | -        | `cl2989bed80b0b2b27e467ad`    | Grup tab induk.  |
+| `title`       | String        | `NOT NULL`        | -        | `Belajar Python untuk Pemula` | Judul/label tab. |
+| `content`     | String        | `NOT NULL`        | -        | `Isi konten di sini.`         | Isi konten tab.  |
+| `orderNumber` | Int           | `NOT NULL`        | -        | `1`                           | Urutan tab.      |
 
 #### Primary Key & Foreign Key
 
@@ -1698,10 +1699,10 @@ poin-poin ringkasannya ada di tabel terpisah (5.46).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl48bf5ccf7092c7dd52b0ee` | ID unik. |
-| `contentId` | String | `NOT NULL`, `@unique`, 🔗 FK | - | `cl4271073ad5b0cd0dfe4c44` | Content block induk (1:1). |
+| Kolom       | Tipe Data     | Constraint                   | Default  | Contoh Value               | Keterangan                 |
+| ----------- | ------------- | ---------------------------- | -------- | -------------------------- | -------------------------- |
+| `id`        | String (cuid) | 🔑 PK, `NOT NULL`            | `cuid()` | `cl48bf5ccf7092c7dd52b0ee` | ID unik.                   |
+| `contentId` | String        | `NOT NULL`, `@unique`, 🔗 FK | -        | `cl4271073ad5b0cd0dfe4c44` | Content block induk (1:1). |
 
 #### Primary Key & Foreign Key
 
@@ -1726,12 +1727,12 @@ seperti tipe konten lain) - isinya murni daftar poin dari
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl2d1282c7974c9224f37eb7` | ID unik. |
-| `summaryId` | String | `NOT NULL`, 🔗 FK | - | `cl214c0290dd6058eb781d8b` | Summary induk. |
-| `comment` | String | `NOT NULL` | - | `Materinya jelas dan mudah dipahami!` | Isi poin ringkasan. |
-| `orderNumber` | Int | `NOT NULL` | - | `1` | Urutan poin. |
+| Kolom         | Tipe Data     | Constraint        | Default  | Contoh Value                          | Keterangan          |
+| ------------- | ------------- | ----------------- | -------- | ------------------------------------- | ------------------- |
+| `id`          | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl2d1282c7974c9224f37eb7`            | ID unik.            |
+| `summaryId`   | String        | `NOT NULL`, 🔗 FK | -        | `cl214c0290dd6058eb781d8b`            | Summary induk.      |
+| `comment`     | String        | `NOT NULL`        | -        | `Materinya jelas dan mudah dipahami!` | Isi poin ringkasan. |
+| `orderNumber` | Int           | `NOT NULL`        | -        | `1`                                   | Urutan poin.        |
 
 #### Primary Key & Foreign Key
 
@@ -1749,13 +1750,13 @@ terhadap konten struktural di block yang sama.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `clcdfbc0419e1181430272f4` | ID unik. |
-| `blockId` | String | `NOT NULL`, 🔗 FK | - | `cl944af2f606846b1dc2fbb4` | Text block induk. |
-| `type` | Enum `AdditionalContentType` | `NOT NULL` | - | `IMAGE_VIDEO` | `IMAGE_VIDEO`, `MULTIPLE_CHOICE`, `MATCHING`, atau `INTERACTIVE_CODE`. |
-| `position` | Enum `AnchorPosition` | `NOT NULL` | - | `BEFORE` | `BEFORE`, `AFTER`, atau `INLINE` - posisi elemen interaktif relatif terhadap konten struktural di block yang sama. |
-| `orderNumber` | Int | `nullable` | - | `1` | Urutan bila ada beberapa additional content di block yang sama. |
+| Kolom         | Tipe Data                    | Constraint        | Default  | Contoh Value               | Keterangan                                                                                                         |
+| ------------- | ---------------------------- | ----------------- | -------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `id`          | String (cuid)                | 🔑 PK, `NOT NULL` | `cuid()` | `clcdfbc0419e1181430272f4` | ID unik.                                                                                                           |
+| `blockId`     | String                       | `NOT NULL`, 🔗 FK | -        | `cl944af2f606846b1dc2fbb4` | Text block induk.                                                                                                  |
+| `type`        | Enum `AdditionalContentType` | `NOT NULL`        | -        | `IMAGE_VIDEO`              | `IMAGE_VIDEO`, `MULTIPLE_CHOICE`, `MATCHING`, atau `INTERACTIVE_CODE`.                                             |
+| `position`    | Enum `AnchorPosition`        | `NOT NULL`        | -        | `BEFORE`                   | `BEFORE`, `AFTER`, atau `INLINE` - posisi elemen interaktif relatif terhadap konten struktural di block yang sama. |
+| `orderNumber` | Int                          | `nullable`        | -        | `1`                        | Urutan bila ada beberapa additional content di block yang sama.                                                    |
 
 #### Primary Key & Foreign Key
 
@@ -1783,15 +1784,15 @@ konten interaktif; pasangan kiri-kanannya ada di tabel terpisah (5.49).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl4da1d0fabb45cf4a5814b7` | ID unik. |
-| `additionalContentId` | String | `NOT NULL`, `@unique`, 🔗 FK | - | `cle3679b69e8162f69448a41` | Additional content induk (1:1). |
-| `title` | String | `nullable` | - | `Belajar Python untuk Pemula` | Judul soal. |
-| `instruction` | String | `nullable` | - | `Unggah file dalam format .ipynb.` | Instruksi pengerjaan. |
-| `maxScore` | Float | `nullable` | `100` | `100` | Skor maksimal soal. |
-| `explanation` | Text | `nullable` | - | `Karena B lebih tepat menjawab konteks soal.` | Penjelasan jawaban. |
-| `createdAt` | DateTime | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
+| Kolom                 | Tipe Data     | Constraint                   | Default  | Contoh Value                                  | Keterangan                      |
+| --------------------- | ------------- | ---------------------------- | -------- | --------------------------------------------- | ------------------------------- |
+| `id`                  | String (cuid) | 🔑 PK, `NOT NULL`            | `cuid()` | `cl4da1d0fabb45cf4a5814b7`                    | ID unik.                        |
+| `additionalContentId` | String        | `NOT NULL`, `@unique`, 🔗 FK | -        | `cle3679b69e8162f69448a41`                    | Additional content induk (1:1). |
+| `title`               | String        | `nullable`                   | -        | `Belajar Python untuk Pemula`                 | Judul soal.                     |
+| `instruction`         | String        | `nullable`                   | -        | `Unggah file dalam format .ipynb.`            | Instruksi pengerjaan.           |
+| `maxScore`            | Float         | `nullable`                   | `100`    | `100`                                         | Skor maksimal soal.             |
+| `explanation`         | Text          | `nullable`                   | -        | `Karena B lebih tepat menjawab konteks soal.` | Penjelasan jawaban.             |
+| `createdAt`           | DateTime      | `nullable`                   | `now()`  | `2026-03-15T10:30:00Z`                        | Waktu dibuat.                   |
 
 #### Primary Key & Foreign Key
 
@@ -1811,14 +1812,14 @@ soal matching (5.48).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl242e2c5e7941156c2a67f1` | ID unik. |
-| `questionId` | String | `NOT NULL`, 🔗 FK | - | `clec45bd01c64f0bf7534e33` | Soal matching induk. |
-| `content` | Text | `NOT NULL` | - | `Isi konten di sini.` | Isi item. |
-| `side` | Enum `MatchingItemSide` | `NOT NULL` | - | `LEFT` | `LEFT` atau `RIGHT`. |
-| `orderNumber` | Int | `NOT NULL` | - | `1` | Urutan tampil dalam sisinya. |
-| `matchWithId` | String | `nullable` | - | `cl321fec137c756e71cef77a` | ID item pasangannya (di sisi lain) yang benar. **Bukan FK sungguhan** - lihat catatan. |
+| Kolom         | Tipe Data               | Constraint        | Default  | Contoh Value               | Keterangan                                                                             |
+| ------------- | ----------------------- | ----------------- | -------- | -------------------------- | -------------------------------------------------------------------------------------- |
+| `id`          | String (cuid)           | 🔑 PK, `NOT NULL` | `cuid()` | `cl242e2c5e7941156c2a67f1` | ID unik.                                                                               |
+| `questionId`  | String                  | `NOT NULL`, 🔗 FK | -        | `clec45bd01c64f0bf7534e33` | Soal matching induk.                                                                   |
+| `content`     | Text                    | `NOT NULL`        | -        | `Isi konten di sini.`      | Isi item.                                                                              |
+| `side`        | Enum `MatchingItemSide` | `NOT NULL`        | -        | `LEFT`                     | `LEFT` atau `RIGHT`.                                                                   |
+| `orderNumber` | Int                     | `NOT NULL`        | -        | `1`                        | Urutan tampil dalam sisinya.                                                           |
+| `matchWithId` | String                  | `nullable`        | -        | `cl321fec137c756e71cef77a` | ID item pasangannya (di sisi lain) yang benar. **Bukan FK sungguhan** - lihat catatan. |
 
 #### Primary Key & Foreign Key
 
@@ -1846,14 +1847,14 @@ interaktif di tengah materi.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl060e35162aa83c113bb288` | ID unik. |
-| `additionalContentId` | String | `NOT NULL`, `@unique`, 🔗 FK | - | `clb4c72230bee65092c35725` | Additional content induk (1:1). |
-| `question` | Text | `NOT NULL` | - | `Apa itu overfitting dalam machine learning?` | Teks pertanyaan. |
-| `description` | String | `nullable` | - | `Deskripsi singkat mengenai konten ini.` | Keterangan tambahan soal. |
-| `allowMultiple` | Boolean | `NOT NULL` | `false` | `true` | `true` = boleh pilih lebih dari satu jawaban benar. |
-| `explanation` | String | `nullable` | - | `Karena B lebih tepat menjawab konteks soal.` | Penjelasan jawaban. |
+| Kolom                 | Tipe Data     | Constraint                   | Default  | Contoh Value                                  | Keterangan                                          |
+| --------------------- | ------------- | ---------------------------- | -------- | --------------------------------------------- | --------------------------------------------------- |
+| `id`                  | String (cuid) | 🔑 PK, `NOT NULL`            | `cuid()` | `cl060e35162aa83c113bb288`                    | ID unik.                                            |
+| `additionalContentId` | String        | `NOT NULL`, `@unique`, 🔗 FK | -        | `clb4c72230bee65092c35725`                    | Additional content induk (1:1).                     |
+| `question`            | Text          | `NOT NULL`                   | -        | `Apa itu overfitting dalam machine learning?` | Teks pertanyaan.                                    |
+| `description`         | String        | `nullable`                   | -        | `Deskripsi singkat mengenai konten ini.`      | Keterangan tambahan soal.                           |
+| `allowMultiple`       | Boolean       | `NOT NULL`                   | `false`  | `true`                                        | `true` = boleh pilih lebih dari satu jawaban benar. |
+| `explanation`         | String        | `nullable`                   | -        | `Karena B lebih tepat menjawab konteks soal.` | Penjelasan jawaban.                                 |
 
 #### Primary Key & Foreign Key
 
@@ -1872,13 +1873,13 @@ interaktif di tengah materi.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cleeb9c9e58165e805bd43d3` | ID unik. |
-| `questionId` | String | `NOT NULL`, 🔗 FK | - | `cl9744b14285ddbd9db6fb2b` | Soal induk. |
-| `content` | String | `NOT NULL` | - | `Isi konten di sini.` | Teks opsi jawaban. |
-| `isCorrect` | Boolean | `NOT NULL` | `false` | `true` | `true` = opsi ini jawaban benar. |
-| `orderNumber` | Int | `NOT NULL` | - | `1` | Urutan tampil opsi. |
+| Kolom         | Tipe Data     | Constraint        | Default  | Contoh Value               | Keterangan                       |
+| ------------- | ------------- | ----------------- | -------- | -------------------------- | -------------------------------- |
+| `id`          | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cleeb9c9e58165e805bd43d3` | ID unik.                         |
+| `questionId`  | String        | `NOT NULL`, 🔗 FK | -        | `cl9744b14285ddbd9db6fb2b` | Soal induk.                      |
+| `content`     | String        | `NOT NULL`        | -        | `Isi konten di sini.`      | Teks opsi jawaban.               |
+| `isCorrect`   | Boolean       | `NOT NULL`        | `false`  | `true`                     | `true` = opsi ini jawaban benar. |
+| `orderNumber` | Int           | `NOT NULL`        | -        | `1`                        | Urutan tampil opsi.              |
 
 #### Primary Key & Foreign Key
 
@@ -1894,19 +1895,19 @@ tabel menangani dua-duanya lewat kolom diskriminator `mediaType`.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl911be3d6af714170a55893` | ID unik. |
-| `additionalContentId` | String | `NOT NULL`, `@unique`, 🔗 FK | - | `cl52a0892eddebee2ef4a1e0` | Additional content induk (1:1). Tidak pakai `@map`. |
-| `title` | String | `nullable` | - | `Belajar Python untuk Pemula` | Judul media. |
-| `caption` | String | `nullable` | - | `(freetext)` | Keterangan/caption media. |
-| `description` | String | `nullable` | - | `Deskripsi singkat mengenai konten ini.` | Deskripsi media. |
-| `mediaType` | Enum `MediaType` | `NOT NULL` | - | `IMAGE` | `IMAGE` atau `VIDEO`. |
-| `url` | String | `NOT NULL` | - | `https://cdn.temudataku.com/files/materi-01.pdf` | URL/path file media. |
-| `thumbnailUrl` | String | `nullable` | - | `https://cdn.temudataku.com/thumb/thumb-01.jpg` | URL thumbnail (relevan terutama untuk video). |
-| `durationSeconds` | Int | `nullable` | - | `120` | Durasi video dalam detik - hanya relevan kalau `mediaType = VIDEO`. |
-| `widthPercent` | Int | `nullable` | `100` | `75` | Lebar tampilan media (persen dari kontainer). |
-| `createdAt` | DateTime | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
+| Kolom                 | Tipe Data        | Constraint                   | Default  | Contoh Value                                     | Keterangan                                                          |
+| --------------------- | ---------------- | ---------------------------- | -------- | ------------------------------------------------ | ------------------------------------------------------------------- |
+| `id`                  | String (cuid)    | 🔑 PK, `NOT NULL`            | `cuid()` | `cl911be3d6af714170a55893`                       | ID unik.                                                            |
+| `additionalContentId` | String           | `NOT NULL`, `@unique`, 🔗 FK | -        | `cl52a0892eddebee2ef4a1e0`                       | Additional content induk (1:1). Tidak pakai `@map`.                 |
+| `title`               | String           | `nullable`                   | -        | `Belajar Python untuk Pemula`                    | Judul media.                                                        |
+| `caption`             | String           | `nullable`                   | -        | `(freetext)`                                     | Keterangan/caption media.                                           |
+| `description`         | String           | `nullable`                   | -        | `Deskripsi singkat mengenai konten ini.`         | Deskripsi media.                                                    |
+| `mediaType`           | Enum `MediaType` | `NOT NULL`                   | -        | `IMAGE`                                          | `IMAGE` atau `VIDEO`.                                               |
+| `url`                 | String           | `NOT NULL`                   | -        | `https://cdn.temudataku.com/files/materi-01.pdf` | URL/path file media.                                                |
+| `thumbnailUrl`        | String           | `nullable`                   | -        | `https://cdn.temudataku.com/thumb/thumb-01.jpg`  | URL thumbnail (relevan terutama untuk video).                       |
+| `durationSeconds`     | Int              | `nullable`                   | -        | `120`                                            | Durasi video dalam detik - hanya relevan kalau `mediaType = VIDEO`. |
+| `widthPercent`        | Int              | `nullable`                   | `100`    | `75`                                             | Lebar tampilan media (persen dari kontainer).                       |
+| `createdAt`           | DateTime         | `nullable`                   | `now()`  | `2026-03-15T10:30:00Z`                           | Waktu dibuat.                                                       |
 
 #### Primary Key & Foreign Key
 
@@ -1923,18 +1924,18 @@ tersimpan di tabel terpisah (5.54).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `claf7a93180aa5db1e80639a` | ID unik. |
-| `additionalContentId` | String | `NOT NULL`, `@unique`, 🔗 FK | - | `clf36272cf91d9dd95b37ee6` | Additional content induk (1:1). Pakai `@map` (`additional_content_id`) - berbeda dari 5.50/5.52 yang tidak. |
-| `title` | VarChar | `nullable` | - | `Belajar Python untuk Pemula` | Judul latihan kode. |
-| `description` | Text | `nullable` | - | `Deskripsi singkat mengenai konten ini.` | Instruksi/deskripsi latihan. |
-| `language` | Enum `CodeLanguage` | `NOT NULL` | - | `PYTHON` | `PYTHON`, `JAVASCRIPT`, `CPP`, `SQL`, atau `R`. |
-| `initialCode` | Text | `NOT NULL` | - | `print("Hello World")` | Kode awal yang ditampilkan ke peserta. |
-| `isEditable` | Boolean | `NOT NULL` | `true` | `true` | `false` = kode read-only, peserta cuma bisa run tanpa edit. |
-| `expectedResult` | Text | `nullable` | - | `Hello World` | Output yang diharapkan,  dipakai untuk auto-check hasil eksekusi. |
-| `createdAt` | DateTime | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | DateTime | `nullable` | `now()` | `2026-03-16T08:00:00Z` | Punya default `now()` tapi bukan `@updatedAt` - manual, sama seperti pola di 5.31. |
+| Kolom                 | Tipe Data           | Constraint                   | Default  | Contoh Value                             | Keterangan                                                                                                  |
+| --------------------- | ------------------- | ---------------------------- | -------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `id`                  | String (cuid)       | 🔑 PK, `NOT NULL`            | `cuid()` | `claf7a93180aa5db1e80639a`               | ID unik.                                                                                                    |
+| `additionalContentId` | String              | `NOT NULL`, `@unique`, 🔗 FK | -        | `clf36272cf91d9dd95b37ee6`               | Additional content induk (1:1). Pakai `@map` (`additional_content_id`) - berbeda dari 5.50/5.52 yang tidak. |
+| `title`               | VarChar             | `nullable`                   | -        | `Belajar Python untuk Pemula`            | Judul latihan kode.                                                                                         |
+| `description`         | Text                | `nullable`                   | -        | `Deskripsi singkat mengenai konten ini.` | Instruksi/deskripsi latihan.                                                                                |
+| `language`            | Enum `CodeLanguage` | `NOT NULL`                   | -        | `PYTHON`                                 | `PYTHON`, `JAVASCRIPT`, `CPP`, `SQL`, atau `R`.                                                             |
+| `initialCode`         | Text                | `NOT NULL`                   | -        | `print("Hello World")`                   | Kode awal yang ditampilkan ke peserta.                                                                      |
+| `isEditable`          | Boolean             | `NOT NULL`                   | `true`   | `true`                                   | `false` = kode read-only, peserta cuma bisa run tanpa edit.                                                 |
+| `expectedResult`      | Text                | `nullable`                   | -        | `Hello World`                            | Output yang diharapkan, dipakai untuk auto-check hasil eksekusi.                                            |
+| `createdAt`           | DateTime            | `nullable`                   | `now()`  | `2026-03-15T10:30:00Z`                   | Waktu dibuat.                                                                                               |
+| `updatedAt`           | DateTime            | `nullable`                   | `now()`  | `2026-03-16T08:00:00Z`                   | Punya default `now()` tapi bukan `@updatedAt` - manual, sama seperti pola di 5.31.                          |
 
 #### Primary Key & Foreign Key
 
@@ -1955,17 +1956,17 @@ seperti `e_learning_course_stream_counts`.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `clbc787e6f5e700818a906b9` | ID unik. |
-| `executableId` | String | `NOT NULL`, 🔗 FK | - | `cl8b86e9ff27104fb7e54d16` | Elemen kode yang dijalankan. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000001` | Peserta yang menjalankan. |
-| `input` | Text | `nullable` | - | `print("hello")` | Input yang dipakai saat run (kalau ada). |
-| `output` | Text | `nullable` | - | `hello` | Output hasil eksekusi. |
-| `error` | Text | `nullable` | - | `SyntaxError: invalid syntax` | Pesan error kalau eksekusi gagal. |
-| `executedAt` | DateTime | `nullable` | `now()` | `2026-03-16T08:05:00Z` | Waktu eksekusi. |
-| `executionTime` | Int | `nullable` | - | `250` | Lama eksekusi ( dalam milidetik). |
-| `isSuccess` | Boolean | `nullable` | `false` | `true` | Status berhasil/tidaknya eksekusi. |
+| Kolom           | Tipe Data     | Constraint        | Default  | Contoh Value                  | Keterangan                               |
+| --------------- | ------------- | ----------------- | -------- | ----------------------------- | ---------------------------------------- |
+| `id`            | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `clbc787e6f5e700818a906b9`    | ID unik.                                 |
+| `executableId`  | String        | `NOT NULL`, 🔗 FK | -        | `cl8b86e9ff27104fb7e54d16`    | Elemen kode yang dijalankan.             |
+| `userId`        | String        | `NOT NULL`, 🔗 FK | -        | `000001`                      | Peserta yang menjalankan.                |
+| `input`         | Text          | `nullable`        | -        | `print("hello")`              | Input yang dipakai saat run (kalau ada). |
+| `output`        | Text          | `nullable`        | -        | `hello`                       | Output hasil eksekusi.                   |
+| `error`         | Text          | `nullable`        | -        | `SyntaxError: invalid syntax` | Pesan error kalau eksekusi gagal.        |
+| `executedAt`    | DateTime      | `nullable`        | `now()`  | `2026-03-16T08:05:00Z`        | Waktu eksekusi.                          |
+| `executionTime` | Int           | `nullable`        | -        | `250`                         | Lama eksekusi ( dalam milidetik).        |
+| `isSuccess`     | Boolean       | `nullable`        | `false`  | `true`                        | Status berhasil/tidaknya eksekusi.       |
 
 #### Primary Key & Foreign Key
 
@@ -1984,16 +1985,16 @@ opsional) - berisi kumpulan soal (5.56) dan riwayat pengerjaan peserta
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl57ab54f7619b196ee01f74` | ID unik kuis. |
-| `textId` | String | `NOT NULL`, `@unique`, 🔗 FK | - | `ETXT-1787173818330-EAF6F1` | Text induk (1:1). |
-| `title` | VarChar | `NOT NULL` | - | `Belajar Python untuk Pemula` | Judul kuis. |
-| `description` | String | `nullable` | - | `Deskripsi singkat mengenai konten ini.` | Deskripsi kuis. |
-| `totalQuestions` | Int | `nullable` | - | `10` | Jumlah soal - **disimpan manual**, bukan hasil hitung otomatis dari relasi `questions`, jadi bisa tidak sinkron kalau tidak dijaga di kode aplikasi. |
-| `timeLimitMinutes` | Int | `nullable` | - | `60` | Batas waktu pengerjaan (menit). |
-| `createdAt` | Timestamp(6) | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | Timestamp(6) | `nullable` | - | `2026-03-16T08:00:00Z` | Manual. |
+| Kolom              | Tipe Data     | Constraint                   | Default  | Contoh Value                             | Keterangan                                                                                                                                           |
+| ------------------ | ------------- | ---------------------------- | -------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`               | String (cuid) | 🔑 PK, `NOT NULL`            | `cuid()` | `cl57ab54f7619b196ee01f74`               | ID unik kuis.                                                                                                                                        |
+| `textId`           | String        | `NOT NULL`, `@unique`, 🔗 FK | -        | `ETXT-1787173818330-EAF6F1`              | Text induk (1:1).                                                                                                                                    |
+| `title`            | VarChar       | `NOT NULL`                   | -        | `Belajar Python untuk Pemula`            | Judul kuis.                                                                                                                                          |
+| `description`      | String        | `nullable`                   | -        | `Deskripsi singkat mengenai konten ini.` | Deskripsi kuis.                                                                                                                                      |
+| `totalQuestions`   | Int           | `nullable`                   | -        | `10`                                     | Jumlah soal - **disimpan manual**, bukan hasil hitung otomatis dari relasi `questions`, jadi bisa tidak sinkron kalau tidak dijaga di kode aplikasi. |
+| `timeLimitMinutes` | Int           | `nullable`                   | -        | `60`                                     | Batas waktu pengerjaan (menit).                                                                                                                      |
+| `createdAt`        | Timestamp(6)  | `nullable`                   | `now()`  | `2026-03-15T10:30:00Z`                   | Waktu dibuat.                                                                                                                                        |
+| `updatedAt`        | Timestamp(6)  | `nullable`                   | -        | `2026-03-16T08:00:00Z`                   | Manual.                                                                                                                                              |
 
 #### Primary Key & Foreign Key
 
@@ -2015,16 +2016,16 @@ benar langsung disimpan sebagai array string, bukan tabel opsi terpisah.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl466e671addc4778428c3a0` | ID unik. |
-| `quizId` | String | `NOT NULL`, 🔗 FK | - | `cl2fd3cfe7303ca95451f021` | Kuis induk. |
-| `questionText` | Text | `NOT NULL` | - | `Manakah yang termasuk supervised learning?` | Teks pertanyaan. |
-| `options` | VarChar[] | `NOT NULL` | - | `["A. Ya", "B. Tidak"]` | Array pilihan jawaban. |
-| `correctAnswers` | VarChar[] | `NOT NULL` | - | `["B. Tidak"]` | Array jawaban benar - bentuk array (bukan tunggal) berarti soal multi-jawaban didukung di sini tanpa perlu flag `allowMultiple` terpisah. |
-| `explanation` | String | `nullable` | - | `Karena B lebih tepat menjawab konteks soal.` | Penjelasan jawaban. |
-| `orderNumber` | Int | `nullable` | - | `1` | Urutan soal dalam kuis. |
-| `createdAt` | DateTime | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
+| Kolom            | Tipe Data     | Constraint        | Default  | Contoh Value                                  | Keterangan                                                                                                                                |
+| ---------------- | ------------- | ----------------- | -------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`             | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl466e671addc4778428c3a0`                    | ID unik.                                                                                                                                  |
+| `quizId`         | String        | `NOT NULL`, 🔗 FK | -        | `cl2fd3cfe7303ca95451f021`                    | Kuis induk.                                                                                                                               |
+| `questionText`   | Text          | `NOT NULL`        | -        | `Manakah yang termasuk supervised learning?`  | Teks pertanyaan.                                                                                                                          |
+| `options`        | VarChar[]     | `NOT NULL`        | -        | `["A. Ya", "B. Tidak"]`                       | Array pilihan jawaban.                                                                                                                    |
+| `correctAnswers` | VarChar[]     | `NOT NULL`        | -        | `["B. Tidak"]`                                | Array jawaban benar - bentuk array (bukan tunggal) berarti soal multi-jawaban didukung di sini tanpa perlu flag `allowMultiple` terpisah. |
+| `explanation`    | String        | `nullable`        | -        | `Karena B lebih tepat menjawab konteks soal.` | Penjelasan jawaban.                                                                                                                       |
+| `orderNumber`    | Int           | `nullable`        | -        | `1`                                           | Urutan soal dalam kuis.                                                                                                                   |
+| `createdAt`      | DateTime      | `nullable`        | `now()`  | `2026-03-15T10:30:00Z`                        | Waktu dibuat.                                                                                                                             |
 
 #### Primary Key & Foreign Key
 
@@ -2041,20 +2042,20 @@ mentor).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (custom) | 🔑 PK, `NOT NULL` | `custom(attempt-....-...)` | `attempt-20260821-9e0dc2c6e48e` | ID unik. |
-| `quizId` | String | `NOT NULL`, 🔗 FK | - | `clcc38205996121c6db47ad3` | Kuis yang dikerjakan. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000001` | Peserta. |
-| `score` | Int | `nullable` | - | `85` | Skor hasil pengerjaan. |
-| `startedAt` | DateTime | `nullable` | `now()` | `2026-03-16T08:00:00Z` | Waktu mulai mengerjakan. |
-| `completedAt` | DateTime | `nullable` | - | `2026-03-16T08:20:00Z` | Waktu selesai mengerjakan. |
-| `answers` | Json | `nullable` | - | `{"q1": "A", "q2": "C"}` | Jawaban peserta (format bebas, disimpan sebagai JSON). |
-| `attemptNumber` | Int | `NOT NULL` | `1` | `1` | Nomor percobaan ke berapa. |
-| `isAutoGraded` | Boolean | `nullable` | `true` | `true` | `false` = butuh review manual dari mentor. |
-| `gradedBy` | String | `nullable` | - | `(freetext)` | Mentor/admin yang menilai manual (freetext ID, bukan FK - lihat catatan). |
-| `gradedAt` | DateTime | `nullable` | - | `2026-03-21T10:00:00Z` | Waktu penilaian manual. |
-| `remarks` | String | `nullable` | - | `Dinilai ulang setelah revisi diterima.` | Catatan mentor kalau ada review manual. |
+| Kolom           | Tipe Data       | Constraint        | Default                    | Contoh Value                             | Keterangan                                                                |
+| --------------- | --------------- | ----------------- | -------------------------- | ---------------------------------------- | ------------------------------------------------------------------------- |
+| `id`            | String (custom) | 🔑 PK, `NOT NULL` | `custom(attempt-....-...)` | `attempt-20260821-9e0dc2c6e48e`          | ID unik.                                                                  |
+| `quizId`        | String          | `NOT NULL`, 🔗 FK | -                          | `clcc38205996121c6db47ad3`               | Kuis yang dikerjakan.                                                     |
+| `userId`        | String          | `NOT NULL`, 🔗 FK | -                          | `000001`                                 | Peserta.                                                                  |
+| `score`         | Int             | `nullable`        | -                          | `85`                                     | Skor hasil pengerjaan.                                                    |
+| `startedAt`     | DateTime        | `nullable`        | `now()`                    | `2026-03-16T08:00:00Z`                   | Waktu mulai mengerjakan.                                                  |
+| `completedAt`   | DateTime        | `nullable`        | -                          | `2026-03-16T08:20:00Z`                   | Waktu selesai mengerjakan.                                                |
+| `answers`       | Json            | `nullable`        | -                          | `{"q1": "A", "q2": "C"}`                 | Jawaban peserta (format bebas, disimpan sebagai JSON).                    |
+| `attemptNumber` | Int             | `NOT NULL`        | `1`                        | `1`                                      | Nomor percobaan ke berapa.                                                |
+| `isAutoGraded`  | Boolean         | `nullable`        | `true`                     | `true`                                   | `false` = butuh review manual dari mentor.                                |
+| `gradedBy`      | String          | `nullable`        | -                          | `(freetext)`                             | Mentor/admin yang menilai manual (freetext ID, bukan FK - lihat catatan). |
+| `gradedAt`      | DateTime        | `nullable`        | -                          | `2026-03-21T10:00:00Z`                   | Waktu penilaian manual.                                                   |
+| `remarks`       | String          | `nullable`        | -                          | `Dinilai ulang setelah revisi diterima.` | Catatan mentor kalau ada review manual.                                   |
 
 #### Primary Key & Foreign Key
 
@@ -2073,15 +2074,15 @@ peserta di tabel-tabel terpisah.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (custom) | 🔑 PK, `NOT NULL` | `custom(assignment-...-...)` | `assignment-20251112-cf0a1d8ecee5` | ID unik. |
-| `textId` | String | `NOT NULL`, `@unique`, 🔗 FK | - | `ETXT-1785611423090-42974C` | Text induk (1:1). |
-| `title` | VarChar | `NOT NULL` | - | `Belajar Python untuk Pemula` | Judul tugas. |
-| `description` | String | `nullable` | - | `Deskripsi singkat mengenai konten ini.` | Deskripsi/instruksi umum tugas. |
-| `dueDays` | Int | `nullable` | - | `7` | Batas waktu pengumpulan dalam hitungan hari (relatif, bukan tanggal absolut -  dihitung sejak materi diakses/dibuka). |
-| `createdAt` | Timestamp(6) | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | Timestamp(6) | `nullable` | - | `2026-03-16T08:00:00Z` | Manual. |
+| Kolom         | Tipe Data       | Constraint                   | Default                      | Contoh Value                             | Keterangan                                                                                                           |
+| ------------- | --------------- | ---------------------------- | ---------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `id`          | String (custom) | 🔑 PK, `NOT NULL`            | `custom(assignment-...-...)` | `assignment-20251112-cf0a1d8ecee5`       | ID unik.                                                                                                             |
+| `textId`      | String          | `NOT NULL`, `@unique`, 🔗 FK | -                            | `ETXT-1785611423090-42974C`              | Text induk (1:1).                                                                                                    |
+| `title`       | VarChar         | `NOT NULL`                   | -                            | `Belajar Python untuk Pemula`            | Judul tugas.                                                                                                         |
+| `description` | String          | `nullable`                   | -                            | `Deskripsi singkat mengenai konten ini.` | Deskripsi/instruksi umum tugas.                                                                                      |
+| `dueDays`     | Int             | `nullable`                   | -                            | `7`                                      | Batas waktu pengumpulan dalam hitungan hari (relatif, bukan tanggal absolut - dihitung sejak materi diakses/dibuka). |
+| `createdAt`   | Timestamp(6)    | `nullable`                   | `now()`                      | `2026-03-15T10:30:00Z`                   | Waktu dibuat.                                                                                                        |
+| `updatedAt`   | Timestamp(6)    | `nullable`                   | -                            | `2026-03-16T08:00:00Z`                   | Manual.                                                                                                              |
 
 #### Primary Key & Foreign Key
 
@@ -2103,12 +2104,12 @@ peserta di tabel-tabel terpisah.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl0624e2fcead6d8fe22ecab` | ID unik. |
-| `assignmentId` | String | `NOT NULL`, 🔗 FK | - | `cl10c926b12e8eddf2418132` | Tugas induk. |
-| `instruction` | Text | `NOT NULL` | - | `Unggah file dalam format .ipynb.` | Isi instruksi. |
-| `orderNumber` | Int | `NOT NULL` | - | `1` | Urutan instruksi. |
+| Kolom          | Tipe Data     | Constraint        | Default  | Contoh Value                       | Keterangan        |
+| -------------- | ------------- | ----------------- | -------- | ---------------------------------- | ----------------- |
+| `id`           | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl0624e2fcead6d8fe22ecab`         | ID unik.          |
+| `assignmentId` | String        | `NOT NULL`, 🔗 FK | -        | `cl10c926b12e8eddf2418132`         | Tugas induk.      |
+| `instruction`  | Text          | `NOT NULL`        | -        | `Unggah file dalam format .ipynb.` | Isi instruksi.    |
+| `orderNumber`  | Int           | `NOT NULL`        | -        | `1`                                | Urutan instruksi. |
 
 #### Primary Key & Foreign Key
 
@@ -2125,17 +2126,17 @@ disediakan mentor untuk satu tugas (5.58).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl71da4c943c1c17c0dfd75f` | ID unik. |
-| `assignmentId` | String | `NOT NULL`, 🔗 FK | - | `cl49c777a046c167e35ceca4` | Tugas induk. |
-| `name` | String | `NOT NULL` | - | `Setting_Up_TF_Developer_Certificate_Exam.pdf` | Nama file. |
-| `type` | Enum `SupportingFileType` | `NOT NULL` | - | `LOGIN` | `DATASET`, `TEMPLATE`, atau `REFERENCE`. |
-| `url` | String | `NOT NULL` | - | `https://cdn.temudataku.com/files/materi-01.pdf` | URL/path file. |
-| `pageCount` | Int | `nullable` | - | `5` | Jumlah halaman -  hanya relevan kalau file berupa dokumen/PDF referensi. |
-| `format` | String | `nullable` | - | `pdf` | Format file (mis. "pdf", "csv"). |
-| `sizeKB` | Int | `nullable` | - | `512` | Ukuran file dalam KB. |
-| `createdAt` | DateTime | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
+| Kolom          | Tipe Data                 | Constraint        | Default  | Contoh Value                                     | Keterangan                                                              |
+| -------------- | ------------------------- | ----------------- | -------- | ------------------------------------------------ | ----------------------------------------------------------------------- |
+| `id`           | String (cuid)             | 🔑 PK, `NOT NULL` | `cuid()` | `cl71da4c943c1c17c0dfd75f`                       | ID unik.                                                                |
+| `assignmentId` | String                    | `NOT NULL`, 🔗 FK | -        | `cl49c777a046c167e35ceca4`                       | Tugas induk.                                                            |
+| `name`         | String                    | `NOT NULL`        | -        | `Setting_Up_TF_Developer_Certificate_Exam.pdf`   | Nama file.                                                              |
+| `type`         | Enum `SupportingFileType` | `NOT NULL`        | -        | `LOGIN`                                          | `DATASET`, `TEMPLATE`, atau `REFERENCE`.                                |
+| `url`          | String                    | `NOT NULL`        | -        | `https://cdn.temudataku.com/files/materi-01.pdf` | URL/path file.                                                          |
+| `pageCount`    | Int                       | `nullable`        | -        | `5`                                              | Jumlah halaman - hanya relevan kalau file berupa dokumen/PDF referensi. |
+| `format`       | String                    | `nullable`        | -        | `pdf`                                            | Format file (mis. "pdf", "csv").                                        |
+| `sizeKB`       | Int                       | `nullable`        | -        | `512`                                            | Ukuran file dalam KB.                                                   |
+| `createdAt`    | DateTime                  | `nullable`        | `now()`  | `2026-03-15T10:30:00Z`                           | Waktu dibuat.                                                           |
 
 #### Primary Key & Foreign Key
 
@@ -2152,30 +2153,30 @@ mentor yang menilai), dan breakdown skor per komponen.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (custom) | 🔑 PK, `NOT NULL` | `custom()` | `elearnsub-20260821-8575ba8514c6` | ID unik. |
-| `assignmentId` | String | `NOT NULL`, 🔗 FK | - | `cl4057b3a56702a1436f2883` | Tugas yang dikumpulkan. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000001` | Peserta pengumpul. |
-| `attemptNumber` | Int | `NOT NULL` | `1` | `1` | Nomor percobaan pengumpulan ke berapa. |
-| `notes` | String | `nullable` | - | `Revisi bagian analisis data.` | Catatan dari peserta. |
-| `files` | VarChar[] | `NOT NULL` | - | `["tugas1.pdf"]` | Array file yang dikumpulkan. |
-| `submittedAt` | DateTime | `nullable` | `now()` | `2026-03-20T14:00:00Z` | Waktu dikumpulkan. |
-| `status` | Enum `ELearningSubmissionStatus` | `NOT NULL` | `PENDING` | `PUBLISHED` | `PENDING`, `REVIEWED`, `REVISION_REQUIRED`, `APPROVED`, atau `REJECTED`. |
-| `reviewedById` | String | `nullable`, 🔗 FK | - | `000001` | Mentor/admin yang mereview (opsional). |
-| `reviewedAt` | DateTime | `nullable` | - | `2026-03-21T10:00:00Z` | Waktu direview. |
-| `feedback` | String | `nullable` | - | `Progress bagus, lanjutkan konsistensi belajar.` | Feedback dari reviewer. |
-| `score` | Int | `nullable` | - | `85` | Skor total. |
-| `gradeBreakdown` | JsonB | `nullable` | - | `{"content":8,"structure":9,"creativity":7}` | Rincian skor per komponen. Contoh dari komentar developer: `{"content":8,"structure":9,"creativity":7}`. |
-| `isRevisionRequired` | Boolean | `nullable` | `false` | `false` | Menandai submission perlu direvisi. |
-| `revisionDeadline` | DateTime | `nullable` | - | `2026-03-25T23:59:59Z` | Batas waktu revisi. |
+| Kolom                | Tipe Data                        | Constraint        | Default    | Contoh Value                                     | Keterangan                                                                                               |
+| -------------------- | -------------------------------- | ----------------- | ---------- | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| `id`                 | String (custom)                  | 🔑 PK, `NOT NULL` | `custom()` | `elearnsub-20260821-8575ba8514c6`                | ID unik.                                                                                                 |
+| `assignmentId`       | String                           | `NOT NULL`, 🔗 FK | -          | `cl4057b3a56702a1436f2883`                       | Tugas yang dikumpulkan.                                                                                  |
+| `userId`             | String                           | `NOT NULL`, 🔗 FK | -          | `000001`                                         | Peserta pengumpul.                                                                                       |
+| `attemptNumber`      | Int                              | `NOT NULL`        | `1`        | `1`                                              | Nomor percobaan pengumpulan ke berapa.                                                                   |
+| `notes`              | String                           | `nullable`        | -          | `Revisi bagian analisis data.`                   | Catatan dari peserta.                                                                                    |
+| `files`              | VarChar[]                        | `NOT NULL`        | -          | `["tugas1.pdf"]`                                 | Array file yang dikumpulkan.                                                                             |
+| `submittedAt`        | DateTime                         | `nullable`        | `now()`    | `2026-03-20T14:00:00Z`                           | Waktu dikumpulkan.                                                                                       |
+| `status`             | Enum `ELearningSubmissionStatus` | `NOT NULL`        | `PENDING`  | `PUBLISHED`                                      | `PENDING`, `REVIEWED`, `REVISION_REQUIRED`, `APPROVED`, atau `REJECTED`.                                 |
+| `reviewedById`       | String                           | `nullable`, 🔗 FK | -          | `000001`                                         | Mentor/admin yang mereview (opsional).                                                                   |
+| `reviewedAt`         | DateTime                         | `nullable`        | -          | `2026-03-21T10:00:00Z`                           | Waktu direview.                                                                                          |
+| `feedback`           | String                           | `nullable`        | -          | `Progress bagus, lanjutkan konsistensi belajar.` | Feedback dari reviewer.                                                                                  |
+| `score`              | Int                              | `nullable`        | -          | `85`                                             | Skor total.                                                                                              |
+| `gradeBreakdown`     | JsonB                            | `nullable`        | -          | `{"content":8,"structure":9,"creativity":7}`     | Rincian skor per komponen. Contoh dari komentar developer: `{"content":8,"structure":9,"creativity":7}`. |
+| `isRevisionRequired` | Boolean                          | `nullable`        | `false`    | `false`                                          | Menandai submission perlu direvisi.                                                                      |
+| `revisionDeadline`   | DateTime                         | `nullable`        | -          | `2026-03-25T23:59:59Z`                           | Batas waktu revisi.                                                                                      |
 
 #### Primary Key & Foreign Key
 
 - 🔑 **PK**: `id`
 - 🔗 **FK 1**: `assignmentId` → `ct_e_learning_assignments.id` - `onDelete: Cascade`.
-- 🔗 **FK 2**: `userId` → `users.id` (relasi `"ELearningSubmittedBy"`) - *(tidak ada `onDelete` eksplisit)*.
-- 🔗 **FK 3**: `reviewedById` → `users.id` (relasi `"ELearningReviewedBy"`) - *(tidak ada `onDelete` eksplisit)*, opsional.
+- 🔗 **FK 2**: `userId` → `users.id` (relasi `"ELearningSubmittedBy"`) - _(tidak ada `onDelete` eksplisit)_.
+- 🔗 **FK 3**: `reviewedById` → `users.id` (relasi `"ELearningReviewedBy"`) - _(tidak ada `onDelete` eksplisit)_, opsional.
 - **Constraint tambahan**: `@@unique([assignmentId, userId, attemptNumber])`.
 
 #### 📌 Catatan
@@ -2195,21 +2196,21 @@ Quarterly, Yearly per komentar developer).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl769635bcfb40be4ab843d3` | ID unik paket. |
-| `name` | VarChar | `NOT NULL` | - | `3 Bulan` | Nama paket. Contoh dari komentar developer: Monthly, Quarterly, Yearly. |
-| `durationDay` | Int | `NOT NULL` | - | `30` | Durasi paket dalam hari. Contoh dari komentar developer: 30, 90, 365. |
-| `price` | Decimal | `NOT NULL` | - | `150000` | Harga paket. |
-| `description` | String | `nullable` | - | `Deskripsi singkat mengenai konten ini.` | Deskripsi paket. |
-| `isActive` | Boolean | `NOT NULL` | `true` | `true` | `false` = paket tidak dijual lagi. |
-| `createdAt` | DateTime | `NOT NULL` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | DateTime | `nullable` | *(tidak ada)* | `2026-03-16T08:00:00Z` | Tidak punya default sama sekali (bukan `now()`, bukan `@updatedAt`) - kosong sampai di-set manual pertama kali oleh kode aplikasi. |
+| Kolom         | Tipe Data     | Constraint        | Default       | Contoh Value                             | Keterangan                                                                                                                         |
+| ------------- | ------------- | ----------------- | ------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `id`          | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()`      | `cl769635bcfb40be4ab843d3`               | ID unik paket.                                                                                                                     |
+| `name`        | VarChar       | `NOT NULL`        | -             | `3 Bulan`                                | Nama paket. Contoh dari komentar developer: Monthly, Quarterly, Yearly.                                                            |
+| `durationDay` | Int           | `NOT NULL`        | -             | `30`                                     | Durasi paket dalam hari. Contoh dari komentar developer: 30, 90, 365.                                                              |
+| `price`       | Decimal       | `NOT NULL`        | -             | `150000`                                 | Harga paket.                                                                                                                       |
+| `description` | String        | `nullable`        | -             | `Deskripsi singkat mengenai konten ini.` | Deskripsi paket.                                                                                                                   |
+| `isActive`    | Boolean       | `NOT NULL`        | `true`        | `true`                                   | `false` = paket tidak dijual lagi.                                                                                                 |
+| `createdAt`   | DateTime      | `NOT NULL`        | `now()`       | `2026-03-15T10:30:00Z`                   | Waktu dibuat.                                                                                                                      |
+| `updatedAt`   | DateTime      | `nullable`        | _(tidak ada)_ | `2026-03-16T08:00:00Z`                   | Tidak punya default sama sekali (bukan `now()`, bukan `@updatedAt`) - kosong sampai di-set manual pertama kali oleh kode aplikasi. |
 
 #### Primary Key & Foreign Key
 
 - 🔑 **PK**: `id`
-- 🔗 **FK**: *(tidak ada)* - tabel master/induk.
+- 🔗 **FK**: _(tidak ada)_ - tabel master/induk.
 
 #### Relasi ke Tabel Lain (ringkasan)
 
@@ -2226,17 +2227,17 @@ code (masing-masing opsional 1:1).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (custom) | 🔑 PK, `NOT NULL` | `custom(SUB-EL-.....)` | `SUB-EL-1787102158051-7036758902` | ID unik langganan. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000001` | User pelanggan. |
-| `planId` | String | `NOT NULL`, 🔗 FK | - | `clb34544ac2f4650838c700a` | Paket yang dilanggan. |
-| `referralUsageId` | String | `nullable`, `@unique`, 🔗 FK | - | `clbf1479b1187609be50e25f` | Terisi kalau langganan ini pakai kode referral (opsional 1:1). |
-| `startAt` | DateTime | `NOT NULL` | - | `2026-04-01T00:00:00Z` | Tanggal mulai aktif. |
-| `endAt` | DateTime | `NOT NULL` | - | `2026-05-01T00:00:00Z` | Tanggal berakhir. |
-| `status` | String | `confirmed` | - | `PUBLISHED` | Status langganan (`confirmed`/`cancelled`/`pending`). |
-| `createdAt` | DateTime | `NOT NULL` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | DateTime | `nullable` | *(tidak ada)* | `2026-03-16T08:00:00Z` | Tidak punya default. |
+| Kolom             | Tipe Data       | Constraint                   | Default                | Contoh Value                      | Keterangan                                                     |
+| ----------------- | --------------- | ---------------------------- | ---------------------- | --------------------------------- | -------------------------------------------------------------- |
+| `id`              | String (custom) | 🔑 PK, `NOT NULL`            | `custom(SUB-EL-.....)` | `SUB-EL-1787102158051-7036758902` | ID unik langganan.                                             |
+| `userId`          | String          | `NOT NULL`, 🔗 FK            | -                      | `000001`                          | User pelanggan.                                                |
+| `planId`          | String          | `NOT NULL`, 🔗 FK            | -                      | `clb34544ac2f4650838c700a`        | Paket yang dilanggan.                                          |
+| `referralUsageId` | String          | `nullable`, `@unique`, 🔗 FK | -                      | `clbf1479b1187609be50e25f`        | Terisi kalau langganan ini pakai kode referral (opsional 1:1). |
+| `startAt`         | DateTime        | `NOT NULL`                   | -                      | `2026-04-01T00:00:00Z`            | Tanggal mulai aktif.                                           |
+| `endAt`           | DateTime        | `NOT NULL`                   | -                      | `2026-05-01T00:00:00Z`            | Tanggal berakhir.                                              |
+| `status`          | String          | `confirmed`                  | -                      | `PUBLISHED`                       | Status langganan (`confirmed`/`cancelled`/`pending`).          |
+| `createdAt`       | DateTime        | `NOT NULL`                   | `now()`                | `2026-03-15T10:30:00Z`            | Waktu dibuat.                                                  |
+| `updatedAt`       | DateTime        | `nullable`                   | _(tidak ada)_          | `2026-03-16T08:00:00Z`            | Tidak punya default.                                           |
 
 #### Primary Key & Foreign Key
 
@@ -2262,15 +2263,15 @@ kolom auditnya.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cle175f3117b56afb99214d8` | ID unik. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000001` | Peserta. |
-| `subBabId` | String | `NOT NULL`, 🔗 FK | - | `cl932e9b861f421d646c0c36` | Sub-bab yang dipelajari. |
-| `isCompleted` | Boolean | `nullable` | `false` | `true` | Status selesai/belum. |
-| `lastAccessed` | DateTime | `nullable` | - | `2026-03-16T07:45:00Z` | Waktu terakhir diakses. |
-| `timeSpent` | Int | `nullable` | `0` | `1800` | Total waktu belajar ( detik). |
-| `lastActivityAt` | DateTime | `nullable` | - | `2026-03-16T07:45:00Z` | Waktu aktivitas terakhir. |
+| Kolom            | Tipe Data     | Constraint        | Default  | Contoh Value               | Keterangan                    |
+| ---------------- | ------------- | ----------------- | -------- | -------------------------- | ----------------------------- |
+| `id`             | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cle175f3117b56afb99214d8` | ID unik.                      |
+| `userId`         | String        | `NOT NULL`, 🔗 FK | -        | `000001`                   | Peserta.                      |
+| `subBabId`       | String        | `NOT NULL`, 🔗 FK | -        | `cl932e9b861f421d646c0c36` | Sub-bab yang dipelajari.      |
+| `isCompleted`    | Boolean       | `nullable`        | `false`  | `true`                     | Status selesai/belum.         |
+| `lastAccessed`   | DateTime      | `nullable`        | -        | `2026-03-16T07:45:00Z`     | Waktu terakhir diakses.       |
+| `timeSpent`      | Int           | `nullable`        | `0`      | `1800`                     | Total waktu belajar ( detik). |
+| `lastActivityAt` | DateTime      | `nullable`        | -        | `2026-03-16T07:45:00Z`     | Waktu aktivitas terakhir.     |
 
 #### Primary Key & Foreign Key
 
@@ -2289,15 +2290,15 @@ beberapa sub-bab.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cld80eeabf6ea31187ca1543` | ID unik. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000001` | Peserta. |
-| `subChapterId` | String | `NOT NULL`, 🔗 FK | - | `subc-20260621-f4af92209f86` | Sub-chapter yang dipelajari. |
-| `progressPercent` | Float | `NOT NULL` | `0` | `75` | Persentase progress, 0-100. |
-| `lastActivityAt` | DateTime | `nullable` | - | `2026-03-16T07:45:00Z` | Waktu aktivitas terakhir. |
-| `createdAt` | DateTime | `NOT NULL` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | DateTime | `NOT NULL` | *(auto)* | `2026-03-16T08:00:00Z` | Pakai `@updatedAt`. |
+| Kolom             | Tipe Data     | Constraint        | Default  | Contoh Value                 | Keterangan                   |
+| ----------------- | ------------- | ----------------- | -------- | ---------------------------- | ---------------------------- |
+| `id`              | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cld80eeabf6ea31187ca1543`   | ID unik.                     |
+| `userId`          | String        | `NOT NULL`, 🔗 FK | -        | `000001`                     | Peserta.                     |
+| `subChapterId`    | String        | `NOT NULL`, 🔗 FK | -        | `subc-20260621-f4af92209f86` | Sub-chapter yang dipelajari. |
+| `progressPercent` | Float         | `NOT NULL`        | `0`      | `75`                         | Persentase progress, 0-100.  |
+| `lastActivityAt`  | DateTime      | `nullable`        | -        | `2026-03-16T07:45:00Z`       | Waktu aktivitas terakhir.    |
+| `createdAt`       | DateTime      | `NOT NULL`        | `now()`  | `2026-03-15T10:30:00Z`       | Waktu dibuat.                |
+| `updatedAt`       | DateTime      | `NOT NULL`        | _(auto)_ | `2026-03-16T08:00:00Z`       | Pakai `@updatedAt`.          |
 
 #### Primary Key & Foreign Key
 
@@ -2316,15 +2317,15 @@ beda level granularitas.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl8d82a1524581d646b86f69` | ID unik. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000001` | Peserta. |
-| `textId` | String | `NOT NULL`, 🔗 FK | - | `ETXT-1785611423090-42974C` | Text yang dipelajari. |
-| `progress` | Float | `NOT NULL` | `0` | `75` | Persentase progress, 0-100. |
-| `lastAccessedAt` | DateTime | `nullable` | - | `2026-03-16T07:45:00Z` | Waktu terakhir diakses. |
-| `createdAt` | DateTime | `NOT NULL` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | DateTime | `NOT NULL` | *(auto)* | `2026-03-16T08:00:00Z` | Pakai `@updatedAt`. |
+| Kolom            | Tipe Data     | Constraint        | Default  | Contoh Value                | Keterangan                  |
+| ---------------- | ------------- | ----------------- | -------- | --------------------------- | --------------------------- |
+| `id`             | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl8d82a1524581d646b86f69`  | ID unik.                    |
+| `userId`         | String        | `NOT NULL`, 🔗 FK | -        | `000001`                    | Peserta.                    |
+| `textId`         | String        | `NOT NULL`, 🔗 FK | -        | `ETXT-1785611423090-42974C` | Text yang dipelajari.       |
+| `progress`       | Float         | `NOT NULL`        | `0`      | `75`                        | Persentase progress, 0-100. |
+| `lastAccessedAt` | DateTime      | `nullable`        | -        | `2026-03-16T07:45:00Z`      | Waktu terakhir diakses.     |
+| `createdAt`      | DateTime      | `NOT NULL`        | `now()`  | `2026-03-15T10:30:00Z`      | Waktu dibuat.               |
+| `updatedAt`      | DateTime      | `NOT NULL`        | _(auto)_ | `2026-03-16T08:00:00Z`      | Pakai `@updatedAt`.         |
 
 #### Primary Key & Foreign Key
 
@@ -2343,15 +2344,15 @@ ini.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl7b03863a4af46b9d895ade` | ID unik. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000001` | Peserta. Tidak pakai `@map`. |
-| `blockId` | String | `NOT NULL`, 🔗 FK | - | `clc8e88fff83ab77997a9b9e` | Block yang dipelajari. Tidak pakai `@map`. |
-| `progress` | Int | `NOT NULL` | `0` | `75` | Progress 0-100. **Bertipe `Int`**, berbeda dari `progressPercent`/`progress` di 5.65 & 5.66 yang bertipe `Float` - inkonsistensi tipe untuk konsep yang sama antar 3 tabel ini. |
-| `isCompleted` | Boolean | `NOT NULL` | `false` | `true` | Status selesai/belum. |
-| `timeSpent` | Int | `nullable` | `0` | `1800` | Total waktu ( detik). |
-| `lastActivityAt` | DateTime | `nullable` | `now()` | `2026-03-16T07:45:00Z` | Waktu aktivitas terakhir - satu-satunya di antara 4 tabel progress yang kolom "waktu terakhir"-nya punya default `now()`. |
+| Kolom            | Tipe Data     | Constraint        | Default  | Contoh Value               | Keterangan                                                                                                                                                                      |
+| ---------------- | ------------- | ----------------- | -------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`             | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl7b03863a4af46b9d895ade` | ID unik.                                                                                                                                                                        |
+| `userId`         | String        | `NOT NULL`, 🔗 FK | -        | `000001`                   | Peserta. Tidak pakai `@map`.                                                                                                                                                    |
+| `blockId`        | String        | `NOT NULL`, 🔗 FK | -        | `clc8e88fff83ab77997a9b9e` | Block yang dipelajari. Tidak pakai `@map`.                                                                                                                                      |
+| `progress`       | Int           | `NOT NULL`        | `0`      | `75`                       | Progress 0-100. **Bertipe `Int`**, berbeda dari `progressPercent`/`progress` di 5.65 & 5.66 yang bertipe `Float` - inkonsistensi tipe untuk konsep yang sama antar 3 tabel ini. |
+| `isCompleted`    | Boolean       | `NOT NULL`        | `false`  | `true`                     | Status selesai/belum.                                                                                                                                                           |
+| `timeSpent`      | Int           | `nullable`        | `0`      | `1800`                     | Total waktu ( detik).                                                                                                                                                           |
+| `lastActivityAt` | DateTime      | `nullable`        | `now()`  | `2026-03-16T07:45:00Z`     | Waktu aktivitas terakhir - satu-satunya di antara 4 tabel progress yang kolom "waktu terakhir"-nya punya default `now()`.                                                       |
 
 #### Primary Key & Foreign Key
 
@@ -2370,16 +2371,16 @@ sub-chapter, tidak ada kolom rating agregat langsung di `ELearningCourse`.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl14ac5bc8364d6d06c8498f` | ID unik. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000001` | Peserta pemberi ulasan. |
-| `subChapterId` | String | `NOT NULL`, 🔗 FK | - | `subc-20260620-35d072eb5e70` | Sub-chapter yang diulas. |
-| `rating` | Decimal(2,1) | `NOT NULL` | - | `4` | Nilai rating. |
-| `comment` | String | `nullable` | - | `Materinya jelas dan mudah dipahami!` | Isi ulasan. |
-| `isPublic` | Boolean | `NOT NULL` | `true` | `true` | `false` = ulasan disembunyikan dari tampilan publik. |
-| `isAnonymous` | Boolean | `NOT NULL` | `false` | `false` | `true` = nama peserta disembunyikan di tampilan (lihat catatan). |
-| `createdAt` | DateTime | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. Tidak ada `updatedAt`. |
+| Kolom          | Tipe Data     | Constraint        | Default  | Contoh Value                          | Keterangan                                                       |
+| -------------- | ------------- | ----------------- | -------- | ------------------------------------- | ---------------------------------------------------------------- |
+| `id`           | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl14ac5bc8364d6d06c8498f`            | ID unik.                                                         |
+| `userId`       | String        | `NOT NULL`, 🔗 FK | -        | `000001`                              | Peserta pemberi ulasan.                                          |
+| `subChapterId` | String        | `NOT NULL`, 🔗 FK | -        | `subc-20260620-35d072eb5e70`          | Sub-chapter yang diulas.                                         |
+| `rating`       | Decimal(2,1)  | `NOT NULL`        | -        | `4`                                   | Nilai rating.                                                    |
+| `comment`      | String        | `nullable`        | -        | `Materinya jelas dan mudah dipahami!` | Isi ulasan.                                                      |
+| `isPublic`     | Boolean       | `NOT NULL`        | `true`   | `true`                                | `false` = ulasan disembunyikan dari tampilan publik.             |
+| `isAnonymous`  | Boolean       | `NOT NULL`        | `false`  | `false`                               | `true` = nama peserta disembunyikan di tampilan (lihat catatan). |
+| `createdAt`    | DateTime      | `nullable`        | `now()`  | `2026-03-15T10:30:00Z`                | Waktu dibuat. Tidak ada `updatedAt`.                             |
 
 #### Primary Key & Foreign Key
 
@@ -2405,19 +2406,19 @@ sertifikat juga diterbitkan per sub-chapter, bukan per course.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cld9a098ea37b4678915855e` | ID unik. |
-| `subChapterId` | String | `NOT NULL`, 🔗 FK | - | `cl6b8cf0dbbea87b68780ff4` | Sub-chapter yang diselesaikan. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000001` | Peserta pemegang sertifikat. |
-| `certificateUrl` | VarChar | `NOT NULL` | - | `https://drive.google.com/file/d/1U7hzrDiKwNuVzr4YDc/view?usp=drivesdk` | URL file sertifikat. |
-| `certificatePath` | VarChar | `nullable` | - | `/certs/cert-001.pdf` | Path penyimpanan file sertifikat. |
-| `issuedAt` | DateTime | `nullable` | `now()` | `2026-08-21T07:31:43.225Z` | Waktu diterbitkan. |
-| `certificateNumber` | VarChar | `NOT NULL`, `@unique` | - | `ELCERT-1787297496310-E2NB` | Nomor sertifikat unik. |
-| `displayNumber` | VarChar | `NOT NULL`, `@unique` | - | `01/TELFHXM/TemuDataku` | Nomor tampilan unik -  format berbeda dari `certificateNumber` untuk keperluan cetak/tampilan publik (perlu dicek ke kode generator sertifikat untuk kepastian mana yang internal vs mana yang dicetak). |
-| `status` | VarChar | `nullable` | - | `generated` | Freetext, contoh dari komentar developer: generated, sent, viewed. |
-| `verifiedBy` | VarChar | `nullable` | - | `(freetext)` | ID admin/verifikator (opsional, freetext). **Bukan FK sungguhan** - lihat catatan. |
-| `note` | VarChar | `nullable` | - | `Sertifikat dikirim ulang atas permintaan user.` | Catatan tambahan. |
+| Kolom               | Tipe Data     | Constraint            | Default  | Contoh Value                                                            | Keterangan                                                                                                                                                                                              |
+| ------------------- | ------------- | --------------------- | -------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                | String (cuid) | 🔑 PK, `NOT NULL`     | `cuid()` | `cld9a098ea37b4678915855e`                                              | ID unik.                                                                                                                                                                                                |
+| `subChapterId`      | String        | `NOT NULL`, 🔗 FK     | -        | `cl6b8cf0dbbea87b68780ff4`                                              | Sub-chapter yang diselesaikan.                                                                                                                                                                          |
+| `userId`            | String        | `NOT NULL`, 🔗 FK     | -        | `000001`                                                                | Peserta pemegang sertifikat.                                                                                                                                                                            |
+| `certificateUrl`    | VarChar       | `NOT NULL`            | -        | `https://drive.google.com/file/d/1U7hzrDiKwNuVzr4YDc/view?usp=drivesdk` | URL file sertifikat.                                                                                                                                                                                    |
+| `certificatePath`   | VarChar       | `nullable`            | -        | `/certs/cert-001.pdf`                                                   | Path penyimpanan file sertifikat.                                                                                                                                                                       |
+| `issuedAt`          | DateTime      | `nullable`            | `now()`  | `2026-08-21T07:31:43.225Z`                                              | Waktu diterbitkan.                                                                                                                                                                                      |
+| `certificateNumber` | VarChar       | `NOT NULL`, `@unique` | -        | `ELCERT-1787297496310-E2NB`                                             | Nomor sertifikat unik.                                                                                                                                                                                  |
+| `displayNumber`     | VarChar       | `NOT NULL`, `@unique` | -        | `01/TELFHXM/TemuDataku`                                                 | Nomor tampilan unik - format berbeda dari `certificateNumber` untuk keperluan cetak/tampilan publik (perlu dicek ke kode generator sertifikat untuk kepastian mana yang internal vs mana yang dicetak). |
+| `status`            | VarChar       | `nullable`            | -        | `generated`                                                             | Freetext, contoh dari komentar developer: generated, sent, viewed.                                                                                                                                      |
+| `verifiedBy`        | VarChar       | `nullable`            | -        | `(freetext)`                                                            | ID admin/verifikator (opsional, freetext). **Bukan FK sungguhan** - lihat catatan.                                                                                                                      |
+| `note`              | VarChar       | `nullable`            | -        | `Sertifikat dikirim ulang atas permintaan user.`                        | Catatan tambahan.                                                                                                                                                                                       |
 
 #### Primary Key & Foreign Key
 
@@ -2435,21 +2436,21 @@ reply berjenjang lewat self-relation `parentId`.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cld46ed628baab230da6526c` | ID unik. |
-| `courseId` | String | `NOT NULL`, 🔗 FK | - | `cl4330a98b6a15221402c3b0` | Course tempat diskusi berlangsung. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000001` | User penulis. |
-| `content` | Text | `NOT NULL` | - | `Isi konten di sini.` | Isi diskusi/komentar. |
-| `parentId` | String | `nullable`, 🔗 FK | - | `clcdf619cfece2e8aaefa75b` | Diisi kalau baris ini adalah **balasan** (reply) ke diskusi lain (self-relation, relasi `"ReplyTo"`). |
-| `createdAt` | DateTime | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. Tidak ada `updatedAt`. |
+| Kolom       | Tipe Data     | Constraint        | Default  | Contoh Value               | Keterangan                                                                                            |
+| ----------- | ------------- | ----------------- | -------- | -------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `id`        | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cld46ed628baab230da6526c` | ID unik.                                                                                              |
+| `courseId`  | String        | `NOT NULL`, 🔗 FK | -        | `cl4330a98b6a15221402c3b0` | Course tempat diskusi berlangsung.                                                                    |
+| `userId`    | String        | `NOT NULL`, 🔗 FK | -        | `000001`                   | User penulis.                                                                                         |
+| `content`   | Text          | `NOT NULL`        | -        | `Isi konten di sini.`      | Isi diskusi/komentar.                                                                                 |
+| `parentId`  | String        | `nullable`, 🔗 FK | -        | `clcdf619cfece2e8aaefa75b` | Diisi kalau baris ini adalah **balasan** (reply) ke diskusi lain (self-relation, relasi `"ReplyTo"`). |
+| `createdAt` | DateTime      | `nullable`        | `now()`  | `2026-03-15T10:30:00Z`     | Waktu dibuat. Tidak ada `updatedAt`.                                                                  |
 
 #### Primary Key & Foreign Key
 
 - 🔑 **PK**: `id`
 - 🔗 **FK 1**: `courseId` → `e_learning_courses.id` - `onDelete: Cascade`.
 - 🔗 **FK 2**: `userId` → `users.id` - `onDelete: Cascade`.
-- 🔗 **FK 3**: `parentId` → `e_learning_discussions.id` (self-relation `"ReplyTo"`), opsional - *(tidak ada `onDelete` eksplisit)*.
+- 🔗 **FK 3**: `parentId` → `e_learning_discussions.id` (self-relation `"ReplyTo"`), opsional - _(tidak ada `onDelete` eksplisit)_.
 
 ---
 
@@ -2460,12 +2461,12 @@ toggle (ada/tidak ada baris), bukan daftar bookmark berulang.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cle50584157d3cc96e2ba64b` | ID unik. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000001` | Peserta. |
-| `subBabId` | String | `NOT NULL`, 🔗 FK | - | `cl5951667027fe06b5bffc25` | Sub-bab yang di-bookmark. |
-| `createdAt` | DateTime | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu bookmark dibuat. |
+| Kolom       | Tipe Data     | Constraint        | Default  | Contoh Value               | Keterangan                |
+| ----------- | ------------- | ----------------- | -------- | -------------------------- | ------------------------- |
+| `id`        | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cle50584157d3cc96e2ba64b` | ID unik.                  |
+| `userId`    | String        | `NOT NULL`, 🔗 FK | -        | `000001`                   | Peserta.                  |
+| `subBabId`  | String        | `NOT NULL`, 🔗 FK | -        | `cl5951667027fe06b5bffc25` | Sub-bab yang di-bookmark. |
+| `createdAt` | DateTime      | `nullable`        | `now()`  | `2026-03-15T10:30:00Z`     | Waktu bookmark dibuat.    |
 
 #### Primary Key & Foreign Key
 
@@ -2495,9 +2496,9 @@ toggle (ada/tidak ada baris), bukan daftar bookmark berulang.
 > independen dari `Practice`.
 >
 > Tiga model di modul ini (`PracticeFile`, `PracticePurchase`, `Practice`)
-> punya komentar generator Prisma: *"This model or at least one of its
-> fields has comments in the database..."* - artinya ada `COMMENT ON
-> TABLE/COLUMN` yang di-set langsung di database (lewat migration manual
+> punya komentar generator Prisma: _"This model or at least one of its
+> fields has comments in the database..."_ - artinya ada `COMMENT ON
+TABLE/COLUMN` yang di-set langsung di database (lewat migration manual
 > atau tool lain), tidak lewat atribut Prisma biasa. Isi komentar DB-nya
 > sendiri tidak tercermin di file `schema.prisma`, jadi kalau butuh
 > membaca komentarnya, perlu query langsung ke database
@@ -2510,17 +2511,17 @@ untuk satu `PracticeMaterial`.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl5f6b4b28a6c3e038a211f9` | ID unik file. |
-| `materialId` | String | `NOT NULL`, 🔗 FK | - | `cl02e12da068f2ec2871a2b4` | Materi induk. |
-| `fileName` | VarChar | `NOT NULL` | - | `modul-01.pdf` | Nama file. |
-| `filePath` | VarChar | `NOT NULL` | - | `/uploads/materi/modul-01.pdf` | Path/URL penyimpanan file. |
-| `fileType` | VarChar | `NOT NULL` | - | `pdf` | Tipe/ekstensi file. |
-| `fileSize` | Int | `nullable` | - | `3` | Ukuran file. |
-| `orderNumber` | Int | `NOT NULL` | - | `1` | Urutan tampil file dalam materi. |
-| `createdAt` | Timestamp(6) | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu diunggah. |
-| `updatedAt` | Timestamp(6) | `nullable` | - | `2026-03-16T08:00:00Z` | Manual, tidak `@updatedAt`. |
+| Kolom         | Tipe Data     | Constraint        | Default  | Contoh Value                   | Keterangan                       |
+| ------------- | ------------- | ----------------- | -------- | ------------------------------ | -------------------------------- |
+| `id`          | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl5f6b4b28a6c3e038a211f9`     | ID unik file.                    |
+| `materialId`  | String        | `NOT NULL`, 🔗 FK | -        | `cl02e12da068f2ec2871a2b4`     | Materi induk.                    |
+| `fileName`    | VarChar       | `NOT NULL`        | -        | `modul-01.pdf`                 | Nama file.                       |
+| `filePath`    | VarChar       | `NOT NULL`        | -        | `/uploads/materi/modul-01.pdf` | Path/URL penyimpanan file.       |
+| `fileType`    | VarChar       | `NOT NULL`        | -        | `pdf`                          | Tipe/ekstensi file.              |
+| `fileSize`    | Int           | `nullable`        | -        | `3`                            | Ukuran file.                     |
+| `orderNumber` | Int           | `NOT NULL`        | -        | `1`                            | Urutan tampil file dalam materi. |
+| `createdAt`   | Timestamp(6)  | `nullable`        | `now()`  | `2026-03-15T10:30:00Z`         | Waktu diunggah.                  |
+| `updatedAt`   | Timestamp(6)  | `nullable`        | -        | `2026-03-16T08:00:00Z`         | Manual, tidak `@updatedAt`.      |
 
 #### Primary Key & Foreign Key
 
@@ -2541,18 +2542,18 @@ tempat menempelnya file pendukung (5.72) dan tracking progress (5.74).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cla52f1eafa63828c6a7eb79` | ID unik materi. |
-| `practiceId` | String | `NOT NULL`, 🔗 FK | - | `cl6f0f62414d2210e49b2355` | Practice induk. |
-| `title` | VarChar | `NOT NULL` | - | `Belajar Python untuk Pemula` | Judul materi. |
-| `description` | Text | `nullable` | - | `Deskripsi singkat mengenai konten ini.` | Deskripsi materi. |
-| `orderNumber` | Int | `NOT NULL` | - | `1` | Urutan tampil materi. |
-| `status` | String | `nullable` | - | `PUBLISHED` | Freetext, sesuai komentar developer: `draft`, `active`, `inactive`. |
-| `startDate` | DateTime | `nullable` | - | `2026-04-01` | Tanggal mulai materi ini aktif (sesuai komentar developer). |
-| `endDate` | DateTime | `nullable` | - | `2026-05-01` | Tanggal selesai materi ini aktif. |
-| `createdAt` | Timestamp(6) | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | Timestamp(6) | `nullable` | - | `2026-03-16T08:00:00Z` | Manual. |
+| Kolom         | Tipe Data     | Constraint        | Default  | Contoh Value                             | Keterangan                                                          |
+| ------------- | ------------- | ----------------- | -------- | ---------------------------------------- | ------------------------------------------------------------------- |
+| `id`          | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cla52f1eafa63828c6a7eb79`               | ID unik materi.                                                     |
+| `practiceId`  | String        | `NOT NULL`, 🔗 FK | -        | `cl6f0f62414d2210e49b2355`               | Practice induk.                                                     |
+| `title`       | VarChar       | `NOT NULL`        | -        | `Belajar Python untuk Pemula`            | Judul materi.                                                       |
+| `description` | Text          | `nullable`        | -        | `Deskripsi singkat mengenai konten ini.` | Deskripsi materi.                                                   |
+| `orderNumber` | Int           | `NOT NULL`        | -        | `1`                                      | Urutan tampil materi.                                               |
+| `status`      | String        | `nullable`        | -        | `PUBLISHED`                              | Freetext, sesuai komentar developer: `draft`, `active`, `inactive`. |
+| `startDate`   | DateTime      | `nullable`        | -        | `2026-04-01`                             | Tanggal mulai materi ini aktif (sesuai komentar developer).         |
+| `endDate`     | DateTime      | `nullable`        | -        | `2026-05-01`                             | Tanggal selesai materi ini aktif.                                   |
+| `createdAt`   | Timestamp(6)  | `nullable`        | `now()`  | `2026-03-15T10:30:00Z`                   | Waktu dibuat.                                                       |
+| `updatedAt`   | Timestamp(6)  | `nullable`        | -        | `2026-03-16T08:00:00Z`                   | Manual.                                                             |
 
 #### Primary Key & Foreign Key
 
@@ -2580,16 +2581,16 @@ sesuatu yang tidak ada padanannya langsung di struktur materi E-Learning.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl509ab6b587151f794bc241` | ID unik. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000001` | Peserta. |
-| `materialId` | String | `NOT NULL`, 🔗 FK | - | `cl6c90758b4e7c4f2a65ed1a` | Materi yang dipelajari. |
-| `isCompleted` | Boolean | `nullable` | `false` | `true` | Status selesai/belum. |
-| `lastAccessed` | Timestamp(6) | `nullable` | - | `2026-03-16T07:45:00Z` | Waktu terakhir diakses. |
-| `timeSpentSeconds` | Int | `nullable` | `0` | `1800` | Total waktu belajar dalam detik (satuannya eksplisit di nama kolom - beda dari `timeSpent` di modul E-Learning yang satuannya cuma diasumsikan dari konteks). |
-| `createdAt` | Timestamp(6) | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | Timestamp(6) | `nullable` | - | `2026-03-16T08:00:00Z` | Manual. |
+| Kolom              | Tipe Data     | Constraint        | Default  | Contoh Value               | Keterangan                                                                                                                                                    |
+| ------------------ | ------------- | ----------------- | -------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`               | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl509ab6b587151f794bc241` | ID unik.                                                                                                                                                      |
+| `userId`           | String        | `NOT NULL`, 🔗 FK | -        | `000001`                   | Peserta.                                                                                                                                                      |
+| `materialId`       | String        | `NOT NULL`, 🔗 FK | -        | `cl6c90758b4e7c4f2a65ed1a` | Materi yang dipelajari.                                                                                                                                       |
+| `isCompleted`      | Boolean       | `nullable`        | `false`  | `true`                     | Status selesai/belum.                                                                                                                                         |
+| `lastAccessed`     | Timestamp(6)  | `nullable`        | -        | `2026-03-16T07:45:00Z`     | Waktu terakhir diakses.                                                                                                                                       |
+| `timeSpentSeconds` | Int           | `nullable`        | `0`      | `1800`                     | Total waktu belajar dalam detik (satuannya eksplisit di nama kolom - beda dari `timeSpent` di modul E-Learning yang satuannya cuma diasumsikan dari konteks). |
+| `createdAt`        | Timestamp(6)  | `nullable`        | `now()`  | `2026-03-15T10:30:00Z`     | Waktu dibuat.                                                                                                                                                 |
+| `updatedAt`        | Timestamp(6)  | `nullable`        | -        | `2026-03-16T08:00:00Z`     | Manual.                                                                                                                                                       |
 
 #### Primary Key & Foreign Key
 
@@ -2608,22 +2609,22 @@ langganan berkala).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl4d3910d4376a411c84aa2b` | ID unik pembelian. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000001` | Pembeli. Tidak pakai `@map`. |
-| `practiceId` | String | `NOT NULL`, 🔗 FK | - | `cl53bfc1368605b8f6018027` | Practice yang dibeli. Tidak pakai `@map`. |
-| `referralUsageId` | String | `nullable`, `@unique`, 🔗 FK | - | `clcf5f6ae7450267a3f82153` | Terisi kalau pembelian ini pakai kode referral (opsional 1:1). Tidak pakai `@map`. |
-| `purchaseDate` | DateTime | `nullable` | `now()` | `2026-03-15T10:35:00Z` | Tanggal pembelian. |
-| `status` | VarChar | `nullable` | - | `PUBLISHED` | Status transaksi (freetext, tidak divalidasi enum). |
-| `createdAt` | DateTime | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | DateTime | `nullable` | *(tidak ada)* | `2026-03-16T08:00:00Z` | Tidak punya default sama sekali. |
+| Kolom             | Tipe Data     | Constraint                   | Default       | Contoh Value               | Keterangan                                                                         |
+| ----------------- | ------------- | ---------------------------- | ------------- | -------------------------- | ---------------------------------------------------------------------------------- |
+| `id`              | String (cuid) | 🔑 PK, `NOT NULL`            | `cuid()`      | `cl4d3910d4376a411c84aa2b` | ID unik pembelian.                                                                 |
+| `userId`          | String        | `NOT NULL`, 🔗 FK            | -             | `000001`                   | Pembeli. Tidak pakai `@map`.                                                       |
+| `practiceId`      | String        | `NOT NULL`, 🔗 FK            | -             | `cl53bfc1368605b8f6018027` | Practice yang dibeli. Tidak pakai `@map`.                                          |
+| `referralUsageId` | String        | `nullable`, `@unique`, 🔗 FK | -             | `clcf5f6ae7450267a3f82153` | Terisi kalau pembelian ini pakai kode referral (opsional 1:1). Tidak pakai `@map`. |
+| `purchaseDate`    | DateTime      | `nullable`                   | `now()`       | `2026-03-15T10:35:00Z`     | Tanggal pembelian.                                                                 |
+| `status`          | VarChar       | `nullable`                   | -             | `PUBLISHED`                | Status transaksi (freetext, tidak divalidasi enum).                                |
+| `createdAt`       | DateTime      | `nullable`                   | `now()`       | `2026-03-15T10:30:00Z`     | Waktu dibuat.                                                                      |
+| `updatedAt`       | DateTime      | `nullable`                   | _(tidak ada)_ | `2026-03-16T08:00:00Z`     | Tidak punya default sama sekali.                                                   |
 
 #### Primary Key & Foreign Key
 
 - 🔑 **PK**: `id`
-- 🔗 **FK 1**: `userId` → `users.id` - *(tidak ada `onDelete` eksplisit)*.
-- 🔗 **FK 2**: `practiceId` → `practices.id` - *(tidak ada `onDelete` eksplisit)*.
+- 🔗 **FK 1**: `userId` → `users.id` - _(tidak ada `onDelete` eksplisit)_.
+- 🔗 **FK 2**: `practiceId` → `practices.id` - _(tidak ada `onDelete` eksplisit)_.
 - 🔗 **FK 3**: `referralUsageId` → `referral_usages.id` (relasi `"ReferralUsagePracticePurchase"`), opsional 1:1 - `onDelete: Cascade`, `onUpdate: Cascade`.
 
 #### Relasi ke Tabel Lain (ringkasan)
@@ -2651,16 +2652,16 @@ polanya mirip `e_learning_reviews`, tapi `rating` di sini bertipe `Int`
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cla84767376f0cc884a4e580` | ID unik. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000001` | Peserta pemberi ulasan. |
-| `practiceId` | String | `NOT NULL`, 🔗 FK | - | `cle71d85ff78c53e61236021` | Practice yang diulas. |
-| `rating` | Int | `NOT NULL` | - | `3` | Nilai rating (bilangan bulat, beda dari `Decimal(2,1)` di `e_learning_reviews`). |
-| `comment` | String | `nullable` | - | `Materinya jelas dan mudah dipahami!` | Isi ulasan. |
-| `submittedDate` | Timestamp(6) | `nullable` | `now()` | `2026-03-20T14:00:00Z` | Tanggal ulasan dikirim. |
-| `createdAt` | Timestamp(6) | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | Timestamp(6) | `nullable` | - | `2026-03-16T08:00:00Z` | Manual. |
+| Kolom           | Tipe Data     | Constraint        | Default  | Contoh Value                          | Keterangan                                                                       |
+| --------------- | ------------- | ----------------- | -------- | ------------------------------------- | -------------------------------------------------------------------------------- |
+| `id`            | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cla84767376f0cc884a4e580`            | ID unik.                                                                         |
+| `userId`        | String        | `NOT NULL`, 🔗 FK | -        | `000001`                              | Peserta pemberi ulasan.                                                          |
+| `practiceId`    | String        | `NOT NULL`, 🔗 FK | -        | `cle71d85ff78c53e61236021`            | Practice yang diulas.                                                            |
+| `rating`        | Int           | `NOT NULL`        | -        | `3`                                   | Nilai rating (bilangan bulat, beda dari `Decimal(2,1)` di `e_learning_reviews`). |
+| `comment`       | String        | `nullable`        | -        | `Materinya jelas dan mudah dipahami!` | Isi ulasan.                                                                      |
+| `submittedDate` | Timestamp(6)  | `nullable`        | `now()`  | `2026-03-20T14:00:00Z`                | Tanggal ulasan dikirim.                                                          |
+| `createdAt`     | Timestamp(6)  | `nullable`        | `now()`  | `2026-03-15T10:30:00Z`                | Waktu dibuat.                                                                    |
+| `updatedAt`     | Timestamp(6)  | `nullable`        | -        | `2026-03-16T08:00:00Z`                | Manual.                                                                          |
 
 #### Primary Key & Foreign Key
 
@@ -2672,7 +2673,7 @@ polanya mirip `e_learning_reviews`, tapi `rating` di sini bertipe `Int`
 #### 📌 Catatan
 
 Tabel ini punya `submittedDate` **dan** `createdAt` yang sama-sama default
-`now()` -  redundan (dua kolom mencatat waktu yang praktis
+`now()` - redundan (dua kolom mencatat waktu yang praktis
 sama), berbeda dari `e_learning_reviews` yang cuma punya `createdAt` saja.
 
 ---
@@ -2684,31 +2685,31 @@ lengkap dengan penilaian & feedback dari mentor.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cld081be8a945384c36b1238` | ID unik. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000001` | Peserta pengumpul. |
-| `practiceId` | String | `NOT NULL`, 🔗 FK | - | `cl8ae65249c152eaae7281c4` | Practice yang dikerjakan. |
-| `notes` | String | `nullable` | - | `Revisi bagian analisis data.` | Catatan dari peserta. |
-| `files` | VarChar[] | `NOT NULL` | - | `["tugas1.pdf"]` | Array file yang dikumpulkan. |
-| `submittedAt` | Timestamp(6) | `nullable` | `now()` | `2026-03-20T14:00:00Z` | Waktu dikumpulkan. |
-| `status` | String | `nullable` | `"pending"` | `PUBLISHED` | Freetext (bukan enum), sesuai komentar developer: `pending`, `reviewed`, `approved`, `rejected`. |
-| `reviewedById` | String | `nullable`, 🔗 FK | - | `cl4958fc8795d05004681803` | Mentor/admin yang mereview (opsional). |
-| `reviewedAt` | Timestamp(6) | `nullable` | - | `2026-03-21T10:00:00Z` | Waktu direview. |
-| `kesesuaian` | VarChar | `nullable` | - | `Baik` | Nilai komponen "kesesuaian" dari mentor. |
-| `kualitas` | VarChar | `nullable` | - | `Cukup` | Nilai komponen "kualitas". |
-| `kreativitas` | VarChar | `nullable` | - | `Baik` | Nilai komponen "kreativitas". |
-| `kelengkapan` | VarChar | `nullable` | - | `Sangat Baik` | Nilai komponen "kelengkapan". |
-| `komentar` | Text | `nullable` | - | `Analisis sudah cukup baik.` | Komentar mentor. |
-| `saran` | Text | `nullable` | - | `Perbaiki visualisasi di bagian akhir.` | Saran/masukan mentor. |
-| `perluRevisi` | Boolean | `nullable` | `false` | `false` | Menandai submission perlu direvisi. |
+| Kolom          | Tipe Data     | Constraint        | Default     | Contoh Value                            | Keterangan                                                                                       |
+| -------------- | ------------- | ----------------- | ----------- | --------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `id`           | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()`    | `cld081be8a945384c36b1238`              | ID unik.                                                                                         |
+| `userId`       | String        | `NOT NULL`, 🔗 FK | -           | `000001`                                | Peserta pengumpul.                                                                               |
+| `practiceId`   | String        | `NOT NULL`, 🔗 FK | -           | `cl8ae65249c152eaae7281c4`              | Practice yang dikerjakan.                                                                        |
+| `notes`        | String        | `nullable`        | -           | `Revisi bagian analisis data.`          | Catatan dari peserta.                                                                            |
+| `files`        | VarChar[]     | `NOT NULL`        | -           | `["tugas1.pdf"]`                        | Array file yang dikumpulkan.                                                                     |
+| `submittedAt`  | Timestamp(6)  | `nullable`        | `now()`     | `2026-03-20T14:00:00Z`                  | Waktu dikumpulkan.                                                                               |
+| `status`       | String        | `nullable`        | `"pending"` | `PUBLISHED`                             | Freetext (bukan enum), sesuai komentar developer: `pending`, `reviewed`, `approved`, `rejected`. |
+| `reviewedById` | String        | `nullable`, 🔗 FK | -           | `cl4958fc8795d05004681803`              | Mentor/admin yang mereview (opsional).                                                           |
+| `reviewedAt`   | Timestamp(6)  | `nullable`        | -           | `2026-03-21T10:00:00Z`                  | Waktu direview.                                                                                  |
+| `kesesuaian`   | VarChar       | `nullable`        | -           | `Baik`                                  | Nilai komponen "kesesuaian" dari mentor.                                                         |
+| `kualitas`     | VarChar       | `nullable`        | -           | `Cukup`                                 | Nilai komponen "kualitas".                                                                       |
+| `kreativitas`  | VarChar       | `nullable`        | -           | `Baik`                                  | Nilai komponen "kreativitas".                                                                    |
+| `kelengkapan`  | VarChar       | `nullable`        | -           | `Sangat Baik`                           | Nilai komponen "kelengkapan".                                                                    |
+| `komentar`     | Text          | `nullable`        | -           | `Analisis sudah cukup baik.`            | Komentar mentor.                                                                                 |
+| `saran`        | Text          | `nullable`        | -           | `Perbaiki visualisasi di bagian akhir.` | Saran/masukan mentor.                                                                            |
+| `perluRevisi`  | Boolean       | `nullable`        | `false`     | `false`                                 | Menandai submission perlu direvisi.                                                              |
 
 #### Primary Key & Foreign Key
 
 - 🔑 **PK**: `id`
 - 🔗 **FK 1**: `user` → `users.id` (relasi `"PracticeSubmittedBy"`) - `onDelete: Cascade`, `onUpdate: Cascade`.
 - 🔗 **FK 2**: `practiceId` → `practices.id` - `onDelete: Cascade`, `onUpdate: Cascade`.
-- 🔗 **FK 3**: `reviewedById` → `users.id` (relasi `"PracticeReviewedBy"`), opsional - *(tidak ada `onDelete` eksplisit)*.
+- 🔗 **FK 3**: `reviewedById` → `users.id` (relasi `"PracticeReviewedBy"`), opsional - _(tidak ada `onDelete` eksplisit)_.
 - **Constraint tambahan**: `@@unique([userId, practiceId])` - **peserta cuma bisa submit sekali per practice**, tidak ada `attemptNumber` seperti di `e_learning_submissions`/`e_learning_quiz_attempts`, jadi tidak ada mekanisme submit ulang bertahap di level skema.
 
 #### 📌 Catatan
@@ -2717,7 +2718,7 @@ Empat kolom penilaian (`kesesuaian`, `kualitas`, `kreativitas`,
 `kelengkapan`) dan dua kolom feedback (`komentar`, `saran`) memakai nama
 **Bahasa Indonesia**, berbeda dari konvensi penamaan Inggris di hampir
 semua tabel lain di skema ini. Semua nilai komponen penilaian juga bertipe
-`VarChar` (bukan `Int`/`Decimal`), jadi  diisi label kualitatif
+`VarChar` (bukan `Int`/`Decimal`), jadi diisi label kualitatif
 (mis. "Baik", "Cukup") bukan angka - berbeda dari `gradeBreakdown` (Json)
 di `e_learning_submissions` yang menyimpan skor numerik per komponen.
 `status` di sini tetap `String` biasa dengan default `"pending"`, tidak
@@ -2734,26 +2735,26 @@ dibuat mentor - induk dari seluruh tabel Practice lainnya.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cldaab61f8e4d59948b64eb2` | ID unik practice. |
-| `mentorId` | String | `NOT NULL`, 🔗 FK | - | `cl4a741cb68f1ed7f4d4f421` | Mentor pembuat. |
-| `title` | VarChar | `NOT NULL` | - | `Belajar Python untuk Pemula` | Judul practice. |
-| `description` | Text | `nullable` | - | `Deskripsi singkat mengenai konten ini.` | Deskripsi practice. |
-| `thumbnailImages` | VarChar[] | `NOT NULL` | - | `["thumb1.jpg", "thumb2.jpg"]` | Array gambar thumbnail. Di-`@map` ke `thumbnail_image` (**tunggal**) walau kolomnya array/jamak - beda dari `e_learning_courses.thumbnailImages` yang di-`@map` ke `thumbnail_images` (jamak, konsisten). |
-| `price` | Decimal | `NOT NULL` | - | `150000` | Harga practice. |
-| `practiceType` | VarChar | `nullable` | - | `(freetext)` | Jenis practice (freetext). |
-| `category` | VarChar | `nullable` | - | `Data Science` | Kategori (freetext). |
-| `tags` | VarChar[] | `NOT NULL` | - | `["python", "data-science"]` | Array tag. |
-| `benefits` | VarChar | `nullable` | - | `Mendapat sertifikat & akses grup alumni.` | Manfaat mengikuti practice. |
-| `toolsUsed` | VarChar | `nullable` | - | `Python, Jupyter Notebook, Pandas` | Tools/software yang dipakai. |
-| `challenges` | VarChar | `nullable` | - | `Membersihkan dataset yang berantakan.` | Tantangan yang akan dihadapi peserta. |
-| `expectedOutcomes` | VarChar | `nullable` | - | `Mampu membuat visualisasi data end-to-end.` | Hasil yang diharapkan setelah selesai. |
-| `estimatedDuration` | VarChar | `nullable` | - | `4 minggu` | Estimasi durasi (freetext). |
-| `targetAudience` | VarChar | `nullable` | - | `Mahasiswa & fresh graduate` | Target peserta. |
-| `isActive` | Boolean | `nullable` | `true` | `true` | `false` = practice tidak ditampilkan. |
-| `createdAt` | Timestamp(6) | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | Timestamp(6) | `nullable` | - | `2026-03-16T08:00:00Z` | Manual. |
+| Kolom               | Tipe Data     | Constraint        | Default  | Contoh Value                                 | Keterangan                                                                                                                                                                                                |
+| ------------------- | ------------- | ----------------- | -------- | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cldaab61f8e4d59948b64eb2`                   | ID unik practice.                                                                                                                                                                                         |
+| `mentorId`          | String        | `NOT NULL`, 🔗 FK | -        | `cl4a741cb68f1ed7f4d4f421`                   | Mentor pembuat.                                                                                                                                                                                           |
+| `title`             | VarChar       | `NOT NULL`        | -        | `Belajar Python untuk Pemula`                | Judul practice.                                                                                                                                                                                           |
+| `description`       | Text          | `nullable`        | -        | `Deskripsi singkat mengenai konten ini.`     | Deskripsi practice.                                                                                                                                                                                       |
+| `thumbnailImages`   | VarChar[]     | `NOT NULL`        | -        | `["thumb1.jpg", "thumb2.jpg"]`               | Array gambar thumbnail. Di-`@map` ke `thumbnail_image` (**tunggal**) walau kolomnya array/jamak - beda dari `e_learning_courses.thumbnailImages` yang di-`@map` ke `thumbnail_images` (jamak, konsisten). |
+| `price`             | Decimal       | `NOT NULL`        | -        | `150000`                                     | Harga practice.                                                                                                                                                                                           |
+| `practiceType`      | VarChar       | `nullable`        | -        | `(freetext)`                                 | Jenis practice (freetext).                                                                                                                                                                                |
+| `category`          | VarChar       | `nullable`        | -        | `Data Science`                               | Kategori (freetext).                                                                                                                                                                                      |
+| `tags`              | VarChar[]     | `NOT NULL`        | -        | `["python", "data-science"]`                 | Array tag.                                                                                                                                                                                                |
+| `benefits`          | VarChar       | `nullable`        | -        | `Mendapat sertifikat & akses grup alumni.`   | Manfaat mengikuti practice.                                                                                                                                                                               |
+| `toolsUsed`         | VarChar       | `nullable`        | -        | `Python, Jupyter Notebook, Pandas`           | Tools/software yang dipakai.                                                                                                                                                                              |
+| `challenges`        | VarChar       | `nullable`        | -        | `Membersihkan dataset yang berantakan.`      | Tantangan yang akan dihadapi peserta.                                                                                                                                                                     |
+| `expectedOutcomes`  | VarChar       | `nullable`        | -        | `Mampu membuat visualisasi data end-to-end.` | Hasil yang diharapkan setelah selesai.                                                                                                                                                                    |
+| `estimatedDuration` | VarChar       | `nullable`        | -        | `4 minggu`                                   | Estimasi durasi (freetext).                                                                                                                                                                               |
+| `targetAudience`    | VarChar       | `nullable`        | -        | `Mahasiswa & fresh graduate`                 | Target peserta.                                                                                                                                                                                           |
+| `isActive`          | Boolean       | `nullable`        | `true`   | `true`                                       | `false` = practice tidak ditampilkan.                                                                                                                                                                     |
+| `createdAt`         | Timestamp(6)  | `nullable`        | `now()`  | `2026-03-15T10:30:00Z`                       | Waktu dibuat.                                                                                                                                                                                             |
+| `updatedAt`         | Timestamp(6)  | `nullable`        | -        | `2026-03-16T08:00:00Z`                       | Manual.                                                                                                                                                                                                   |
 
 #### Primary Key & Foreign Key
 
@@ -2787,14 +2788,14 @@ tabel terpisah (5.80).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl339b6f210ad4c3504ddb4f` | ID unik proyek. |
-| `serviceId` | String | `NOT NULL`, 🔗 FK | - | `cl7d09af19e3c76a9ea3760d` | Mentoring service induk. |
-| `title` | VarChar | `NOT NULL` | - | `Belajar Python untuk Pemula` | Judul proyek. |
-| `description` | Text | `nullable` | - | `Deskripsi singkat mengenai konten ini.` | Deskripsi/instruksi proyek. |
-| `createdAt` | Timestamp(6) | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | Timestamp(6) | `nullable` | - | `2026-03-16T08:00:00Z` | Manual. |
+| Kolom         | Tipe Data     | Constraint        | Default  | Contoh Value                             | Keterangan                  |
+| ------------- | ------------- | ----------------- | -------- | ---------------------------------------- | --------------------------- |
+| `id`          | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl339b6f210ad4c3504ddb4f`               | ID unik proyek.             |
+| `serviceId`   | String        | `NOT NULL`, 🔗 FK | -        | `cl7d09af19e3c76a9ea3760d`               | Mentoring service induk.    |
+| `title`       | VarChar       | `NOT NULL`        | -        | `Belajar Python untuk Pemula`            | Judul proyek.               |
+| `description` | Text          | `nullable`        | -        | `Deskripsi singkat mengenai konten ini.` | Deskripsi/instruksi proyek. |
+| `createdAt`   | Timestamp(6)  | `nullable`        | `now()`  | `2026-03-15T10:30:00Z`                   | Waktu dibuat.               |
+| `updatedAt`   | Timestamp(6)  | `nullable`        | -        | `2026-03-16T08:00:00Z`                   | Manual.                     |
 
 #### Primary Key & Foreign Key
 
@@ -2816,31 +2817,31 @@ review pakai enum, tautan ke sesi mentoring tertentu).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cla7299cf96ca329531322ac` | ID unik. |
-| `projectId` | String | `NOT NULL`, 🔗 FK | - | `cl70bf517b6239981d274a0d` | Proyek yang dikumpulkan. |
-| `menteeId` | String | `NOT NULL`, 🔗 FK | - | `000016` | Mentee pengumpul. |
-| `sessionId` | String | `nullable`, 🔗 FK | - | `cl598f3fad2b11260e8b6fe9` | Sesi mentoring terkait (opsional). |
-| `title` | VarChar | `nullable` | - | `Belajar Python untuk Pemula` | Judul submission dari mentee. |
-| `filePaths` | String[] | `NOT NULL` | - | `["tugas1.pdf"]` | Array path file submission. |
-| `projectLink` | VarChar | `nullable` | - | `(freetext)` | Link tambahan (Drive, GitHub, dll - sesuai komentar developer). |
-| `submissionDate` | Timestamp(6) | `nullable` | `now()` | `2026-03-20T14:00:00Z` | Waktu dikumpulkan. |
-| `plagiarismScore` | Decimal | `nullable` | - | `4.5` | Skor plagiarisme dari sistem otomatis. |
-| `score` | Decimal | `nullable` | - | `85` | Skor agregat dari seluruh penilaian (sesuai komentar developer). |
-| `briefScore` | String | `nullable` | - | `Baik` | Skor kesesuaian brief (freetext/label, bukan angka). |
-| `technicalScore` | String | `nullable` | - | `Cukup` | Skor kualitas teknis. |
-| `creativityScore` | String | `nullable` | - | `Baik` | Skor kreativitas. |
-| `completenessScore` | String | `nullable` | - | `Baik` | Skor kelengkapan. |
-| `mentorFeedback` | VarChar | `nullable` | - | `Kerjakan revisi bagian ke-2.` | Feedback singkat dari mentor. |
-| `mentorSuggestion` | VarChar | `nullable` | - | `Tambahkan studi kasus nyata.` | Saran dari mentor. |
-| `isReviewed` | Boolean | `nullable` | `false` | `false` | Status sudah/belum direview. |
-| `reviewStatus` | Enum `ReviewStatus` | `NOT NULL` | `PENDING` | `REVIEWED` | `PENDING`, `REVIEWED`, atau `REVISION_REQUIRED`. |
-| `isRevisedRequired` | Boolean | `nullable` | `false` | `false` | Menandai submission perlu direvisi. |
-| `revisionDeadline` | DateTime | `nullable` | - | `2026-03-25T23:59:59Z` | Batas waktu revisi. |
-| `gradedBy` | String | `nullable`, 🔗 FK | - | `(freetext)` | Mentor yang menilai (opsional). |
-| `createdAt` | Timestamp(6) | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | Timestamp(6) | `nullable` | - | `2026-03-16T08:00:00Z` | Manual. |
+| Kolom               | Tipe Data           | Constraint        | Default   | Contoh Value                   | Keterangan                                                       |
+| ------------------- | ------------------- | ----------------- | --------- | ------------------------------ | ---------------------------------------------------------------- |
+| `id`                | String (cuid)       | 🔑 PK, `NOT NULL` | `cuid()`  | `cla7299cf96ca329531322ac`     | ID unik.                                                         |
+| `projectId`         | String              | `NOT NULL`, 🔗 FK | -         | `cl70bf517b6239981d274a0d`     | Proyek yang dikumpulkan.                                         |
+| `menteeId`          | String              | `NOT NULL`, 🔗 FK | -         | `000016`                       | Mentee pengumpul.                                                |
+| `sessionId`         | String              | `nullable`, 🔗 FK | -         | `cl598f3fad2b11260e8b6fe9`     | Sesi mentoring terkait (opsional).                               |
+| `title`             | VarChar             | `nullable`        | -         | `Belajar Python untuk Pemula`  | Judul submission dari mentee.                                    |
+| `filePaths`         | String[]            | `NOT NULL`        | -         | `["tugas1.pdf"]`               | Array path file submission.                                      |
+| `projectLink`       | VarChar             | `nullable`        | -         | `(freetext)`                   | Link tambahan (Drive, GitHub, dll - sesuai komentar developer).  |
+| `submissionDate`    | Timestamp(6)        | `nullable`        | `now()`   | `2026-03-20T14:00:00Z`         | Waktu dikumpulkan.                                               |
+| `plagiarismScore`   | Decimal             | `nullable`        | -         | `4.5`                          | Skor plagiarisme dari sistem otomatis.                           |
+| `score`             | Decimal             | `nullable`        | -         | `85`                           | Skor agregat dari seluruh penilaian (sesuai komentar developer). |
+| `briefScore`        | String              | `nullable`        | -         | `Baik`                         | Skor kesesuaian brief (freetext/label, bukan angka).             |
+| `technicalScore`    | String              | `nullable`        | -         | `Cukup`                        | Skor kualitas teknis.                                            |
+| `creativityScore`   | String              | `nullable`        | -         | `Baik`                         | Skor kreativitas.                                                |
+| `completenessScore` | String              | `nullable`        | -         | `Baik`                         | Skor kelengkapan.                                                |
+| `mentorFeedback`    | VarChar             | `nullable`        | -         | `Kerjakan revisi bagian ke-2.` | Feedback singkat dari mentor.                                    |
+| `mentorSuggestion`  | VarChar             | `nullable`        | -         | `Tambahkan studi kasus nyata.` | Saran dari mentor.                                               |
+| `isReviewed`        | Boolean             | `nullable`        | `false`   | `false`                        | Status sudah/belum direview.                                     |
+| `reviewStatus`      | Enum `ReviewStatus` | `NOT NULL`        | `PENDING` | `REVIEWED`                     | `PENDING`, `REVIEWED`, atau `REVISION_REQUIRED`.                 |
+| `isRevisedRequired` | Boolean             | `nullable`        | `false`   | `false`                        | Menandai submission perlu direvisi.                              |
+| `revisionDeadline`  | DateTime            | `nullable`        | -         | `2026-03-25T23:59:59Z`         | Batas waktu revisi.                                              |
+| `gradedBy`          | String              | `nullable`, 🔗 FK | -         | `(freetext)`                   | Mentor yang menilai (opsional).                                  |
+| `createdAt`         | Timestamp(6)        | `nullable`        | `now()`   | `2026-03-15T10:30:00Z`         | Waktu dibuat.                                                    |
+| `updatedAt`         | Timestamp(6)        | `nullable`        | -         | `2026-03-16T08:00:00Z`         | Manual.                                                          |
 
 #### Primary Key & Foreign Key
 
@@ -2855,7 +2856,7 @@ review pakai enum, tautan ke sesi mentoring tertentu).
 Tabel submission paling detail di seluruh skema: skor dipisah jadi 3
 lapis - `plagiarismScore` (otomatis/sistem), 4 kolom skor per-metrik
 (`briefScore`/`technicalScore`/`creativityScore`/`completenessScore`, semua
-`String` -  label kualitatif, bukan angka, sama seperti pola di
+`String` - label kualitatif, bukan angka, sama seperti pola di
 `practice_submissions`), dan `score` (agregat, `Decimal`) - tapi tidak ada
 kolom di skema yang menjelaskan bagaimana `score` dihitung dari
 komponen-komponennya, jadi logikanya murni ada di kode aplikasi. Tidak
@@ -2869,7 +2870,7 @@ tabel submission serupa (`practice_submissions`,
 `e_learning_submissions`, tabel ini) yang memakai **enum sungguhan**
 (`ReviewStatus`) alih-alih `String` freetext - tapi enum-nya cuma 3 nilai
 (tidak ada `APPROVED`/`REJECTED` seperti `ELearningSubmissionStatus`),
-jadi status "disetujui/ditolak akhir"  direpresentasikan lewat
+jadi status "disetujui/ditolak akhir" direpresentasikan lewat
 kombinasi `reviewStatus` + `score`, bukan satu kolom status tunggal.
 
 ---
@@ -2897,33 +2898,33 @@ pembelian practice, langganan e-learning, dan booking AYCL.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (custom) | 🔑 PK, `NOT NULL` | `custom()` | `PAY-AYCL-20260530-8248560878` | ID unik pembayaran. |
-| `bookingInvoiceId` | String | `nullable`, 🔗 FK | - | `cl0c1cfc95904e3bb7b6a354` | Invoice booking mentoring terkait (**bukan** `@unique` - satu invoice bisa punya banyak `Payment`, satu per cicilan). |
-| `practicePurchaseId` | String | `nullable`, `@unique`, 🔗 FK | - | `Purchase-......` | Pembelian practice terkait (1:1). |
-| `eLearningSubscriptionId` | String | `nullable`, `@unique`, 🔗 FK | - | `SUB-EL-.......` | Langganan e-learning terkait (1:1). |
-| `ayclBookingId` | String | `nullable`, `@unique`, 🔗 FK | - | `AYCLBook-.....` | Booking AYCL terkait (1:1). |
-| `merchantOrderId` | String | `nullable`, `@unique` | - | `INV-PAY-AYCL-20260717-7323830662-1784272562463` | Order ID dari payment gateway/merchant pihak ketiga. |
-| `amount` | Decimal | `NOT NULL` | - | `250000` | Nominal pembayaran. |
-| `installmentNumber` | Int | `nullable` | - | `1` | Nomor cicilan ke berapa - **hanya dipakai kalau `bookingInvoiceId` terisi** (sesuai komentar developer). |
-| `dueDate` | DateTime | `nullable` | - | `2026-09-17T07:31:16.126Z` | Batas waktu pembayaran (relevan untuk cicilan). |
-| `reminderCount` | Int | `NOT NULL` | `0` | `2` | Jumlah reminder yang sudah dikirim ke pembayar. |
-| `lastReminderSentAt` | DateTime | `nullable` | - | `2026-03-18T09:00:00Z` | Waktu reminder terakhir dikirim. |
-| `paymentDate` | Timestamp(6) | `nullable` | - | `2026-03-15T10:35:00Z` | Tanggal pembayaran benar-benar diterima/lunas. |
-| `paymentMethod` | VarChar | `nullable` | - | `BR` | Metode pembayaran (freetext, mis. nama channel/bank sesuai type dari payment gateway Duitku). |
-| `transactionId` | VarChar | `nullable` | - | `DS2857926HNLTS3P23DP8OR5` | ID transaksi dari payment gateway. |
-| `status` | VarChar | `nullable` | - | `PENDING` | Status pembayaran (freetext, pending, confirmed, completed). |
-| `createdAt` | Timestamp(6) | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu baris dibuat. |
-| `updatedAt` | Timestamp(6) | `nullable` | - | `2026-03-16T08:00:00Z` | Manual, tidak `@updatedAt`. |
+| Kolom                     | Tipe Data       | Constraint                   | Default    | Contoh Value                                     | Keterangan                                                                                                            |
+| ------------------------- | --------------- | ---------------------------- | ---------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `id`                      | String (custom) | 🔑 PK, `NOT NULL`            | `custom()` | `PAY-AYCL-20260530-8248560878`                   | ID unik pembayaran.                                                                                                   |
+| `bookingInvoiceId`        | String          | `nullable`, 🔗 FK            | -          | `cl0c1cfc95904e3bb7b6a354`                       | Invoice booking mentoring terkait (**bukan** `@unique` - satu invoice bisa punya banyak `Payment`, satu per cicilan). |
+| `practicePurchaseId`      | String          | `nullable`, `@unique`, 🔗 FK | -          | `Purchase-......`                                | Pembelian practice terkait (1:1).                                                                                     |
+| `eLearningSubscriptionId` | String          | `nullable`, `@unique`, 🔗 FK | -          | `SUB-EL-.......`                                 | Langganan e-learning terkait (1:1).                                                                                   |
+| `ayclBookingId`           | String          | `nullable`, `@unique`, 🔗 FK | -          | `AYCLBook-.....`                                 | Booking AYCL terkait (1:1).                                                                                           |
+| `merchantOrderId`         | String          | `nullable`, `@unique`        | -          | `INV-PAY-AYCL-20260717-7323830662-1784272562463` | Order ID dari payment gateway/merchant pihak ketiga.                                                                  |
+| `amount`                  | Decimal         | `NOT NULL`                   | -          | `250000`                                         | Nominal pembayaran.                                                                                                   |
+| `installmentNumber`       | Int             | `nullable`                   | -          | `1`                                              | Nomor cicilan ke berapa - **hanya dipakai kalau `bookingInvoiceId` terisi** (sesuai komentar developer).              |
+| `dueDate`                 | DateTime        | `nullable`                   | -          | `2026-09-17T07:31:16.126Z`                       | Batas waktu pembayaran (relevan untuk cicilan).                                                                       |
+| `reminderCount`           | Int             | `NOT NULL`                   | `0`        | `2`                                              | Jumlah reminder yang sudah dikirim ke pembayar.                                                                       |
+| `lastReminderSentAt`      | DateTime        | `nullable`                   | -          | `2026-03-18T09:00:00Z`                           | Waktu reminder terakhir dikirim.                                                                                      |
+| `paymentDate`             | Timestamp(6)    | `nullable`                   | -          | `2026-03-15T10:35:00Z`                           | Tanggal pembayaran benar-benar diterima/lunas.                                                                        |
+| `paymentMethod`           | VarChar         | `nullable`                   | -          | `BR`                                             | Metode pembayaran (freetext, mis. nama channel/bank sesuai type dari payment gateway Duitku).                         |
+| `transactionId`           | VarChar         | `nullable`                   | -          | `DS2857926HNLTS3P23DP8OR5`                       | ID transaksi dari payment gateway.                                                                                    |
+| `status`                  | VarChar         | `nullable`                   | -          | `PENDING`                                        | Status pembayaran (freetext, pending, confirmed, completed).                                                          |
+| `createdAt`               | Timestamp(6)    | `nullable`                   | `now()`    | `2026-03-15T10:30:00Z`                           | Waktu baris dibuat.                                                                                                   |
+| `updatedAt`               | Timestamp(6)    | `nullable`                   | -          | `2026-03-16T08:00:00Z`                           | Manual, tidak `@updatedAt`.                                                                                           |
 
 #### Primary Key & Foreign Key
 
 - 🔑 **PK**: `id`
-- 🔗 **FK 1**: `bookingInvoiceId` → `booking_invoices.id` - `onDelete: Cascade`, `onUpdate: Cascade`. *(non-unique - lihat catatan.)*
+- 🔗 **FK 1**: `bookingInvoiceId` → `booking_invoices.id` - `onDelete: Cascade`, `onUpdate: Cascade`. _(non-unique - lihat catatan.)_
 - 🔗 **FK 2**: `practicePurchaseId` → `practice_purchases.id` (relasi `"PracticePurchasePayment"`), `@unique` - `onDelete: Cascade`, `onUpdate: Cascade`.
 - 🔗 **FK 3**: `eLearningSubscriptionId` → `e_learning_subscriptions.id`, `@unique` - `onDelete: Cascade`.
-- 🔗 **FK 4**: `ayclBookingId` → `aycl_bookings.id`, `@unique` - *(tidak ada `onDelete` eksplisit)*.
+- 🔗 **FK 4**: `ayclBookingId` → `aycl_bookings.id`, `@unique` - _(tidak ada `onDelete` eksplisit)_.
 - **Index tambahan**: `@@index([bookingInvoiceId])`.
 
 #### Relasi ke Tabel Lain (ringkasan)
@@ -2938,12 +2939,12 @@ menandai status lunas beberapa peserta booking grup sekaligus, lihat 5.16).
 dan pola keterhubungannya **tidak seragam**:
 
 - Untuk **booking mentoring** (cicilan): `bookingInvoiceId` **bukan**
-  `@unique`, jadi satu `BookingInvoice` bisa punya *banyak* baris
+  `@unique`, jadi satu `BookingInvoice` bisa punya _banyak_ baris
   `Payment` - satu per cicilan (`installmentNumber` membedakan urutannya).
   Ini satu-satunya dari 4 sumber yang berupa relasi 1:many, bukan 1:1.
 - Untuk **practice, e-learning, AYCL**: ketiga kolom FK-nya
   (`practicePurchaseId`, `eLearningSubscriptionId`, `ayclBookingId`)
-  semuanya `@unique`, jadi masing-masing hanya bisa punya *satu*
+  semuanya `@unique`, jadi masing-masing hanya bisa punya _satu_
   `Payment` (transaksi sekali-bayar, bukan cicilan).
 
 Kolom `installmentNumber`, `dueDate`, `reminderCount`, dan
@@ -2963,18 +2964,18 @@ progres pelunasan lewat `paidAmount`/`remainingAmount`.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl4e93991da027fc02f10e2a` | ID unik invoice. |
-| `bookingId` | String | `NOT NULL`, `@unique`, 🔗 FK | - | `Booking-bootcamp-6907575958` | Booking terkait (1:1). |
-| `totalAmount` | Decimal | `NOT NULL` | - | `500000` | Total tagihan. |
-| `paidAmount` | Decimal | `NOT NULL` | `0` | `250000` | Jumlah yang sudah dibayar ( diakumulasi dari `payments` yang statusnya lunas). |
-| `remainingAmount` | Decimal | `NOT NULL` | - | `250000` | Sisa yang belum dibayar. |
-| `paymentType` | VarChar | `NOT NULL` | - | `FULL` | Freetext, sesuai komentar developer: `FULL` atau `INSTALLMENT`. |
-| `installmentCount` | Int | `nullable` | - | `3` | Jumlah cicilan yang disepakati (relevan kalau `paymentType = INSTALLMENT`). |
-| `status` | VarChar | `NOT NULL` | - | `PUBLISHED` | Freetext, sesuai komentar developer: `PAID_DONE`, `PARTIALLY_PAID`, atau `HAVENT_PAID`. |
-| `createdAt` | DateTime | `NOT NULL` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | DateTime | `nullable` | *(tidak ada)* | `2026-03-16T08:00:00Z` | Tidak punya default sama sekali. |
+| Kolom              | Tipe Data     | Constraint                   | Default       | Contoh Value                  | Keterangan                                                                              |
+| ------------------ | ------------- | ---------------------------- | ------------- | ----------------------------- | --------------------------------------------------------------------------------------- |
+| `id`               | String (cuid) | 🔑 PK, `NOT NULL`            | `cuid()`      | `cl4e93991da027fc02f10e2a`    | ID unik invoice.                                                                        |
+| `bookingId`        | String        | `NOT NULL`, `@unique`, 🔗 FK | -             | `Booking-bootcamp-6907575958` | Booking terkait (1:1).                                                                  |
+| `totalAmount`      | Decimal       | `NOT NULL`                   | -             | `500000`                      | Total tagihan.                                                                          |
+| `paidAmount`       | Decimal       | `NOT NULL`                   | `0`           | `250000`                      | Jumlah yang sudah dibayar ( diakumulasi dari `payments` yang statusnya lunas).          |
+| `remainingAmount`  | Decimal       | `NOT NULL`                   | -             | `250000`                      | Sisa yang belum dibayar.                                                                |
+| `paymentType`      | VarChar       | `NOT NULL`                   | -             | `FULL`                        | Freetext, sesuai komentar developer: `FULL` atau `INSTALLMENT`.                         |
+| `installmentCount` | Int           | `nullable`                   | -             | `3`                           | Jumlah cicilan yang disepakati (relevan kalau `paymentType = INSTALLMENT`).             |
+| `status`           | VarChar       | `NOT NULL`                   | -             | `PUBLISHED`                   | Freetext, sesuai komentar developer: `PAID_DONE`, `PARTIALLY_PAID`, atau `HAVENT_PAID`. |
+| `createdAt`        | DateTime      | `NOT NULL`                   | `now()`       | `2026-03-15T10:30:00Z`        | Waktu dibuat.                                                                           |
+| `updatedAt`        | DateTime      | `nullable`                   | _(tidak ada)_ | `2026-03-16T08:00:00Z`        | Tidak punya default sama sekali.                                                        |
 
 #### Primary Key & Foreign Key
 
@@ -2987,14 +2988,14 @@ progres pelunasan lewat `paidAmount`/`remainingAmount`.
 
 ---
 
-*(Bagian **Payment** dari modul **Payment & Withdrawal** sudah lengkap
+_(Bagian **Payment** dari modul **Payment & Withdrawal** sudah lengkap
 dengan ini - 2 tabel baru: `payments` dan `booking_invoices`. Bagian
 **Withdrawal**-nya sendiri ternyata menempel ke sistem afiliator, bukan
 tabel umum terpisah - didokumentasikan di 5.90 `commission_payments` dan
 5.91 `withdrawal_methods` bersama modul Affiliator & Referral. Tabel
 `PracticePurchase`, `ELearningSubscription`, dan `AYCLBooking` yang
 direferensikan sudah dibahas masing-masing di 5.75, 5.63, dan 5.24;
-`BookingParticipant` sudah dibahas di 5.16.)*
+`BookingParticipant` sudah dibahas di 5.16.)_
 
 ## Modul: Affiliator & Referral
 
@@ -3023,16 +3024,16 @@ sebagai afiliator dan menyimpan status tier & poin akumulasinya.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cld02ba39c68a05a573b5ecb` | ID unik profil. |
-| `userId` | String | `NOT NULL`, `@unique`, 🔗 FK | - | `000020` | User pemilik profil (1:1 - satu user maksimal satu profil afiliator). |
-| `currentTier` | String | `NOT NULL` | `"BRONZE"` | `GOLD` | Freetext (bukan enum), sesuai komentar developer: `BRONZE`, `SILVER`, atau `GOLD`. |
-| `totalPoints` | Int | `NOT NULL` | `0` | `320` | Poin akumulasi **lifetime** (sesuai komentar developer: "untuk referensi" - beda dari poin per-musim di 5.85). |
-| `isActive` | Boolean | `NOT NULL` | `true` | `true` | `false` = status afiliator dinonaktifkan. |
-| `joinedAt` | DateTime | `NOT NULL` | `now()` | `2026-01-10T08:00:00Z` | Tanggal bergabung sebagai afiliator. |
-| `createdAt` | DateTime | `NOT NULL` | `now()` | `2026-03-15T10:30:00Z` | Waktu baris dibuat. |
-| `updatedAt` | DateTime | `nullable` | *(tidak ada)* | `2026-03-16T08:00:00Z` | Tidak punya default. |
+| Kolom         | Tipe Data     | Constraint                   | Default       | Contoh Value               | Keterangan                                                                                                     |
+| ------------- | ------------- | ---------------------------- | ------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `id`          | String (cuid) | 🔑 PK, `NOT NULL`            | `cuid()`      | `cld02ba39c68a05a573b5ecb` | ID unik profil.                                                                                                |
+| `userId`      | String        | `NOT NULL`, `@unique`, 🔗 FK | -             | `000020`                   | User pemilik profil (1:1 - satu user maksimal satu profil afiliator).                                          |
+| `currentTier` | String        | `NOT NULL`                   | `"BRONZE"`    | `GOLD`                     | Freetext (bukan enum), sesuai komentar developer: `BRONZE`, `SILVER`, atau `GOLD`.                             |
+| `totalPoints` | Int           | `NOT NULL`                   | `0`           | `320`                      | Poin akumulasi **lifetime** (sesuai komentar developer: "untuk referensi" - beda dari poin per-musim di 5.85). |
+| `isActive`    | Boolean       | `NOT NULL`                   | `true`        | `true`                     | `false` = status afiliator dinonaktifkan.                                                                      |
+| `joinedAt`    | DateTime      | `NOT NULL`                   | `now()`       | `2026-01-10T08:00:00Z`     | Tanggal bergabung sebagai afiliator.                                                                           |
+| `createdAt`   | DateTime      | `NOT NULL`                   | `now()`       | `2026-03-15T10:30:00Z`     | Waktu baris dibuat.                                                                                            |
+| `updatedAt`   | DateTime      | `nullable`                   | _(tidak ada)_ | `2026-03-16T08:00:00Z`     | Tidak punya default.                                                                                           |
 
 #### Primary Key & Foreign Key
 
@@ -3061,19 +3062,19 @@ berulang di modul E-Learning & Practice).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `clad5ef7948c066e4c57be72` | ID unik musim. |
-| `seasonName` | String | `NOT NULL` | - | `Season 1 - 2026` | Nama musim, sesuai komentar developer: "Season 1 2025", "Season 2 2025", dst. |
-| `startDate` | DateTime | `NOT NULL` | - | `2026-04-01` | Tanggal mulai musim. |
-| `endDate` | DateTime | `NOT NULL` | - | `2026-05-01` | Tanggal berakhir musim. |
-| `isActive` | Boolean | `NOT NULL` | `true` | `true` | Menandai musim yang sedang berjalan. |
-| `createdAt` | DateTime | `NOT NULL` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
+| Kolom        | Tipe Data     | Constraint        | Default  | Contoh Value               | Keterangan                                                                    |
+| ------------ | ------------- | ----------------- | -------- | -------------------------- | ----------------------------------------------------------------------------- |
+| `id`         | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `clad5ef7948c066e4c57be72` | ID unik musim.                                                                |
+| `seasonName` | String        | `NOT NULL`        | -        | `Season 1 - 2026`          | Nama musim, sesuai komentar developer: "Season 1 2025", "Season 2 2025", dst. |
+| `startDate`  | DateTime      | `NOT NULL`        | -        | `2026-04-01`               | Tanggal mulai musim.                                                          |
+| `endDate`    | DateTime      | `NOT NULL`        | -        | `2026-05-01`               | Tanggal berakhir musim.                                                       |
+| `isActive`   | Boolean       | `NOT NULL`        | `true`   | `true`                     | Menandai musim yang sedang berjalan.                                          |
+| `createdAt`  | DateTime      | `NOT NULL`        | `now()`  | `2026-03-15T10:30:00Z`     | Waktu dibuat.                                                                 |
 
 #### Primary Key & Foreign Key
 
 - 🔑 **PK**: `id`
-- 🔗 **FK**: *(tidak ada)* - tabel master.
+- 🔗 **FK**: _(tidak ada)_ - tabel master.
 
 #### Relasi ke Tabel Lain (ringkasan)
 
@@ -3090,23 +3091,23 @@ musim tertentu - beda dari `totalPoints` lifetime di `AffiliatorProfile`
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `clf67ab497b3df393b3c4f24` | ID unik. |
-| `affiliatorProfileId` | String | `NOT NULL`, 🔗 FK | - | `clc7730580a4b351c26bded2` | Afiliator terkait. |
-| `seasonId` | String | `NOT NULL`, 🔗 FK | - | `cl351237e3a5a7f5baee9560` | Musim terkait. |
-| `points` | Int | `NOT NULL` | `0` | `50` | Akumulasi poin dalam musim ini. |
-| `tierAtSeasonStart` | String | `NOT NULL` | - | `SILVER` | Tier afiliator saat musim dimulai (freetext). |
-| `tierAtSeasonEnd` | String | `nullable` | - | `GOLD` | Tier hasil evaluasi akhir musim - diisi belakangan, kosong selama musim masih berjalan. |
-| `maintenanceQuotaMet` | Boolean | `nullable` | - | `true` | `null` = belum dievaluasi, `true`/`false` = hasil evaluasi (sesuai komentar developer) - apakah afiliator memenuhi kuota minimal untuk mempertahankan tier-nya. |
-| `createdAt` | DateTime | `NOT NULL` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | DateTime | `nullable` | *(tidak ada)* | `2026-03-16T08:00:00Z` | Tidak punya default. |
+| Kolom                 | Tipe Data     | Constraint        | Default       | Contoh Value               | Keterangan                                                                                                                                                      |
+| --------------------- | ------------- | ----------------- | ------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                  | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()`      | `clf67ab497b3df393b3c4f24` | ID unik.                                                                                                                                                        |
+| `affiliatorProfileId` | String        | `NOT NULL`, 🔗 FK | -             | `clc7730580a4b351c26bded2` | Afiliator terkait.                                                                                                                                              |
+| `seasonId`            | String        | `NOT NULL`, 🔗 FK | -             | `cl351237e3a5a7f5baee9560` | Musim terkait.                                                                                                                                                  |
+| `points`              | Int           | `NOT NULL`        | `0`           | `50`                       | Akumulasi poin dalam musim ini.                                                                                                                                 |
+| `tierAtSeasonStart`   | String        | `NOT NULL`        | -             | `SILVER`                   | Tier afiliator saat musim dimulai (freetext).                                                                                                                   |
+| `tierAtSeasonEnd`     | String        | `nullable`        | -             | `GOLD`                     | Tier hasil evaluasi akhir musim - diisi belakangan, kosong selama musim masih berjalan.                                                                         |
+| `maintenanceQuotaMet` | Boolean       | `nullable`        | -             | `true`                     | `null` = belum dievaluasi, `true`/`false` = hasil evaluasi (sesuai komentar developer) - apakah afiliator memenuhi kuota minimal untuk mempertahankan tier-nya. |
+| `createdAt`           | DateTime      | `NOT NULL`        | `now()`       | `2026-03-15T10:30:00Z`     | Waktu dibuat.                                                                                                                                                   |
+| `updatedAt`           | DateTime      | `nullable`        | _(tidak ada)_ | `2026-03-16T08:00:00Z`     | Tidak punya default.                                                                                                                                            |
 
 #### Primary Key & Foreign Key
 
 - 🔑 **PK**: `id`
 - 🔗 **FK 1**: `affiliatorProfileId` → `affiliator_profiles.id` - `onDelete: Cascade`.
-- 🔗 **FK 2**: `seasonId` → `affiliator_seasons.id` - *(tidak ada `onDelete` eksplisit)*.
+- 🔗 **FK 2**: `seasonId` → `affiliator_seasons.id` - _(tidak ada `onDelete` eksplisit)_.
 - **Constraint tambahan**: `@@unique([affiliatorProfileId, seasonId])` - satu baris rekap per afiliator per musim.
 
 ---
@@ -3119,24 +3120,24 @@ ada transaksi lewat kode referral.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl41541896421e3882a6f779` | ID unik konfigurasi. |
-| `productType` | String | `NOT NULL` | - | `ELEARNING_3M` | Freetext, sesuai komentar developer: `ELEARNING_1M`, `ELEARNING_3M`, `ELEARNING_6M`, `MENTORING_BOOTCAMP`, `MENTORING_ONE_ON_ONE`, `MENTORING_GROUP`, atau `AYCL`. |
-| `tier` | String | `NOT NULL` | - | `GOLD` | Freetext: `BRONZE`, `SILVER`, atau `GOLD`. |
-| `commissionAmount` | Decimal | `nullable` | - | `15000` | Komisi flat dalam rupiah - dipakai untuk produk dengan harga fixed (E-Learning). |
-| `discountAmount` | Decimal | `nullable` | - | `25000` | Diskon flat dalam rupiah (pasangan `commissionAmount`). |
-| `commissionPercent` | Decimal | `nullable` | - | `10` | Persentase komisi dari harga - dipakai untuk produk dengan harga variabel (Bootcamp, One-on-One, Group, AYCL, sesuai komentar developer). |
-| `discountPercent` | Decimal | `nullable` | - | `10` | Persentase diskon dari harga (pasangan `commissionPercent`). |
-| `pointsAwarded` | Int | `NOT NULL` | - | `10` | Poin yang diberikan ke afiliator per transaksi sukses. |
-| `isActive` | Boolean | `NOT NULL` | `true` | `true` | Bisa dinonaktifkan per kombinasi produk+tier. |
-| `createdAt` | DateTime | `NOT NULL` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | DateTime | `nullable` | *(tidak ada)* | `2026-03-16T08:00:00Z` | Tidak punya default. |
+| Kolom               | Tipe Data     | Constraint        | Default       | Contoh Value               | Keterangan                                                                                                                                                         |
+| ------------------- | ------------- | ----------------- | ------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`                | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()`      | `cl41541896421e3882a6f779` | ID unik konfigurasi.                                                                                                                                               |
+| `productType`       | String        | `NOT NULL`        | -             | `ELEARNING_3M`             | Freetext, sesuai komentar developer: `ELEARNING_1M`, `ELEARNING_3M`, `ELEARNING_6M`, `MENTORING_BOOTCAMP`, `MENTORING_ONE_ON_ONE`, `MENTORING_GROUP`, atau `AYCL`. |
+| `tier`              | String        | `NOT NULL`        | -             | `GOLD`                     | Freetext: `BRONZE`, `SILVER`, atau `GOLD`.                                                                                                                         |
+| `commissionAmount`  | Decimal       | `nullable`        | -             | `15000`                    | Komisi flat dalam rupiah - dipakai untuk produk dengan harga fixed (E-Learning).                                                                                   |
+| `discountAmount`    | Decimal       | `nullable`        | -             | `25000`                    | Diskon flat dalam rupiah (pasangan `commissionAmount`).                                                                                                            |
+| `commissionPercent` | Decimal       | `nullable`        | -             | `10`                       | Persentase komisi dari harga - dipakai untuk produk dengan harga variabel (Bootcamp, One-on-One, Group, AYCL, sesuai komentar developer).                          |
+| `discountPercent`   | Decimal       | `nullable`        | -             | `10`                       | Persentase diskon dari harga (pasangan `commissionPercent`).                                                                                                       |
+| `pointsAwarded`     | Int           | `NOT NULL`        | -             | `10`                       | Poin yang diberikan ke afiliator per transaksi sukses.                                                                                                             |
+| `isActive`          | Boolean       | `NOT NULL`        | `true`        | `true`                     | Bisa dinonaktifkan per kombinasi produk+tier.                                                                                                                      |
+| `createdAt`         | DateTime      | `NOT NULL`        | `now()`       | `2026-03-15T10:30:00Z`     | Waktu dibuat.                                                                                                                                                      |
+| `updatedAt`         | DateTime      | `nullable`        | _(tidak ada)_ | `2026-03-16T08:00:00Z`     | Tidak punya default.                                                                                                                                               |
 
 #### Primary Key & Foreign Key
 
 - 🔑 **PK**: `id`
-- 🔗 **FK**: *(tidak ada)* - tabel konfigurasi, tidak terikat baris lain lewat FK.
+- 🔗 **FK**: _(tidak ada)_ - tabel konfigurasi, tidak terikat baris lain lewat FK.
 - **Constraint tambahan**: `@@unique([productType, tier])` - maksimal satu konfigurasi aktif per kombinasi produk+tier.
 
 ---
@@ -3148,16 +3149,16 @@ yang dibagikan afiliator ke calon pembeli untuk dipakai saat transaksi.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl0ddd6a9a2623b35b32518a` | ID unik. |
-| `ownerId` | String | `NOT NULL`, 🔗 FK | - | `000020` | Afiliator pemilik kode (langsung ke `users`, bukan ke `affiliator_profiles`). |
-| `code` | String | `NOT NULL`, `@unique` | - | `TDK-PROMO25` | Kode referral yang dibagikan. |
-| `createdDate` | DateTime | `nullable` | `now()` | `2026-03-10` | Tanggal kode dibuat. |
-| `expiryDate` | DateTime | `nullable` | - | `2026-12-31` | Tanggal kedaluwarsa (opsional - kalau kosong, tidak kedaluwarsa). |
-| `isActive` | Boolean | `nullable` | `true` | `true` | Saklar aktif/nonaktif manual. |
-| `createdAt` | DateTime | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu baris dibuat. |
-| `updatedAt` | DateTime | `nullable` | *(tidak ada)* | `2026-03-16T08:00:00Z` | Tidak punya default. |
+| Kolom         | Tipe Data     | Constraint            | Default       | Contoh Value               | Keterangan                                                                    |
+| ------------- | ------------- | --------------------- | ------------- | -------------------------- | ----------------------------------------------------------------------------- |
+| `id`          | String (cuid) | 🔑 PK, `NOT NULL`     | `cuid()`      | `cl0ddd6a9a2623b35b32518a` | ID unik.                                                                      |
+| `ownerId`     | String        | `NOT NULL`, 🔗 FK     | -             | `000020`                   | Afiliator pemilik kode (langsung ke `users`, bukan ke `affiliator_profiles`). |
+| `code`        | String        | `NOT NULL`, `@unique` | -             | `TDK-PROMO25`              | Kode referral yang dibagikan.                                                 |
+| `createdDate` | DateTime      | `nullable`            | `now()`       | `2026-03-10`               | Tanggal kode dibuat.                                                          |
+| `expiryDate`  | DateTime      | `nullable`            | -             | `2026-12-31`               | Tanggal kedaluwarsa (opsional - kalau kosong, tidak kedaluwarsa).             |
+| `isActive`    | Boolean       | `nullable`            | `true`        | `true`                     | Saklar aktif/nonaktif manual.                                                 |
+| `createdAt`   | DateTime      | `nullable`            | `now()`       | `2026-03-15T10:30:00Z`     | Waktu baris dibuat.                                                           |
+| `updatedAt`   | DateTime      | `nullable`            | _(tidak ada)_ | `2026-03-16T08:00:00Z`     | Tidak punya default.                                                          |
 
 #### Primary Key & Foreign Key
 
@@ -3176,7 +3177,7 @@ yang dibagikan afiliator ke calon pembeli untuk dipakai saat transaksi.
 tidak terikat langsung ke keberadaan `AffiliatorProfile`; keduanya
 dihubungkan lewat `userId`/`ownerId` yang sama-sama merujuk ke `users`,
 bukan lewat relasi langsung satu ke yang lain. `createdDate` dan
-`createdAt` sama-sama ada dan sama-sama default `now()` - 
+`createdAt` sama-sama ada dan sama-sama default `now()` -
 redundan (pola serupa juga terlihat di `practice_reviews`,
 `submittedDate` vs `createdAt`).
 
@@ -3192,15 +3193,15 @@ punya kolom `referralUsageId` sendiri menunjuk balik ke sini).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `clc4780c921c2d0c1539c73d` | ID unik. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000001` | User yang memakai kode. |
-| `referralCodeId` | String | `NOT NULL`, 🔗 FK | - | `clda442f645dad8cdb1161cb` | Kode referral yang dipakai. |
-| `usedAt` | DateTime | `NOT NULL` | `now()` | `2026-03-16T09:00:00Z` | Waktu kode dipakai. |
-| `context` | VarChar | `NOT NULL` | - | `elearning_subscription` | Freetext konteks pemakaian ( menyimpan info produk/jenis transaksi, redundan secara konsep dengan relasi balik `booking`/`practicePurchase`/dst di bawah). |
-| `createdAt` | DateTime | `NOT NULL` | `now()` | `2026-03-15T10:30:00Z` | Waktu baris dibuat. |
-| `updatedAt` | DateTime | `nullable` | *(tidak ada)* | `2026-03-16T08:00:00Z` | Tidak punya default. |
+| Kolom            | Tipe Data     | Constraint        | Default       | Contoh Value               | Keterangan                                                                                                                                                 |
+| ---------------- | ------------- | ----------------- | ------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`             | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()`      | `clc4780c921c2d0c1539c73d` | ID unik.                                                                                                                                                   |
+| `userId`         | String        | `NOT NULL`, 🔗 FK | -             | `000001`                   | User yang memakai kode.                                                                                                                                    |
+| `referralCodeId` | String        | `NOT NULL`, 🔗 FK | -             | `clda442f645dad8cdb1161cb` | Kode referral yang dipakai.                                                                                                                                |
+| `usedAt`         | DateTime      | `NOT NULL`        | `now()`       | `2026-03-16T09:00:00Z`     | Waktu kode dipakai.                                                                                                                                        |
+| `context`        | VarChar       | `NOT NULL`        | -             | `elearning_subscription`   | Freetext konteks pemakaian ( menyimpan info produk/jenis transaksi, redundan secara konsep dengan relasi balik `booking`/`practicePurchase`/dst di bawah). |
+| `createdAt`      | DateTime      | `NOT NULL`        | `now()`       | `2026-03-15T10:30:00Z`     | Waktu baris dibuat.                                                                                                                                        |
+| `updatedAt`      | DateTime      | `nullable`        | _(tidak ada)_ | `2026-03-16T08:00:00Z`     | Tidak punya default.                                                                                                                                       |
 
 #### Primary Key & Foreign Key
 
@@ -3225,7 +3226,7 @@ Karena `@@unique([userId, referralCodeId])` cuma sepasang, dan tidak ada
 kolom di tabel ini yang membedakan "dipakai untuk transaksi yang mana",
 identitas transaksinya cuma bisa ditelusuri lewat 4 relasi balik opsional
 di atas - kode aplikasi perlu tahu dari konteks mana `ReferralUsage` ini
-dibuat (empat  tabel pemanggil) untuk tahu baris mana yang
+dibuat (empat tabel pemanggil) untuk tahu baris mana yang
 sebenarnya terhubung.
 
 ---
@@ -3244,23 +3245,23 @@ terjadi, untuk keperluan audit.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl49565420b705b4dede2827` | ID unik. |
-| `referralCodeId` | String | `NOT NULL`, 🔗 FK | - | `cl61e214e801f2e36008d62e` | Kode referral yang menghasilkan komisi ini. |
-| `transactionId` | String | `NOT NULL` | - | `PAY-EL-20260715-9789868949` | ID transaksi terkait (freetext, tidak dideklarasikan sebagai FK -  menunjuk ke salah satu dari beberapa tabel transaksi berbeda, sama seperti pola `entityId` di `ELearningAuditLog`). |
-| `amount` | Decimal | `NOT NULL` | - | `250000` | Komisi yang diterima (hasil kalkulasi saat itu, sesuai komentar developer). |
-| `tierAtTransaction` | String | `nullable` | - | `GOLD` | Snapshot tier afiliator saat transaksi terjadi. |
-| `productType` | String | `nullable` | - | `E_LEARNING` | Snapshot jenis produk yang dibeli (freetext). |
-| `pointsAwarded` | Int | `nullable` | - | `10` | Snapshot poin yang diberikan dari transaksi ini. |
-| `seasonId` | String | `nullable`, 🔗 FK | - | `cl00cc14eeadc7a97a593465` | Musim saat transaksi terjadi (opsional - tidak wajib terkait musim manapun). |
-| `created_at` | DateTime | `NOT NULL` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. **Nama field Prisma-nya sendiri sudah snake_case** (`created_at`, bukan `createdAt` + `@map`) - satu-satunya kolom waktu di seluruh skema dengan gaya penulisan field seperti ini. |
+| Kolom               | Tipe Data     | Constraint        | Default  | Contoh Value                 | Keterangan                                                                                                                                                                                       |
+| ------------------- | ------------- | ----------------- | -------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`                | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl49565420b705b4dede2827`   | ID unik.                                                                                                                                                                                         |
+| `referralCodeId`    | String        | `NOT NULL`, 🔗 FK | -        | `cl61e214e801f2e36008d62e`   | Kode referral yang menghasilkan komisi ini.                                                                                                                                                      |
+| `transactionId`     | String        | `NOT NULL`        | -        | `PAY-EL-20260715-9789868949` | ID transaksi terkait (freetext, tidak dideklarasikan sebagai FK - menunjuk ke salah satu dari beberapa tabel transaksi berbeda, sama seperti pola `entityId` di `ELearningAuditLog`).            |
+| `amount`            | Decimal       | `NOT NULL`        | -        | `250000`                     | Komisi yang diterima (hasil kalkulasi saat itu, sesuai komentar developer).                                                                                                                      |
+| `tierAtTransaction` | String        | `nullable`        | -        | `GOLD`                       | Snapshot tier afiliator saat transaksi terjadi.                                                                                                                                                  |
+| `productType`       | String        | `nullable`        | -        | `E_LEARNING`                 | Snapshot jenis produk yang dibeli (freetext).                                                                                                                                                    |
+| `pointsAwarded`     | Int           | `nullable`        | -        | `10`                         | Snapshot poin yang diberikan dari transaksi ini.                                                                                                                                                 |
+| `seasonId`          | String        | `nullable`, 🔗 FK | -        | `cl00cc14eeadc7a97a593465`   | Musim saat transaksi terjadi (opsional - tidak wajib terkait musim manapun).                                                                                                                     |
+| `created_at`        | DateTime      | `NOT NULL`        | `now()`  | `2026-03-15T10:30:00Z`       | Waktu dibuat. **Nama field Prisma-nya sendiri sudah snake_case** (`created_at`, bukan `createdAt` + `@map`) - satu-satunya kolom waktu di seluruh skema dengan gaya penulisan field seperti ini. |
 
 #### Primary Key & Foreign Key
 
 - 🔑 **PK**: `id`
 - 🔗 **FK 1**: `referralCodeId` → `referral_codes.id` (nama field relasi `referral_code`, ikut snake_case) - `onDelete: Cascade`.
-- 🔗 **FK 2**: `seasonId` → `affiliator_seasons.id`, opsional - *(tidak ada `onDelete` eksplisit)*.
+- 🔗 **FK 2**: `seasonId` → `affiliator_seasons.id`, opsional - _(tidak ada `onDelete` eksplisit)_.
 
 #### 📌 Catatan
 
@@ -3283,17 +3284,17 @@ satu baris per pembayaran komisi, ditransfer lewat salah satu
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `clfb2f307d6afccb4f4e963a` | ID unik. |
-| `referralCodeId` | String | `NOT NULL`, 🔗 FK | - | `cl1e263ab7d3625ebc2b76e4` | Kode referral (dan tidak langsung, afiliatornya) yang dibayar komisinya. |
-| `amount` | Decimal | `NOT NULL` | - | `250000` | Jumlah yang dicairkan. |
-| `transactionId` | String | `nullable` | - | `TRX-20260315-00123` | ID transaksi pencairan (dari payment gateway/bank, freetext). |
-| `status` | String | `nullable` | - | `PUBLISHED` | Freetext, sesuai komentar developer: `pending`, `paid`, atau `failed`. |
-| `paid_at` | DateTime | `nullable` | - | `2026-03-15T10:35:00Z` | Waktu pembayaran selesai. Nama field snake_case langsung (sama seperti `created_at` di 5.89), bukan `paidAt` + `@map`. |
-| `notes` | String | `nullable` | - | `Revisi bagian analisis data.` | Catatan tambahan atau alasan penolakan/gagal bayar (sesuai komentar developer). |
-| `created_at` | DateTime | `NOT NULL` | `now()` | `2026-03-15T10:30:00Z` | Waktu baris dibuat. Nama field snake_case langsung, sama seperti pola di 5.89. |
-| `withdrawalMethodId` | String | `nullable`, 🔗 FK | - | `clf56417480f77b0bea0840e` | Metode pencairan yang dipakai (opsional). |
+| Kolom                | Tipe Data     | Constraint        | Default  | Contoh Value                   | Keterangan                                                                                                             |
+| -------------------- | ------------- | ----------------- | -------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| `id`                 | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `clfb2f307d6afccb4f4e963a`     | ID unik.                                                                                                               |
+| `referralCodeId`     | String        | `NOT NULL`, 🔗 FK | -        | `cl1e263ab7d3625ebc2b76e4`     | Kode referral (dan tidak langsung, afiliatornya) yang dibayar komisinya.                                               |
+| `amount`             | Decimal       | `NOT NULL`        | -        | `250000`                       | Jumlah yang dicairkan.                                                                                                 |
+| `transactionId`      | String        | `nullable`        | -        | `TRX-20260315-00123`           | ID transaksi pencairan (dari payment gateway/bank, freetext).                                                          |
+| `status`             | String        | `nullable`        | -        | `PUBLISHED`                    | Freetext, sesuai komentar developer: `pending`, `paid`, atau `failed`.                                                 |
+| `paid_at`            | DateTime      | `nullable`        | -        | `2026-03-15T10:35:00Z`         | Waktu pembayaran selesai. Nama field snake_case langsung (sama seperti `created_at` di 5.89), bukan `paidAt` + `@map`. |
+| `notes`              | String        | `nullable`        | -        | `Revisi bagian analisis data.` | Catatan tambahan atau alasan penolakan/gagal bayar (sesuai komentar developer).                                        |
+| `created_at`         | DateTime      | `NOT NULL`        | `now()`  | `2026-03-15T10:30:00Z`         | Waktu baris dibuat. Nama field snake_case langsung, sama seperti pola di 5.89.                                         |
+| `withdrawalMethodId` | String        | `nullable`, 🔗 FK | -        | `clf56417480f77b0bea0840e`     | Metode pencairan yang dipakai (opsional).                                                                              |
 
 #### Primary Key & Foreign Key
 
@@ -3320,17 +3321,17 @@ afiliator, tempat komisi mereka ditransfer.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `clcdfdbad169f573fe287e6e` | ID unik. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000001` | Pemilik metode pencairan. Sesuai komentar developer di skema: "*// affiliator*" - secara konsep khusus dipakai afiliator, walau kolomnya sendiri cuma FK biasa ke `users` (tidak divalidasi role di level DB). |
-| `type` | String | `NOT NULL` | - | `bank` | Freetext, sesuai komentar developer: `"bank"` atau `"eWallet"`. |
-| `providerName` | String | `NOT NULL` | - | `Mandiri` | Nama penyedia (freetext, contoh dari komentar developer: `"BCA"`, `"Mandiri"`, `"Dana"`, `"OVO"`). |
-| `accountNumber` | String | `NOT NULL` | - | `4258205285225` | Nomor rekening / nomor HP (sesuai komentar developer). |
-| `accountName` | String | `nullable` | - | `Budi Santoso` | Nama pemilik akun. |
-| `isActive` | Boolean | `NOT NULL` | `true` | `true` | Saklar aktif/nonaktif. |
-| `createdAt` | DateTime | `NOT NULL` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | DateTime | `NOT NULL` | *(auto)* | `2026-03-16T08:00:00Z` | Pakai `@updatedAt`. |
+| Kolom           | Tipe Data     | Constraint        | Default  | Contoh Value               | Keterangan                                                                                                                                                                                                     |
+| --------------- | ------------- | ----------------- | -------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`            | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `clcdfdbad169f573fe287e6e` | ID unik.                                                                                                                                                                                                       |
+| `userId`        | String        | `NOT NULL`, 🔗 FK | -        | `000001`                   | Pemilik metode pencairan. Sesuai komentar developer di skema: "_// affiliator_" - secara konsep khusus dipakai afiliator, walau kolomnya sendiri cuma FK biasa ke `users` (tidak divalidasi role di level DB). |
+| `type`          | String        | `NOT NULL`        | -        | `bank`                     | Freetext, sesuai komentar developer: `"bank"` atau `"eWallet"`.                                                                                                                                                |
+| `providerName`  | String        | `NOT NULL`        | -        | `Mandiri`                  | Nama penyedia (freetext, contoh dari komentar developer: `"BCA"`, `"Mandiri"`, `"Dana"`, `"OVO"`).                                                                                                             |
+| `accountNumber` | String        | `NOT NULL`        | -        | `4258205285225`            | Nomor rekening / nomor HP (sesuai komentar developer).                                                                                                                                                         |
+| `accountName`   | String        | `nullable`        | -        | `Budi Santoso`             | Nama pemilik akun.                                                                                                                                                                                             |
+| `isActive`      | Boolean       | `NOT NULL`        | `true`   | `true`                     | Saklar aktif/nonaktif.                                                                                                                                                                                         |
+| `createdAt`     | DateTime      | `NOT NULL`        | `now()`  | `2026-03-15T10:30:00Z`     | Waktu dibuat.                                                                                                                                                                                                  |
+| `updatedAt`     | DateTime      | `NOT NULL`        | _(auto)_ | `2026-03-16T08:00:00Z`     | Pakai `@updatedAt`.                                                                                                                                                                                            |
 
 #### Primary Key & Foreign Key
 
@@ -3347,10 +3348,10 @@ afiliator, tempat komisi mereka ditransfer.
 
 > ℹ️ **Catatan pola untuk seluruh modul ini**: Dua sistem kode diskon yang
 > **independen** satu sama lain, dijelaskan lewat komentar developer di
-> atas `RedeemCode` di skema aslinya: *"Redeem yang berhasil bikin
+> atas `RedeemCode` di skema aslinya: _"Redeem yang berhasil bikin
 > ELearningSubscription baru dengan payment: null (karena memang nggak
 > lewat pembayaran), dan dicatat di RedeemCodeUsage buat audit trail +
-> cegah 1 user redeem kode yang sama dua kali."* Ringkasnya:
+> cegah 1 user redeem kode yang sama dua kali."_ Ringkasnya:
 >
 > - **`Voucher`** - kode promo diskon **umum**, bisa dipakai lintas produk
 >   (E-Learning, Practice, Mentoring, AYCL, atau global), tetap lewat alur
@@ -3371,25 +3372,25 @@ afiliator, tempat komisi mereka ditransfer.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `clce841414815622818d60ff` | ID unik. |
-| `code` | VarChar | `NOT NULL`, `@unique` | - | `TDK-PROMO25` | Kode yang diklaim user. |
-| `planId` | String | `NOT NULL`, 🔗 FK | - | `cl43b58c1727265d52860abb` | Paket langganan e-learning yang didapat kalau kode ini diklaim. |
-| `createdById` | String | `NOT NULL`, 🔗 FK | - | `000001` | Admin pembuat kode. |
-| `maxUses` | Int | `NOT NULL` | `1` | `100` | Kuota maksimal klaim untuk kode ini (bisa lebih dari 1 untuk kode yang dibagi ke banyak orang). |
-| `usedCount` | Int | `NOT NULL` | `0` | `5` | Jumlah klaim yang sudah terpakai. |
-| `expiresAt` | Timestamp(6) | `NOT NULL` | - | `2026-12-31T23:59:59Z` | Waktu kedaluwarsa. |
-| `isActive` | Boolean | `NOT NULL` | `true` | `true` | Saklar manual untuk menonaktifkan kode sebelum masa berlakunya habis (sesuai komentar developer, mis. kalau kode bocor/disalahgunakan) - terpisah dari `expiresAt`. |
-| `note` | String | `nullable` | - | `Giveaway IG Agustus 2026` | Catatan internal admin, contoh dari komentar developer: "Giveaway IG Agustus 2026". |
-| `createdAt` | Timestamp(6) | `NOT NULL` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | Timestamp(6) | `nullable` | - | `2026-03-16T08:00:00Z` | Manual. |
+| Kolom         | Tipe Data     | Constraint            | Default  | Contoh Value               | Keterangan                                                                                                                                                          |
+| ------------- | ------------- | --------------------- | -------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`          | String (cuid) | 🔑 PK, `NOT NULL`     | `cuid()` | `clce841414815622818d60ff` | ID unik.                                                                                                                                                            |
+| `code`        | VarChar       | `NOT NULL`, `@unique` | -        | `TDK-PROMO25`              | Kode yang diklaim user.                                                                                                                                             |
+| `planId`      | String        | `NOT NULL`, 🔗 FK     | -        | `cl43b58c1727265d52860abb` | Paket langganan e-learning yang didapat kalau kode ini diklaim.                                                                                                     |
+| `createdById` | String        | `NOT NULL`, 🔗 FK     | -        | `000001`                   | Admin pembuat kode.                                                                                                                                                 |
+| `maxUses`     | Int           | `NOT NULL`            | `1`      | `100`                      | Kuota maksimal klaim untuk kode ini (bisa lebih dari 1 untuk kode yang dibagi ke banyak orang).                                                                     |
+| `usedCount`   | Int           | `NOT NULL`            | `0`      | `5`                        | Jumlah klaim yang sudah terpakai.                                                                                                                                   |
+| `expiresAt`   | Timestamp(6)  | `NOT NULL`            | -        | `2026-12-31T23:59:59Z`     | Waktu kedaluwarsa.                                                                                                                                                  |
+| `isActive`    | Boolean       | `NOT NULL`            | `true`   | `true`                     | Saklar manual untuk menonaktifkan kode sebelum masa berlakunya habis (sesuai komentar developer, mis. kalau kode bocor/disalahgunakan) - terpisah dari `expiresAt`. |
+| `note`        | String        | `nullable`            | -        | `Giveaway IG Agustus 2026` | Catatan internal admin, contoh dari komentar developer: "Giveaway IG Agustus 2026".                                                                                 |
+| `createdAt`   | Timestamp(6)  | `NOT NULL`            | `now()`  | `2026-03-15T10:30:00Z`     | Waktu dibuat.                                                                                                                                                       |
+| `updatedAt`   | Timestamp(6)  | `nullable`            | -        | `2026-03-16T08:00:00Z`     | Manual.                                                                                                                                                             |
 
 #### Primary Key & Foreign Key
 
 - 🔑 **PK**: `id`
-- 🔗 **FK 1**: `planId` → `e_learning_subscription_plans.id` - *(tidak ada `onDelete` eksplisit)*.
-- 🔗 **FK 2**: `createdById` → `users.id` (relasi `"RedeemCodeCreatedBy"`) - *(tidak ada `onDelete` eksplisit)*.
+- 🔗 **FK 1**: `planId` → `e_learning_subscription_plans.id` - _(tidak ada `onDelete` eksplisit)_.
+- 🔗 **FK 2**: `createdById` → `users.id` (relasi `"RedeemCodeCreatedBy"`) - _(tidak ada `onDelete` eksplisit)_.
 - **Index tambahan**: `@@index([planId])`, `@@index([expiresAt])`, `@@index([isActive])`.
 
 #### Relasi ke Tabel Lain (ringkasan)
@@ -3413,13 +3414,13 @@ klaim sukses otomatis membuat satu `ELearningSubscription` baru (dengan
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl0e29e694f751a4c0514cb1` | ID unik. |
-| `redeemCodeId` | String | `NOT NULL`, 🔗 FK | - | `cl052b54536c7a2bc1fb1455` | Kode yang diklaim. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000001` | User yang mengklaim. |
-| `subscriptionId` | String | `NOT NULL`, `@unique`, 🔗 FK | - | `SUB-EL-1787102609260-4342737639` | Langganan e-learning yang dihasilkan dari klaim ini (1:1 - setiap klaim pasti bikin tepat satu subscription baru). |
-| `redeemedAt` | DateTime | `NOT NULL` | `now()` | `2026-03-16T09:00:00Z` | Waktu diklaim. |
+| Kolom            | Tipe Data     | Constraint                   | Default  | Contoh Value                      | Keterangan                                                                                                         |
+| ---------------- | ------------- | ---------------------------- | -------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `id`             | String (cuid) | 🔑 PK, `NOT NULL`            | `cuid()` | `cl0e29e694f751a4c0514cb1`        | ID unik.                                                                                                           |
+| `redeemCodeId`   | String        | `NOT NULL`, 🔗 FK            | -        | `cl052b54536c7a2bc1fb1455`        | Kode yang diklaim.                                                                                                 |
+| `userId`         | String        | `NOT NULL`, 🔗 FK            | -        | `000001`                          | User yang mengklaim.                                                                                               |
+| `subscriptionId` | String        | `NOT NULL`, `@unique`, 🔗 FK | -        | `SUB-EL-1787102609260-4342737639` | Langganan e-learning yang dihasilkan dari klaim ini (1:1 - setiap klaim pasti bikin tepat satu subscription baru). |
+| `redeemedAt`     | DateTime      | `NOT NULL`                   | `now()`  | `2026-03-16T09:00:00Z`            | Waktu diklaim.                                                                                                     |
 
 #### Primary Key & Foreign Key
 
@@ -3435,16 +3436,16 @@ klaim sukses otomatis membuat satu `ELearningSubscription` baru (dengan
 
 **Fungsi tabel**: Log **setiap percobaan** klaim redeem code (berhasil
 maupun gagal) - beda dari `redeem_code_usages` yang cuma mencatat klaim
-yang **berhasil**;  dipakai untuk rate-limiting/deteksi abuse.
+yang **berhasil**; dipakai untuk rate-limiting/deteksi abuse.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl7c59d5899adeb3468514be` | ID unik. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000001` | User yang mencoba klaim. |
-| `success` | Boolean | `NOT NULL` | - | `true` | `true` = percobaan berhasil, `false` = gagal (mis. kode salah/habis/kedaluwarsa). |
-| `createdAt` | DateTime | `NOT NULL` | `now()` | `2026-03-15T10:30:00Z` | Waktu percobaan. |
+| Kolom       | Tipe Data     | Constraint        | Default  | Contoh Value               | Keterangan                                                                        |
+| ----------- | ------------- | ----------------- | -------- | -------------------------- | --------------------------------------------------------------------------------- |
+| `id`        | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl7c59d5899adeb3468514be` | ID unik.                                                                          |
+| `userId`    | String        | `NOT NULL`, 🔗 FK | -        | `000001`                   | User yang mencoba klaim.                                                          |
+| `success`   | Boolean       | `NOT NULL`        | -        | `true`                     | `true` = percobaan berhasil, `false` = gagal (mis. kode salah/habis/kedaluwarsa). |
+| `createdAt` | DateTime      | `NOT NULL`        | `now()`  | `2026-03-15T10:30:00Z`     | Waktu percobaan.                                                                  |
 
 #### Primary Key & Foreign Key
 
@@ -3469,26 +3470,26 @@ konsisten memakai `enum` sungguhan (`VoucherDiscountType`,
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (custom) | 🔑 PK, `NOT NULL` | `custom(VCH-....)` | `VCH-20260623-26FF42` | ID unik voucher. |
-| `code` | VarChar | `NOT NULL`, `@unique` | - | `TDK-PROMO25` | Kode voucher. |
-| `name` | VarChar | `NOT NULL` | - | `Diskon Mentoring ` | Nama voucher. |
-| `description` | Text | `nullable` | - | `Deskripsi singkat mengenai konten ini.` | Deskripsi voucher. |
-| `discountType` | Enum `VoucherDiscountType` | `NOT NULL` | - | `PERCENTAGE` | `PERCENTAGE` atau `FLAT`. |
-| `discountValue` | Decimal(10,2) | `NOT NULL` | - | `10` | Besaran diskon (persen atau nominal, tergantung `discountType`). |
-| `maxDiscountAmount` | Decimal(10,2) | `nullable` | - | `50000` | Batas maksimal potongan - **hanya relevan kalau `discountType = PERCENTAGE`** (sesuai komentar developer, mis. diskon 30% tapi maks potongan Rp 100.000). |
-| `minimumPurchase` | Decimal(10,2) | `nullable` | - | `100000` | Minimal nominal pembelian supaya voucher bisa dipakai. |
-| `productScope` | Enum `VoucherProductScope` | `NOT NULL` | `GLOBAL` | `ALL_PRODUCTS` | `GLOBAL`, `ELEARNING`, `PRACTICE`, `MENTORING`, atau `AYCL`. |
-| `usageLimit` | Int | `nullable` | - | `100` | Kuota total pemakaian. `null` = unlimited (sesuai komentar developer). |
-| `usageLimitPerUser` | Int | `NOT NULL` | `1` | `1` | Kuota pemakaian per user. |
-| `usageCount` | Int | `NOT NULL` | `0` | `12` | Di-increment tiap redemption berhasil, untuk cek kuota (sesuai komentar developer). |
-| `startDate` | DateTime | `nullable` | - | `2026-04-01` | Tanggal mulai berlaku. |
-| `expiryDate` | DateTime | `nullable` | - | `2026-12-31` | Tanggal kedaluwarsa. |
-| `isActive` | Boolean | `NOT NULL` | `true` | `true` | Saklar aktif/nonaktif. |
-| `createdById` | String | `nullable`, 🔗 FK | - | `cl54ea8c2d58e2887a576480` | Admin/marketing pembuat, untuk audit trail (sesuai komentar developer). |
-| `createdAt` | DateTime | `NOT NULL` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | DateTime | `NOT NULL` | *(auto)* | `2026-03-16T08:00:00Z` | Pakai `@updatedAt`. |
+| Kolom               | Tipe Data                  | Constraint            | Default            | Contoh Value                             | Keterangan                                                                                                                                                |
+| ------------------- | -------------------------- | --------------------- | ------------------ | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                | String (custom)            | 🔑 PK, `NOT NULL`     | `custom(VCH-....)` | `VCH-20260623-26FF42`                    | ID unik voucher.                                                                                                                                          |
+| `code`              | VarChar                    | `NOT NULL`, `@unique` | -                  | `TDK-PROMO25`                            | Kode voucher.                                                                                                                                             |
+| `name`              | VarChar                    | `NOT NULL`            | -                  | `Diskon Mentoring `                      | Nama voucher.                                                                                                                                             |
+| `description`       | Text                       | `nullable`            | -                  | `Deskripsi singkat mengenai konten ini.` | Deskripsi voucher.                                                                                                                                        |
+| `discountType`      | Enum `VoucherDiscountType` | `NOT NULL`            | -                  | `PERCENTAGE`                             | `PERCENTAGE` atau `FLAT`.                                                                                                                                 |
+| `discountValue`     | Decimal(10,2)              | `NOT NULL`            | -                  | `10`                                     | Besaran diskon (persen atau nominal, tergantung `discountType`).                                                                                          |
+| `maxDiscountAmount` | Decimal(10,2)              | `nullable`            | -                  | `50000`                                  | Batas maksimal potongan - **hanya relevan kalau `discountType = PERCENTAGE`** (sesuai komentar developer, mis. diskon 30% tapi maks potongan Rp 100.000). |
+| `minimumPurchase`   | Decimal(10,2)              | `nullable`            | -                  | `100000`                                 | Minimal nominal pembelian supaya voucher bisa dipakai.                                                                                                    |
+| `productScope`      | Enum `VoucherProductScope` | `NOT NULL`            | `GLOBAL`           | `ALL_PRODUCTS`                           | `GLOBAL`, `ELEARNING`, `PRACTICE`, `MENTORING`, atau `AYCL`.                                                                                              |
+| `usageLimit`        | Int                        | `nullable`            | -                  | `100`                                    | Kuota total pemakaian. `null` = unlimited (sesuai komentar developer).                                                                                    |
+| `usageLimitPerUser` | Int                        | `NOT NULL`            | `1`                | `1`                                      | Kuota pemakaian per user.                                                                                                                                 |
+| `usageCount`        | Int                        | `NOT NULL`            | `0`                | `12`                                     | Di-increment tiap redemption berhasil, untuk cek kuota (sesuai komentar developer).                                                                       |
+| `startDate`         | DateTime                   | `nullable`            | -                  | `2026-04-01`                             | Tanggal mulai berlaku.                                                                                                                                    |
+| `expiryDate`        | DateTime                   | `nullable`            | -                  | `2026-12-31`                             | Tanggal kedaluwarsa.                                                                                                                                      |
+| `isActive`          | Boolean                    | `NOT NULL`            | `true`             | `true`                                   | Saklar aktif/nonaktif.                                                                                                                                    |
+| `createdById`       | String                     | `nullable`, 🔗 FK     | -                  | `cl54ea8c2d58e2887a576480`               | Admin/marketing pembuat, untuk audit trail (sesuai komentar developer).                                                                                   |
+| `createdAt`         | DateTime                   | `NOT NULL`            | `now()`            | `2026-03-15T10:30:00Z`                   | Waktu dibuat.                                                                                                                                             |
+| `updatedAt`         | DateTime                   | `NOT NULL`            | _(auto)_           | `2026-03-16T08:00:00Z`                   | Pakai `@updatedAt`.                                                                                                                                       |
 
 #### Primary Key & Foreign Key
 
@@ -3511,30 +3512,30 @@ ada padanannya di tabel manapun yang sudah dibahas sejauh ini.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl0ee5327e26fffcdfc2ff95` | ID unik. |
-| `voucherId` | String | `NOT NULL`, 🔗 FK | - | `VCH-20260715-FD678E` | Voucher yang dipakai. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000001` | User yang memakai. |
-| `status` | Enum `VoucherUsageStatus` | `NOT NULL` | `RESERVED` | `PUBLISHED` | `RESERVED`, `USED`, atau `CANCELLED` |
-| `originalAmount` | Decimal(10,2) | `NOT NULL` | - | `250000` | Harga asli sebelum diskon (audit trail). |
-| `discountAmount` | Decimal(10,2) | `NOT NULL` | - | `25000` | Besaran potongan yang diberikan. |
-| `finalAmount` | Decimal(10,2) | `NOT NULL` | - | `225000` | Harga akhir setelah diskon. |
-| `bookingId` | String | `nullable`, `@unique`, 🔗 FK | - | `Booking-bootcamp-6907575958` | Terisi kalau dipakai untuk booking mentoring (1:1). |
-| `practicePurchaseId` | String | `nullable`, `@unique`, 🔗 FK | - | `cl63a5e66e86c75f26cdc073` | Terisi kalau dipakai untuk pembelian practice (1:1). |
-| `eLearningSubscriptionId` | String | `nullable`, `@unique`, 🔗 FK | - | `SUB-EL-1784269281714-57046802102` | Terisi kalau dipakai untuk langganan e-learning (1:1). |
-| `ayclBookingId` | String | `nullable`, `@unique`, 🔗 FK | - | `AYCLBook-20260717-BEGEbu` | Terisi kalau dipakai untuk booking AYCL (1:1). |
-| `usedAt` | DateTime | `NOT NULL` | `now()` | `2026-03-16T09:00:00Z` | Waktu baris dibuat (bukan berarti sudah pasti `USED` - lihat catatan). |
+| Kolom                     | Tipe Data                 | Constraint                   | Default    | Contoh Value                       | Keterangan                                                             |
+| ------------------------- | ------------------------- | ---------------------------- | ---------- | ---------------------------------- | ---------------------------------------------------------------------- |
+| `id`                      | String (cuid)             | 🔑 PK, `NOT NULL`            | `cuid()`   | `cl0ee5327e26fffcdfc2ff95`         | ID unik.                                                               |
+| `voucherId`               | String                    | `NOT NULL`, 🔗 FK            | -          | `VCH-20260715-FD678E`              | Voucher yang dipakai.                                                  |
+| `userId`                  | String                    | `NOT NULL`, 🔗 FK            | -          | `000001`                           | User yang memakai.                                                     |
+| `status`                  | Enum `VoucherUsageStatus` | `NOT NULL`                   | `RESERVED` | `PUBLISHED`                        | `RESERVED`, `USED`, atau `CANCELLED`                                   |
+| `originalAmount`          | Decimal(10,2)             | `NOT NULL`                   | -          | `250000`                           | Harga asli sebelum diskon (audit trail).                               |
+| `discountAmount`          | Decimal(10,2)             | `NOT NULL`                   | -          | `25000`                            | Besaran potongan yang diberikan.                                       |
+| `finalAmount`             | Decimal(10,2)             | `NOT NULL`                   | -          | `225000`                           | Harga akhir setelah diskon.                                            |
+| `bookingId`               | String                    | `nullable`, `@unique`, 🔗 FK | -          | `Booking-bootcamp-6907575958`      | Terisi kalau dipakai untuk booking mentoring (1:1).                    |
+| `practicePurchaseId`      | String                    | `nullable`, `@unique`, 🔗 FK | -          | `cl63a5e66e86c75f26cdc073`         | Terisi kalau dipakai untuk pembelian practice (1:1).                   |
+| `eLearningSubscriptionId` | String                    | `nullable`, `@unique`, 🔗 FK | -          | `SUB-EL-1784269281714-57046802102` | Terisi kalau dipakai untuk langganan e-learning (1:1).                 |
+| `ayclBookingId`           | String                    | `nullable`, `@unique`, 🔗 FK | -          | `AYCLBook-20260717-BEGEbu`         | Terisi kalau dipakai untuk booking AYCL (1:1).                         |
+| `usedAt`                  | DateTime                  | `NOT NULL`                   | `now()`    | `2026-03-16T09:00:00Z`             | Waktu baris dibuat (bukan berarti sudah pasti `USED` - lihat catatan). |
 
 #### Primary Key & Foreign Key
 
 - 🔑 **PK**: `id`
 - 🔗 **FK 1**: `voucherId` → `vouchers.id` - `onDelete: Cascade`.
 - 🔗 **FK 2**: `userId` → `users.id` (relasi `"VoucherUsageUser"`) - `onDelete: Cascade`.
-- 🔗 **FK 3**: `bookingId` → `bookings.id` (relasi `"VoucherUsageBooking"`), opsional 1:1 - *(tidak ada `onDelete` eksplisit)*.
-- 🔗 **FK 4**: `practicePurchaseId` → `practice_purchases.id` (relasi `"VoucherUsagePractice"`), opsional 1:1 - *(tidak ada `onDelete` eksplisit)*.
-- 🔗 **FK 5**: `eLearningSubscriptionId` → `e_learning_subscriptions.id` (relasi `"VoucherUsageELearning"`), opsional 1:1 - *(tidak ada `onDelete` eksplisit)*.
-- 🔗 **FK 6**: `ayclBookingId` → `aycl_bookings.id` (relasi `"VoucherUsageAYCL"`), opsional 1:1 - *(tidak ada `onDelete` eksplisit)*.
+- 🔗 **FK 3**: `bookingId` → `bookings.id` (relasi `"VoucherUsageBooking"`), opsional 1:1 - _(tidak ada `onDelete` eksplisit)_.
+- 🔗 **FK 4**: `practicePurchaseId` → `practice_purchases.id` (relasi `"VoucherUsagePractice"`), opsional 1:1 - _(tidak ada `onDelete` eksplisit)_.
+- 🔗 **FK 5**: `eLearningSubscriptionId` → `e_learning_subscriptions.id` (relasi `"VoucherUsageELearning"`), opsional 1:1 - _(tidak ada `onDelete` eksplisit)_.
+- 🔗 **FK 6**: `ayclBookingId` → `aycl_bookings.id` (relasi `"VoucherUsageAYCL"`), opsional 1:1 - _(tidak ada `onDelete` eksplisit)_.
 - **Index tambahan**: `@@index([voucherId])`, `@@index([userId])`, `@@index([voucherId, userId])`.
 
 #### 📌 Catatan
@@ -3547,20 +3548,20 @@ kasus non-unique seperti `bookingInvoiceId` di `Payment`), karena voucher
 berlaku sekali per transaksi, tidak per cicilan. Yang unik dari tabel ini
 dibanding semua tabel "usage/purchase" lain di skema: statusnya bukan
 cuma `String` freetext, tapi **enum sungguhan** dengan makna reservasi -
- alurnya: baris dibuat `RESERVED` begitu voucher dipilih saat
+alurnya: baris dibuat `RESERVED` begitu voucher dipilih saat
 checkout (mengunci kuota supaya tidak direbut transaksi lain), lalu
 diubah jadi `USED` setelah pembayaran benar-benar sukses, atau
 `CANCELLED` kalau checkout dibatalkan/gagal (supaya kuota voucher tidak
-ikut terpotong sia-sia). `usageCount` di `vouchers` (5.95) 
+ikut terpotong sia-sia). `usageCount` di `vouchers` (5.95)
 cuma diincrement saat status berubah jadi `USED`, bukan saat `RESERVED`.
 
 ---
 
-*(Modul **Affiliator & Referral** dan **Voucher & Redeem Code** sudah
+_(Modul **Affiliator & Referral** dan **Voucher & Redeem Code** sudah
 lengkap dengan ini - total 14 tabel (5.83-5.96) dan 3 enum tambahan
 (`VoucherDiscountType`, `VoucherProductScope`, `VoucherUsageStatus`).
 Tabel `ELearningSubscriptionPlan`/`ELearningSubscription` yang
-direferensikan sudah dibahas di 5.62 & 5.63.)*
+direferensikan sudah dibahas di 5.62 & 5.63.)_
 
 ## Modul: Article
 
@@ -3574,6 +3575,7 @@ direferensikan sudah dibahas di 5.62 & 5.63.)*
 >
 > Ini juga hasil **revisi** dari rancangan awal (masih tercatat di
 > komentar developer di skema):
+>
 > - **Dihapus**: tipe konten `ACCORDION`, `CAROUSEL`, `CONTENT_CARD`,
 >   `TAB_NAVIGATION`, `SUMMARY` beserta semua model & item pendukungnya -
 >   tidak jadi dipakai di Article (beda dari E-Learning yang masih punya
@@ -3603,22 +3605,22 @@ konten (blocks), like, dan komentar di modul ini.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (custom) | 🔑 PK, `NOT NULL` | `custom(article-....)` | `article-20260831-af3e89` | ID unik artikel. |
-| `authorId` | String | `NOT NULL`, 🔗 FK | - | `000001` | Penulis artikel. |
-| `title` | VarChar | `NOT NULL` | - | `Belajar Python untuk Pemula` | Judul artikel. |
-| `slug` | String | `NOT NULL`, `@unique` | - | `belajar-python-untuk-pemula` | Slug URL-friendly - **wajib** diisi (`NOT NULL`), beda dari `e_learning_courses.slug` yang nullable. |
-| `excerpt` | String | `nullable` | - | `Ringkasan singkat isi artikel dalam satu-dua kalimat.` | Ringkasan singkat artikel. |
-| `coverImage` | String | `nullable` | - | `https://cdn.temudataku.com/covers/cover-01.jpg` | Gambar sampul. |
-| `categoryId` | String | `nullable`, 🔗 FK | - | `clf053ce0a1762f827d94849` | Kategori artikel. Sesuai komentar developer, ini hasil revisi dari kolom `category String?` freetext lama - sekarang jadi FK relasional ke `article_categories` (5.98). |
-| `tags` | VarChar[] | `NOT NULL` | - | `["python", "data-science"]` | Array tag - tetap freetext (tidak direvisi jadi relasional seperti `category`). |
-| `status` | Enum `ArticleStatus` | `NOT NULL` | `DRAFT` | `PUBLISHED` | `DRAFT`, `PUBLISHED`, atau `ARCHIVED`. |
-| `isRecommended` | Boolean | `NOT NULL` | `false` | `true` | Menandai artikel unggulan/rekomendasi. |
-| `publishedAt` | Timestamp(6) | `nullable` | - | `2026-03-16T09:00:00Z` | Waktu artikel benar-benar dipublish - terpisah dari `createdAt`, karena artikel bisa dibuat sebagai draft jauh sebelum dipublikasikan. |
-| `createdAt` | Timestamp(6) | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | Timestamp(6) | `nullable` | - | `2026-03-16T08:00:00Z` | Manual, tidak `@updatedAt`. |
-| `deletedAt` | Timestamp(6) | `nullable` | - | `null` (belum dihapus) | **Soft delete** - diisi kalau artikel "dihapus" tanpa benar-benar menghapus barisnya. Pola ini baru muncul di modul Article.
+| Kolom           | Tipe Data            | Constraint            | Default                | Contoh Value                                            | Keterangan                                                                                                                                                              |
+| --------------- | -------------------- | --------------------- | ---------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`            | String (custom)      | 🔑 PK, `NOT NULL`     | `custom(article-....)` | `article-20260831-af3e89`                               | ID unik artikel.                                                                                                                                                        |
+| `authorId`      | String               | `NOT NULL`, 🔗 FK     | -                      | `000001`                                                | Penulis artikel.                                                                                                                                                        |
+| `title`         | VarChar              | `NOT NULL`            | -                      | `Belajar Python untuk Pemula`                           | Judul artikel.                                                                                                                                                          |
+| `slug`          | String               | `NOT NULL`, `@unique` | -                      | `belajar-python-untuk-pemula`                           | Slug URL-friendly - **wajib** diisi (`NOT NULL`), beda dari `e_learning_courses.slug` yang nullable.                                                                    |
+| `excerpt`       | String               | `nullable`            | -                      | `Ringkasan singkat isi artikel dalam satu-dua kalimat.` | Ringkasan singkat artikel.                                                                                                                                              |
+| `coverImage`    | String               | `nullable`            | -                      | `https://cdn.temudataku.com/covers/cover-01.jpg`        | Gambar sampul.                                                                                                                                                          |
+| `categoryId`    | String               | `nullable`, 🔗 FK     | -                      | `clf053ce0a1762f827d94849`                              | Kategori artikel. Sesuai komentar developer, ini hasil revisi dari kolom `category String?` freetext lama - sekarang jadi FK relasional ke `article_categories` (5.98). |
+| `tags`          | VarChar[]            | `NOT NULL`            | -                      | `["python", "data-science"]`                            | Array tag - tetap freetext (tidak direvisi jadi relasional seperti `category`).                                                                                         |
+| `status`        | Enum `ArticleStatus` | `NOT NULL`            | `DRAFT`                | `PUBLISHED`                                             | `DRAFT`, `PUBLISHED`, atau `ARCHIVED`.                                                                                                                                  |
+| `isRecommended` | Boolean              | `NOT NULL`            | `false`                | `true`                                                  | Menandai artikel unggulan/rekomendasi.                                                                                                                                  |
+| `publishedAt`   | Timestamp(6)         | `nullable`            | -                      | `2026-03-16T09:00:00Z`                                  | Waktu artikel benar-benar dipublish - terpisah dari `createdAt`, karena artikel bisa dibuat sebagai draft jauh sebelum dipublikasikan.                                  |
+| `createdAt`     | Timestamp(6)         | `nullable`            | `now()`                | `2026-03-15T10:30:00Z`                                  | Waktu dibuat.                                                                                                                                                           |
+| `updatedAt`     | Timestamp(6)         | `nullable`            | -                      | `2026-03-16T08:00:00Z`                                  | Manual, tidak `@updatedAt`.                                                                                                                                             |
+| `deletedAt`     | Timestamp(6)         | `nullable`            | -                      | `null` (belum dihapus)                                  | **Soft delete** - diisi kalau artikel "dihapus" tanpa benar-benar menghapus barisnya. Pola ini baru muncul di modul Article.                                            |
 
 #### Primary Key & Foreign Key
 
@@ -3644,17 +3646,17 @@ tersendiri.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl6377279331e1966a0cd98c` | ID unik kategori. |
-| `name` | VarChar | `NOT NULL`, `@unique` | - | `Teknologi` | Nama kategori. |
-| `createdAt` | Timestamp(6) | `NOT NULL` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | Timestamp(6) | `nullable` | *(auto)* | `2026-03-16T08:00:00Z` | Pakai `@updatedAt`. |
+| Kolom       | Tipe Data     | Constraint            | Default  | Contoh Value               | Keterangan          |
+| ----------- | ------------- | --------------------- | -------- | -------------------------- | ------------------- |
+| `id`        | String (cuid) | 🔑 PK, `NOT NULL`     | `cuid()` | `cl6377279331e1966a0cd98c` | ID unik kategori.   |
+| `name`      | VarChar       | `NOT NULL`, `@unique` | -        | `Teknologi`                | Nama kategori.      |
+| `createdAt` | Timestamp(6)  | `NOT NULL`            | `now()`  | `2026-03-15T10:30:00Z`     | Waktu dibuat.       |
+| `updatedAt` | Timestamp(6)  | `nullable`            | _(auto)_ | `2026-03-16T08:00:00Z`     | Pakai `@updatedAt`. |
 
 #### Primary Key & Foreign Key
 
 - 🔑 **PK**: `id`
-- 🔗 **FK**: *(tidak ada)* - tabel master.
+- 🔗 **FK**: _(tidak ada)_ - tabel master.
 
 #### Relasi ke Tabel Lain (ringkasan)
 
@@ -3670,12 +3672,12 @@ jenjang SubChapter/SubBab/Text di antaranya.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl117c32dd9697860e3c5645` | ID unik block. |
-| `articleId` | String | `NOT NULL`, 🔗 FK | - | `article-20260831-0e5a1e` | Artikel induk. |
-| `orderNumber` | Int | `nullable` | - | `1` | Urutan block dalam artikel. |
-| `createdAt` | DateTime | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
+| Kolom         | Tipe Data     | Constraint        | Default  | Contoh Value               | Keterangan                  |
+| ------------- | ------------- | ----------------- | -------- | -------------------------- | --------------------------- |
+| `id`          | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl117c32dd9697860e3c5645` | ID unik block.              |
+| `articleId`   | String        | `NOT NULL`, 🔗 FK | -        | `article-20260831-0e5a1e`  | Artikel induk.              |
+| `orderNumber` | Int           | `nullable`        | -        | `1`                        | Urutan block dalam artikel. |
+| `createdAt`   | DateTime      | `nullable`        | `now()`  | `2026-03-15T10:30:00Z`     | Waktu dibuat.               |
 
 #### Primary Key & Foreign Key
 
@@ -3699,13 +3701,13 @@ E-Learning.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl606cde6e3458ea959f81d1` | ID unik. |
-| `blockId` | String | `NOT NULL`, 🔗 FK | - | `cld19577ebc9b0f835227bc1` | Article block induk. |
-| `type` | Enum `ArticleContentBlockType` | `NOT NULL` | - | `HEADING` | `HEADING`, `PARAGRAPH`, `HIGHLIGHT`, `TABLE`, `DIVIDER`, `LINK`, atau `TABLE_OF_CONTENT`. |
-| `orderNumber` | Int | `nullable` | - | `1` | Urutan dalam block. |
-| `createdAt` | DateTime | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
+| Kolom         | Tipe Data                      | Constraint        | Default  | Contoh Value               | Keterangan                                                                                |
+| ------------- | ------------------------------ | ----------------- | -------- | -------------------------- | ----------------------------------------------------------------------------------------- |
+| `id`          | String (cuid)                  | 🔑 PK, `NOT NULL` | `cuid()` | `cl606cde6e3458ea959f81d1` | ID unik.                                                                                  |
+| `blockId`     | String                         | `NOT NULL`, 🔗 FK | -        | `cld19577ebc9b0f835227bc1` | Article block induk.                                                                      |
+| `type`        | Enum `ArticleContentBlockType` | `NOT NULL`        | -        | `HEADING`                  | `HEADING`, `PARAGRAPH`, `HIGHLIGHT`, `TABLE`, `DIVIDER`, `LINK`, atau `TABLE_OF_CONTENT`. |
+| `orderNumber` | Int                            | `nullable`        | -        | `1`                        | Urutan dalam block.                                                                       |
+| `createdAt`   | DateTime                       | `nullable`        | `now()`  | `2026-03-15T10:30:00Z`     | Waktu dibuat.                                                                             |
 
 #### Primary Key & Foreign Key
 
@@ -3746,12 +3748,12 @@ E-Learning (5.34).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `clbd3293b9e5d870872fc1de` | ID unik. |
-| `contentId` | String | `NOT NULL`, `@unique`, 🔗 FK | - | `cl918d49c47c75fffb63c9f4` | Content block induk (1:1). |
-| `level` | Int | `NOT NULL` | - | `2` | Level heading. |
-| `text` | Text | `NOT NULL` | - | `Ini adalah contoh isi teks konten.` | Teks heading. |
+| Kolom       | Tipe Data     | Constraint                   | Default  | Contoh Value                         | Keterangan                 |
+| ----------- | ------------- | ---------------------------- | -------- | ------------------------------------ | -------------------------- |
+| `id`        | String (cuid) | 🔑 PK, `NOT NULL`            | `cuid()` | `clbd3293b9e5d870872fc1de`           | ID unik.                   |
+| `contentId` | String        | `NOT NULL`, `@unique`, 🔗 FK | -        | `cl918d49c47c75fffb63c9f4`           | Content block induk (1:1). |
+| `level`     | Int           | `NOT NULL`                   | -        | `2`                                  | Level heading.             |
+| `text`      | Text          | `NOT NULL`                   | -        | `Ini adalah contoh isi teks konten.` | Teks heading.              |
 
 #### Primary Key & Foreign Key
 
@@ -3767,11 +3769,11 @@ E-Learning (5.35).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl6b13a773440f3bc6e238a3` | ID unik. |
-| `contentId` | String | `NOT NULL`, `@unique`, 🔗 FK | - | `cl3931c6235d97be5592b8c8` | Content block induk (1:1). |
-| `text` | Text | `NOT NULL` | - | `Ini adalah contoh isi teks konten.` | Isi paragraf. |
+| Kolom       | Tipe Data     | Constraint                   | Default  | Contoh Value                         | Keterangan                 |
+| ----------- | ------------- | ---------------------------- | -------- | ------------------------------------ | -------------------------- |
+| `id`        | String (cuid) | 🔑 PK, `NOT NULL`            | `cuid()` | `cl6b13a773440f3bc6e238a3`           | ID unik.                   |
+| `contentId` | String        | `NOT NULL`, `@unique`, 🔗 FK | -        | `cl3931c6235d97be5592b8c8`           | Content block induk (1:1). |
+| `text`      | Text          | `NOT NULL`                   | -        | `Ini adalah contoh isi teks konten.` | Isi paragraf.              |
 
 #### Primary Key & Foreign Key
 
@@ -3787,11 +3789,11 @@ E-Learning (5.36), termasuk batas panjang teks yang sama.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cle478edc15fb0081e846866` | ID unik. |
-| `contentId` | String | `NOT NULL`, `@unique`, 🔗 FK | - | `clcd4bffbc2fa957c1c073d4` | Content block induk (1:1). |
-| `text` | VarChar(1250) | `NOT NULL` | - | `Ini adalah contoh isi teks konten.` | Isi highlight. |
+| Kolom       | Tipe Data     | Constraint                   | Default  | Contoh Value                         | Keterangan                 |
+| ----------- | ------------- | ---------------------------- | -------- | ------------------------------------ | -------------------------- |
+| `id`        | String (cuid) | 🔑 PK, `NOT NULL`            | `cuid()` | `cle478edc15fb0081e846866`           | ID unik.                   |
+| `contentId` | String        | `NOT NULL`, `@unique`, 🔗 FK | -        | `clcd4bffbc2fa957c1c073d4`           | Content block induk (1:1). |
+| `text`      | VarChar(1250) | `NOT NULL`                   | -        | `Ini adalah contoh isi teks konten.` | Isi highlight.             |
 
 #### Primary Key & Foreign Key
 
@@ -3809,10 +3811,10 @@ terpisah (5.105, 5.106), isinya per sel di 5.107 - sesuai builder UI
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `clcae8c654fd699f033bb862` | ID unik. |
-| `contentId` | String | `NOT NULL`, `@unique`, 🔗 FK | - | `cl85de4962fff7839a2acdb1` | Content block induk (1:1). |
+| Kolom       | Tipe Data     | Constraint                   | Default  | Contoh Value               | Keterangan                 |
+| ----------- | ------------- | ---------------------------- | -------- | -------------------------- | -------------------------- |
+| `id`        | String (cuid) | 🔑 PK, `NOT NULL`            | `cuid()` | `clcae8c654fd699f033bb862` | ID unik.                   |
+| `contentId` | String        | `NOT NULL`, `@unique`, 🔗 FK | -        | `cl85de4962fff7839a2acdb1` | Content block induk (1:1). |
 
 #### Primary Key & Foreign Key
 
@@ -3832,12 +3834,12 @@ terpisah (5.105, 5.106), isinya per sel di 5.107 - sesuai builder UI
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl7507c39fd3b12715571dde` | ID unik. |
-| `tableId` | String | `NOT NULL`, 🔗 FK | - | `clcf68a825cc4e928507367d` | Tabel induk. |
-| `header` | String | `NOT NULL` | - | `Nama Produk` | Teks header kolom. |
-| `orderNumber` | Int | `NOT NULL` | - | `1` | Urutan kolom (kiri ke kanan). |
+| Kolom         | Tipe Data     | Constraint        | Default  | Contoh Value               | Keterangan                    |
+| ------------- | ------------- | ----------------- | -------- | -------------------------- | ----------------------------- |
+| `id`          | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl7507c39fd3b12715571dde` | ID unik.                      |
+| `tableId`     | String        | `NOT NULL`, 🔗 FK | -        | `clcf68a825cc4e928507367d` | Tabel induk.                  |
+| `header`      | String        | `NOT NULL`        | -        | `Nama Produk`              | Teks header kolom.            |
+| `orderNumber` | Int           | `NOT NULL`        | -        | `1`                        | Urutan kolom (kiri ke kanan). |
 
 #### Primary Key & Foreign Key
 
@@ -3858,11 +3860,11 @@ kolom, baris tidak punya header sendiri, cuma urutan.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl9d444971499b820caec038` | ID unik. |
-| `tableId` | String | `NOT NULL`, 🔗 FK | - | `cl1b67eb021d54711dd2a544` | Tabel induk. |
-| `orderNumber` | Int | `NOT NULL` | - | `1` | Urutan baris (atas ke bawah). |
+| Kolom         | Tipe Data     | Constraint        | Default  | Contoh Value               | Keterangan                    |
+| ------------- | ------------- | ----------------- | -------- | -------------------------- | ----------------------------- |
+| `id`          | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl9d444971499b820caec038` | ID unik.                      |
+| `tableId`     | String        | `NOT NULL`, 🔗 FK | -        | `cl1b67eb021d54711dd2a544` | Tabel induk.                  |
+| `orderNumber` | Int           | `NOT NULL`        | -        | `1`                        | Urutan baris (atas ke bawah). |
 
 #### Primary Key & Foreign Key
 
@@ -3883,12 +3885,12 @@ dan satu `ArticleTableColumn`.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl9e96cea76246a4925e6334` | ID unik. |
-| `rowId` | String | `NOT NULL`, 🔗 FK | - | `clc902437391ad10e73ac0f2` | Baris tempat sel ini berada. |
-| `columnId` | String | `NOT NULL`, 🔗 FK | - | `cl71e6baa0ecfa973ddcd5ed` | Kolom tempat sel ini berada. |
-| `value` | Text | `nullable` | - | `Rp150.000` | Isi sel (kosong = sel belum diisi). |
+| Kolom      | Tipe Data     | Constraint        | Default  | Contoh Value               | Keterangan                          |
+| ---------- | ------------- | ----------------- | -------- | -------------------------- | ----------------------------------- |
+| `id`       | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl9e96cea76246a4925e6334` | ID unik.                            |
+| `rowId`    | String        | `NOT NULL`, 🔗 FK | -        | `clc902437391ad10e73ac0f2` | Baris tempat sel ini berada.        |
+| `columnId` | String        | `NOT NULL`, 🔗 FK | -        | `cl71e6baa0ecfa973ddcd5ed` | Kolom tempat sel ini berada.        |
+| `value`    | Text          | `nullable`        | -        | `Rp150.000`                | Isi sel (kosong = sel belum diisi). |
 
 #### Primary Key & Foreign Key
 
@@ -3906,11 +3908,11 @@ paling sederhana di seluruh skema ini, cuma menyimpan satu pilihan style.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl65ee9276ef44e55795dec2` | ID unik. |
-| `contentId` | String | `NOT NULL`, `@unique`, 🔗 FK | - | `cl68c62149c54b5e951dca5d` | Content block induk (1:1). |
-| `style` | Enum `ArticleDividerStyle` | `NOT NULL` | `SOLID` | `SOLID` | `SOLID` (garis penuh "—") atau `DASHED` (garis putus-putus "----"). |
+| Kolom       | Tipe Data                  | Constraint                   | Default  | Contoh Value               | Keterangan                                                          |
+| ----------- | -------------------------- | ---------------------------- | -------- | -------------------------- | ------------------------------------------------------------------- |
+| `id`        | String (cuid)              | 🔑 PK, `NOT NULL`            | `cuid()` | `cl65ee9276ef44e55795dec2` | ID unik.                                                            |
+| `contentId` | String                     | `NOT NULL`, `@unique`, 🔗 FK | -        | `cl68c62149c54b5e951dca5d` | Content block induk (1:1).                                          |
+| `style`     | Enum `ArticleDividerStyle` | `NOT NULL`                   | `SOLID`  | `SOLID`                    | `SOLID` (garis penuh "—") atau `DASHED` (garis putus-putus "----"). |
 
 #### Primary Key & Foreign Key
 
@@ -3928,22 +3930,22 @@ antara relasi pemilik dan relasi target - lihat catatan.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `clc22dfed8e0a22fb8e54297` | ID unik. |
-| `contentId` | String | `NOT NULL`, `@unique`, 🔗 FK | - | `cl077fa3bb4197789e2e35a1` | Content block induk (1:1) - baris `ArticleContentBlock` yang **bertipe LINK** ini sendiri. |
-| `linkText` | VarChar(150) | `NOT NULL` | - | `Baca selengkapnya` | Teks yang ditampilkan sebagai link. |
-| `linkType` | Enum `ArticleLinkType` | `NOT NULL` | - | `EXTERNAL_URL` | `EXTERNAL_URL` atau `ARTICLE_SECTION`. |
-| `externalUrl` | String | `nullable` | - | `https://example.com/artikel-referensi` | Dipakai kalau `linkType = EXTERNAL_URL`. |
-| `targetContentBlockId` | String | `nullable`, 🔗 FK | - | `clfe9dddfb69147f9678d716` | Dipakai kalau `linkType = ARTICLE_SECTION` dan tujuannya sebuah content block (heading/paragraph/table/dll). |
-| `targetAdditionalContentId` | String | `nullable`, 🔗 FK | - | `cl290052ca1316a34a2a1fa8` | Dipakai kalau `linkType = ARTICLE_SECTION` dan tujuannya media (gambar/video). |
+| Kolom                       | Tipe Data              | Constraint                   | Default  | Contoh Value                            | Keterangan                                                                                                   |
+| --------------------------- | ---------------------- | ---------------------------- | -------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `id`                        | String (cuid)          | 🔑 PK, `NOT NULL`            | `cuid()` | `clc22dfed8e0a22fb8e54297`              | ID unik.                                                                                                     |
+| `contentId`                 | String                 | `NOT NULL`, `@unique`, 🔗 FK | -        | `cl077fa3bb4197789e2e35a1`              | Content block induk (1:1) - baris `ArticleContentBlock` yang **bertipe LINK** ini sendiri.                   |
+| `linkText`                  | VarChar(150)           | `NOT NULL`                   | -        | `Baca selengkapnya`                     | Teks yang ditampilkan sebagai link.                                                                          |
+| `linkType`                  | Enum `ArticleLinkType` | `NOT NULL`                   | -        | `EXTERNAL_URL`                          | `EXTERNAL_URL` atau `ARTICLE_SECTION`.                                                                       |
+| `externalUrl`               | String                 | `nullable`                   | -        | `https://example.com/artikel-referensi` | Dipakai kalau `linkType = EXTERNAL_URL`.                                                                     |
+| `targetContentBlockId`      | String                 | `nullable`, 🔗 FK            | -        | `clfe9dddfb69147f9678d716`              | Dipakai kalau `linkType = ARTICLE_SECTION` dan tujuannya sebuah content block (heading/paragraph/table/dll). |
+| `targetAdditionalContentId` | String                 | `nullable`, 🔗 FK            | -        | `cl290052ca1316a34a2a1fa8`              | Dipakai kalau `linkType = ARTICLE_SECTION` dan tujuannya media (gambar/video).                               |
 
 #### Primary Key & Foreign Key
 
 - 🔑 **PK**: `id`
-- 🔗 **FK 1** *(pemilik)*: `contentId` → `ct_article_content_blocks.id` (relasi `"ArticleLinkOwner"`), `@unique` (1:1) - `onDelete: Cascade`.
-- 🔗 **FK 2** *(target)*: `targetContentBlockId` → `ct_article_content_blocks.id` (relasi `"ArticleLinkTarget"`), opsional - `onDelete: SetNull`.
-- 🔗 **FK 3** *(target)*: `targetAdditionalContentId` → `ct_article_additional_contents.id` (relasi `"ArticleLinkTargetMedia"`), opsional - `onDelete: SetNull`.
+- 🔗 **FK 1** _(pemilik)_: `contentId` → `ct_article_content_blocks.id` (relasi `"ArticleLinkOwner"`), `@unique` (1:1) - `onDelete: Cascade`.
+- 🔗 **FK 2** _(target)_: `targetContentBlockId` → `ct_article_content_blocks.id` (relasi `"ArticleLinkTarget"`), opsional - `onDelete: SetNull`.
+- 🔗 **FK 3** _(target)_: `targetAdditionalContentId` → `ct_article_additional_contents.id` (relasi `"ArticleLinkTargetMedia"`), opsional - `onDelete: SetNull`.
 
 #### 📌 Catatan
 
@@ -3958,7 +3960,7 @@ relasi ke content block **pemilik** (`contentId`) pakai `Cascade` - kalau
 content block LINK-nya dihapus, baris `ArticleLinkContent` ini ikut
 terhapus (wajar, karena dia bagian dari block itu sendiri). Tapi relasi ke
 2 kolom **target** pakai `SetNull` - kalau content block atau media yang
-jadi *tujuan* lompatnya dihapus, link-nya **tidak ikut terhapus**,
+jadi _tujuan_ lompatnya dihapus, link-nya **tidak ikut terhapus**,
 cuma kolom target yang bersangkutan jadi `NULL` (link jadi "patah"/tidak
 menunjuk ke mana-mana, tapi barisnya tetap ada untuk diedit ulang oleh
 penulis). Ini kebalikan dari perilaku `ArticleTableOfContentItem` (5.111)
@@ -3974,11 +3976,11 @@ dibatasi **tepat satu per artikel**, dan ini **ditegakkan di level DB**
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl196d4945dea64df0fe5f07` | ID unik. |
-| `contentId` | String | `NOT NULL`, `@unique`, 🔗 FK | - | `cl721f2a7763feaa9f2da04b` | Content block induk (1:1) - baris `ArticleContentBlock` bertipe `TABLE_OF_CONTENT`. |
-| `articleId` | String | `NOT NULL`, `@unique`, 🔗 FK | - | `cl4baf9996a4b3b63b23f135` | Artikel yang punya daftar isi ini - **denormalized** dari `block → article` khusus untuk menegakkan aturan "1 artikel cuma boleh 1 Table of Content" lewat `@unique` di level DB (sesuai komentar developer). |
+| Kolom       | Tipe Data     | Constraint                   | Default  | Contoh Value               | Keterangan                                                                                                                                                                                                    |
+| ----------- | ------------- | ---------------------------- | -------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`        | String (cuid) | 🔑 PK, `NOT NULL`            | `cuid()` | `cl196d4945dea64df0fe5f07` | ID unik.                                                                                                                                                                                                      |
+| `contentId` | String        | `NOT NULL`, `@unique`, 🔗 FK | -        | `cl721f2a7763feaa9f2da04b` | Content block induk (1:1) - baris `ArticleContentBlock` bertipe `TABLE_OF_CONTENT`.                                                                                                                           |
+| `articleId` | String        | `NOT NULL`, `@unique`, 🔗 FK | -        | `cl4baf9996a4b3b63b23f135` | Artikel yang punya daftar isi ini - **denormalized** dari `block → article` khusus untuk menegakkan aturan "1 artikel cuma boleh 1 Table of Content" lewat `@unique` di level DB (sesuai komentar developer). |
 
 #### Primary Key & Foreign Key
 
@@ -4009,21 +4011,21 @@ ke satu content block atau satu media sebagai tujuan lompat.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `clde0152d2ea4803042ebfa9` | ID unik. |
-| `tocId` | String | `NOT NULL`, 🔗 FK | - | `cl57c9e8c8b0db42cad60229` | Table of Content induk. |
-| `label` | VarChar(50) | `NOT NULL` | - | `Pengenalan Machine Learning` | Teks item (mis. "Item Name 1"). |
-| `orderNumber` | Int | `NOT NULL` | - | `1` | Urutan item dalam daftar isi. |
-| `targetContentBlockId` | String | `nullable`, 🔗 FK | - | `cld54f1dcd86c988bc0a53d1` | Tujuan lompat berupa content block (kalau diisi). |
-| `targetAdditionalContentId` | String | `nullable`, 🔗 FK | - | `clf43f2479607acd1cc6ce35` | Tujuan lompat berupa media (kalau diisi). |
+| Kolom                       | Tipe Data     | Constraint        | Default  | Contoh Value                  | Keterangan                                        |
+| --------------------------- | ------------- | ----------------- | -------- | ----------------------------- | ------------------------------------------------- |
+| `id`                        | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `clde0152d2ea4803042ebfa9`    | ID unik.                                          |
+| `tocId`                     | String        | `NOT NULL`, 🔗 FK | -        | `cl57c9e8c8b0db42cad60229`    | Table of Content induk.                           |
+| `label`                     | VarChar(50)   | `NOT NULL`        | -        | `Pengenalan Machine Learning` | Teks item (mis. "Item Name 1").                   |
+| `orderNumber`               | Int           | `NOT NULL`        | -        | `1`                           | Urutan item dalam daftar isi.                     |
+| `targetContentBlockId`      | String        | `nullable`, 🔗 FK | -        | `cld54f1dcd86c988bc0a53d1`    | Tujuan lompat berupa content block (kalau diisi). |
+| `targetAdditionalContentId` | String        | `nullable`, 🔗 FK | -        | `clf43f2479607acd1cc6ce35`    | Tujuan lompat berupa media (kalau diisi).         |
 
 #### Primary Key & Foreign Key
 
 - 🔑 **PK**: `id`
 - 🔗 **FK 1**: `tocId` → `ct_article_table_of_content_contents.id` - `onDelete: Cascade`.
-- 🔗 **FK 2** *(target)*: `targetContentBlockId` → `ct_article_content_blocks.id` (relasi `"ArticleTOCItemTarget"`), opsional - `onDelete: Cascade`.
-- 🔗 **FK 3** *(target)*: `targetAdditionalContentId` → `ct_article_additional_contents.id` (relasi `"ArticleTOCItemTargetMedia"`), opsional - `onDelete: Cascade`.
+- 🔗 **FK 2** _(target)_: `targetContentBlockId` → `ct_article_content_blocks.id` (relasi `"ArticleTOCItemTarget"`), opsional - `onDelete: Cascade`.
+- 🔗 **FK 3** _(target)_: `targetAdditionalContentId` → `ct_article_additional_contents.id` (relasi `"ArticleTOCItemTargetMedia"`), opsional - `onDelete: Cascade`.
 - **Constraint tambahan**: `@@unique([tocId, orderNumber])`.
 
 #### 📌 Catatan
@@ -4048,13 +4050,13 @@ INTERACTIVE_CODE tidak relevan untuk artikel).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cla284617333302ac6691598` | ID unik. |
-| `blockId` | String | `NOT NULL`, 🔗 FK | - | `cl0fab4d9026baa372c02a3e` | Article block induk. |
-| `type` | Enum `ArticleAdditionalContentType` | `NOT NULL` | - | `LOGIN` | Cuma ada satu nilai yang mungkin: `IMAGE_VIDEO`. |
-| `position` | Enum `AnchorPosition` | `NOT NULL` | - | `BEFORE` | `BEFORE`, `AFTER`, atau `INLINE` (enum yang sama, dipakai bersama dengan E-Learning - lihat 5.47). |
-| `orderNumber` | Int | `nullable` | - | `1` | Urutan bila ada beberapa additional content di block yang sama. |
+| Kolom         | Tipe Data                           | Constraint        | Default  | Contoh Value               | Keterangan                                                                                         |
+| ------------- | ----------------------------------- | ----------------- | -------- | -------------------------- | -------------------------------------------------------------------------------------------------- |
+| `id`          | String (cuid)                       | 🔑 PK, `NOT NULL` | `cuid()` | `cla284617333302ac6691598` | ID unik.                                                                                           |
+| `blockId`     | String                              | `NOT NULL`, 🔗 FK | -        | `cl0fab4d9026baa372c02a3e` | Article block induk.                                                                               |
+| `type`        | Enum `ArticleAdditionalContentType` | `NOT NULL`        | -        | `LOGIN`                    | Cuma ada satu nilai yang mungkin: `IMAGE_VIDEO`.                                                   |
+| `position`    | Enum `AnchorPosition`               | `NOT NULL`        | -        | `BEFORE`                   | `BEFORE`, `AFTER`, atau `INLINE` (enum yang sama, dipakai bersama dengan E-Learning - lihat 5.47). |
+| `orderNumber` | Int                                 | `nullable`        | -        | `1`                        | Urutan bila ada beberapa additional content di block yang sama.                                    |
 
 #### Primary Key & Foreign Key
 
@@ -4079,19 +4081,19 @@ versi E-Learning (5.52).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl6649789e4ac93fa8217bce` | ID unik. |
-| `additionalContentId` | String | `NOT NULL`, `@unique`, 🔗 FK | - | `cle1d5258cd67fa68c7b4316` | Additional content induk (1:1). |
-| `title` | String | `nullable` | - | `Belajar Python untuk Pemula` | Judul media. |
-| `caption` | String | `nullable` | - | `(freetext)` | Caption media. |
-| `description` | String | `nullable` | - | `Deskripsi singkat mengenai konten ini.` | Deskripsi media. |
-| `mediaType` | Enum `MediaType` | `NOT NULL` | - | `IMAGE` | `IMAGE` atau `VIDEO` (enum yang sama dengan E-Learning). |
-| `url` | String | `NOT NULL` | - | `https://cdn.temudataku.com/files/materi-01.pdf` | URL/path file media. |
-| `thumbnailUrl` | String | `nullable` | - | `https://cdn.temudataku.com/thumb/thumb-01.jpg` | URL thumbnail. |
-| `durationSeconds` | Int | `nullable` | - | `120` | Durasi video (detik) - relevan kalau `mediaType = VIDEO`. |
-| `widthPercent` | Int | `nullable` | `100` | `100` | Lebar tampilan (persen). |
-| `createdAt` | DateTime | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
+| Kolom                 | Tipe Data        | Constraint                   | Default  | Contoh Value                                     | Keterangan                                                |
+| --------------------- | ---------------- | ---------------------------- | -------- | ------------------------------------------------ | --------------------------------------------------------- |
+| `id`                  | String (cuid)    | 🔑 PK, `NOT NULL`            | `cuid()` | `cl6649789e4ac93fa8217bce`                       | ID unik.                                                  |
+| `additionalContentId` | String           | `NOT NULL`, `@unique`, 🔗 FK | -        | `cle1d5258cd67fa68c7b4316`                       | Additional content induk (1:1).                           |
+| `title`               | String           | `nullable`                   | -        | `Belajar Python untuk Pemula`                    | Judul media.                                              |
+| `caption`             | String           | `nullable`                   | -        | `(freetext)`                                     | Caption media.                                            |
+| `description`         | String           | `nullable`                   | -        | `Deskripsi singkat mengenai konten ini.`         | Deskripsi media.                                          |
+| `mediaType`           | Enum `MediaType` | `NOT NULL`                   | -        | `IMAGE`                                          | `IMAGE` atau `VIDEO` (enum yang sama dengan E-Learning).  |
+| `url`                 | String           | `NOT NULL`                   | -        | `https://cdn.temudataku.com/files/materi-01.pdf` | URL/path file media.                                      |
+| `thumbnailUrl`        | String           | `nullable`                   | -        | `https://cdn.temudataku.com/thumb/thumb-01.jpg`  | URL thumbnail.                                            |
+| `durationSeconds`     | Int              | `nullable`                   | -        | `120`                                            | Durasi video (detik) - relevan kalau `mediaType = VIDEO`. |
+| `widthPercent`        | Int              | `nullable`                   | `100`    | `100`                                            | Lebar tampilan (persen).                                  |
+| `createdAt`           | DateTime         | `nullable`                   | `now()`  | `2026-03-15T10:30:00Z`                           | Waktu dibuat.                                             |
 
 #### Primary Key & Foreign Key
 
@@ -4109,12 +4111,12 @@ sebagai favorit supaya gampang diakses di toolbar editor).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl7701aed8263c47a50be0d7` | ID unik. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000001` | User pemilik preferensi. |
-| `elementType` | Enum `ArticleElementType` | `NOT NULL` | - | `TABLE` | `HEADING`, `PARAGRAPH`, `IMAGE`, `VIDEO`, `TABLE`, `HIGHLIGHT`, `DIVIDER`, `LINK`, atau `TABLE_OF_CONTENT`. |
-| `createdAt` | Timestamp(6) | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu ditandai favorit. |
+| Kolom         | Tipe Data                 | Constraint        | Default  | Contoh Value               | Keterangan                                                                                                  |
+| ------------- | ------------------------- | ----------------- | -------- | -------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `id`          | String (cuid)             | 🔑 PK, `NOT NULL` | `cuid()` | `cl7701aed8263c47a50be0d7` | ID unik.                                                                                                    |
+| `userId`      | String                    | `NOT NULL`, 🔗 FK | -        | `000001`                   | User pemilik preferensi.                                                                                    |
+| `elementType` | Enum `ArticleElementType` | `NOT NULL`        | -        | `TABLE`                    | `HEADING`, `PARAGRAPH`, `IMAGE`, `VIDEO`, `TABLE`, `HIGHLIGHT`, `DIVIDER`, `LINK`, atau `TABLE_OF_CONTENT`. |
+| `createdAt`   | Timestamp(6)              | `nullable`        | `now()`  | `2026-03-15T10:30:00Z`     | Waktu ditandai favorit.                                                                                     |
 
 #### Primary Key & Foreign Key
 
@@ -4143,12 +4145,12 @@ bertipe `IMAGE_VIDEO`.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `claaa08369ebc3e5dc264c2d` | ID unik. |
-| `articleId` | String | `NOT NULL`, 🔗 FK | - | `article-20260828-240b7d` | Artikel yang di-like. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000001` | User yang nge-like. |
-| `createdAt` | DateTime | `NOT NULL` | `now()` | `2026-03-15T10:30:00Z` | Waktu like diberikan. |
+| Kolom       | Tipe Data     | Constraint        | Default  | Contoh Value               | Keterangan            |
+| ----------- | ------------- | ----------------- | -------- | -------------------------- | --------------------- |
+| `id`        | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `claaa08369ebc3e5dc264c2d` | ID unik.              |
+| `articleId` | String        | `NOT NULL`, 🔗 FK | -        | `article-20260828-240b7d`  | Artikel yang di-like. |
+| `userId`    | String        | `NOT NULL`, 🔗 FK | -        | `000001`                   | User yang nge-like.   |
+| `createdAt` | DateTime      | `NOT NULL`        | `now()`  | `2026-03-15T10:30:00Z`     | Waktu like diberikan. |
 
 #### Primary Key & Foreign Key
 
@@ -4169,16 +4171,16 @@ berjenjang lewat self-relation `parentId`, sama seperti
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl629b917283c994c8450244` | ID unik. |
-| `articleId` | String | `NOT NULL`, 🔗 FK | - | `article-20260828-240b7d` | Artikel tempat komentar ditulis. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000001` | Penulis komentar. |
-| `parentId` | String | `nullable`, 🔗 FK | - | `cl96a196d69fba4734d7ae23` | Diisi kalau baris ini balasan (reply) ke komentar lain (self-relation `"ArticleCommentReplies"`). |
-| `content` | Text | `NOT NULL` | - | `Saya sangat suka artikel ini` | Isi komentar. |
-| `createdAt` | DateTime | `NOT NULL` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | Timestamp(6) | `nullable` | *(auto)* | `2026-03-16T08:00:00Z` | Pakai `@updatedAt` - jadi komentar yang diedit **bisa** dibedakan dari yang asli (beda dari `e_learning_discussions` yang tidak bisa). |
-| `deletedAt` | Timestamp(6) | `nullable` | - | `null` (belum dihapus) | Soft delete - konsisten dengan pola `articles` (5.97). |
+| Kolom       | Tipe Data     | Constraint        | Default  | Contoh Value                   | Keterangan                                                                                                                             |
+| ----------- | ------------- | ----------------- | -------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`        | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl629b917283c994c8450244`     | ID unik.                                                                                                                               |
+| `articleId` | String        | `NOT NULL`, 🔗 FK | -        | `article-20260828-240b7d`      | Artikel tempat komentar ditulis.                                                                                                       |
+| `userId`    | String        | `NOT NULL`, 🔗 FK | -        | `000001`                       | Penulis komentar.                                                                                                                      |
+| `parentId`  | String        | `nullable`, 🔗 FK | -        | `cl96a196d69fba4734d7ae23`     | Diisi kalau baris ini balasan (reply) ke komentar lain (self-relation `"ArticleCommentReplies"`).                                      |
+| `content`   | Text          | `NOT NULL`        | -        | `Saya sangat suka artikel ini` | Isi komentar.                                                                                                                          |
+| `createdAt` | DateTime      | `NOT NULL`        | `now()`  | `2026-03-15T10:30:00Z`         | Waktu dibuat.                                                                                                                          |
+| `updatedAt` | Timestamp(6)  | `nullable`        | _(auto)_ | `2026-03-16T08:00:00Z`         | Pakai `@updatedAt` - jadi komentar yang diedit **bisa** dibedakan dari yang asli (beda dari `e_learning_discussions` yang tidak bisa). |
+| `deletedAt` | Timestamp(6)  | `nullable`        | -        | `null` (belum dihapus)         | Soft delete - konsisten dengan pola `articles` (5.97).                                                                                 |
 
 #### Primary Key & Foreign Key
 
@@ -4209,12 +4211,12 @@ pasangan `article_likes` (5.115), tapi untuk level komentar.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl7a9c7589a4d5561a81424b` | ID unik. |
-| `commentId` | String | `NOT NULL`, 🔗 FK | - | `cld2a8b902d7a7a7542f27b8` | Komentar yang di-like. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000001` | User yang nge-like. |
-| `createdAt` | DateTime | `NOT NULL` | `now()` | `2026-03-15T10:30:00Z` | Waktu like diberikan. |
+| Kolom       | Tipe Data     | Constraint        | Default  | Contoh Value               | Keterangan             |
+| ----------- | ------------- | ----------------- | -------- | -------------------------- | ---------------------- |
+| `id`        | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl7a9c7589a4d5561a81424b` | ID unik.               |
+| `commentId` | String        | `NOT NULL`, 🔗 FK | -        | `cld2a8b902d7a7a7542f27b8` | Komentar yang di-like. |
+| `userId`    | String        | `NOT NULL`, 🔗 FK | -        | `000001`                   | User yang nge-like.    |
+| `createdAt` | DateTime      | `NOT NULL`        | `now()`  | `2026-03-15T10:30:00Z`     | Waktu like diberikan.  |
 
 #### Primary Key & Foreign Key
 
@@ -4225,16 +4227,16 @@ pasangan `article_likes` (5.115), tapi untuk level komentar.
 
 ---
 
-*(Modul **Article** sudah lengkap dengan ini - 21 tabel (5.97-5.117) dan 6
+_(Modul **Article** sudah lengkap dengan ini - 21 tabel (5.97-5.117) dan 6
 enum baru (`ArticleStatus`, `ArticleContentBlockType`,
 `ArticleDividerStyle`, `ArticleLinkType`, `ArticleAdditionalContentType`,
 `ArticleElementType`). Enum `AnchorPosition` dan `MediaType` dipakai ulang
-dari modul E-Learning (5.47 & 5.52), tidak didefinisikan ulang di sini.)*
+dari modul E-Learning (5.47 & 5.52), tidak didefinisikan ulang di sini.)_
 
 ## Modul: Form
 
-> ℹ️ **Catatan pola untuk seluruh modul ini**: Modul Form adalah *form
-> builder* (mirip Google Forms) - pembuat form menyusun `Form` → dibagi
+> ℹ️ **Catatan pola untuk seluruh modul ini**: Modul Form adalah _form
+> builder_ (mirip Google Forms) - pembuat form menyusun `Form` → dibagi
 > jadi beberapa `FormSection` (halaman) → tiap section berisi `FormItem`
 > (pertanyaan **atau** elemen konten seperti judul/gambar/video) → item
 > bertipe pilihan punya `FormOption`. Di sisi responder, satu kali
@@ -4267,37 +4269,47 @@ dari modul E-Learning (5.47 & 5.52), tidak didefinisikan ulang di sini.)*
 >   `<prefix>_` + 22 karakter acak (mis. `frm_...`), lihat "Format ID Modul
 >   Form" di bawah. `@default(cuid())` di schema hanya cadangan; tabel di
 >   modul lain tetap memakai cuid.
-> - Status & tipe memakai **enum sungguhan** (7 enum, lihat di bawah),
+> - Status & tipe memakai **enum sungguhan** (8 enum, lihat di bawah),
 >   bukan `String` freetext seperti di banyak modul lain.
 > - Modul `Event` **belum ada** di skema. `forms.eventId` cuma kolom
 >   `String` biasa, **bukan FK** - ada komentar `TODO` di skema untuk
 >   menambahkan relasinya setelah model `Event` dibuat.
+> - Untuk Form Event, **info Event yang tampil di halaman publik disimpan
+>   langsung di tabel `forms`** lewat 10 kolom berawalan `event*` (judul,
+>   deskripsi, jadwal, mode, lokasi, penyelenggara, label kategori,
+>   timeline, FAQ) - bukan di tabel Event terpisah. Lihat `forms` (5.117a).
 
 ### Enum Modul Form
 
-| Enum | Nilai | Keterangan |
-|---|---|---|
-| `FormType` | `EVENT` | Form Event: terkait ke Event non-kelas, bisa tampil di halaman Event. |
-| | `NON_EVENT` | Form Non Event: tidak terkait Event, diakses lewat direct link. |
-| `FormStatus` | `DRAFT` | Juga dipakai saat Unpublish (konfigurasi & response tetap aman). |
-| | `PUBLISHED` | Form tayang. |
-| | `ARCHIVED` | Form diarsipkan. |
-| `FormResponderAccess` | `ANYONE_WITH_LINK` | Siapa pun yang punya link bisa mengisi (responder boleh anonim). |
-| | `LOGIN_REQUIRED` | Responder wajib login. |
-| `FormNavigationAction` | `NEXT` | Lanjut ke section berikutnya (urutan normal). |
-| | `GO_TO_SECTION` | Lompat ke section tertentu. |
-| | `SUBMIT` | Langsung akhiri form. |
-| `FormItemType` | `SHORT_ANSWER`, `PARAGRAPH`, `MULTIPLE_CHOICE`, `CHECKBOXES`, `DROPDOWN`, `FILE_UPLOAD`, `LINEAR_SCALE`, `RATING`, `MULTIPLE_CHOICE_GRID`, `CHECKBOX_GRID`, `DATE`, `TIME_DURATION` | **Pertanyaan** (punya jawaban) - 12 tipe. |
-| | `TITLE_DESCRIPTION`, `IMAGE`, `VIDEO` | **Elemen konten** (tidak punya jawaban) - 3 tipe. |
-| `FormOptionKind` | `CHOICE` | Pilihan biasa (Multiple Choice, Checkboxes, Dropdown). |
-| | `GRID_ROW` | Baris pada grid. |
-| | `GRID_COLUMN` | Kolom pada grid. |
-| `FormResponseStatus` | `DRAFT` | Autosave responder, **belum** dihitung sebagai submission final. |
-| | `SUBMITTED` | Sudah dikirim (submission final). |
+| Enum                   | Nilai                                                                                                                                                                               | Keterangan                                                            |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `FormType`             | `EVENT`                                                                                                                                                                             | Form Event: terkait ke Event non-kelas, bisa tampil di halaman Event. |
+|                        | `NON_EVENT`                                                                                                                                                                         | Form Non Event: tidak terkait Event, diakses lewat direct link.       |
+| `FormStatus`           | `DRAFT`                                                                                                                                                                             | Juga dipakai saat Unpublish (konfigurasi & response tetap aman).      |
+|                        | `PUBLISHED`                                                                                                                                                                         | Form tayang.                                                          |
+|                        | `ARCHIVED`                                                                                                                                                                          | Form diarsipkan.                                                      |
+| `FormResponderAccess`  | `ANYONE_WITH_LINK`                                                                                                                                                                  | Siapa pun yang punya link bisa mengisi (responder boleh anonim).      |
+|                        | `LOGIN_REQUIRED`                                                                                                                                                                    | Responder wajib login.                                                |
+| `FormNavigationAction` | `NEXT`                                                                                                                                                                              | Lanjut ke section berikutnya (urutan normal).                         |
+|                        | `GO_TO_SECTION`                                                                                                                                                                     | Lompat ke section tertentu.                                           |
+|                        | `SUBMIT`                                                                                                                                                                            | Langsung akhiri form.                                                 |
+| `FormItemType`         | `SHORT_ANSWER`, `PARAGRAPH`, `MULTIPLE_CHOICE`, `CHECKBOXES`, `DROPDOWN`, `FILE_UPLOAD`, `LINEAR_SCALE`, `RATING`, `MULTIPLE_CHOICE_GRID`, `CHECKBOX_GRID`, `DATE`, `TIME_DURATION` | **Pertanyaan** (punya jawaban) - 12 tipe.                             |
+|                        | `TITLE_DESCRIPTION`, `IMAGE`, `VIDEO`                                                                                                                                               | **Elemen konten** (tidak punya jawaban) - 3 tipe.                     |
+| `FormOptionKind`       | `CHOICE`                                                                                                                                                                            | Pilihan biasa (Multiple Choice, Checkboxes, Dropdown).                |
+|                        | `GRID_ROW`                                                                                                                                                                          | Baris pada grid.                                                      |
+|                        | `GRID_COLUMN`                                                                                                                                                                       | Kolom pada grid.                                                      |
+| `FormResponseStatus`   | `DRAFT`                                                                                                                                                                             | Autosave responder, **belum** dihitung sebagai submission final.      |
+|                        | `SUBMITTED`                                                                                                                                                                         | Sudah dikirim (submission final).                                     |
+| `FormEventMode`        | `ONLINE`                                                                                                                                                                            | Event diadakan online.                                                |
+|                        | `OFFLINE`                                                                                                                                                                           | Event diadakan tatap muka di lokasi tertentu.                         |
+|                        | `HYBRID`                                                                                                                                                                            | Event online dan tatap muka sekaligus.                                |
 
 `FormNavigationAction` dipakai di dua tempat: navigasi akhir section
 (`form_sections.nextAction`) dan branching per option
 (`form_options.branchAction`).
+
+`FormEventMode` hanya dipakai oleh satu kolom: `forms.eventMode` (info
+Event di halaman publik Form Event).
 
 ### Format ID Modul Form
 
@@ -4306,17 +4318,17 @@ ID semua tabel modul Form **dibuat oleh aplikasi** lewat `newFormId()` (file
 acak (128 bit, base64url: huruf besar/kecil, angka, `-`, dan `_`), total 26
 karakter.
 
-| Tabel | Prefix | Contoh |
-|---|---|---|
-| `forms` | `frm_` | `frm_5F9N4wWV4FMKwv53tEFZZw` |
-| `form_sections` | `fsc_` | `fsc_rcVE6gq25Rnk_PQcxkFqIw` |
-| `form_items` | `fit_` | `fit_YX2aoFF8y287hSbCjyU5kQ` |
-| `form_options` | `fop_` | `fop_At82KxVu5lnrwylimGVXHQ` |
-| `form_responses` | `frs_` | `frs_clY5ZIYdutqKsAZiC8gE_Q` |
-| `form_answers` | `fan_` | `fan_WeI697FjBnTVaNyCXYoajQ` |
+| Tabel                    | Prefix | Contoh                       |
+| ------------------------ | ------ | ---------------------------- |
+| `forms`                  | `frm_` | `frm_5F9N4wWV4FMKwv53tEFZZw` |
+| `form_sections`          | `fsc_` | `fsc_rcVE6gq25Rnk_PQcxkFqIw` |
+| `form_items`             | `fit_` | `fit_YX2aoFF8y287hSbCjyU5kQ` |
+| `form_options`           | `fop_` | `fop_At82KxVu5lnrwylimGVXHQ` |
+| `form_responses`         | `frs_` | `frs_clY5ZIYdutqKsAZiC8gE_Q` |
+| `form_answers`           | `fan_` | `fan_WeI697FjBnTVaNyCXYoajQ` |
 | `form_answer_selections` | `fas_` | `fas_G4ORt1TpgOAAtRu_6BnvmA` |
-| `form_answer_files` | `faf_` | `faf_PDrAaSynu25S0VHCBUXymQ` |
-| `form_categories` | `fct_` | `fct_7Hq2LmZk9XvB3nTa5RwYcA` |
+| `form_answer_files`      | `faf_` | `faf_PDrAaSynu25S0VHCBUXymQ` |
+| `form_categories`        | `fct_` | `fct_7Hq2LmZk9XvB3nTa5RwYcA` |
 
 - **Tidak ada race condition**: ID tidak dihitung dari data di database (tidak
   ada counter atau `MAX+1`), jadi dua request bersamaan tidak bisa
@@ -4335,44 +4347,54 @@ penerimaan response, pengaturan responder, dan tampilan/tema form.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (custom ID) | 🔑 PK, `NOT NULL` | `cuid()` *(cadangan)* | `frm_5F9N4wWV4FMKwv53tEFZZw` | ID unik form. Dibuat aplikasi: `frm_` + 22 karakter acak. |
-| `type` | Enum `FormType` | `NOT NULL` | - | `NON_EVENT` | `EVENT` atau `NON_EVENT`. Sesuai komentar developer: **dikunci setelah dibuat (V1)** - tidak boleh diubah belakangan. |
-| `status` | Enum `FormStatus` | `NOT NULL` | `DRAFT` | `PUBLISHED` | `DRAFT`, `PUBLISHED`, atau `ARCHIVED`. `DRAFT` juga dipakai saat unpublish. |
-| `title` | VarChar | `NOT NULL` | - | `Pendaftaran Webinar Data Science` | Judul form. |
-| `description` | Text | `nullable` | - | `Isi form ini untuk mendaftar webinar.` | Deskripsi form. |
-| `categoryId` | String | `nullable`, 🔗 FK | - | `fct_7Hq2LmZk9XvB3nTa5RwYcA` | Jenis form (pengelompokan, mis. Pendaftaran, Presensi). Nullable supaya form yang dibuat sebelum fitur jenis tetap valid. Tipe jenis harus sama dengan `type` form (dijaga aplikasi, bukan DB). Kolom fisik: `category_id`. |
-| `slug` | VarChar | `NOT NULL`, `@unique` | - | `k3x9q2mf7a` | Dipakai di URL responder (`/form/{slug}`). Sesuai komentar developer: **random, bukan dari judul**, supaya link yang sudah dibagikan tidak rusak kalau judul diedit. |
-| `eventId` | String | `nullable` | - | `event-20261020-ab12cd` | ID Event terkait (khusus `type = EVENT`). ⚠️ **Bukan FK sungguhan** - model `Event` belum ada, lihat catatan modul. Kolom fisik: `event_id`. |
-| `eventNameSnapshot` | VarChar | `nullable` | - | `Webinar Data Science 2026` | Nama Event saat dikaitkan, buat info kalau Event-nya dihapus. Kolom fisik: `event_name_snapshot`. |
-| `showOnEventPage` | Boolean | `NOT NULL` | `true` | `true` | Tampil/tidaknya form di halaman Event - terpisah dari status Publish, dan hanya berlaku untuk `type = EVENT` (sesuai komentar developer). Kolom fisik: `show_on_event_page`. |
-| `acceptingResponses` | Boolean | `NOT NULL` | `true` | `true` | Switch manual penerimaan response - **beda dari `status`** (form bisa `PUBLISHED` tapi tidak menerima response). Kolom fisik: `accepting_responses`. |
-| `responseLimitEnabled` | Boolean | `NOT NULL` | `false` | `true` | `true` = batas jumlah response aktif (nilainya di `responseLimit`). |
-| `responseLimit` | Int | `nullable` | - | `100` | Batas maksimal response final. Relevan kalau `responseLimitEnabled = true`. |
-| `periodEnabled` | Boolean | `NOT NULL` | `false` | `true` | `true` = form hanya menerima response dalam rentang `openAt`-`closeAt`. |
-| `openAt` | Timestamp(6) | `nullable` | - | `2026-11-01T00:00:00Z` | Waktu form mulai menerima response. |
-| `closeAt` | Timestamp(6) | `nullable` | - | `2026-11-30T23:59:59Z` | Waktu form berhenti menerima response. |
-| `submittedResponseCount` | Int | `NOT NULL` | `0` | `42` | Counter submission **final** (status `SUBMITTED`), dipakai untuk cek limit secara atomic (sesuai komentar developer). Kolom fisik: `submitted_response_count`. |
-| `responderAccess` | Enum `FormResponderAccess` | `NOT NULL` | `ANYONE_WITH_LINK` | `LOGIN_REQUIRED` | `ANYONE_WITH_LINK` atau `LOGIN_REQUIRED`. |
-| `collectEmail` | Boolean | `NOT NULL` | `false` | `true` | `true` = form meminta email responder. |
-| `limitOneResponsePerAccount` | Boolean | `NOT NULL` | `false` | `true` | `true` = satu akun cuma boleh submit sekali. |
-| `allowEditResponse` | Boolean | `NOT NULL` | `false` | `false` | `true` = responder boleh mengedit response setelah submit. |
-| `sendResponseReceipt` | Boolean | `NOT NULL` | `false` | `false` | `true` = responder dikirimi bukti/receipt response. |
-| `allowResponderDraft` | Boolean | `NOT NULL` | `false` | `false` | `true` = responder boleh menyimpan draft (autosave) - lihat `form_responses.status`. |
-| `shuffleQuestionOrder` | Boolean | `NOT NULL` | `false` | `false` | `true` = urutan pertanyaan diacak. |
-| `notifyOnNewResponse` | Boolean | `NOT NULL` | `false` | `true` | `true` = pembuat dinotifikasi tiap ada response baru. |
-| `confirmationMessage` | Text | `nullable` | - | `Terima kasih, response kamu sudah kami terima.` | Pesan yang tampil setelah submit. |
-| `closedMessage` | Text | `nullable` | - | `Form ini sudah ditutup.` | Pesan yang tampil kalau form tidak menerima response. |
-| `headerImage` | VarChar | `nullable` | - | `/images/forms/header-webinar.jpg` | Gambar header form. |
-| `themeColor` | VarChar | `nullable` | - | `#10B981` | Warna tema (hex). |
-| `backgroundColor` | VarChar | `nullable` | - | `#F3F4F6` | Warna latar (hex). |
-| `fontPreset` | VarChar | `nullable` | - | `inter` | Key preset font dari sistem. |
-| `publishedAt` | Timestamp(6) | `nullable` | - | `2026-10-20T09:00:00Z` | Waktu form dipublish. |
-| `archivedAt` | Timestamp(6) | `nullable` | - | `2026-12-01T00:00:00Z` | Waktu form diarsipkan. |
-| `createdById` | String | `nullable`, 🔗 FK | - | `000001` | User pembuat form. Kolom fisik: `created_by_id`. |
-| `createdAt` | Timestamp(6) | `NOT NULL` | `now()` | `2026-10-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | Timestamp(6) | `NOT NULL` | *(auto)* | `2026-10-16T08:00:00Z` | Pakai `@updatedAt` - otomatis. |
+| Kolom                        | Tipe Data                  | Constraint            | Default               | Contoh Value                                                                       | Keterangan                                                                                                                                                                                                                   |
+| ---------------------------- | -------------------------- | --------------------- | --------------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                         | String (custom ID)         | 🔑 PK, `NOT NULL`     | `cuid()` _(cadangan)_ | `frm_5F9N4wWV4FMKwv53tEFZZw`                                                       | ID unik form. Dibuat aplikasi: `frm_` + 22 karakter acak.                                                                                                                                                                    |
+| `type`                       | Enum `FormType`            | `NOT NULL`            | -                     | `NON_EVENT`                                                                        | `EVENT` atau `NON_EVENT`. Sesuai komentar developer: **dikunci setelah dibuat (V1)** - tidak boleh diubah belakangan.                                                                                                        |
+| `status`                     | Enum `FormStatus`          | `NOT NULL`            | `DRAFT`               | `PUBLISHED`                                                                        | `DRAFT`, `PUBLISHED`, atau `ARCHIVED`. `DRAFT` juga dipakai saat unpublish.                                                                                                                                                  |
+| `title`                      | VarChar                    | `NOT NULL`            | -                     | `Pendaftaran Webinar Data Science`                                                 | Judul form.                                                                                                                                                                                                                  |
+| `description`                | Text                       | `nullable`            | -                     | `Isi form ini untuk mendaftar webinar.`                                            | Deskripsi form.                                                                                                                                                                                                              |
+| `categoryId`                 | String                     | `nullable`, 🔗 FK     | -                     | `fct_7Hq2LmZk9XvB3nTa5RwYcA`                                                       | Jenis form (pengelompokan, mis. Pendaftaran, Presensi). Nullable supaya form yang dibuat sebelum fitur jenis tetap valid. Tipe jenis harus sama dengan `type` form (dijaga aplikasi, bukan DB). Kolom fisik: `category_id`.  |
+| `slug`                       | VarChar                    | `NOT NULL`, `@unique` | -                     | `k3x9q2mf7a`                                                                       | Dipakai di URL responder (`/form/{slug}`). Sesuai komentar developer: **random, bukan dari judul**, supaya link yang sudah dibagikan tidak rusak kalau judul diedit.                                                         |
+| `eventId`                    | String                     | `nullable`            | -                     | `event-20261020-ab12cd`                                                            | ID Event terkait (khusus `type = EVENT`). ⚠️ **Bukan FK sungguhan** - model `Event` belum ada, lihat catatan modul. Kolom fisik: `event_id`.                                                                                 |
+| `eventNameSnapshot`          | VarChar                    | `nullable`            | -                     | `Webinar Data Science 2026`                                                        | Nama Event saat dikaitkan, buat info kalau Event-nya dihapus. Kolom fisik: `event_name_snapshot`.                                                                                                                            |
+| `showOnEventPage`            | Boolean                    | `NOT NULL`            | `true`                | `true`                                                                             | Tampil/tidaknya form di halaman Event - terpisah dari status Publish, dan hanya berlaku untuk `type = EVENT` (sesuai komentar developer). Kolom fisik: `show_on_event_page`.                                                 |
+| `eventTitle`                 | VarChar(200)               | `nullable`            | -                     | `Hackathon Data Science 2026`                                                      | Judul besar di halaman publik Event - **beda dari `title`** (judul form), sesuai komentar developer. Khusus `type = EVENT`. Kolom fisik: `event_title`.                                                                      |
+| `eventDescription`           | Text                       | `nullable`            | -                     | `Kompetisi analisis data selama 2 hari untuk mahasiswa dan fresh graduate.`        | Isi tab "Deskripsi" di halaman publik Event. Kolom fisik: `event_description`.                                                                                                                                               |
+| `eventStartAt`               | Timestamp(6)               | `nullable`            | -                     | `2026-11-20T09:00:00Z`                                                             | Waktu Event mulai. Kolom fisik: `event_start_at`.                                                                                                                                                                            |
+| `eventEndAt`                 | Timestamp(6)               | `nullable`            | -                     | `2026-11-21T17:00:00Z`                                                             | Waktu Event selesai. Kolom fisik: `event_end_at`.                                                                                                                                                                            |
+| `eventMode`                  | Enum `FormEventMode`       | `nullable`            | -                     | `HYBRID`                                                                           | Mode pelaksanaan Event: `ONLINE`, `OFFLINE`, atau `HYBRID`. Kolom fisik: `event_mode`.                                                                                                                                       |
+| `eventLocation`              | VarChar(255)               | `nullable`            | -                     | `Online (Zoom)`                                                                    | Lokasi Event. Sesuai komentar developer, isinya bisa `"Online"`, nama tempat, atau link platform. Kolom fisik: `event_location`.                                                                                             |
+| `eventOrganizer`             | VarChar(150)               | `nullable`            | -                     | `TemuDataku`                                                                       | Penyelenggara Event. Kolom fisik: `event_organizer`.                                                                                                                                                                         |
+| `eventCategoryLabel`         | VarChar(80)                | `nullable`            | -                     | `Hackathon`                                                                        | Label kategori Event yang tampil di halaman publik (mis. "Hackathon"). ⚠️ **Bukan** `categoryId` / `form_categories` (jenis form) - ini teks bebas tanpa FK, sesuai komentar developer. Kolom fisik: `event_category_label`. |
+| `eventTimeline`              | JsonB                      | `nullable`            | -                     | `[{"id":"t1","title":"Pembukaan","date":"2026-11-20","time":"09.00 - 12.00 WIB"}]` | Daftar rangkaian acara. Bentuk (komentar developer): `[{ id, title, description?, date? "YYYY-MM-DD", time? "09.00 - 12.00 WIB" }]`, **maks 30 item**. Kolom fisik: `event_timeline`.                                        |
+| `eventFaqs`                  | JsonB                      | `nullable`            | -                     | `[{"id":"f1","question":"Apakah gratis?","answer":"Ya, gratis."}]`                 | Daftar FAQ Event. Bentuk (komentar developer): `[{ id, question, answer }]`, **maks 30 item**. Kolom fisik: `event_faqs`.                                                                                                    |
+| `acceptingResponses`         | Boolean                    | `NOT NULL`            | `true`                | `true`                                                                             | Switch manual penerimaan response - **beda dari `status`** (form bisa `PUBLISHED` tapi tidak menerima response). Kolom fisik: `accepting_responses`.                                                                         |
+| `responseLimitEnabled`       | Boolean                    | `NOT NULL`            | `false`               | `true`                                                                             | `true` = batas jumlah response aktif (nilainya di `responseLimit`).                                                                                                                                                          |
+| `responseLimit`              | Int                        | `nullable`            | -                     | `100`                                                                              | Batas maksimal response final. Relevan kalau `responseLimitEnabled = true`.                                                                                                                                                  |
+| `periodEnabled`              | Boolean                    | `NOT NULL`            | `false`               | `true`                                                                             | `true` = form hanya menerima response dalam rentang `openAt`-`closeAt`.                                                                                                                                                      |
+| `openAt`                     | Timestamp(6)               | `nullable`            | -                     | `2026-11-01T00:00:00Z`                                                             | Waktu form mulai menerima response.                                                                                                                                                                                          |
+| `closeAt`                    | Timestamp(6)               | `nullable`            | -                     | `2026-11-30T23:59:59Z`                                                             | Waktu form berhenti menerima response.                                                                                                                                                                                       |
+| `submittedResponseCount`     | Int                        | `NOT NULL`            | `0`                   | `42`                                                                               | Counter submission **final** (status `SUBMITTED`), dipakai untuk cek limit secara atomic (sesuai komentar developer). Kolom fisik: `submitted_response_count`.                                                               |
+| `responderAccess`            | Enum `FormResponderAccess` | `NOT NULL`            | `ANYONE_WITH_LINK`    | `LOGIN_REQUIRED`                                                                   | `ANYONE_WITH_LINK` atau `LOGIN_REQUIRED`.                                                                                                                                                                                    |
+| `collectEmail`               | Boolean                    | `NOT NULL`            | `false`               | `true`                                                                             | `true` = form meminta email responder.                                                                                                                                                                                       |
+| `limitOneResponsePerAccount` | Boolean                    | `NOT NULL`            | `false`               | `true`                                                                             | `true` = satu akun cuma boleh submit sekali.                                                                                                                                                                                 |
+| `allowEditResponse`          | Boolean                    | `NOT NULL`            | `false`               | `false`                                                                            | `true` = responder boleh mengedit response setelah submit.                                                                                                                                                                   |
+| `sendResponseReceipt`        | Boolean                    | `NOT NULL`            | `false`               | `false`                                                                            | `true` = responder dikirimi bukti/receipt response.                                                                                                                                                                          |
+| `allowResponderDraft`        | Boolean                    | `NOT NULL`            | `false`               | `false`                                                                            | `true` = responder boleh menyimpan draft (autosave) - lihat `form_responses.status`.                                                                                                                                         |
+| `shuffleQuestionOrder`       | Boolean                    | `NOT NULL`            | `false`               | `false`                                                                            | `true` = urutan pertanyaan diacak.                                                                                                                                                                                           |
+| `notifyOnNewResponse`        | Boolean                    | `NOT NULL`            | `false`               | `true`                                                                             | `true` = pembuat dinotifikasi tiap ada response baru.                                                                                                                                                                        |
+| `confirmationMessage`        | Text                       | `nullable`            | -                     | `Terima kasih, response kamu sudah kami terima.`                                   | Pesan yang tampil setelah submit.                                                                                                                                                                                            |
+| `closedMessage`              | Text                       | `nullable`            | -                     | `Form ini sudah ditutup.`                                                          | Pesan yang tampil kalau form tidak menerima response.                                                                                                                                                                        |
+| `headerImage`                | VarChar                    | `nullable`            | -                     | `/images/forms/header-webinar.jpg`                                                 | Gambar header form.                                                                                                                                                                                                          |
+| `themeColor`                 | VarChar                    | `nullable`            | -                     | `#10B981`                                                                          | Warna tema (hex).                                                                                                                                                                                                            |
+| `backgroundColor`            | VarChar                    | `nullable`            | -                     | `#F3F4F6`                                                                          | Warna latar (hex).                                                                                                                                                                                                           |
+| `fontPreset`                 | VarChar                    | `nullable`            | -                     | `inter`                                                                            | Key preset font dari sistem.                                                                                                                                                                                                 |
+| `publishedAt`                | Timestamp(6)               | `nullable`            | -                     | `2026-10-20T09:00:00Z`                                                             | Waktu form dipublish.                                                                                                                                                                                                        |
+| `archivedAt`                 | Timestamp(6)               | `nullable`            | -                     | `2026-12-01T00:00:00Z`                                                             | Waktu form diarsipkan.                                                                                                                                                                                                       |
+| `createdById`                | String                     | `nullable`, 🔗 FK     | -                     | `000001`                                                                           | User pembuat form. Kolom fisik: `created_by_id`.                                                                                                                                                                             |
+| `createdAt`                  | Timestamp(6)               | `NOT NULL`            | `now()`               | `2026-10-15T10:30:00Z`                                                             | Waktu dibuat.                                                                                                                                                                                                                |
+| `updatedAt`                  | Timestamp(6)               | `NOT NULL`            | _(auto)_              | `2026-10-16T08:00:00Z`                                                             | Pakai `@updatedAt` - otomatis.                                                                                                                                                                                               |
 
 #### Primary Key & Foreign Key
 
@@ -4398,6 +4420,17 @@ response karena kuota habis atau periode berakhir. `submittedResponseCount`
 sengaja disimpan sebagai counter (bukan dihitung ulang dari
 `form_responses`) supaya pengecekan limit bisa atomic.
 
+**Info Event (`event*`)**: ke-10 kolom berawalan `event` (kecuali `eventId`
+dan `eventNameSnapshot` yang sudah ada sebelumnya) menyimpan konten halaman
+publik Form Event. Semuanya `nullable` tanpa default, dan menurut komentar
+developer hanya berlaku untuk `type = EVENT`; **tidak ada constraint di
+database** yang melarang kolom ini terisi di form `NON_EVENT`, jadi
+pembatasannya dijaga kode aplikasi. Batas maksimal 30 item pada
+`eventTimeline` dan `eventFaqs` serta bentuk JSON-nya juga tidak divalidasi
+database. Jangan tertukar: `eventCategoryLabel` (teks bebas untuk tampilan
+Event, mis. "Hackathon") berbeda dari `categoryId` (jenis form, FK ke
+`form_categories`, mis. "Pendaftaran").
+
 ---
 
 ### 5.117b `form_sections`
@@ -4409,18 +4442,18 @@ menentukan navigasi setelah selesai (lanjut/lompat/submit).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (custom ID) | 🔑 PK, `NOT NULL` | `cuid()` *(cadangan)* | `fsc_rcVE6gq25Rnk_PQcxkFqIw` | ID unik section. Dibuat aplikasi: `fsc_` + 22 karakter acak. |
-| `formId` | String | `NOT NULL`, 🔗 FK | - | `frm_5F9N4wWV4FMKwv53tEFZZw` | Form induk. Kolom fisik: `form_id`. |
-| `title` | VarChar | `nullable` | - | `Data Diri` | Judul section. |
-| `description` | Text | `nullable` | - | `Isi data diri kamu dengan benar.` | Deskripsi section. |
-| `orderNumber` | Int | `NOT NULL` | - | `1` | Urutan section dalam form. Kolom fisik: `order_number`. |
-| `nextAction` | Enum `FormNavigationAction` | `NOT NULL` | `NEXT` | `GO_TO_SECTION` | Navigasi setelah section ini selesai: `NEXT`, `GO_TO_SECTION`, atau `SUBMIT`. Kolom fisik: `next_action`. |
-| `nextSectionId` | String | `nullable`, 🔗 FK | - | `fsc_I2bSSaDsD7OPfaw32Aj4Jw` | Section tujuan - diisi kalau `nextAction = GO_TO_SECTION`. Self-relation. Kolom fisik: `next_section_id`. |
-| `deletedAt` | Timestamp(6) | `nullable` | - | `null` (belum dihapus) | **Soft delete.** Kolom fisik: `deleted_at`. |
-| `createdAt` | Timestamp(6) | `NOT NULL` | `now()` | `2026-10-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | Timestamp(6) | `NOT NULL` | *(auto)* | `2026-10-16T08:00:00Z` | Pakai `@updatedAt`. |
+| Kolom           | Tipe Data                   | Constraint        | Default               | Contoh Value                       | Keterangan                                                                                                |
+| --------------- | --------------------------- | ----------------- | --------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `id`            | String (custom ID)          | 🔑 PK, `NOT NULL` | `cuid()` _(cadangan)_ | `fsc_rcVE6gq25Rnk_PQcxkFqIw`       | ID unik section. Dibuat aplikasi: `fsc_` + 22 karakter acak.                                              |
+| `formId`        | String                      | `NOT NULL`, 🔗 FK | -                     | `frm_5F9N4wWV4FMKwv53tEFZZw`       | Form induk. Kolom fisik: `form_id`.                                                                       |
+| `title`         | VarChar                     | `nullable`        | -                     | `Data Diri`                        | Judul section.                                                                                            |
+| `description`   | Text                        | `nullable`        | -                     | `Isi data diri kamu dengan benar.` | Deskripsi section.                                                                                        |
+| `orderNumber`   | Int                         | `NOT NULL`        | -                     | `1`                                | Urutan section dalam form. Kolom fisik: `order_number`.                                                   |
+| `nextAction`    | Enum `FormNavigationAction` | `NOT NULL`        | `NEXT`                | `GO_TO_SECTION`                    | Navigasi setelah section ini selesai: `NEXT`, `GO_TO_SECTION`, atau `SUBMIT`. Kolom fisik: `next_action`. |
+| `nextSectionId` | String                      | `nullable`, 🔗 FK | -                     | `fsc_I2bSSaDsD7OPfaw32Aj4Jw`       | Section tujuan - diisi kalau `nextAction = GO_TO_SECTION`. Self-relation. Kolom fisik: `next_section_id`. |
+| `deletedAt`     | Timestamp(6)                | `nullable`        | -                     | `null` (belum dihapus)             | **Soft delete.** Kolom fisik: `deleted_at`.                                                               |
+| `createdAt`     | Timestamp(6)                | `NOT NULL`        | `now()`               | `2026-10-15T10:30:00Z`             | Waktu dibuat.                                                                                             |
+| `updatedAt`     | Timestamp(6)                | `NOT NULL`        | _(auto)_              | `2026-10-16T08:00:00Z`             | Pakai `@updatedAt`.                                                                                       |
 
 #### Primary Key & Foreign Key
 
@@ -4454,22 +4487,22 @@ tabel yang sama, supaya urutannya satu daftar dan reorder cukup mengubah
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (custom ID) | 🔑 PK, `NOT NULL` | `cuid()` *(cadangan)* | `fit_YX2aoFF8y287hSbCjyU5kQ` | ID unik item, dibuat aplikasi: `fit_` + 22 karakter acak. Sesuai komentar developer: **stabil** - jangan pernah di-recreate saat label diedit. |
-| `formId` | String | `NOT NULL`, 🔗 FK | - | `frm_5F9N4wWV4FMKwv53tEFZZw` | Form induk. **Redundan** dengan `section.formId` - sengaja, supaya query "semua item satu form" cukup satu query. Kolom fisik: `form_id`. |
-| `sectionId` | String | `NOT NULL`, 🔗 FK | - | `fsc_rcVE6gq25Rnk_PQcxkFqIw` | Section tempat item berada. Kolom fisik: `section_id`. |
-| `orderNumber` | Int | `NOT NULL` | - | `1` | Urutan item dalam section. Kolom fisik: `order_number`. |
-| `type` | Enum `FormItemType` | `NOT NULL` | - | `MULTIPLE_CHOICE` | Tipe item - 15 nilai, lihat tabel enum di atas. |
-| `title` | Text | `nullable` | - | `Dari mana kamu tahu webinar ini?` | Label pertanyaan / judul blok. `null` untuk `IMAGE`/`VIDEO`. |
-| `description` | Text | `nullable` | - | `Pilih salah satu.` | Deskripsi/petunjuk item. |
-| `isRequired` | Boolean | `NOT NULL` | `false` | `true` | `true` = wajib dijawab. Kolom fisik: `is_required`. |
-| `shuffleOptions` | Boolean | `NOT NULL` | `false` | `false` | `true` = urutan pilihan jawaban diacak. Kolom fisik: `shuffle_options`. |
-| `validation` | JsonB | `nullable` | - | `{"kind":"length","op":"max","value":100,"message":"Maksimal 100 karakter"}` | Aturan validasi per tipe + custom error message. Bentuknya bervariasi per `kind` - lihat catatan. |
-| `config` | JsonB | `nullable` | - | `{"min":1,"max":5,"minLabel":"Buruk","maxLabel":"Bagus"}` | Konfigurasi khusus tipe. Bentuknya bervariasi per `type` - lihat catatan. |
-| `deletedAt` | Timestamp(6) | `nullable` | - | `null` (belum dihapus) | **Soft delete** - supaya response lama tetap valid. Kolom fisik: `deleted_at`. |
-| `createdAt` | Timestamp(6) | `NOT NULL` | `now()` | `2026-10-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | Timestamp(6) | `NOT NULL` | *(auto)* | `2026-10-16T08:00:00Z` | Pakai `@updatedAt`. |
+| Kolom            | Tipe Data           | Constraint        | Default               | Contoh Value                                                                 | Keterangan                                                                                                                                     |
+| ---------------- | ------------------- | ----------------- | --------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`             | String (custom ID)  | 🔑 PK, `NOT NULL` | `cuid()` _(cadangan)_ | `fit_YX2aoFF8y287hSbCjyU5kQ`                                                 | ID unik item, dibuat aplikasi: `fit_` + 22 karakter acak. Sesuai komentar developer: **stabil** - jangan pernah di-recreate saat label diedit. |
+| `formId`         | String              | `NOT NULL`, 🔗 FK | -                     | `frm_5F9N4wWV4FMKwv53tEFZZw`                                                 | Form induk. **Redundan** dengan `section.formId` - sengaja, supaya query "semua item satu form" cukup satu query. Kolom fisik: `form_id`.      |
+| `sectionId`      | String              | `NOT NULL`, 🔗 FK | -                     | `fsc_rcVE6gq25Rnk_PQcxkFqIw`                                                 | Section tempat item berada. Kolom fisik: `section_id`.                                                                                         |
+| `orderNumber`    | Int                 | `NOT NULL`        | -                     | `1`                                                                          | Urutan item dalam section. Kolom fisik: `order_number`.                                                                                        |
+| `type`           | Enum `FormItemType` | `NOT NULL`        | -                     | `MULTIPLE_CHOICE`                                                            | Tipe item - 15 nilai, lihat tabel enum di atas.                                                                                                |
+| `title`          | Text                | `nullable`        | -                     | `Dari mana kamu tahu webinar ini?`                                           | Label pertanyaan / judul blok. `null` untuk `IMAGE`/`VIDEO`.                                                                                   |
+| `description`    | Text                | `nullable`        | -                     | `Pilih salah satu.`                                                          | Deskripsi/petunjuk item.                                                                                                                       |
+| `isRequired`     | Boolean             | `NOT NULL`        | `false`               | `true`                                                                       | `true` = wajib dijawab. Kolom fisik: `is_required`.                                                                                            |
+| `shuffleOptions` | Boolean             | `NOT NULL`        | `false`               | `false`                                                                      | `true` = urutan pilihan jawaban diacak. Kolom fisik: `shuffle_options`.                                                                        |
+| `validation`     | JsonB               | `nullable`        | -                     | `{"kind":"length","op":"max","value":100,"message":"Maksimal 100 karakter"}` | Aturan validasi per tipe + custom error message. Bentuknya bervariasi per `kind` - lihat catatan.                                              |
+| `config`         | JsonB               | `nullable`        | -                     | `{"min":1,"max":5,"minLabel":"Buruk","maxLabel":"Bagus"}`                    | Konfigurasi khusus tipe. Bentuknya bervariasi per `type` - lihat catatan.                                                                      |
+| `deletedAt`      | Timestamp(6)        | `nullable`        | -                     | `null` (belum dihapus)                                                       | **Soft delete** - supaya response lama tetap valid. Kolom fisik: `deleted_at`.                                                                 |
+| `createdAt`      | Timestamp(6)        | `NOT NULL`        | `now()`               | `2026-10-15T10:30:00Z`                                                       | Waktu dibuat.                                                                                                                                  |
+| `updatedAt`      | Timestamp(6)        | `NOT NULL`        | _(auto)_              | `2026-10-16T08:00:00Z`                                                       | Pakai `@updatedAt`.                                                                                                                            |
 
 #### Primary Key & Foreign Key
 
@@ -4488,19 +4521,19 @@ Dua kolom `JsonB` di tabel ini strukturnya **tidak seragam** dan hanya
 terdokumentasi lewat komentar developer di skema - kode yang membacanya
 wajib cek `type`/`kind` dulu. Contoh dari komentar developer:
 
-| Kolom | Konteks | Contoh isi |
-|---|---|---|
-| `validation` | angka | `{"kind":"number","op":"between","min":1,"max":10,"message":"..."}` |
-| `validation` | panjang teks | `{"kind":"length","op":"max","value":100,"message":"..."}` |
-| `validation` | regex | `{"kind":"regex","value":"^[0-9]+$","message":"..."}` |
-| `validation` | jumlah pilihan (Checkboxes) | `{"kind":"selectCount","op":"atLeast\|atMost\|exactly","value":2,"message":"..."}` |
-| `config` | `LINEAR_SCALE` | `{"min":1,"max":5,"minLabel":"Buruk","maxLabel":"Bagus"}` |
-| `config` | `RATING` | `{"max":5}` |
-| `config` | `FILE_UPLOAD` | `{"maxFiles":1,"maxSizeMb":10,"allowedTypes":["pdf","image"]}` |
-| `config` | `DATE` | `{"includeYear":true}` |
-| `config` | `TIME_DURATION` | `{"mode":"time"\|"duration"}` |
-| `config` | grid (`MULTIPLE_CHOICE_GRID`/`CHECKBOX_GRID`) | `{"requireEachRow":true,"oneResponsePerColumn":false}` |
-| `config` | `IMAGE`/`VIDEO` | `{"url":"...","caption":"...","widthPercent":100}` |
+| Kolom        | Konteks                                       | Contoh isi                                                                         |
+| ------------ | --------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `validation` | angka                                         | `{"kind":"number","op":"between","min":1,"max":10,"message":"..."}`                |
+| `validation` | panjang teks                                  | `{"kind":"length","op":"max","value":100,"message":"..."}`                         |
+| `validation` | regex                                         | `{"kind":"regex","value":"^[0-9]+$","message":"..."}`                              |
+| `validation` | jumlah pilihan (Checkboxes)                   | `{"kind":"selectCount","op":"atLeast\|atMost\|exactly","value":2,"message":"..."}` |
+| `config`     | `LINEAR_SCALE`                                | `{"min":1,"max":5,"minLabel":"Buruk","maxLabel":"Bagus"}`                          |
+| `config`     | `RATING`                                      | `{"max":5}`                                                                        |
+| `config`     | `FILE_UPLOAD`                                 | `{"maxFiles":1,"maxSizeMb":10,"allowedTypes":["pdf","image"]}`                     |
+| `config`     | `DATE`                                        | `{"includeYear":true}`                                                             |
+| `config`     | `TIME_DURATION`                               | `{"mode":"time"\|"duration"}`                                                      |
+| `config`     | grid (`MULTIPLE_CHOICE_GRID`/`CHECKBOX_GRID`) | `{"requireEachRow":true,"oneResponsePerColumn":false}`                             |
+| `config`     | `IMAGE`/`VIDEO`                               | `{"url":"...","caption":"...","widthPercent":100}`                                 |
 
 Berbeda dari `ct_e_learning_image_video_contents`/`ct_article_image_video_contents`
 yang punya kolom `url`/`caption`/`widthPercent` sendiri, elemen `IMAGE`/`VIDEO`
@@ -4516,18 +4549,18 @@ item - dibedakan lewat kolom `kind`. Juga membawa aturan **branching**
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (custom ID) | 🔑 PK, `NOT NULL` | `cuid()` *(cadangan)* | `fop_At82KxVu5lnrwylimGVXHQ` | ID unik option. Dibuat aplikasi: `fop_` + 22 karakter acak. |
-| `itemId` | String | `NOT NULL`, 🔗 FK | - | `fit_YX2aoFF8y287hSbCjyU5kQ` | Item induk. Kolom fisik: `item_id`. |
-| `kind` | Enum `FormOptionKind` | `NOT NULL` | `CHOICE` | `GRID_ROW` | `CHOICE` (pilihan biasa), `GRID_ROW` (baris grid), atau `GRID_COLUMN` (kolom grid). |
-| `label` | VarChar | `NOT NULL` | - | `Instagram` | Teks pilihan / label baris / label kolom. |
-| `orderNumber` | Int | `NOT NULL` | - | `1` | Urutan tampil. Kolom fisik: `order_number`. |
-| `branchAction` | Enum `FormNavigationAction` | `NOT NULL` | `NEXT` | `GO_TO_SECTION` | Aksi navigasi kalau option ini dipilih: `NEXT`, `GO_TO_SECTION`, atau `SUBMIT`. Kolom fisik: `branch_action`. |
-| `branchSectionId` | String | `nullable`, 🔗 FK | - | `fsc_I2bSSaDsD7OPfaw32Aj4Jw` | Section tujuan - diisi kalau `branchAction = GO_TO_SECTION`. Kolom fisik: `branch_section_id`. |
-| `deletedAt` | Timestamp(6) | `nullable` | - | `null` (belum dihapus) | **Soft delete.** Kolom fisik: `deleted_at`. |
-| `createdAt` | Timestamp(6) | `NOT NULL` | `now()` | `2026-10-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | Timestamp(6) | `NOT NULL` | *(auto)* | `2026-10-16T08:00:00Z` | Pakai `@updatedAt`. |
+| Kolom             | Tipe Data                   | Constraint        | Default               | Contoh Value                 | Keterangan                                                                                                    |
+| ----------------- | --------------------------- | ----------------- | --------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `id`              | String (custom ID)          | 🔑 PK, `NOT NULL` | `cuid()` _(cadangan)_ | `fop_At82KxVu5lnrwylimGVXHQ` | ID unik option. Dibuat aplikasi: `fop_` + 22 karakter acak.                                                   |
+| `itemId`          | String                      | `NOT NULL`, 🔗 FK | -                     | `fit_YX2aoFF8y287hSbCjyU5kQ` | Item induk. Kolom fisik: `item_id`.                                                                           |
+| `kind`            | Enum `FormOptionKind`       | `NOT NULL`        | `CHOICE`              | `GRID_ROW`                   | `CHOICE` (pilihan biasa), `GRID_ROW` (baris grid), atau `GRID_COLUMN` (kolom grid).                           |
+| `label`           | VarChar                     | `NOT NULL`        | -                     | `Instagram`                  | Teks pilihan / label baris / label kolom.                                                                     |
+| `orderNumber`     | Int                         | `NOT NULL`        | -                     | `1`                          | Urutan tampil. Kolom fisik: `order_number`.                                                                   |
+| `branchAction`    | Enum `FormNavigationAction` | `NOT NULL`        | `NEXT`                | `GO_TO_SECTION`              | Aksi navigasi kalau option ini dipilih: `NEXT`, `GO_TO_SECTION`, atau `SUBMIT`. Kolom fisik: `branch_action`. |
+| `branchSectionId` | String                      | `nullable`, 🔗 FK | -                     | `fsc_I2bSSaDsD7OPfaw32Aj4Jw` | Section tujuan - diisi kalau `branchAction = GO_TO_SECTION`. Kolom fisik: `branch_section_id`.                |
+| `deletedAt`       | Timestamp(6)                | `nullable`        | -                     | `null` (belum dihapus)       | **Soft delete.** Kolom fisik: `deleted_at`.                                                                   |
+| `createdAt`       | Timestamp(6)                | `NOT NULL`        | `now()`               | `2026-10-15T10:30:00Z`       | Waktu dibuat.                                                                                                 |
+| `updatedAt`       | Timestamp(6)                | `NOT NULL`        | _(auto)_              | `2026-10-16T08:00:00Z`       | Pakai `@updatedAt`.                                                                                           |
 
 #### Primary Key & Foreign Key
 
@@ -4560,18 +4593,18 @@ komentar developer).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (custom ID) | 🔑 PK, `NOT NULL` | `cuid()` *(cadangan)* | `frs_clY5ZIYdutqKsAZiC8gE_Q` | ID unik response. Dibuat aplikasi: `frs_` + 22 karakter acak. |
-| `formId` | String | `NOT NULL`, 🔗 FK | - | `frm_5F9N4wWV4FMKwv53tEFZZw` | Form yang diisi. Kolom fisik: `form_id`. |
-| `userId` | String | `nullable`, 🔗 FK | - | `000016` | Responder - **`null` kalau anonim** (`responderAccess = ANYONE_WITH_LINK`). Kolom fisik: `user_id`. |
-| `respondentEmail` | VarChar | `nullable` | - | `budi.santoso@email.com` | Email responder (relevan kalau `forms.collectEmail = true`). Kolom fisik: `respondent_email`. |
-| `status` | Enum `FormResponseStatus` | `NOT NULL` | `DRAFT` | `SUBMITTED` | `DRAFT` (autosave, **belum** dihitung submission final) atau `SUBMITTED`. |
-| `submittedAt` | Timestamp(6) | `nullable` | - | `2026-10-21T14:05:00Z` | Waktu submit final. Kolom fisik: `submitted_at`. |
-| `editToken` | VarChar | `nullable`, `@unique` | - | `e8b1f0c2a97d4e3b` | Token akses edit response untuk responder anonim (dikirim lewat link/receipt). Kolom fisik: `edit_token`. |
-| `idempotencyKey` | VarChar | `nullable` | - | `idem-9f3a2c71` | Dikirim client per percobaan submit; retry dengan key sama tidak bikin duplikat. Kolom fisik: `idempotency_key`. |
-| `createdAt` | Timestamp(6) | `NOT NULL` | `now()` | `2026-10-21T14:00:00Z` | Waktu baris dibuat. |
-| `updatedAt` | Timestamp(6) | `NOT NULL` | *(auto)* | `2026-10-21T14:05:00Z` | Pakai `@updatedAt`. |
+| Kolom             | Tipe Data                 | Constraint            | Default               | Contoh Value                 | Keterangan                                                                                                       |
+| ----------------- | ------------------------- | --------------------- | --------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `id`              | String (custom ID)        | 🔑 PK, `NOT NULL`     | `cuid()` _(cadangan)_ | `frs_clY5ZIYdutqKsAZiC8gE_Q` | ID unik response. Dibuat aplikasi: `frs_` + 22 karakter acak.                                                    |
+| `formId`          | String                    | `NOT NULL`, 🔗 FK     | -                     | `frm_5F9N4wWV4FMKwv53tEFZZw` | Form yang diisi. Kolom fisik: `form_id`.                                                                         |
+| `userId`          | String                    | `nullable`, 🔗 FK     | -                     | `000016`                     | Responder - **`null` kalau anonim** (`responderAccess = ANYONE_WITH_LINK`). Kolom fisik: `user_id`.              |
+| `respondentEmail` | VarChar                   | `nullable`            | -                     | `budi.santoso@email.com`     | Email responder (relevan kalau `forms.collectEmail = true`). Kolom fisik: `respondent_email`.                    |
+| `status`          | Enum `FormResponseStatus` | `NOT NULL`            | `DRAFT`               | `SUBMITTED`                  | `DRAFT` (autosave, **belum** dihitung submission final) atau `SUBMITTED`.                                        |
+| `submittedAt`     | Timestamp(6)              | `nullable`            | -                     | `2026-10-21T14:05:00Z`       | Waktu submit final. Kolom fisik: `submitted_at`.                                                                 |
+| `editToken`       | VarChar                   | `nullable`, `@unique` | -                     | `e8b1f0c2a97d4e3b`           | Token akses edit response untuk responder anonim (dikirim lewat link/receipt). Kolom fisik: `edit_token`.        |
+| `idempotencyKey`  | VarChar                   | `nullable`            | -                     | `idem-9f3a2c71`              | Dikirim client per percobaan submit; retry dengan key sama tidak bikin duplikat. Kolom fisik: `idempotency_key`. |
+| `createdAt`       | Timestamp(6)              | `NOT NULL`            | `now()`               | `2026-10-21T14:00:00Z`       | Waktu baris dibuat.                                                                                              |
+| `updatedAt`       | Timestamp(6)              | `NOT NULL`            | _(auto)_              | `2026-10-21T14:05:00Z`       | Pakai `@updatedAt`.                                                                                              |
 
 #### Primary Key & Foreign Key
 
@@ -4613,16 +4646,16 @@ diedit kemudian.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (custom ID) | 🔑 PK, `NOT NULL` | `cuid()` *(cadangan)* | `fan_WeI697FjBnTVaNyCXYoajQ` | ID unik jawaban. Dibuat aplikasi: `fan_` + 22 karakter acak. |
-| `responseId` | String | `NOT NULL`, 🔗 FK | - | `frs_clY5ZIYdutqKsAZiC8gE_Q` | Response induk. Kolom fisik: `response_id`. |
-| `itemId` | String | `NOT NULL`, 🔗 FK | - | `fit_YX2aoFF8y287hSbCjyU5kQ` | Item yang dijawab. Kolom fisik: `item_id`. |
-| `itemTypeSnapshot` | Enum `FormItemType` | `NOT NULL` | - | `SHORT_ANSWER` | Snapshot tipe item saat dijawab. Kolom fisik: `item_type_snapshot`. |
-| `itemTitleSnapshot` | Text | `nullable` | - | `Siapa nama lengkap kamu?` | Snapshot judul/label item saat dijawab. Kolom fisik: `item_title_snapshot`. |
-| `valueText` | Text | `nullable` | - | `Budi Santoso` | Jawaban teks: short answer, paragraph, atau time/duration (format `"HH:mm:ss"`, sesuai komentar developer). Kolom fisik: `value_text`. |
-| `valueNumber` | Int | `nullable` | - | `4` | Jawaban angka: linear scale atau rating. Kolom fisik: `value_number`. |
-| `valueDate` | Date | `nullable` | - | `2026-10-21` | Jawaban tanggal (tipe `DATE`, tanpa jam). Kolom fisik: `value_date`. |
+| Kolom               | Tipe Data           | Constraint        | Default               | Contoh Value                 | Keterangan                                                                                                                             |
+| ------------------- | ------------------- | ----------------- | --------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                | String (custom ID)  | 🔑 PK, `NOT NULL` | `cuid()` _(cadangan)_ | `fan_WeI697FjBnTVaNyCXYoajQ` | ID unik jawaban. Dibuat aplikasi: `fan_` + 22 karakter acak.                                                                           |
+| `responseId`        | String              | `NOT NULL`, 🔗 FK | -                     | `frs_clY5ZIYdutqKsAZiC8gE_Q` | Response induk. Kolom fisik: `response_id`.                                                                                            |
+| `itemId`            | String              | `NOT NULL`, 🔗 FK | -                     | `fit_YX2aoFF8y287hSbCjyU5kQ` | Item yang dijawab. Kolom fisik: `item_id`.                                                                                             |
+| `itemTypeSnapshot`  | Enum `FormItemType` | `NOT NULL`        | -                     | `SHORT_ANSWER`               | Snapshot tipe item saat dijawab. Kolom fisik: `item_type_snapshot`.                                                                    |
+| `itemTitleSnapshot` | Text                | `nullable`        | -                     | `Siapa nama lengkap kamu?`   | Snapshot judul/label item saat dijawab. Kolom fisik: `item_title_snapshot`.                                                            |
+| `valueText`         | Text                | `nullable`        | -                     | `Budi Santoso`               | Jawaban teks: short answer, paragraph, atau time/duration (format `"HH:mm:ss"`, sesuai komentar developer). Kolom fisik: `value_text`. |
+| `valueNumber`       | Int                 | `nullable`        | -                     | `4`                          | Jawaban angka: linear scale atau rating. Kolom fisik: `value_number`.                                                                  |
+| `valueDate`         | Date                | `nullable`        | -                     | `2026-10-21`                 | Jawaban tanggal (tipe `DATE`, tanpa jam). Kolom fisik: `value_date`.                                                                   |
 
 #### Primary Key & Foreign Key
 
@@ -4660,14 +4693,14 @@ yang memilih 3 opsi menghasilkan 3 baris).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (custom ID) | 🔑 PK, `NOT NULL` | `cuid()` *(cadangan)* | `fas_G4ORt1TpgOAAtRu_6BnvmA` | ID unik baris. Dibuat aplikasi: `fas_` + 22 karakter acak. |
-| `answerId` | String | `NOT NULL`, 🔗 FK | - | `fan_WeI697FjBnTVaNyCXYoajQ` | Jawaban induk. Kolom fisik: `answer_id`. |
-| `optionId` | String | `NOT NULL`, 🔗 FK | - | `fop_At82KxVu5lnrwylimGVXHQ` | Option yang dipilih. Untuk grid: **kolom** yang dipilih (sesuai komentar developer). Kolom fisik: `option_id`. |
-| `rowOptionId` | String | `nullable`, 🔗 FK | - | `fop_gAdOlxEQCzet1kTVrWXaLw` | Khusus grid: **baris**-nya. `null` untuk tipe non-grid. Kolom fisik: `row_option_id`. |
-| `optionLabelSnapshot` | VarChar | `NOT NULL` | - | `Instagram` | Snapshot label option saat dipilih. Kolom fisik: `option_label_snapshot`. |
-| `rowLabelSnapshot` | VarChar | `nullable` | - | `Kualitas materi` | Snapshot label baris (khusus grid). Kolom fisik: `row_label_snapshot`. |
+| Kolom                 | Tipe Data          | Constraint        | Default               | Contoh Value                 | Keterangan                                                                                                     |
+| --------------------- | ------------------ | ----------------- | --------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `id`                  | String (custom ID) | 🔑 PK, `NOT NULL` | `cuid()` _(cadangan)_ | `fas_G4ORt1TpgOAAtRu_6BnvmA` | ID unik baris. Dibuat aplikasi: `fas_` + 22 karakter acak.                                                     |
+| `answerId`            | String             | `NOT NULL`, 🔗 FK | -                     | `fan_WeI697FjBnTVaNyCXYoajQ` | Jawaban induk. Kolom fisik: `answer_id`.                                                                       |
+| `optionId`            | String             | `NOT NULL`, 🔗 FK | -                     | `fop_At82KxVu5lnrwylimGVXHQ` | Option yang dipilih. Untuk grid: **kolom** yang dipilih (sesuai komentar developer). Kolom fisik: `option_id`. |
+| `rowOptionId`         | String             | `nullable`, 🔗 FK | -                     | `fop_gAdOlxEQCzet1kTVrWXaLw` | Khusus grid: **baris**-nya. `null` untuk tipe non-grid. Kolom fisik: `row_option_id`.                          |
+| `optionLabelSnapshot` | VarChar            | `NOT NULL`        | -                     | `Instagram`                  | Snapshot label option saat dipilih. Kolom fisik: `option_label_snapshot`.                                      |
+| `rowLabelSnapshot`    | VarChar            | `nullable`        | -                     | `Kualitas materi`            | Snapshot label baris (khusus grid). Kolom fisik: `row_label_snapshot`.                                         |
 
 #### Primary Key & Foreign Key
 
@@ -4696,15 +4729,15 @@ dipilih tidak bisa dihapus permanen (soft delete lewat `form_options.deletedAt`)
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (custom ID) | 🔑 PK, `NOT NULL` | `cuid()` *(cadangan)* | `faf_PDrAaSynu25S0VHCBUXymQ` | ID unik file. Dibuat aplikasi: `faf_` + 22 karakter acak. |
-| `answerId` | String | `NOT NULL`, 🔗 FK | - | `fan_WeI697FjBnTVaNyCXYoajQ` | Jawaban induk. Kolom fisik: `answer_id`. |
-| `originalName` | VarChar | `NOT NULL` | - | `cv-budi-santoso.pdf` | Nama file asli dari responder. Kolom fisik: `original_name`. |
-| `storagePath` | VarChar | `NOT NULL` | - | `formAnswerFiles/ans-20261021-9f3a2c71b8e04d56a1c7e39b.pdf` | Path **relatif** ke folder privat `private/formAnswerFiles`. Nama file dibuat server (`ans-<tanggal>-<24 hex>.<ext>`), bukan nama asli responder. Kolom fisik: `storage_path`. |
-| `mimeType` | VarChar | `nullable` | - | `application/pdf` | MIME type file. Kolom fisik: `mime_type`. |
-| `sizeBytes` | Int | `NOT NULL` | - | `245760` | Ukuran file dalam **byte** (beda dari `sizeKB` di `ct_e_learning_assignment_supporting_files` yang dalam KB). Kolom fisik: `size_bytes`. |
-| `createdAt` | Timestamp(6) | `NOT NULL` | `now()` | `2026-10-21T14:03:00Z` | Waktu diunggah. |
+| Kolom          | Tipe Data          | Constraint        | Default               | Contoh Value                                                | Keterangan                                                                                                                                                                     |
+| -------------- | ------------------ | ----------------- | --------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`           | String (custom ID) | 🔑 PK, `NOT NULL` | `cuid()` _(cadangan)_ | `faf_PDrAaSynu25S0VHCBUXymQ`                                | ID unik file. Dibuat aplikasi: `faf_` + 22 karakter acak.                                                                                                                      |
+| `answerId`     | String             | `NOT NULL`, 🔗 FK | -                     | `fan_WeI697FjBnTVaNyCXYoajQ`                                | Jawaban induk. Kolom fisik: `answer_id`.                                                                                                                                       |
+| `originalName` | VarChar            | `NOT NULL`        | -                     | `cv-budi-santoso.pdf`                                       | Nama file asli dari responder. Kolom fisik: `original_name`.                                                                                                                   |
+| `storagePath`  | VarChar            | `NOT NULL`        | -                     | `formAnswerFiles/ans-20261021-9f3a2c71b8e04d56a1c7e39b.pdf` | Path **relatif** ke folder privat `private/formAnswerFiles`. Nama file dibuat server (`ans-<tanggal>-<24 hex>.<ext>`), bukan nama asli responder. Kolom fisik: `storage_path`. |
+| `mimeType`     | VarChar            | `nullable`        | -                     | `application/pdf`                                           | MIME type file. Kolom fisik: `mime_type`.                                                                                                                                      |
+| `sizeBytes`    | Int                | `NOT NULL`        | -                     | `245760`                                                    | Ukuran file dalam **byte** (beda dari `sizeKB` di `ct_e_learning_assignment_supporting_files` yang dalam KB). Kolom fisik: `size_bytes`.                                       |
+| `createdAt`    | Timestamp(6)       | `NOT NULL`        | `now()`               | `2026-10-21T14:03:00Z`                                      | Waktu diunggah.                                                                                                                                                                |
 
 #### Primary Key & Foreign Key
 
@@ -4731,15 +4764,15 @@ Form Event dan Form Non-Event punya daftar jenisnya masing-masing.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (custom ID) | 🔑 PK, `NOT NULL` | - | `fct_7Hq2LmZk9XvB3nTa5RwYcA` | ID unik jenis. Dibuat aplikasi: `fct_` + 22 karakter acak. Berbeda dari tabel Form lain, tidak ada `cuid()` cadangan. |
-| `type` | Enum `FormType` | `NOT NULL` | - | `EVENT` | Tipe form yang memakai jenis ini: `EVENT` atau `NON_EVENT`. Tidak boleh dicampur. |
-| `name` | VarChar(80) | `NOT NULL` | - | `Pendaftaran` | Nama jenis. |
-| `description` | Text | `nullable` | - | `Form pendaftaran peserta hackathon, kompetisi, seminar, dan webinar.` | Penjelasan kegunaan jenis (tampil di daftar jenis). |
-| `createdById` | String | `nullable`, 🔗 FK | - | `000001` | User pembuat jenis. Kolom fisik: `created_by_id`. |
-| `createdAt` | Timestamp(6) | `NOT NULL` | `now()` | `2026-10-28T09:00:00Z` | Waktu dibuat. Kolom fisik: `created_at`. |
-| `updatedAt` | Timestamp(6) | `NOT NULL` | *(auto)* | `2026-10-28T09:30:00Z` | Pakai `@updatedAt`. Kolom fisik: `updated_at`. |
+| Kolom         | Tipe Data          | Constraint        | Default  | Contoh Value                                                           | Keterangan                                                                                                            |
+| ------------- | ------------------ | ----------------- | -------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `id`          | String (custom ID) | 🔑 PK, `NOT NULL` | -        | `fct_7Hq2LmZk9XvB3nTa5RwYcA`                                           | ID unik jenis. Dibuat aplikasi: `fct_` + 22 karakter acak. Berbeda dari tabel Form lain, tidak ada `cuid()` cadangan. |
+| `type`        | Enum `FormType`    | `NOT NULL`        | -        | `EVENT`                                                                | Tipe form yang memakai jenis ini: `EVENT` atau `NON_EVENT`. Tidak boleh dicampur.                                     |
+| `name`        | VarChar(80)        | `NOT NULL`        | -        | `Pendaftaran`                                                          | Nama jenis.                                                                                                           |
+| `description` | Text               | `nullable`        | -        | `Form pendaftaran peserta hackathon, kompetisi, seminar, dan webinar.` | Penjelasan kegunaan jenis (tampil di daftar jenis).                                                                   |
+| `createdById` | String             | `nullable`, 🔗 FK | -        | `000001`                                                               | User pembuat jenis. Kolom fisik: `created_by_id`.                                                                     |
+| `createdAt`   | Timestamp(6)       | `NOT NULL`        | `now()`  | `2026-10-28T09:00:00Z`                                                 | Waktu dibuat. Kolom fisik: `created_at`.                                                                              |
+| `updatedAt`   | Timestamp(6)       | `NOT NULL`        | _(auto)_ | `2026-10-28T09:30:00Z`                                                 | Pakai `@updatedAt`. Kolom fisik: `updated_at`.                                                                        |
 
 #### Primary Key & Foreign Key
 
@@ -4767,11 +4800,11 @@ masih dipakai form (termasuk yang sudah diarsipkan) tidak bisa dihapus.
 
 ---
 
-*(Modul **Form** sudah lengkap dengan ini - 9 tabel (5.117a-5.117i) dan 7
+_(Modul **Form** sudah lengkap dengan ini - 9 tabel (5.117a-5.117i) dan 8
 enum baru (`FormType`, `FormStatus`, `FormResponderAccess`,
 `FormNavigationAction`, `FormItemType`, `FormOptionKind`,
-`FormResponseStatus`). Penomoran memakai sufiks huruf (`5.117a` dst.)
-supaya nomor section setelahnya (5.118 dst.) tidak bergeser.)*
+`FormResponseStatus`, `FormEventMode`). Penomoran memakai sufiks huruf (`5.117a` dst.)
+supaya nomor section setelahnya (5.118 dst.) tidak bergeser.)_
 
 ## Modul Pendukung (Notifikasi & Utilitas)
 
@@ -4784,8 +4817,9 @@ supaya nomor section setelahnya (5.118 dst.) tidak bergeser.)*
 >
 > Log aktivitas user (`activity_logs`, `user_activity_logs`,
 > `user_behavior`) sudah dibahas duluan di 5.3a-5.3c, tepat setelah `roles`
+>
 > - ketiganya sama-sama berputar di sekitar tabel `users`, jadi ditempatkan
-> di sana, bukan di sini.
+>   di sana, bukan di sini.
 
 ### 5.118 `export_logs`
 
@@ -4794,23 +4828,23 @@ supaya nomor section setelahnya (5.118 dst.) tidak bergeser.)*
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `clc20793f949dff59345600e` | ID unik baris log. |
-| `entity` | VarChar | `NOT NULL` | - | `users` | Entitas yang di-export (freetext). Contoh dari komentar developer: `users`, `projects`, `certificates`. |
-| `type` | VarChar | `NOT NULL` | - | `LOGIN` | Jenis export (freetext). Contoh dari komentar developer: `all` atau `filter`. |
-| `createdAt` | DateTime | `NOT NULL` | `now()` | `2026-03-15T10:30:00Z` | Waktu export dilakukan. |
+| Kolom       | Tipe Data     | Constraint        | Default  | Contoh Value               | Keterangan                                                                                              |
+| ----------- | ------------- | ----------------- | -------- | -------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `id`        | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `clc20793f949dff59345600e` | ID unik baris log.                                                                                      |
+| `entity`    | VarChar       | `NOT NULL`        | -        | `users`                    | Entitas yang di-export (freetext). Contoh dari komentar developer: `users`, `projects`, `certificates`. |
+| `type`      | VarChar       | `NOT NULL`        | -        | `LOGIN`                    | Jenis export (freetext). Contoh dari komentar developer: `all` atau `filter`.                           |
+| `createdAt` | DateTime      | `NOT NULL`        | `now()`  | `2026-03-15T10:30:00Z`     | Waktu export dilakukan.                                                                                 |
 
 #### Primary Key & Foreign Key
 
 - 🔑 **PK**: `id`
-- 🔗 **FK**: *(tidak ada)* - tabel log berdiri sendiri.
+- 🔗 **FK**: _(tidak ada)_ - tabel log berdiri sendiri.
 
 #### 📌 Catatan
 
 Tidak ada kolom `userId` sama sekali di tabel ini - jadi log export tidak
-mencatat *siapa* yang melakukan export, cuma *apa* yang di-export dan
-*kapan*. Kalau butuh tahu siapa pelakunya,  harus dicari lewat
+mencatat _siapa_ yang melakukan export, cuma _apa_ yang di-export dan
+_kapan_. Kalau butuh tahu siapa pelakunya, harus dicari lewat
 korelasi waktu dengan `activity_logs` (5.3a), bukan lewat relasi
 langsung.
 
@@ -4824,23 +4858,23 @@ baca-per-penerima dilacak di tabel terpisah (5.120).
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cle1d018c6fffa95adf9aac8` | ID unik notifikasi. |
-| `type` | VarChar | `NOT NULL` | - | `Info Program Baru` | Jenis notifikasi (freetext, tidak divalidasi enum). |
-| `title` | VarChar | `NOT NULL` | - | `Belajar Python untuk Pemula` | Judul notifikasi. |
-| `message` | String | `nullable` | - | `Hai mentor, sesi mentoring kamu akan dimulai besok. Persiapkan materi ya!` | Isi pesan notifikasi. |
-| `deliveryMethod` | VarChar | `nullable` | - | `in-app` | Metode pengiriman (freetext, mis. in-app/email/push/both - tidak divalidasi enum). |
-| `actionUrl` | VarChar | `nullable` | - | `https://temudataku.com/notifikasi/123` | URL tujuan kalau notifikasi diklik. |
-| `sentAt` | Timestamp(6) | `nullable` | - | `2026-03-16T09:00:00Z` | Waktu notifikasi benar-benar dikirim (terpisah dari `createdAt` - bisa dibuat/dijadwalkan lebih dulu, dikirim belakangan). |
-| `meta` | JsonB | `nullable` | - | `{"campaign": "ramadan2026"}` | Data tambahan bebas format (payload spesifik per jenis notifikasi). |
-| `targetRole` | VarChar[] | `NOT NULL` | - | `["mentor", "admin"]` | Array peran yang dituju. Ada komentar developer `// fix this line` di kolom ini di skema aslinya -  menandakan implementasi/tipe kolom ini belum final dan masih perlu ditinjau ulang oleh tim dev. |
-| `createdAt` | Timestamp(6) | `nullable` | `now()` | `2026-03-15T10:30:00Z` | Waktu baris dibuat. |
+| Kolom            | Tipe Data     | Constraint        | Default  | Contoh Value                                                                | Keterangan                                                                                                                                                                                         |
+| ---------------- | ------------- | ----------------- | -------- | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`             | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cle1d018c6fffa95adf9aac8`                                                  | ID unik notifikasi.                                                                                                                                                                                |
+| `type`           | VarChar       | `NOT NULL`        | -        | `Info Program Baru`                                                         | Jenis notifikasi (freetext, tidak divalidasi enum).                                                                                                                                                |
+| `title`          | VarChar       | `NOT NULL`        | -        | `Belajar Python untuk Pemula`                                               | Judul notifikasi.                                                                                                                                                                                  |
+| `message`        | String        | `nullable`        | -        | `Hai mentor, sesi mentoring kamu akan dimulai besok. Persiapkan materi ya!` | Isi pesan notifikasi.                                                                                                                                                                              |
+| `deliveryMethod` | VarChar       | `nullable`        | -        | `in-app`                                                                    | Metode pengiriman (freetext, mis. in-app/email/push/both - tidak divalidasi enum).                                                                                                                 |
+| `actionUrl`      | VarChar       | `nullable`        | -        | `https://temudataku.com/notifikasi/123`                                     | URL tujuan kalau notifikasi diklik.                                                                                                                                                                |
+| `sentAt`         | Timestamp(6)  | `nullable`        | -        | `2026-03-16T09:00:00Z`                                                      | Waktu notifikasi benar-benar dikirim (terpisah dari `createdAt` - bisa dibuat/dijadwalkan lebih dulu, dikirim belakangan).                                                                         |
+| `meta`           | JsonB         | `nullable`        | -        | `{"campaign": "ramadan2026"}`                                               | Data tambahan bebas format (payload spesifik per jenis notifikasi).                                                                                                                                |
+| `targetRole`     | VarChar[]     | `NOT NULL`        | -        | `["mentor", "admin"]`                                                       | Array peran yang dituju. Ada komentar developer `// fix this line` di kolom ini di skema aslinya - menandakan implementasi/tipe kolom ini belum final dan masih perlu ditinjau ulang oleh tim dev. |
+| `createdAt`      | Timestamp(6)  | `nullable`        | `now()`  | `2026-03-15T10:30:00Z`                                                      | Waktu baris dibuat.                                                                                                                                                                                |
 
 #### Primary Key & Foreign Key
 
 - 🔑 **PK**: `id`
-- 🔗 **FK**: *(tidak ada)* - notifikasi tidak terikat ke satu entitas sumber tertentu; keterkaitannya ke entitas lain (kalau ada)  disimpan di dalam `meta` (Json) atau `actionUrl`, bukan lewat FK relasional.
+- 🔗 **FK**: _(tidak ada)_ - notifikasi tidak terikat ke satu entitas sumber tertentu; keterkaitannya ke entitas lain (kalau ada) disimpan di dalam `meta` (Json) atau `actionUrl`, bukan lewat FK relasional.
 
 #### Relasi ke Tabel Lain (ringkasan)
 
@@ -4856,13 +4890,13 @@ penerima - satu `Notification` bisa disebar ke banyak `NotificationRecipient`
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl644ada0ba9088041fcf210` | ID unik baris. |
-| `notificationId` | String | `NOT NULL`, 🔗 FK | - | `clc333ed07bd42e91bc34d5a` | Notifikasi terkait. |
-| `userId` | String | `NOT NULL`, 🔗 FK | - | `000001` | User penerima. |
-| `isRead` | Boolean | `nullable` | `false` | `false` | Status sudah/belum dibaca. |
-| `readAt` | Timestamp(6) | `nullable` | - | `2026-03-16T09:05:00Z` | Waktu dibaca. |
+| Kolom            | Tipe Data     | Constraint        | Default  | Contoh Value               | Keterangan                 |
+| ---------------- | ------------- | ----------------- | -------- | -------------------------- | -------------------------- |
+| `id`             | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl644ada0ba9088041fcf210` | ID unik baris.             |
+| `notificationId` | String        | `NOT NULL`, 🔗 FK | -        | `clc333ed07bd42e91bc34d5a` | Notifikasi terkait.        |
+| `userId`         | String        | `NOT NULL`, 🔗 FK | -        | `000001`                   | User penerima.             |
+| `isRead`         | Boolean       | `nullable`        | `false`  | `false`                    | Status sudah/belum dibaca. |
+| `readAt`         | Timestamp(6)  | `nullable`        | -        | `2026-03-16T09:05:00Z`     | Waktu dibaca.              |
 
 #### Primary Key & Foreign Key
 
@@ -4881,17 +4915,17 @@ dalam bentuk kode pendek.
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (cuid) | 🔑 PK, `NOT NULL` | `cuid()` | `cl996b649acae878692e250c` | ID unik. |
-| `shortCode` | String | `NOT NULL`, `@unique` | - | `abc123` | Kode pendek unik (bagian akhir URL pendek). |
-| `originalUrl` | VarChar | `NOT NULL` | - | `https://temudataku.com/artikel/belajar-python-untuk-pemula-panjang-sekali` | URL asli/tujuan. |
-| `createdById` | String | `nullable`, 🔗 FK | - | `000016` | User pembuat link (opsional). |
-| `expiresAt` | DateTime | `nullable` | - | `2026-12-31T23:59:59Z` | Waktu kedaluwarsa link (kosong = tidak pernah kedaluwarsa). |
-| `clickCount` | Int | `NOT NULL` | `0` | `42` | Jumlah klik link ini (dinaikkan setiap kali diakses). |
-| `isActive` | Boolean | `NOT NULL` | `true` | `true` | `false` = link dinonaktifkan manual sebelum kedaluwarsa alami. |
-| `createdAt` | DateTime | `NOT NULL` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | DateTime | `nullable` | - | `2026-03-16T08:00:00Z` | Manual, tidak `@updatedAt`. |
+| Kolom         | Tipe Data     | Constraint            | Default  | Contoh Value                                                                | Keterangan                                                     |
+| ------------- | ------------- | --------------------- | -------- | --------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `id`          | String (cuid) | 🔑 PK, `NOT NULL`     | `cuid()` | `cl996b649acae878692e250c`                                                  | ID unik.                                                       |
+| `shortCode`   | String        | `NOT NULL`, `@unique` | -        | `abc123`                                                                    | Kode pendek unik (bagian akhir URL pendek).                    |
+| `originalUrl` | VarChar       | `NOT NULL`            | -        | `https://temudataku.com/artikel/belajar-python-untuk-pemula-panjang-sekali` | URL asli/tujuan.                                               |
+| `createdById` | String        | `nullable`, 🔗 FK     | -        | `000016`                                                                    | User pembuat link (opsional).                                  |
+| `expiresAt`   | DateTime      | `nullable`            | -        | `2026-12-31T23:59:59Z`                                                      | Waktu kedaluwarsa link (kosong = tidak pernah kedaluwarsa).    |
+| `clickCount`  | Int           | `NOT NULL`            | `0`      | `42`                                                                        | Jumlah klik link ini (dinaikkan setiap kali diakses).          |
+| `isActive`    | Boolean       | `NOT NULL`            | `true`   | `true`                                                                      | `false` = link dinonaktifkan manual sebelum kedaluwarsa alami. |
+| `createdAt`   | DateTime      | `NOT NULL`            | `now()`  | `2026-03-15T10:30:00Z`                                                      | Waktu dibuat.                                                  |
+| `updatedAt`   | DateTime      | `nullable`            | -        | `2026-03-16T08:00:00Z`                                                      | Manual, tidak `@updatedAt`.                                    |
 
 #### Primary Key & Foreign Key
 
@@ -4901,18 +4935,19 @@ dalam bentuk kode pendek.
 #### 📌 Catatan
 
 `clickCount` disimpan sebagai counter tunggal (bukan tabel log per-klik
-terpisah) - jadi tidak ada riwayat *kapan* atau *dari mana* tiap klik
+terpisah) - jadi tidak ada riwayat _kapan_ atau _dari mana_ tiap klik
 terjadi, cuma totalnya saja. Kalau butuh analitik klik yang lebih rinci
 (waktu, IP, dsb.), perlu tabel tambahan yang belum ada di skema ini.
 
 ---
 
-## Modul: Job Board *(Dummy)*
+## Modul: Job Board _(Dummy)_
 
 > ℹ️ **Catatan**: Sesuai komentar `// WEBSITE DUMMY` langsung di atas model
-> `Company` pada skema aslinya, dua tabel ini  besar adalah
+> `Company` pada skema aslinya, dua tabel ini besar adalah
 > **data contoh/placeholder** untuk fitur lowongan kerja - tidak
 > berhubungan dengan modul-modul inti TemuDataku, tapi digunakan untuk penugasan
+
 ### 5.122 `companies`
 
 **Fungsi tabel**: Master data perusahaan - induk dari lowongan kerja
@@ -4920,22 +4955,22 @@ terjadi, cuma totalnya saja. Kalau butuh analitik klik yang lebih rinci
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (uuid) | 🔑 PK, `NOT NULL` | `uuid()` | `28c3da27-9c8e-b20e-d2f9-86f93499dca9` | ID unik perusahaan. **Satu-satunya tabel di seluruh skema yang PK-nya pakai `uuid()`**, bukan `cuid()` seperti semua tabel lain - konsisten dengan sifatnya sebagai modul terpisah/dummy yang  dibangun terpisah dari basis kode utama. |
-| `companyName` | String | `NOT NULL`, `@unique` | - | `PT Teknologi Nusantara` | Nama perusahaan. |
-| `industry` | String | `nullable` | - | `Teknologi Informasi` | Bidang industri. |
-| `companySize` | String | `nullable` | - | `51-200 karyawan` | Ukuran perusahaan (freetext). |
-| `website` | String | `nullable` | - | `https://ptteknologinusantara.co.id` | Website perusahaan. |
-| `logoUrl` | String | `nullable` | - | `https://cdn.temudataku.com/logo/ptn.png` | URL logo. |
-| `description` | String | `nullable` | - | `Deskripsi singkat mengenai konten ini.` | Deskripsi perusahaan. |
-| `createdAt` | DateTime | `NOT NULL` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | DateTime | `NOT NULL` | *(auto)* | `2026-03-16T08:00:00Z` | Pakai `@updatedAt`. |
+| Kolom         | Tipe Data     | Constraint            | Default  | Contoh Value                              | Keterangan                                                                                                                                                                                                                             |
+| ------------- | ------------- | --------------------- | -------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`          | String (uuid) | 🔑 PK, `NOT NULL`     | `uuid()` | `28c3da27-9c8e-b20e-d2f9-86f93499dca9`    | ID unik perusahaan. **Satu-satunya tabel di seluruh skema yang PK-nya pakai `uuid()`**, bukan `cuid()` seperti semua tabel lain - konsisten dengan sifatnya sebagai modul terpisah/dummy yang dibangun terpisah dari basis kode utama. |
+| `companyName` | String        | `NOT NULL`, `@unique` | -        | `PT Teknologi Nusantara`                  | Nama perusahaan.                                                                                                                                                                                                                       |
+| `industry`    | String        | `nullable`            | -        | `Teknologi Informasi`                     | Bidang industri.                                                                                                                                                                                                                       |
+| `companySize` | String        | `nullable`            | -        | `51-200 karyawan`                         | Ukuran perusahaan (freetext).                                                                                                                                                                                                          |
+| `website`     | String        | `nullable`            | -        | `https://ptteknologinusantara.co.id`      | Website perusahaan.                                                                                                                                                                                                                    |
+| `logoUrl`     | String        | `nullable`            | -        | `https://cdn.temudataku.com/logo/ptn.png` | URL logo.                                                                                                                                                                                                                              |
+| `description` | String        | `nullable`            | -        | `Deskripsi singkat mengenai konten ini.`  | Deskripsi perusahaan.                                                                                                                                                                                                                  |
+| `createdAt`   | DateTime      | `NOT NULL`            | `now()`  | `2026-03-15T10:30:00Z`                    | Waktu dibuat.                                                                                                                                                                                                                          |
+| `updatedAt`   | DateTime      | `NOT NULL`            | _(auto)_ | `2026-03-16T08:00:00Z`                    | Pakai `@updatedAt`.                                                                                                                                                                                                                    |
 
 #### Primary Key & Foreign Key
 
 - 🔑 **PK**: `id`
-- 🔗 **FK**: *(tidak ada)* - tabel master.
+- 🔗 **FK**: _(tidak ada)_ - tabel master.
 
 #### Relasi ke Tabel Lain (ringkasan)
 
@@ -4949,23 +4984,23 @@ terjadi, cuma totalnya saja. Kalau butuh analitik klik yang lebih rinci
 
 #### Kolom
 
-| Kolom | Tipe Data | Constraint | Default | Contoh Value | Keterangan |
-|---|---|---|---|---|---|
-| `id` | String (uuid) | 🔑 PK, `NOT NULL` | `uuid()` | `075cc920-9553-ee21-07c3-f46bf648a8c8` | ID unik lowongan. |
-| `companyId` | String | `NOT NULL`, 🔗 FK | - | `1317ed29-539b-82da-bc58-47fb2ffc528d` | Perusahaan pembuka lowongan. |
-| `jobTitle` | String | `NOT NULL` | - | `Data Analyst` | Judul posisi. |
-| `salaryMin` | Int | `nullable` | - | `8000000` | Gaji minimum yang ditawarkan. |
-| `salaryMax` | Int | `nullable` | - | `15000000` | Gaji maksimum yang ditawarkan. |
-| `city` | String | `nullable` | - | `Surabaya` | Kota penempatan. |
-| `country` | String | `nullable` | - | `Indonesia` | Negara penempatan. |
-| `workType` | String | `nullable` | - | `remote` | Tipe kerja (freetext, mis. remote/onsite/hybrid). |
-| `level` | String | `nullable` | - | `2` | Level posisi (freetext, mis. junior/senior). |
-| `experienceRequired` | String | `nullable` | - | `1-3 tahun` | Pengalaman yang dibutuhkan (freetext). |
-| `description` | String | `nullable` | - | `Deskripsi singkat mengenai konten ini.` | Deskripsi pekerjaan. |
-| `requirements` | String | `nullable` | - | `Menguasai Python dasar` | Persyaratan pelamar. |
-| `isActive` | Boolean | `NOT NULL` | `true` | `true` | `false` = lowongan ditutup/tidak ditampilkan. |
-| `createdAt` | DateTime | `NOT NULL` | `now()` | `2026-03-15T10:30:00Z` | Waktu dibuat. |
-| `updatedAt` | DateTime | `NOT NULL` | *(auto)* | `2026-03-16T08:00:00Z` | Pakai `@updatedAt`. |
+| Kolom                | Tipe Data     | Constraint        | Default  | Contoh Value                             | Keterangan                                        |
+| -------------------- | ------------- | ----------------- | -------- | ---------------------------------------- | ------------------------------------------------- |
+| `id`                 | String (uuid) | 🔑 PK, `NOT NULL` | `uuid()` | `075cc920-9553-ee21-07c3-f46bf648a8c8`   | ID unik lowongan.                                 |
+| `companyId`          | String        | `NOT NULL`, 🔗 FK | -        | `1317ed29-539b-82da-bc58-47fb2ffc528d`   | Perusahaan pembuka lowongan.                      |
+| `jobTitle`           | String        | `NOT NULL`        | -        | `Data Analyst`                           | Judul posisi.                                     |
+| `salaryMin`          | Int           | `nullable`        | -        | `8000000`                                | Gaji minimum yang ditawarkan.                     |
+| `salaryMax`          | Int           | `nullable`        | -        | `15000000`                               | Gaji maksimum yang ditawarkan.                    |
+| `city`               | String        | `nullable`        | -        | `Surabaya`                               | Kota penempatan.                                  |
+| `country`            | String        | `nullable`        | -        | `Indonesia`                              | Negara penempatan.                                |
+| `workType`           | String        | `nullable`        | -        | `remote`                                 | Tipe kerja (freetext, mis. remote/onsite/hybrid). |
+| `level`              | String        | `nullable`        | -        | `2`                                      | Level posisi (freetext, mis. junior/senior).      |
+| `experienceRequired` | String        | `nullable`        | -        | `1-3 tahun`                              | Pengalaman yang dibutuhkan (freetext).            |
+| `description`        | String        | `nullable`        | -        | `Deskripsi singkat mengenai konten ini.` | Deskripsi pekerjaan.                              |
+| `requirements`       | String        | `nullable`        | -        | `Menguasai Python dasar`                 | Persyaratan pelamar.                              |
+| `isActive`           | Boolean       | `NOT NULL`        | `true`   | `true`                                   | `false` = lowongan ditutup/tidak ditampilkan.     |
+| `createdAt`          | DateTime      | `NOT NULL`        | `now()`  | `2026-03-15T10:30:00Z`                   | Waktu dibuat.                                     |
+| `updatedAt`          | DateTime      | `NOT NULL`        | _(auto)_ | `2026-03-16T08:00:00Z`                   | Pakai `@updatedAt`.                               |
 
 #### Primary Key & Foreign Key
 
@@ -4974,6 +5009,7 @@ terjadi, cuma totalnya saja. Kalau butuh analitik klik yang lebih rinci
 - **Index tambahan**: `@@index([city])`, `@@index([country])`, `@@index([level])`.
 
 ---
+
 ## 6. Penutup & Catatan Pemeliharaan
 
 Dokumen ini disusun bertahap, modul per modul, mengikuti urutan skema yang
@@ -5009,13 +5045,19 @@ relevan untuk ditindaklanjuti tim, bukan cuma catatan sepintas:
   `user_behavior`, semua di bagian Modul Pendukung) tumpang tindih dan
   tidak saling terhubung - perlu diperjelas mana yang jadi sumber
   kebenaran sebelum dipakai buat dashboard analitik apa pun.
-- `companies`/`jobs` (Job Board)  besar cuma data dummy, bukan
+- `companies`/`jobs` (Job Board) besar cuma data dummy, bukan
   fitur yang sedang berjalan - jangan kaget kalau suatu saat dihapus atau
   malah dibangun serius jadi fitur beneran.
 - `forms.eventId` (Form, 5.117a) belum berupa FK - modul `Event` belum ada
   di skema, dan ada komentar `TODO` di skema aslinya untuk menambahkan
   relasinya. Selama belum ada, integritas `eventId` (dan `eventNameSnapshot`)
   sepenuhnya dijaga di kode aplikasi.
+- Kolom info Event di `forms` (`eventTitle`, `eventDescription`,
+  `eventStartAt`, `eventEndAt`, `eventMode`, `eventLocation`,
+  `eventOrganizer`, `eventCategoryLabel`, `eventTimeline`, `eventFaqs`)
+  hanya bermakna untuk `type = EVENT`, tapi tidak ada constraint database
+  yang menegakkannya; isi JSON `eventTimeline`/`eventFaqs` (maks 30 item)
+  juga hanya dijaga kode aplikasi.
 - `form_categories.type` dan `forms.type` harus sama, tapi tidak ada
   constraint di database yang memeriksanya (5.117i) - dijaga di kode
   aplikasi (`createForm`, `duplicateForm`).
@@ -5025,6 +5067,6 @@ Dokumen ini tidak mencakup hal-hal di luar apa yang tertulis di
 level PostgreSQL (kalau ada) berada di luar cakupan, karena tidak
 terrepresentasi di Prisma schema.
 
-Terakhir diperbarui mengikuti `schema.prisma` per penambahan jenis form
-(`5.117i` `form_categories` dan kolom `forms.categoryId`) - total **135 tabel**
-dan **31 enum**.
+Terakhir diperbarui mengikuti `schema.prisma` per penambahan info Event di
+form (10 kolom `event*` di `forms`, 5.117a, dan enum `FormEventMode`) -
+total **135 tabel** dan **32 enum**.
