@@ -426,7 +426,7 @@ export default function AdminLayout({
   const RESTRICTED_HOME: Record<string, string> = {
     cw: "/admin/artikel",
     curdev: "/admin/elearning",
-    cm: "/admin/produk-event",
+    cm: "/admin/form-builder",
     guest: "/admin/elearning",
   };
   const RESTRICTED_PATHS: Record<string, string[]> = {
@@ -446,6 +446,34 @@ export default function AdminLayout({
       }
     }
   }, [authLoading, currentUser, isRestricted, pathname, router]);
+
+  // Kalau role restricted membuka halaman yang tidak diizinkan (mis. setelah
+  // login diarahkan ke /admin/elearning), lempar ke halaman awal role-nya.
+  const isPathAllowedForRestricted =
+    !isRestricted ||
+    (RESTRICTED_PATHS[activeRestrictedRole ?? ""] ?? []).some((path) =>
+      pathname.startsWith(path),
+    );
+
+  useEffect(() => {
+    if (
+      !authLoading &&
+      currentUser &&
+      isRestricted &&
+      !isPathAllowedForRestricted &&
+      !(pathname === "/admin" || pathname === "/admin/")
+    ) {
+      router.replace(restrictedHome);
+    }
+  }, [
+    authLoading,
+    currentUser,
+    isRestricted,
+    isPathAllowedForRestricted,
+    pathname,
+    restrictedHome,
+    router,
+  ]);
 
   const isBreadcrumbPage =
     /\/admin\/elearning\/streams\/[^/]+\/courses$/.test(pathname) ||

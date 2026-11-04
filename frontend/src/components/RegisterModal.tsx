@@ -17,6 +17,20 @@ import { GoogleLogin } from "@react-oauth/google";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
+// Halaman awal admin per role restricted. Urutan prioritas sama dengan
+// AdminLayout: cw > curdev > cm > guest. Harus sinkron dengan layout admin.
+const RESTRICTED_ADMIN_HOME: [string, string][] = [
+  ["cw", "/admin/artikel"],
+  ["curdev", "/admin/elearning"],
+  ["cm", "/admin/form-builder"],
+  ["guest", "/admin/elearning"],
+];
+
+function getRestrictedAdminHome(roles: string[]): string | null {
+  const found = RESTRICTED_ADMIN_HOME.find(([role]) => roles.includes(role));
+  return found ? found[1] : null;
+}
+
 export default function RegisterModal({
   isOpen,
   setIsOpen,
@@ -291,11 +305,8 @@ export default function RegisterModal({
                           (r: any) => r?.role?.roleName?.toLowerCase(),
                         );
 
-                        const adminRoles = ["admin", "curdev", "cm"];
-                        // 🔥 TAMBAHAN: role CW → /admin/artikel. Dicek
-                        // SEBELUM adminRoles supaya tidak ikut kelempar ke
-                        // /admin.
-                        const isCwRole = roles.includes("cw");
+                        const adminRoles = ["admin"];
+                        const restrictedHome = getRestrictedAdminHome(roles);
 
                         setIsOpen(false);
                         toast.success("Login Google berhasil");
@@ -312,8 +323,8 @@ export default function RegisterModal({
                         if (isPublicFormPage) {
                           // Tetap di halaman form; returnUrl tidak dipakai
                           localStorage.removeItem("returnUrl");
-                        } else if (isCwRole) {
-                          router.push("/admin/artikel");
+                        } else if (restrictedHome) {
+                          router.push(restrictedHome);
                         } else if (roles.some((r) => adminRoles.includes(r))) {
                           router.push("/admin");
                         } else if (roles.includes("mentor")) {
