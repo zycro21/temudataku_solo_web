@@ -46,6 +46,19 @@ type MenuItem =
       }[];
     };
 
+// ─── Label role yang tampil di header & dialog profil ─────────────────────────
+// Role yang tidak ada di sini tampil apa adanya (huruf pertama kapital).
+const ROLE_DISPLAY_LABELS: Record<string, string> = {
+  cm: "Class Manager & Community",
+};
+
+function formatRoleLabel(roleName?: string | null): string {
+  if (!roleName) return "Admin";
+  const mapped = ROLE_DISPLAY_LABELS[roleName.toLowerCase()];
+  if (mapped) return mapped;
+  return roleName.charAt(0).toUpperCase() + roleName.slice(1);
+}
+
 // ─── Routes yang tidak perlu sidebar + navbar admin ───────────────────────────
 const FULLSCREEN_ROUTES = [/\/materials\/create$/, /^\/admin\/artikel\/[^/]+$/];
 
@@ -358,9 +371,7 @@ export default function AdminLayout({
             fullName: user.fullName,
             email: user.email,
             phone: user.phoneNumber || "-",
-            role:
-              user.userRoles?.[0]?.role?.roleName?.charAt(0).toUpperCase() +
-                user.userRoles?.[0]?.role?.roleName?.slice(1) || "Admin",
+            role: formatRoleLabel(user.userRoles?.[0]?.role?.roleName),
             avatarUrl:
               user.profilePicture && user.profilePicture !== "default.jpg"
                 ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/images/${user.profilePicture}`
@@ -462,9 +473,7 @@ export default function AdminLayout({
       : "/assets/dashboard/user/avatar.png";
 
   const fullName = currentUser?.fullName || "Guest Admin";
-  const role =
-    currentUser?.userRoles?.[0]?.role?.roleName?.charAt(0).toUpperCase() +
-      currentUser?.userRoles?.[0]?.role?.roleName?.slice(1) || "Admin";
+  const role = formatRoleLabel(currentUser?.userRoles?.[0]?.role?.roleName);
 
   const adminMenu: MenuItem[] = [
     {
@@ -612,7 +621,6 @@ export default function AdminLayout({
           href: "/admin/form-builder",
           icon: "/assets/admin/tugas.svg",
           activeIcon: "/assets/admin/whitetugas.svg",
-          matchNested: true,
         },
         {
           name: "Respon Form",
