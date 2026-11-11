@@ -31,8 +31,8 @@ mencakup seluruh domain bisnis aplikasi, di antaranya:
 - Serta modul pendukung lain: notifikasi, feedback, sertifikat, export log,
   dan lain-lain.
 
-Per catatan terakhir, skema ini terdiri dari **135 model (tabel)** dan
-**32 enum**, dikelola dalam satu file `schema.prisma`.
+Per catatan terakhir, skema ini terdiri dari **136 model (tabel)** dan
+**34 enum**, dikelola dalam satu file `schema.prisma`.
 
 ## 3. Cakupan & Cara Membaca Dokumen Ini
 
@@ -159,7 +159,7 @@ detail satu per satu di bagian selanjutnya):
 | Notifikasi             | `NotificationRecipient`                                                                                                                                                                                                                                                                                                                                                |
 | Practice               | `PracticeProgress`, `PracticePurchase`, `PracticeReview`, `PracticeSubmission` (sbg mentee & reviewer), `ProjectSubmission` (sbg mentee & grader)                                                                                                                                                                                                                      |
 | Affiliator/Referral    | `ReferralCode`, `ReferralUsage`, `AffiliatorProfile` (1:1), `WithdrawalMethod`                                                                                                                                                                                                                                                                                         |
-| Aktivitas              | `UserActivityLog`, `UserBehavior`                                                                                                                                                                                                                                                                                                                                      |
+| Aktivitas              | `UserActivityLog`, `UserBehavior`, `LoginHistory`                                                                                                                                                                                                                                                                                                                      |
 | Role                   | `UserRole`                                                                                                                                                                                                                                                                                                                                                             |
 | Short Link             | `ShortLink`                                                                                                                                                                                                                                                                                                                                                            |
 | E-Learning             | `ELearningSubscription`, `ELearningReview`, `ELearningProgress`, `ELearningSubChapterProgress`, `ELearningBlockProgress`, `ELearningTextProgress`, `ELearningQuizAttempt`, `ELearningSubmission` (sbg pengumpul & reviewer), `ELearningCertificate`, `ELearningDiscussion`, `ELearningBookmark`, `ELearningCodeRun`, `ELearningAuditLog`, `ELearningCourseStreamCount` |
@@ -251,6 +251,9 @@ schema ini), nilai yang dipakai di aplikasi antara lain:
 > nempel setelah tabel inti User & Role, bukan di bagian akhir dokumen.
 > Diberi penomoran `5.3a`/`5.3b`/`5.3c` (bukan `5.20` dst.) supaya sisipan
 > ini **tidak menggeser nomor seluruh tabel setelahnya**
+>
+> Tabel `login_history` (`5.3d`) menyusul belakangan dan ditaruh di sini juga,
+> karena sama-sama FK langsung ke `users` dan murni mencatat aktivitas login.
 
 ### 5.3a `admin_activity_logs`
 
@@ -358,6 +361,53 @@ kolomnya juga tidak seragam - `pageVisited` di sini vs `page` di 5.3b,
 sama). Ketiganya sama-sama punya kolom IP/user-agent kecuali 5.3b. Perlu
 dicek ke kode aplikasi mana yang benar-benar masih dipakai aktif sebelum
 mengandalkan salah satunya untuk analitik.
+
+---
+
+### 5.3d `login_history`
+
+**Fungsi tabel**: Riwayat login user - satu baris untuk setiap kejadian login.
+Mencatat lewat metode apa user login (password atau Google), dari portal mana
+(website utama atau halaman affiliator), role apa saja yang dimiliki saat itu,
+serta IP dan user agent-nya. Berbeda dari `users.lastLogin` yang cuma
+menyimpan waktu login **terakhir**, tabel ini menyimpan seluruh riwayatnya.
+
+#### Kolom
+
+| Kolom        | Tipe Data          | Constraint        | Default  | Contoh Value                                | Keterangan                                                                                                                                                                              |
+| ------------ | ------------------ | ----------------- | -------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`         | String (cuid)      | 🔑 PK, `NOT NULL` | `cuid()` | `cm3k8x1a20000lv0d9q7h4t2r`                 | ID unik baris riwayat login.                                                                                                                                                            |
+| `userId`     | String             | `NOT NULL`, 🔗 FK | -        | `000016`                                    | User yang berhasil login. Kolom fisik: `user_id`.                                                                                                                                       |
+| `method`     | Enum `LoginMethod` | `NOT NULL`        | -        | `GOOGLE`                                    | Metode login: `PASSWORD` atau `GOOGLE`.                                                                                                                                                 |
+| `portal`     | Enum `LoginPortal` | `NOT NULL`        | `WEB`    | `AFFILIATOR`                                | Pintu masuk login: `WEB` (LoginModal di website utama) atau `AFFILIATOR` (halaman `/affiliator/login` & `/affiliator/register`).                                                        |
+| `roles`      | String[]           | `NOT NULL`        | `[]`     | `["mentee"]`                                | **Snapshot** role user pada saat login. Isinya tidak ikut berubah kalau role user diubah setelahnya.                                                                                    |
+| `ipAddress`  | VarChar(64)        | `nullable`        | -        | `103.10.24.5`                               | Alamat IP saat login. Kolom fisik: `ip_address`.                                                                                                                                        |
+| `userAgent`  | VarChar(512)       | `nullable`        | -        | `Mozilla/5.0 (Windows NT 10.0; Win64; x64)` | Info browser/perangkat saat login. Kolom fisik: `user_agent`.                                                                                                                           |
+| `loggedInAt` | Timestamptz(6)     | `NOT NULL`        | `now()`  | `2026-11-11T07:45:00Z`                      | Waktu login terjadi. Kolom fisik: `logged_in_at`. Pakai `timestamptz`, jadi waktunya tersimpan sebagai instant yang jelas (tidak ambigu UTC vs WIB seperti kolom `Timestamp(6)` biasa). |
+
+#### Enum yang dipakai
+
+| Enum          | Nilai        | Keterangan                                                          |
+| ------------- | ------------ | ------------------------------------------------------------------- |
+| `LoginMethod` | `PASSWORD`   | Login dengan email & password.                                      |
+|               | `GOOGLE`     | Login lewat "Sign in with Google".                                  |
+| `LoginPortal` | `WEB`        | Login dari LoginModal di website utama (default).                   |
+|               | `AFFILIATOR` | Login dari halaman `/affiliator/login` atau `/affiliator/register`. |
+
+#### Primary Key & Foreign Key
+
+- 🔑 **PK**: `id`
+- 🔗 **FK**: `userId` → `users.id` - `onDelete: Cascade`.
+- **Index**: `(userId, loggedInAt)` dan `loggedInAt` - untuk query riwayat login
+  per user dan per rentang waktu.
+
+#### 📌 Catatan
+
+Tabel ini khusus riwayat **login**, terpisah dari tiga tabel log aktivitas di
+atasnya (`activity_logs` 5.3a, `user_activity_logs` 5.3b, `user_behavior`
+5.3c) yang mencatat aktivitas/kunjungan halaman. Kolom `roles` bertipe array
+`String[]` (bukan relasi ke `roles`), jadi hanya berupa salinan nama role saat
+login dan tidak ada FK ke tabel `roles`.
 
 ---
 
@@ -5067,6 +5117,6 @@ Dokumen ini tidak mencakup hal-hal di luar apa yang tertulis di
 level PostgreSQL (kalau ada) berada di luar cakupan, karena tidak
 terrepresentasi di Prisma schema.
 
-Terakhir diperbarui mengikuti `schema.prisma` per penambahan info Event di
-form (10 kolom `event*` di `forms`, 5.117a, dan enum `FormEventMode`) -
-total **135 tabel** dan **32 enum**.
+Terakhir diperbarui mengikuti `schema.prisma` per penambahan riwayat login
+(tabel `login_history`, 5.3d, dan enum `LoginMethod` & `LoginPortal`) -
+total **136 tabel** dan **34 enum**.

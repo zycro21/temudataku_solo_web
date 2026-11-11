@@ -8,6 +8,7 @@ import {
   exportUsersSchema,
   getUserByIdSchema,
   adminUpdateUserSchema,
+  getLoggedInUsersSchema,
 } from "../validations/user.validation.js";
 import { validate } from "../middlewares/validate.js";
 import { handleUpload } from "../middlewares/uploadImage.js";
@@ -150,7 +151,7 @@ router.put(
   authenticate,
   handleUpload("profilePicture"),
   validate(updateUserSchema),
-  UserController.updateProfile
+  UserController.updateProfile,
 );
 
 /**
@@ -245,7 +246,7 @@ router.put(
   authenticate,
   authorizeRoles("admin"),
   validate(updateUserRolesSchema),
-  UserController.updateUserRoles
+  UserController.updateUserRoles,
 );
 
 /**
@@ -313,7 +314,7 @@ router.delete(
   authenticate,
   authorizeRoles("admin"),
   validate(deleteUserSchema),
-  UserController.deleteUser
+  UserController.deleteUser,
 );
 
 /**
@@ -441,7 +442,7 @@ router.get(
   authenticate,
   authorizeRoles("admin"),
   validate(getAllUsersSchema),
-  UserController.getAllUsers
+  UserController.getAllUsers,
 );
 
 /**
@@ -482,7 +483,7 @@ router.patch(
   "/users/update-status",
   authenticate,
   authorizeRoles("admin"),
-  UserController.updateUserStatus
+  UserController.updateUserStatus,
 );
 
 /**
@@ -541,7 +542,69 @@ router.get(
   authenticate,
   authorizeRoles("admin"),
   validate(exportUsersSchema),
-  UserController.exportUsers
+  UserController.exportUsers,
+);
+
+/**
+ * @swagger
+ * /api/user/users/logged-in:
+ *   get:
+ *     summary: Daftar user yang pernah login, semua role (admin)
+ *     description: >
+ *       Berdasarkan kolom last_login (login terakhir). Untuk riwayat lengkap
+ *       pakai /api/login-history. Tanggal saja pada from/to = hari WIB. Mencakup login biasa, login Google,
+ *       dan login affiliator (semuanya lewat /api/auth/login atau
+ *       /api/auth/google).
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 10, maximum: 100 }
+ *       - in: query
+ *         name: search
+ *         schema: { type: string }
+ *         description: Cari nama atau email
+ *       - in: query
+ *         name: role
+ *         schema:
+ *           type: string
+ *           enum: [mentee, mentor, affiliator, admin, cm, curdev, cw, guest]
+ *       - in: query
+ *         name: isActive
+ *         schema: { type: string, enum: ["true", "false"] }
+ *       - in: query
+ *         name: from
+ *         schema: { type: string, example: "2026-11-01" }
+ *         description: lastLogin >= tanggal ini
+ *       - in: query
+ *         name: to
+ *         schema: { type: string, example: "2026-11-09" }
+ *         description: lastLogin <= tanggal ini (inklusif sampai akhir hari)
+ *       - in: query
+ *         name: sortBy
+ *         schema: { type: string, enum: [lastLogin, fullName, email], default: lastLogin }
+ *       - in: query
+ *         name: order
+ *         schema: { type: string, enum: [asc, desc], default: desc }
+ *     responses:
+ *       200:
+ *         description: Daftar user yang pernah login
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ */
+router.get(
+  "/users/logged-in",
+  authenticate,
+  authorizeRoles("admin"),
+  validate(getLoggedInUsersSchema),
+  UserController.getLoggedInUsers,
 );
 
 /**
@@ -626,7 +689,7 @@ router.get(
   authenticate,
   authorizeRoles("admin"),
   validate(getUserByIdSchema),
-  UserController.getUserById
+  UserController.getUserById,
 );
 
 /**
@@ -668,8 +731,7 @@ router.put(
   authorizeRoles("admin"),
   handleUpload("profilePicture"),
   validate(adminUpdateUserSchema),
-  UserController.adminUpdateUser
+  UserController.adminUpdateUser,
 );
-
 
 export default router;

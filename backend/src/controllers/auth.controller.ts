@@ -9,6 +9,7 @@ import fs from "fs";
 import { uploadPath } from "../middlewares/uploadImage.js";
 import { PrismaClient } from "@prisma/client";
 import { logActivity } from "../utils/logActivtiy.js";
+import { recordLogin } from "../utils/recordLogin.js";
 import { OAuth2Client } from "google-auth-library";
 
 const prisma = new PrismaClient();
@@ -155,6 +156,14 @@ export const login = async (
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 hari
+    });
+
+    // === CATAT RIWAYAT LOGIN (semua role) + update lastLogin ===
+    await recordLogin({
+      req,
+      userId: user.id,
+      method: "PASSWORD",
+      roles: roles.map((r) => r.role_name),
     });
 
     // === LOG ACTIVITY (HANYA ADMIN) ===
@@ -480,6 +489,15 @@ export const googleAuth = async (
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       maxAge: 1000 * 60 * 60 * 24 * 7,
+    });
+
+    // === CATAT RIWAYAT LOGIN (semua role) + update lastLogin ===
+    // Dipanggil untuk user lama, user baru, maupun yang baru ditambah role.
+    await recordLogin({
+      req,
+      userId: user.id,
+      method: "GOOGLE",
+      roles: roles.map((r) => r.role_name),
     });
 
     res.status(200).json({

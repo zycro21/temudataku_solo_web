@@ -2081,6 +2081,35 @@ model FormAnswerFile {
   @@map("form_answer_files")
 }
 
+enum LoginMethod {
+  PASSWORD
+  GOOGLE
+}
+
+enum LoginPortal {
+  WEB        // LoginModal di website utama
+  AFFILIATOR // halaman /affiliator/login & /affiliator/register
+}
+
+model LoginHistory {
+  id         String      @id @default(cuid())
+  userId     String      @map("user_id")
+  method     LoginMethod
+  portal     LoginPortal @default(WEB)
+  roles      String[]    @default([]) // snapshot role saat login
+  ipAddress  String?     @map("ip_address") @db.VarChar(64)
+  userAgent  String?     @map("user_agent") @db.VarChar(512)
+  // timestamptz: waktu tersimpan sebagai instant yang jelas (tidak ambigu
+  // UTC vs WIB seperti kolom timestamp biasa)
+  loggedInAt DateTime    @default(now()) @map("logged_in_at") @db.Timestamptz(6)
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, loggedInAt])
+  @@index([loggedInAt])
+  @@map("login_history")
+}
+
 model MentorProfile {
   id                   String                  @id @default(cuid())
   userId               String                  @unique @map("user_id")
@@ -2889,6 +2918,7 @@ model User {
   forms               Form[]
   formResponses       FormResponse[]
   formCategories FormCategory[]
+  loginHistories LoginHistory[]
 
   @@map("users")
 }

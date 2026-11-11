@@ -1,6 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { AuthenticatedRequest } from "../middlewares/authenticate.js";
+import {
+  AuthenticatedRequest,
+  AuthenticatedRequestLog,
+} from "../middlewares/authenticate.js";
 import { HttpError } from "../utils/httpError.js";
 import * as AuthService from "../services/auth.service.js";
 import * as UserService from "../services/user.service.js";
@@ -13,7 +16,7 @@ const prisma = new PrismaClient();
 export const updateProfile = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     console.log("========== UPDATE PROFILE ==========");
@@ -62,7 +65,7 @@ export const updateProfile = async (
 export const updateUserRoles = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -82,7 +85,7 @@ export const updateUserRoles = async (
     const result = await UserService.updateUserRoles(
       userId,
       roles_to_add,
-      roles_to_remove
+      roles_to_remove,
     );
 
     if (rolesLog.includes("admin") && adminId) {
@@ -91,7 +94,7 @@ export const updateUserRoles = async (
         action: "UPDATE_USER_ROLES",
         type: "UPDATE",
         description: `Updated roles for user ${userId}. Added: [${roles_to_add.join(
-          ", "
+          ", ",
         )}], Removed: [${roles_to_remove.join(", ")}]`,
         req,
       });
@@ -111,7 +114,7 @@ export const updateUserRoles = async (
 export const deleteUser = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -152,7 +155,7 @@ export const deleteUser = async (
 export const getAllUsers = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     // Ambil dari validatedQuery jika ada, fallback ke req.query
@@ -173,7 +176,7 @@ export const getAllUsers = async (
 export const updateUserStatus = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (!req.user?.userId) {
@@ -235,7 +238,7 @@ export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
 export const getUserById = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { id } = req.validatedParams ?? req.params;
@@ -256,7 +259,7 @@ export const getUserById = async (
 export const adminUpdateUser = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const userId = req.params.id;
@@ -268,7 +271,7 @@ export const adminUpdateUser = async (
 
     const { updatedFields, skippedFields } = await UserService.adminUpdateUser(
       userId,
-      data
+      data,
     );
 
     res.status(200).json({
@@ -276,6 +279,25 @@ export const adminUpdateUser = async (
       message: "User updated successfully",
       updatedFields,
       skippedFields,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getLoggedInUsers = async (
+  req: AuthenticatedRequestLog,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const query = req.validatedQuery ?? req.query;
+    const result = await UserService.getLoggedInUsers(query);
+
+    res.status(200).json({
+      success: true,
+      message: "Logged-in users retrieved successfully",
+      ...result,
     });
   } catch (err) {
     next(err);

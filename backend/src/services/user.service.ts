@@ -1,8 +1,9 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 // import { HttpError } from "../utils/httpError.js";
 import { nanoid } from "nanoid";
 import ExcelJS from "exceljs";
 import { Parser } from "json2csv";
+import { buildDateRange, toWibIso } from "../utils/dateRange.js";
 
 const prisma = new PrismaClient();
 
@@ -125,7 +126,7 @@ export const updateUserRoles = async (
         admin: "admin",
         cw: "cw",
         cm: "cm",
-        curdev: "curdev"
+        curdev: "curdev",
       };
       const prefix = prefixMap[roleName] || "role";
       const userRoleId = `${prefix}-${nanoid(10)}`;
@@ -493,4 +494,87 @@ export const adminUpdateUser = async (
   }
 
   return { updatedFields, skippedFields };
+};
+
+/**
+ * Daftar user yang pernah login (lastLogin != null), role apa pun.
+ * Sumber data: kolom users.last_login yang di-update oleh /api/auth/login
+ * dan /api/auth/google (dipakai juga oleh halaman login affiliator).
+ *
+ * Pakai `select` (bukan `include`) supaya passwordHash, verificationToken,
+ * fcmToken, dll tidak ikut terkirim ke client.
+ */
+export const getLoggedInUsers = async (query: {
+  page: number;
+  limit: number;
+  search?: string;
+  role?: string;
+  isActive?: "true" | "false";
+  from?: string;
+  to?: string;
+  sortBy: "lastLogin" | "fullName" | "email";
+  order: "asc" | "desc";
+}) => {
+  const { page, limit, search, role, isActive, from, to, sortBy, order } =
+    query;
+
+  // Tanggal saja (2026-11-09) dihitung sebagai hari WIB (lihat utils/dateRange)
+  const range = buildDateRange(from, to);
+
+  const where: Prisma.UserWhereInput = {
+    lastLogin: {
+      not: null,
+      ...(range ?? {}),
+    },
+    ...(isActive !== undefined ? { isActive: isActive === "true" } : {}),
+    ...(role ? { userRoles: { some: { role: { roleName: role } } } } : {}),
+    ...(search
+      ? {
+          OR: [
+            { fullName: { contains: search, mode: "insensitive" } },
+            { email: { contains: search, mode: "insensitive" } },
+          ],
+        }
+      : {}),
+  };
+
+  const [total, rows] = await Promise.all([
+    prisma.user.count({ where }),
+    prisma.user.findMany({
+      where,
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        profilePicture: true,
+        isActive: true,
+        isEmailVerified: true,
+        googleId: true,
+        lastLogin: true,
+        registrationDate: true,
+        userRoles: { select: { role: { select: { roleName: true } } } },
+        _count: { select: { loginHistories: true } }, // jumlah login tercatat
+      },
+      orderBy: [{ [sortBy]: order }, { id: "asc" }],
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+  ]);
+
+  const users = rows.map(({ googleId, userRoles, _count, ...u }) => ({
+    ...u,
+    // Waktu ditampilkan dalam WIB (+07:00)
+    lastLogin: u.lastLogin ? toWibIso(u.lastLogin) : null,
+    registrationDate: u.registrationDate ? toWibIso(u.registrationDate) : null,
+    roles: userRoles.map((ur) => ur.role.roleName),
+    hasGoogleAccount: !!googleId,
+    loginCount: _count.loginHistories,
+  }));
+
+  return {
+    total,
+    page,
+    totalPages: Math.ceil(total / limit),
+    users,
+  };
 };

@@ -32,15 +32,26 @@ export default function AffiliatorLoginPage() {
     setLoading(true);
 
     try {
-      const res = await axios.post(
+      await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/login`,
-        data,
+        // portal: supaya backend mencatat login ini berasal dari halaman affiliator
+        { ...data, portal: "affiliator" },
         { withCredentials: true },
       );
 
-      const user = res.data.user;
+      // Ambil user dari /me supaya bentuk datanya sama dengan LoginModal
+      // (userRoles[].role.roleName), bukan res.data.user.roles[].role_name.
+      const me = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/me`,
+        { withCredentials: true },
+      );
+      const user = me.data?.data;
+      if (!user) throw new Error("Gagal mengambil data user");
+
       const allowedRoles = ["affiliator", "admin"];
-      const userRoles = user.roles.map((r: any) => r.role_name);
+      const userRoles: string[] = (user.userRoles || []).map((r: any) =>
+        r?.role?.roleName?.toLowerCase(),
+      );
 
       // cek role
       if (!userRoles.some((role: string) => allowedRoles.includes(role))) {
@@ -253,16 +264,22 @@ export default function AffiliatorLoginPage() {
                         // register-kan sebagai affiliator (bukan mentee) dan
                         // langsung login. Kalau sudah affiliator, ya tinggal
                         // login seperti biasa.
-                        const googleRes = await axios.post(
+                        await axios.post(
                           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/google`,
                           {
                             token: credentialResponse.credential,
                             role: "affiliator",
+                            portal: "affiliator",
                           },
                           { withCredentials: true },
                         );
 
-                        const user = googleRes.data?.user;
+                        // Ambil user dari /me (sama seperti LoginModal)
+                        const me = await axios.get(
+                          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/me`,
+                          { withCredentials: true },
+                        );
+                        const user = me.data?.data;
                         if (!user) throw new Error("Gagal mengambil data user");
 
                         const roles: string[] = (user?.userRoles || []).map(

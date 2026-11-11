@@ -52,6 +52,7 @@ import formRoutes from "./routes/form.route.js";
 import formCategoryRoutes from "./routes/form_category.route.js";
 import formPublicRoutes from "./routes/form_public.route.js";
 import formResponseRoutes from "./routes/form_response.route.js";
+import loginHistoryRoutes from "./routes/loginHistory.route.js";
 import { redirectShortCodeController } from "./controllers/short_link.controller.js";
 import "./schedulers/cron.js";
 import { fileURLToPath } from "url";
@@ -133,6 +134,7 @@ app.use("/api/form", formRoutes);
 app.use("/api/form", formCategoryRoutes);
 app.use("/api/formpublic", formPublicRoutes);
 app.use("/api/formresponse", formResponseRoutes);
+app.use("/api/login-history", loginHistoryRoutes);
 
 // Path Static untuk Images
 // Perbaikan di sini, mengganti __dirname dengan yang benar menggunakan import.meta.url

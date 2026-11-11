@@ -45,6 +45,9 @@ export const registerSchema = z.object({
 export const loginSchema = z.object({
   email: z.string().email("Invalid email format"),
   password: z.string().min(8, "Password is required"),
+  // Dikirim frontend affiliator; dipakai recordLogin untuk menandai portal.
+  // Dideklarasikan di sini supaya tidak dibuang saat validasi.
+  portal: z.enum(["web", "affiliator"]).optional(),
 });
 
 export const refreshTokenSchema = z.object({

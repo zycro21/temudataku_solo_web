@@ -310,16 +310,21 @@ export default function AffiliatorRegisterPage() {
                         // punya role affiliator, atau langsung login kalau
                         // sudah ada — jadi tombol ini boleh dipencet baik
                         // untuk daftar baru maupun masuk lagi.
-                        const googleRes = await axios.post(
+                        await axios.post(
                           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/google`,
                           {
                             token: credentialResponse.credential,
                             role: "affiliator",
+                            portal: "affiliator",
                           },
                           { withCredentials: true },
                         );
 
-                        const user = googleRes.data?.user;
+                        const me = await axios.get(
+                          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/me`,
+                          { withCredentials: true },
+                        );
+                        const user = me.data?.data;
                         if (!user) throw new Error("Gagal mengambil user");
 
                         const roles: string[] = (user?.userRoles || []).map(

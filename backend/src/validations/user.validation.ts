@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isValidDateInput } from "../utils/dateRange.js";
 
 export const updateUserSchema = z.object({
   email: z.string().email("Invalid email").optional(),
@@ -94,7 +95,9 @@ export const exportUsersSchema = z.object({
     format: z.string().refine((val) => ["csv", "excel"].includes(val), {
       message: "Format must be 'csv' or 'excel'",
     }),
-    role: z.enum(["mentee", "mentor", "affiliator", "admin", "cm", "curdev", "cw"]).optional(),
+    role: z
+      .enum(["mentee", "mentor", "affiliator", "admin", "cm", "curdev", "cw"])
+      .optional(),
   }),
 });
 
@@ -107,6 +110,59 @@ export const getUserByIdSchema = z.object({
 export const adminUpdateUserSchema = z.object({
   email: z.string().email().optional(),
   fullName: z.string().min(1).optional(),
-  role: z.enum(["admin", "mentor", "mentee", "affiliator", "cm", "curdev", "cw"]).optional(),
+  role: z
+    .enum(["admin", "mentor", "mentee", "affiliator", "cm", "curdev", "cw"])
+    .optional(),
   isActive: z.boolean().optional(),
+});
+
+// GET /api/user/users/logged-in
+// Daftar user yang pernah login (lastLogin tidak null), semua role.
+const dateString = (label: string) =>
+  z.string().refine(isValidDateInput, {
+    message: `${label} must be a valid date (e.g. 2026-11-01)`,
+  });
+
+export const getLoggedInUsersSchema = z.object({
+  query: z.object({
+    page: z
+      .string()
+      .optional()
+      .transform((v) => (v ? parseInt(v, 10) : 1))
+      .refine((v) => !Number.isNaN(v) && v > 0, {
+        message: "page must be a positive integer",
+      }),
+    limit: z
+      .string()
+      .optional()
+      .transform((v) => (v ? parseInt(v, 10) : 10))
+      .refine((v) => !Number.isNaN(v) && v > 0 && v <= 100, {
+        message: "limit must be between 1 and 100",
+      }),
+    search: z.string().trim().optional(), // nama atau email
+    role: z
+      .enum([
+        "mentee",
+        "mentor",
+        "affiliator",
+        "admin",
+        "cm",
+        "curdev",
+        "cw",
+        "guest",
+      ])
+      .optional(),
+    isActive: z
+      .enum(["true", "false"], {
+        message: "isActive must be 'true' or 'false'",
+      })
+      .optional(),
+    from: dateString("from").optional(), // lastLogin >= from
+    to: dateString("to").optional(), // lastLogin <= to (inklusif)
+    sortBy: z
+      .enum(["lastLogin", "fullName", "email"])
+      .optional()
+      .default("lastLogin"),
+    order: z.enum(["asc", "desc"]).optional().default("desc"),
+  }),
 });
