@@ -581,6 +581,12 @@ export default function AdminLayout({
           icon: "/assets/dashboard/mentor/report.svg",
           activeIcon: "/assets/dashboard/mentor/reportwhite.svg",
         },
+        {
+          name: "ERD Data SQL",
+          href: "/admin/elearning/erd-sql",
+          icon: "/assets/admin/pro.svg",
+          activeIcon: "/assets/admin/whitepro.svg",
+        },
       ],
     },
     {
