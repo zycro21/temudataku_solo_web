@@ -12,6 +12,10 @@ import {
 import RichTextEditor, {
   type RichTextEditorRef,
 } from "@/components/admin/elearning/materials/RichTextEditor";
+import {
+  normalizeEditorHTML,
+  richTextDisplayClass,
+} from "@/lib/editorHTMLUtils";
 
 interface MatchPair {
   id: string;
@@ -20,6 +24,15 @@ interface MatchPair {
 }
 
 // ─── Canvas edit mode ─────────────────────────────────────────────────────────
+// Judul = satu baris: hasil paste dijadikan teks polos tanpa baris baru.
+const handleTitlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+  e.preventDefault();
+  const text = e.clipboardData
+    .getData("text/plain")
+    .replace(/\s*[\r\n]+\s*/g, " ");
+  document.execCommand("insertText", false, text);
+};
+
 function MatchingCanvas({
   title,
   description,
@@ -52,6 +65,7 @@ function MatchingCanvas({
   onSelectionChange?: Parameters<typeof RichTextEditor>[0]["onSelectionChange"];
 }) {
   const [activeEditorId, setActiveEditorId] = useState<string | null>(null);
+  const titleRef = useRef<RichTextEditorRef>(null);
   const descRef = useRef<RichTextEditorRef>(null);
   const questionRefs = useRef<Map<string, RichTextEditorRef>>(new Map());
   const answerRefs = useRef<Map<string, RichTextEditorRef>>(new Map());
@@ -75,13 +89,29 @@ function MatchingCanvas({
         <p className="text-[10px] font-semibold text-gray-400 mb-0.5">
           Title <span className="text-red-500">*</span>
         </p>
-        <input
-          value={title}
-          onChange={(e) => onTitleChange(e.target.value)}
-          onFocus={() => setActiveEditorId(null)}
-          placeholder="Enter matching title ..."
-          className="w-full text-lg font-semibold text-gray-700 outline-none placeholder-gray-300 bg-transparent"
-        />
+        {/* Title — RichTextEditor satu baris supaya persamaan inline bisa disisipkan */}
+        <div
+          onKeyDownCapture={(e) => {
+            if (e.key === "Enter") e.preventDefault();
+          }}
+        >
+          <RichTextEditor
+            ref={titleRef}
+            value={title}
+            onChange={onTitleChange}
+            placeholder="Enter matching title ..."
+            className="text-lg font-semibold text-gray-700 min-h-[1.5em]"
+            onPaste={handleTitlePaste}
+            onFocus={() => {
+              setActiveEditorId("title");
+              if (titleRef.current) onEditorFocus?.(titleRef.current);
+            }}
+            onBlur={() => setActiveEditorId(null)}
+            onSelectionChange={
+              activeEditorId === "title" ? onSelectionChange : undefined
+            }
+          />
+        </div>
         <div className="border-b border-dashed border-gray-200 pb-2">
           <p className="text-[10px] font-semibold text-gray-400 mb-0.5">
             Description <span className="text-red-500">*</span>
@@ -282,9 +312,14 @@ function MatchingPreview({
         <Pencil size={11} /> Edit
       </button>
       <div className="px-6 pt-6 pb-4 text-start">
-        <p className="text-xl font-bold text-gray-800">
-          {title || "Matching Quiz"}
-        </p>
+        {title ? (
+          <div
+            className={`text-xl font-bold text-gray-800 ${richTextDisplayClass}`}
+            dangerouslySetInnerHTML={{ __html: normalizeEditorHTML(title) }}
+          />
+        ) : (
+          <p className="text-xl font-bold text-gray-800">Matching Quiz</p>
+        )}
         {description && (
           <div
             className="text-sm text-gray-500 mt-2"

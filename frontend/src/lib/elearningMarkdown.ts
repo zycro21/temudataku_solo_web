@@ -26,6 +26,42 @@
  * admin.
  */
 
+import katex from "katex";
+import "katex/dist/katex.min.css";
+
+// ─── Persamaan inline: {math}LaTeX{/math} ────────────────────────────────────
+// Isi LaTeX BOLEH mengandung karakter yang juga dipakai token lain (_ * ~ -- |
+// { } < >), jadi sebelum regex lain jalan isinya dipindah ke placeholder
+// (karakter private-use) lalu dikembalikan di akhir.
+const MATH_TOKEN_REGEX = /\{math\}([\s\S]*?)\{\/math\}/g;
+const MATH_PLACEHOLDER_REGEX = /\uE000(\d+)\uE001/g;
+
+function escapeMathAttr(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+// KaTeX dengan trust:false (default) → \href, \includegraphics, dst tidak
+// dieksekusi, jadi aman dipakai lewat dangerouslySetInnerHTML.
+function mathToHTML(latex: string): string {
+  let rendered = "";
+  try {
+    rendered = katex.renderToString(latex, {
+      displayMode: false,
+      throwOnError: false,
+      strict: "ignore",
+      trust: false,
+      errorColor: "#dc2626",
+    });
+  } catch {
+    rendered = escapeMathAttr(latex);
+  }
+  return `<span class="eq-inline" data-latex="${escapeMathAttr(latex)}" contenteditable="false">${rendered}</span>`;
+}
+
 // ─── Font-type presets ──────────────────────────────────────────────────────
 // Sama persis dengan FONT_PRESETS di fontStyles.ts admin — dipakai cuma buat
 // resolve fontSize default per fontType saat decode token, BUKAN untuk
@@ -87,10 +123,25 @@ export function decodeFontStyleToken(text: string): {
 export function markdownToHTML(md: string): string {
   if (!md) return "";
 
-  // Jika sudah HTML (mengandung tag), kembalikan langsung
-  if (/<[a-z][\s\S]*>/i.test(md)) return md;
+  // Amankan isi {math}...{/math} dulu (lihat catatan di atas). Harus SEBELUM
+  // cek "sudah HTML" di bawah, karena LaTeX seperti `a<b dan c>d` bisa
+  // dikira tag HTML.
+  const maths: string[] = [];
+  const protectedMd = md.replace(MATH_TOKEN_REGEX, (_, latex: string) => {
+    maths.push(latex);
+    return `\uE000${maths.length - 1}\uE001`;
+  });
+  const restoreMath = (s: string) =>
+    maths.length
+      ? s.replace(MATH_PLACEHOLDER_REGEX, (_, i: string) =>
+          mathToHTML(maths[Number(i)]),
+        )
+      : s;
 
-  let html = md;
+  // Jika sudah HTML (mengandung tag), kembalikan langsung
+  if (/<[a-z][\s\S]*>/i.test(protectedMd)) return restoreMath(protectedMd);
+
+  let html = protectedMd;
 
   // Font size: {fs:16}text{/fs} → <span style="font-size:16px">text</span>
   html = html.replace(
@@ -110,7 +161,7 @@ export function markdownToHTML(md: string): string {
     (_, color, text) =>
       `<span style="background-color:${color}">${text}</span>`,
   );
-  
+
   // Bold: *text*
   html = html.replace(/\*([^*]+)\*/g, "<strong>$1</strong>");
 
@@ -174,5 +225,5 @@ export function markdownToHTML(md: string): string {
   // Newline → <br>
   html = html.replace(/\n/g, "<br>");
 
-  return html;
+  return restoreMath(html);
 }

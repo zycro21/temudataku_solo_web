@@ -26,6 +26,7 @@ import {
   Trash2,
   MoreHorizontal,
   GripVertical,
+  Sigma,
 } from "lucide-react";
 import type { CanvasItem } from "./CanvasCard";
 
@@ -1055,6 +1056,25 @@ export default function StylePanel({
                 </TBtn>
               </div>
             </div>
+          </div>
+
+          {/* Equation (inline) */}
+          <div>
+            <p className="text-[10px] font-semibold text-gray-500 mb-1">
+              Equation
+            </p>
+            <button
+              type="button"
+              title="Sisipkan persamaan di posisi kursor"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onStyleChange("__insertMath");
+              }}
+              className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:border-emerald-400 hover:text-emerald-700 transition"
+            >
+              <Sigma size={12} />
+              Sisipkan persamaan
+            </button>
           </div>
         </Section>
 

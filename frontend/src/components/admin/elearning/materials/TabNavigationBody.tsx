@@ -20,7 +20,16 @@ function getPlainTextLength(html: string): number {
   if (typeof window === "undefined") return html.length;
   const div = document.createElement("div");
   div.innerHTML = html;
-  return (div.textContent ?? "").length;
+  // Persamaan inline: render KaTeX memuat teks ganda (MathML + HTML), jadi
+  // dihitung sebesar panjang LaTeX-nya saja. U+200B = penanda kursor, diabaikan.
+  div.querySelectorAll("[data-latex]").forEach((atom) => {
+    atom.replaceWith(
+      document.createTextNode(
+        "x".repeat((atom.getAttribute("data-latex") ?? "").length),
+      ),
+    );
+  });
+  return (div.textContent ?? "").replace(/\u200B/g, "").length;
 }
 
 interface TabItem {

@@ -47,6 +47,7 @@ import UnsavedChangesModal from "@/components/admin/elearning/materials/UnsavedC
 import MaterialPreviewModal from "@/components/admin/elearning/materials/MaterialPreviewModal";
 import axios from "axios";
 import { toast } from "sonner";
+import katex from "katex";
 
 // ─── ID generator ─────────────────────────────────────────────────────────────
 let _idCounter = 0;
@@ -80,16 +81,65 @@ const DEFAULT_STYLE: StyleState = {
   listType: "none",
 };
 
+// ─── Persamaan inline: {math}LaTeX{/math} ────────────────────────────────────
+// Isi LaTeX BOLEH mengandung karakter yang juga dipakai token lain (_ * ~ -- |
+// { } < >), jadi sebelum regex lain jalan isinya dipindah ke placeholder
+// (karakter private-use) lalu dikembalikan di akhir.
+const MATH_TOKEN_REGEX = /\{math\}([\s\S]*?)\{\/math\}/g;
+const MATH_PLACEHOLDER_REGEX = /\uE000(\d+)\uE001/g;
+const MATH_TOKEN_OVERHEAD = "{math}{/math}".length;
+
+function escapeMathAttr(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+// KaTeX dengan trust:false (default) → \href, \includegraphics, dst tidak
+// dieksekusi, jadi aman dipakai lewat dangerouslySetInnerHTML.
+function mathToHTML(latex: string): string {
+  let rendered = "";
+  try {
+    rendered = katex.renderToString(latex, {
+      displayMode: false,
+      throwOnError: false,
+      strict: "ignore",
+      trust: false,
+      errorColor: "#dc2626",
+    });
+  } catch {
+    rendered = escapeMathAttr(latex);
+  }
+  return `<span class="eq-inline" data-latex="${escapeMathAttr(latex)}" contenteditable="false">${rendered}</span>`;
+}
+
 // ─── Markdown ↔ HTML converter ────────────────────────────────────────────────
 // Dipakai saat restore data ke RichTextEditor
 
 export function markdownToHTML(md: string): string {
   if (!md) return "";
 
-  // Jika sudah HTML (mengandung tag), kembalikan langsung
-  if (/<[a-z][\s\S]*>/i.test(md)) return md;
+  // Amankan isi {math}...{/math} dulu (lihat catatan di atas). Harus SEBELUM
+  // cek "sudah HTML" di bawah, karena LaTeX seperti `a<b dan c>d` bisa
+  // dikira tag HTML.
+  const maths: string[] = [];
+  const protectedMd = md.replace(MATH_TOKEN_REGEX, (_, latex: string) => {
+    maths.push(latex);
+    return `\uE000${maths.length - 1}\uE001`;
+  });
+  const restoreMath = (s: string) =>
+    maths.length
+      ? s.replace(MATH_PLACEHOLDER_REGEX, (_, i: string) =>
+          mathToHTML(maths[Number(i)]),
+        )
+      : s;
 
-  let html = md;
+  // Jika sudah HTML (mengandung tag), kembalikan langsung
+  if (/<[a-z][\s\S]*>/i.test(protectedMd)) return restoreMath(protectedMd);
+
+  let html = protectedMd;
 
   // Font size: {fs:16}text{/fs} → <span style="font-size:16px">text</span>
   html = html.replace(
@@ -177,43 +227,84 @@ export function markdownToHTML(md: string): string {
   // Newline → <br>
   html = html.replace(/\n/g, "<br>");
 
-  return html;
+  return restoreMath(html);
 }
 
+// Persamaan inline di editor berbentuk
+//   <span data-latex="..." contenteditable="false">…hasil render KaTeX…</span>
+// Di sini ia diganti placeholder SEBELUM regex tag mana pun jalan (isi KaTeX
+// berlapis-lapis span dan LaTeX bisa memuat < > & |), lalu dikembalikan jadi
+// token {math}LaTeX{/math} di akhir. Pakai DOMParser karena regex tidak bisa
+// mencocokkan span bersarang; hanya jalan kalau ada data-latex, jadi konten
+// tanpa persamaan diproses persis seperti sebelumnya.
 export function htmlToMarkdown(html: string): string {
   if (!html) return "";
 
-  // Jika tidak ada tag HTML, kembalikan langsung
-  if (!/<[a-z][\s\S]*>/i.test(html)) return html;
+  const store: string[] = [];
+  let source = html.replace(/\u200B/g, ""); // penanda kursor setelah persamaan
+
+  if (typeof window !== "undefined" && source.includes("data-latex")) {
+    const doc = new DOMParser().parseFromString(
+      `<div id="__root">${source}</div>`,
+      "text/html",
+    );
+    const root = doc.getElementById("__root");
+    if (root) {
+      root.querySelectorAll("[data-latex]").forEach((el) => {
+        const latex = (el.getAttribute("data-latex") ?? "")
+          .replace(/\s*\n\s*/g, " ")
+          .trim();
+        store.push(latex);
+        el.replaceWith(doc.createTextNode(`\uE000${store.length - 1}\uE001`));
+      });
+      source = root.innerHTML;
+    }
+  }
+
+  const md = htmlToMarkdownCore(source, store.length > 0);
+  if (store.length === 0) return md;
+  return md.replace(
+    MATH_PLACEHOLDER_REGEX,
+    (_, i: string) => `{math}${store[Number(i)]}{/math}`,
+  );
+}
+
+function htmlToMarkdownCore(html: string, forceProcess = false): string {
+  if (!html) return "";
+
+  // Jika tidak ada tag HTML, kembalikan langsung (kecuali forceProcess: tag
+  // satu-satunya adalah persamaan inline yang sudah diganti placeholder oleh
+  // htmlToMarkdown, tapi sisanya tetap harus diproses seperti biasa).
+  if (!forceProcess && !/<[a-z][\s\S]*>/i.test(html)) return html;
 
   let md = html;
 
   // Font size
   md = md.replace(
     /<span[^>]*style="[^"]*font-size:\s*(\d+)px[^"]*"[^>]*>([\s\S]*?)<\/span>/gi,
-    (_, size, text) => `{fs:${size}}${htmlToMarkdown(text)}{/fs}`,
+    (_, size, text) => `{fs:${size}}${htmlToMarkdownCore(text)}{/fs}`,
   );
 
   // Pen color
   md = md.replace(
     /<span[^>]*style="[^"]*color:\s*(#[0-9a-fA-F]{6})[^"]*"[^>]*>([\s\S]*?)<\/span>/gi,
-    (_, color, text) => `{color:${color}}${htmlToMarkdown(text)}{/color}`,
+    (_, color, text) => `{color:${color}}${htmlToMarkdownCore(text)}{/color}`,
   );
 
   // Highlight
   md = md.replace(
     /<span[^>]*style="[^"]*background-color:\s*(#[0-9a-fA-F]{6})[^"]*"[^>]*>([\s\S]*?)<\/span>/gi,
-    (_, color, text) => `{hl:${color}}${htmlToMarkdown(text)}{/hl}`,
+    (_, color, text) => `{hl:${color}}${htmlToMarkdownCore(text)}{/hl}`,
   );
 
   // Italic — deteksi <em> dan <i> (format baru) serta span skewX lama (backward compat)
   md = md.replace(
     /<em>([\s\S]*?)<\/em>/gi,
-    (_, text) => `~${htmlToMarkdown(text)}~`,
+    (_, text) => `~${htmlToMarkdownCore(text)}~`,
   );
   md = md.replace(
     /<i>([\s\S]*?)<\/i>/gi,
-    (_, text) => `~${htmlToMarkdown(text)}~`,
+    (_, text) => `~${htmlToMarkdownCore(text)}~`,
   );
   md = md.replace(
     /<span[^>]*style="[^"]*skewX[^"]*"[^>]*>([\s\S]*?)<\/span>/gi,
@@ -235,7 +326,7 @@ export function htmlToMarkdown(html: string): string {
   // Alignment div
   md = md.replace(
     /<div[^>]*style="[^"]*text-align:\s*(left|center|right|justify)[^"]*"[^>]*>([\s\S]*?)<\/div>/gi,
-    (_, align, text) => `{align:${align}}${htmlToMarkdown(text)}{/align}`, // 👈 hapus lagi "\n" di depan
+    (_, align, text) => `{align:${align}}${htmlToMarkdownCore(text)}{/align}`, // 👈 hapus lagi "\n" di depan
   );
 
   // Blockquote (hasil Indent di teks biasa, bukan di dalam list) — TIDAK
@@ -248,13 +339,14 @@ export function htmlToMarkdown(html: string): string {
   // class default blockquote (border-l-4 abu-abu) yang beda tampilannya.
   md = md.replace(
     /<blockquote[^>]*style="[^"]*margin(?:-left)?:\s*(?:0\s+0\s+0\s+)?(\d+)px[^"]*"[^>]*>([\s\S]*?)<\/blockquote>/gi,
-    (_, marginPx, text) => `{quote:${marginPx}}${htmlToMarkdown(text)}{/quote}`,
+    (_, marginPx, text) =>
+      `{quote:${marginPx}}${htmlToMarkdownCore(text)}{/quote}`,
   );
   // Fallback: blockquote tanpa style margin ke-deteksi (mis. dari sumber
   // lain) — default 40px, satu level indent standar.
   md = md.replace(
     /<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi,
-    (_, text) => `{quote:40}${htmlToMarkdown(text)}{/quote}`,
+    (_, text) => `{quote:40}${htmlToMarkdownCore(text)}{/quote}`,
   );
 
   // Unordered list — style attribute OPSIONAL. List yang baru dibikin lewat
@@ -393,7 +485,20 @@ function truncateHTMLByVisibleLength(
           remaining -= text.length;
         }
       } else if (child.nodeType === Node.ELEMENT_NODE) {
-        walk(child);
+        // Persamaan inline = satu kesatuan (jangan dipotong di tengah hasil
+        // render KaTeX). Biayanya = panjang tokennya di string tersimpan.
+        const latexAttr = (child as Element).getAttribute("data-latex");
+        if (latexAttr !== null) {
+          const cost = latexAttr.length + MATH_TOKEN_OVERHEAD;
+          if (cost > remaining) {
+            node.removeChild(child);
+            remaining = 0;
+          } else {
+            remaining -= cost;
+          }
+        } else {
+          walk(child);
+        }
       }
     }
   };
