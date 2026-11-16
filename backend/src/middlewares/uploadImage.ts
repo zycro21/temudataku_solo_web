@@ -885,6 +885,10 @@ export const handleELearningTextFilesUpload = multer({
   limits: {
     files: 70,
     fileSize: 100 * 1024 * 1024,
+    // Batas satu field teks (bukan file). Field `blocks` berisi seluruh
+    // konten teks dalam bentuk JSON (termasuk tabel besar), default multer
+    // hanya 1 MB. 25 MB menutup tabel maksimum (20 kolom x 500 baris).
+    fieldSize: 25 * 1024 * 1024,
   },
 
   fileFilter: eLearningFileFilter,

@@ -15,6 +15,8 @@ import {
   richTextDisplayClass,
 } from "@/lib/editorHTMLUtils";
 import { getFontStyle } from "@/components/admin/elearning/materials/fontStyles";
+import { TableView } from "./TableView";
+import { EquationView } from "./MathView";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 interface MaterialPreviewModalProps {
@@ -1823,6 +1825,17 @@ function PreviewItem({ item }: { item: CanvasItem }) {
       return <QuizModalPreview data={item.data} />;
     case "project":
       return <ProjectModalPreview data={item.data} />;
+    case "table":
+      return item.data?.columns?.length ? (
+        <TableView
+          columns={item.data.columns}
+          rows={item.data.rows ?? []}
+          fontType={item.data.fontType}
+          fontSize={item.data.fontSize}
+        />
+      ) : null;
+    case "equation":
+      return item.data?.latex ? <EquationView latex={item.data.latex} /> : null;
     default:
       return null;
   }

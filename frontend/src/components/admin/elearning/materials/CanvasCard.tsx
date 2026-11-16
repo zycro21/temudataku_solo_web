@@ -24,6 +24,8 @@ import {
   CheckSquare,
   LayoutList,
   Table,
+  Table2,
+  Sigma,
   Heading,
   Upload,
   Image as ImageIcon,
@@ -39,6 +41,8 @@ import { MatchingBody } from "./MatchingBody";
 import { CodingBody } from "./CodingBody";
 import { QuizBody } from "./QuizBody";
 import { ProjectBody } from "./ProjectBody";
+import { TableBody } from "./TableBody";
+import { EquationBody } from "./EquationBody";
 import RichTextEditor, { type RichTextEditorRef } from "./RichTextEditor";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -49,6 +53,8 @@ export type CanvasItem = ContentElement & {
 
 // ─── IDs that get no horizontal padding in card body ─────────────────────────
 const NO_SIDE_PADDING_IDS = new Set([
+  "table",
+  "equation",
   "accordion",
   "tab-navigation",
   "content-card",
@@ -61,6 +67,7 @@ const NO_SIDE_PADDING_IDS = new Set([
 ]);
 
 const SELF_MANAGED_RICH_IDS = new Set([
+  "table",
   "accordion",
   "tab-navigation",
   "content-card",
@@ -106,6 +113,8 @@ const CANVAS_ICONS: Record<string, React.ReactNode> = {
   coding: <Code2 size={13} />,
   quiz: <HelpCircle size={13} />,
   project: <Upload size={13} />,
+  table: <Table2 size={13} />,
+  equation: <Sigma size={13} />,
 };
 
 // ─── HeadingBody ──────────────────────────────────────────────────────────────
@@ -1029,6 +1038,19 @@ function CardBody({
           onSelectionChange={onSelectionChange}
         />
       );
+    case "table":
+      return (
+        <TableBody
+          initialData={el.data}
+          fontType={el.data?.fontType}
+          fontSize={el.data?.fontSize}
+          onChangeData={onChangeData}
+          onEditorFocus={onSelfManagedEditorFocus}
+          onSelectionChange={onSelectionChange}
+        />
+      );
+    case "equation":
+      return <EquationBody initialData={el.data} onChangeData={onChangeData} />;
     default:
       return <FallbackBody description={el.description} />;
   }

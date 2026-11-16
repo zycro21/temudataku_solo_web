@@ -59,7 +59,14 @@ type BlockContentInput =
       orderNumber?: number;
       tabs: { title: string; content: string; orderNumber: number }[];
     }
-  | { type: "summary"; orderNumber?: number; comments: string[] };
+  | { type: "summary"; orderNumber?: number; comments: string[] }
+  | {
+      type: "table";
+      orderNumber?: number;
+      columns: { header: string }[];
+      rows: { cells: string[] }[];
+    }
+  | { type: "equation"; orderNumber?: number; latex: string };
 
 type AdditionalContentInput =
   | {
@@ -408,6 +415,24 @@ export class ELearningTextService {
                     },
                   },
                 },
+                tableContent: {
+                  include: {
+                    columns: {
+                      orderBy: {
+                        orderNumber: "asc",
+                      },
+                    },
+                    rows: {
+                      orderBy: {
+                        orderNumber: "asc",
+                      },
+                      include: {
+                        cells: true,
+                      },
+                    },
+                  },
+                },
+                equationContent: true,
               },
             },
 
@@ -586,6 +611,28 @@ export class ELearningTextService {
               comments: (cb.summaryContent?.comments ?? []).map(
                 (c) => c.comment,
               ),
+            };
+          case "TABLE": {
+            const columns = cb.tableContent?.columns ?? [];
+            return {
+              ...base,
+              type: "table",
+              columns: columns.map((col) => ({ header: col.header })),
+              // cells diurutkan mengikuti urutan kolom, sel kosong → ""
+              rows: (cb.tableContent?.rows ?? []).map((row) => ({
+                cells: columns.map(
+                  (col) =>
+                    row.cells.find((cell) => cell.columnId === col.id)?.value ??
+                    "",
+                ),
+              })),
+            };
+          }
+          case "EQUATION":
+            return {
+              ...base,
+              type: "equation",
+              latex: cb.equationContent?.latex ?? "",
             };
           default:
             return { ...base, type: (cb.type as string).toLowerCase() };
@@ -800,6 +847,8 @@ export class ELearningTextService {
         content_card: "Content Card",
         tab_navigation: "Tab Navigation",
         summary: "Summary",
+        table: "Table",
+        equation: "Equation",
       };
 
       // Label human-readable per tipe additional content
@@ -919,6 +968,8 @@ export class ELearningTextService {
         content_card: "Content Card",
         tab_navigation: "Tab Navigation",
         summary: "Summary",
+        table: "Table",
+        equation: "Equation",
       };
 
       const additionalTypeLabels: Record<string, string> = {
@@ -938,6 +989,8 @@ export class ELearningTextService {
         CONTENT_CARD: "Content Card",
         TAB_NAVIGATION: "Tab Navigation",
         SUMMARY: "Summary",
+        TABLE: "Table",
+        EQUATION: "Equation",
       };
 
       const dbAdditionalTypeLabels: Record<string, string> = {
@@ -1195,6 +1248,54 @@ export class ELearningTextService {
                 }
                 break;
               }
+
+              case "table": {
+                const table = await tx.eLearningTableContent.create({
+                  data: { contentId: contentBlock.id },
+                });
+
+                // ID dibuat di sini supaya kolom/baris/sel bisa di-insert
+                // massal (createMany) — hindari ratusan query per tabel
+                // di dalam satu transaksi.
+                const columnIds = content.columns.map(() =>
+                  crypto.randomUUID(),
+                );
+                const rowIds = content.rows.map(() => crypto.randomUUID());
+
+                await tx.eLearningTableColumn.createMany({
+                  data: content.columns.map((col, i) => ({
+                    id: columnIds[i],
+                    tableId: table.id,
+                    header: col.header,
+                    orderNumber: i + 1,
+                  })),
+                });
+
+                await tx.eLearningTableRow.createMany({
+                  data: rowIds.map((id, i) => ({
+                    id,
+                    tableId: table.id,
+                    orderNumber: i + 1,
+                  })),
+                });
+
+                await tx.eLearningTableCell.createMany({
+                  data: content.rows.flatMap((row, r) =>
+                    columnIds.map((columnId, c) => ({
+                      rowId: rowIds[r],
+                      columnId,
+                      value: row.cells[c] ?? null,
+                    })),
+                  ),
+                });
+                break;
+              }
+
+              case "equation":
+                await tx.eLearningEquationContent.create({
+                  data: { contentId: contentBlock.id, latex: content.latex },
+                });
+                break;
             }
           }
 
@@ -1837,6 +1938,16 @@ export class ELearningTextService {
                   summaryContent: {
                     include: { comments: { orderBy: { orderNumber: "asc" } } },
                   },
+                  tableContent: {
+                    include: {
+                      columns: { orderBy: { orderNumber: "asc" } },
+                      rows: {
+                        orderBy: { orderNumber: "asc" },
+                        include: { cells: true },
+                      },
+                    },
+                  },
+                  equationContent: true,
                 },
               },
               additionalContents: {

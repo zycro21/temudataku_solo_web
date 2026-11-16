@@ -1012,6 +1012,8 @@ model ELearningContentBlock {
   tabContent         ELearningTabNavigationContent?
   highlightContent   ELearningHighlightContent?
   summaryContent     ELearningSummaryContent?
+  tableContent       ELearningTableContent?
+  equationContent    ELearningEquationContent?
 
   @@map("ct_e_learning_content_blocks")
 }
@@ -1025,6 +1027,8 @@ enum ContentBlockType {
   TAB_NAVIGATION
   HIGHLIGHT
   SUMMARY
+  TABLE
+  EQUATION
 }
 
 model ELearningHeadingContent {
@@ -1201,6 +1205,76 @@ model ELearningSummaryComment {
   summary ELearningSummaryContent @relation(fields: [summaryId], references: [id], onDelete: Cascade)
 
   @@map("ct_e_learning_summary_comments")
+}
+
+// Table — grid kolom + baris. Kolom/baris bisa ditambah & dikurangi;
+// isi tiap sel disimpan di ELearningTableCell (satu sel = satu pasang
+// baris x kolom). Strukturnya sama dengan ArticleTableContent.
+model ELearningTableContent {
+  id        String @id @default(cuid())
+  contentId String @unique
+
+  columns ELearningTableColumn[]
+  rows    ELearningTableRow[]
+
+  content ELearningContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@map("ct_e_learning_table_contents")
+}
+
+model ELearningTableColumn {
+  id          String @id @default(cuid())
+  tableId     String @map("table_id")
+
+  header      String
+  orderNumber Int    @map("order_number")
+
+  table ELearningTableContent @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  cells ELearningTableCell[]
+
+  @@unique([tableId, orderNumber])
+  @@map("ct_e_learning_table_columns")
+}
+
+model ELearningTableRow {
+  id          String @id @default(cuid())
+  tableId     String @map("table_id")
+
+  orderNumber Int    @map("order_number")
+
+  table ELearningTableContent @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  cells ELearningTableCell[]
+
+  @@unique([tableId, orderNumber])
+  @@map("ct_e_learning_table_rows")
+}
+
+model ELearningTableCell {
+  id       String  @id @default(cuid())
+  rowId    String  @map("row_id")
+  columnId String  @map("column_id")
+
+  value    String? @db.Text
+
+  row    ELearningTableRow    @relation(fields: [rowId], references: [id], onDelete: Cascade)
+  column ELearningTableColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
+
+  @@unique([rowId, columnId])
+  @@map("ct_e_learning_table_cells")
+}
+
+// Equation — rumus ala Equation di Microsoft Word. Yang disimpan hanya
+// string LaTeX hasil akhir (mis. \frac{a}{b}), dirender di frontend
+// (KaTeX/MathJax).
+model ELearningEquationContent {
+  id        String @id @default(cuid())
+  contentId String @unique
+
+  latex     String @db.Text
+
+  content   ELearningContentBlock @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@map("ct_e_learning_equation_contents")
 }
 
 // Additional Content

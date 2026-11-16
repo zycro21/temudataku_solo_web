@@ -456,6 +456,8 @@ function mapMaterialToCanvasItems(material: any): CanvasItem[] {
     coding: "coding",
     "true-false": "true-false",
     matching: "matching",
+    table: "table",
+    equation: "equation",
   };
 
   const blockItems: CanvasItem[] = (material.blocks ?? []).flatMap(
@@ -700,6 +702,37 @@ function mapMaterialToCanvasItems(material: any): CanvasItem[] {
               expectedOutput:
                 content.expectedResult ?? content.content?.expectedResult ?? "",
             };
+            break;
+
+          case "table": {
+            // Header & sel disimpan sebagai markdown-token (bold, align, list,
+            // dst). Font tabel dititipkan sebagai token {fstyle:...} di awal
+            // header kolom pertama → di-decode & dibuang di sini.
+            const rawColumns: any[] = content.columns ?? [];
+            const {
+              fontType,
+              fontSize,
+              rest: firstHeader,
+            } = decodeFontStyleToken(rawColumns[0]?.header ?? "");
+            data = {
+              columns: rawColumns.map((c: any, i: number) => ({
+                header: markdownToHTML(
+                  i === 0 ? firstHeader : (c.header ?? ""),
+                ),
+              })),
+              rows: (content.rows ?? []).map((r: any) => ({
+                cells: (r.cells ?? []).map((cell: any) =>
+                  markdownToHTML(cell ?? ""),
+                ),
+              })),
+              fontType,
+              fontSize,
+            };
+            break;
+          }
+
+          case "equation":
+            data = { latex: content.latex ?? "" };
             break;
 
           default:
@@ -1719,6 +1752,55 @@ export default function CreateMaterialPage() {
                   : undefined,
                 options: tfOptions,
               },
+            });
+          }
+          break;
+        }
+
+        case "table": {
+          // Tabel yang belum di-"Create / Save Table" (data kosong) dilewati,
+          // sama seperti matching tanpa pasangan valid.
+          const tableColumns: any[] = d.columns ?? [];
+          const tableRows: any[] = d.rows ?? [];
+          if (tableColumns.length > 0 && tableRows.length > 0) {
+            // Sel kosong secara visual (mis. "<div><br></div>") → "".
+            const serializeTableCell = (html?: string): string => {
+              if (!html) return "";
+              const visible = html
+                .replace(/<[^>]*>/g, "")
+                .replace(/&nbsp;|\u00A0/g, " ")
+                .trim();
+              if (!visible) return "";
+              return htmlToMarkdown(normalizeEditorHTML(html));
+            };
+            const tableFontToken = encodeFontStyleToken(d);
+
+            contents.push({
+              type: "table",
+              orderNumber: globalOrder++,
+              columns: tableColumns.map((c: any, i: number) => ({
+                // font tabel dititipkan di header kolom pertama
+                header:
+                  (i === 0 ? tableFontToken : "") +
+                  serializeTableCell(c.header),
+              })),
+              rows: tableRows.map((r: any) => ({
+                cells: tableColumns.map((_: any, i: number) =>
+                  serializeTableCell(r.cells?.[i]),
+                ),
+              })),
+            });
+          }
+          break;
+        }
+
+        case "equation": {
+          const latex: string = d.latex ?? "";
+          if (latex.trim()) {
+            contents.push({
+              type: "equation",
+              orderNumber: globalOrder++,
+              latex,
             });
           }
           break;

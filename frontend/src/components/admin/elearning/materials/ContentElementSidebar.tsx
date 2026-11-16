@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { Search, ChevronDown, ChevronRight, Heart } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
+import { MathView } from "./MathView";
 
 export interface ContentElement {
   id: string;
@@ -49,6 +50,22 @@ export const ALL_ELEMENTS: ContentElement[] = [
     iconSrc: "/assets/admin/elearning/materials/video.svg",
     label: "Video",
     description: "Embeds a video for richer learning content.",
+    category: "basic",
+    favorite: false,
+  },
+  {
+    id: "table",
+    iconSrc: "/assets/admin/elearning/materials/table.svg",
+    label: "Table",
+    description: "Presents data in rows and columns.",
+    category: "basic",
+    favorite: false,
+  },
+  {
+    id: "equation",
+    iconSrc: "/assets/admin/elearning/materials/equation.svg",
+    label: "Equation",
+    description: "Adds math formulas and symbols.",
     category: "basic",
     favorite: false,
   },
@@ -631,6 +648,51 @@ function TooltipContent({ id }: { id: string }) {
               />
             </svg>
           </div>
+        </div>
+      </div>
+    );
+  }
+  if (id === "table") {
+    return (
+      <div>
+        <TooltipHeader
+          label="Table"
+          description="Presents data in rows and columns."
+        />
+        <div className="overflow-hidden rounded-lg border border-emerald-200">
+          <div className="grid grid-cols-3 gap-2 bg-emerald-500 px-2 py-2">
+            {[0, 1, 2].map((c) => (
+              <div key={c} className="h-1.5 rounded-full bg-white/70" />
+            ))}
+          </div>
+          {[0, 1, 2].map((r) => (
+            <div
+              key={r}
+              className={`grid grid-cols-3 gap-2 px-2 py-2 ${
+                r % 2 ? "bg-gray-50" : "bg-white"
+              }`}
+            >
+              {[0, 1, 2].map((c) => (
+                <div key={c} className="h-1.5 rounded-full bg-gray-200" />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  if (id === "equation") {
+    return (
+      <div>
+        <TooltipHeader
+          label="Equation"
+          description="Adds math formulas and symbols."
+        />
+        <div className="rounded-xl border border-emerald-200 bg-white px-2 py-3 text-center text-sm">
+          <MathView
+            latex={String.raw`x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}`}
+            displayMode
+          />
         </div>
       </div>
     );

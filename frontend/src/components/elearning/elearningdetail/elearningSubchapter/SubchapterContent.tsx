@@ -84,6 +84,10 @@ import {
   FileCheck2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+// 🔥 BARU: tabel & equation memakai komponen tampilan yang SAMA dengan
+// preview admin (MaterialPreviewModal) supaya hasilnya identik.
+import { TableView } from "@/components/admin/elearning/materials/TableView";
+import { EquationView } from "@/components/admin/elearning/materials/MathView";
 import { useElearningQuizAttempt } from "@/hooks/useElearningQuizAttempt";
 import {
   useElearningAssignmentSubmission,
@@ -2170,6 +2174,47 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
 
   /* ================= RENDER CONTENT ================= */
   const renderContent = (content: BlockContent) => {
+    // 🔥 BARU: "table" & "equation" ditangani SEBELUM switch utama (lewat
+    // cast) supaya tidak bergantung pada union type ContentBlock di
+    // ElearningSelection — tipe itu belum tentu sudah memuat keduanya.
+    const extra = content as unknown as {
+      type: string;
+      columns?: { header?: string }[];
+      rows?: { cells?: string[] }[];
+      latex?: string;
+    };
+
+    if (extra.type === "table") {
+      const rawColumns = extra.columns ?? [];
+      if (rawColumns.length === 0) return null;
+
+      // Sama seperti admin (mapMaterialToCanvasItems case "table"): font
+      // tabel dititipkan sebagai token {fstyle:...} di awal header kolom
+      // pertama → di-decode & dibuang dulu sebelum dikonversi ke HTML.
+      const {
+        fontType: tableFontType,
+        fontSize: tableFontSize,
+        rest: firstHeader,
+      } = decodeFontStyleToken(rawColumns[0]?.header ?? "");
+
+      return (
+        <TableView
+          columns={rawColumns.map((c, i) => ({
+            header: markdownToHTML(i === 0 ? firstHeader : (c.header ?? "")),
+          }))}
+          rows={(extra.rows ?? []).map((r) => ({
+            cells: (r.cells ?? []).map((cell) => markdownToHTML(cell ?? "")),
+          }))}
+          fontType={tableFontType}
+          fontSize={tableFontSize}
+        />
+      );
+    }
+
+    if (extra.type === "equation") {
+      return extra.latex?.trim() ? <EquationView latex={extra.latex} /> : null;
+    }
+
     switch (content.type) {
       case "heading": {
         const { rest: headingRest } = decodeFontStyleToken(content.text ?? "");

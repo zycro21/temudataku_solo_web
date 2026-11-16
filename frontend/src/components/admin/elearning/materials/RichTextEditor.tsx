@@ -28,6 +28,7 @@ interface RichTextEditorProps {
   onUnmount?: () => void;
   maxLength?: number; // ⬅️ baru
   onMaxLengthReached?: () => void;
+  onPaste?: (e: React.ClipboardEvent<HTMLDivElement>) => void;
   onSelectionChange?: (state: {
     bold: boolean;
     italic: boolean;
@@ -54,6 +55,7 @@ const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>(
       onUnmount,
       maxLength,
       onMaxLengthReached,
+      onPaste,
       onSelectionChange,
     },
     ref,
@@ -441,6 +443,7 @@ const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>(
         contentEditable
         suppressContentEditableWarning
         onBeforeInput={handleBeforeInput}
+        onPaste={onPaste}
         onInput={() => {
           onChangeRef.current?.(editorRef.current?.innerHTML || "");
         }}

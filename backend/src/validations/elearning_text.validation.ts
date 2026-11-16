@@ -161,6 +161,40 @@ const summaryContentSchema = z.object({
   comments: z.array(z.string().min(1)).min(1),
 });
 
+// Table — jumlah sel per baris harus sama dengan jumlah kolom (dicek di
+// blockSchema lewat superRefine, karena discriminatedUnion hanya menerima
+// z.object polos).
+const tableContentSchema = z.object({
+  type: z.literal("table"),
+  orderNumber: z.number().int().min(1).optional(),
+  columns: z
+    .array(z.object({ header: z.string().max(255) }))
+    .min(1, "Tabel minimal punya 1 kolom")
+    .max(20, "Tabel maksimal 20 kolom"),
+  rows: z
+    .array(z.object({ cells: z.array(z.string().max(2000)) }))
+    .min(1, "Tabel minimal punya 1 baris")
+    .max(500, "Tabel maksimal 500 baris"),
+});
+
+// Equation — string LaTeX. Simbol (π, ≠, \alpha, \sum, dst.) tidak dibatasi.
+// Yang ditolak hanya perintah LaTeX yang bisa memuat link/HTML/file/macro.
+const BLOCKED_LATEX_COMMANDS =
+  /\\(href|url|includegraphics|require|input|include|write|def|newcommand|renewcommand|catcode|html[A-Za-z]*)(?![A-Za-z])/;
+
+const equationContentSchema = z.object({
+  type: z.literal("equation"),
+  orderNumber: z.number().int().min(1).optional(),
+  latex: z
+    .string()
+    .max(5000, "Persamaan maksimal 5000 karakter")
+    .refine((v) => v.trim().length > 0, "Persamaan tidak boleh kosong")
+    .refine(
+      (v) => !BLOCKED_LATEX_COMMANDS.test(v),
+      "Persamaan mengandung perintah LaTeX yang tidak diizinkan",
+    ),
+});
+
 const blockContentSchema = z.discriminatedUnion("type", [
   headingContentSchema,
   paragraphContentSchema,
@@ -170,6 +204,8 @@ const blockContentSchema = z.discriminatedUnion("type", [
   contentCardSchema,
   tabNavigationSchema,
   summaryContentSchema,
+  tableContentSchema,
+  equationContentSchema,
 ]);
 
 // ─── Additional content sub-schemas ───────────────────────────────────────────
@@ -257,11 +293,27 @@ const additionalContentSchema = z.discriminatedUnion("type", [
 
 // ─── Block schema ──────────────────────────────────────────────────────────────
 
-const blockSchema = z.object({
-  orderNumber: z.number().int().min(1),
-  contents: z.array(blockContentSchema).optional().default([]),
-  additionalContents: z.array(additionalContentSchema).optional().default([]),
-});
+const blockSchema = z
+  .object({
+    orderNumber: z.number().int().min(1),
+    contents: z.array(blockContentSchema).optional().default([]),
+    additionalContents: z.array(additionalContentSchema).optional().default([]),
+  })
+  .superRefine((block, ctx) => {
+    // Tabel: setiap baris harus punya sel sebanyak kolom
+    block.contents.forEach((content, contentIndex) => {
+      if (content.type !== "table") return;
+      content.rows.forEach((row, rowIndex) => {
+        if (row.cells.length !== content.columns.length) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["contents", contentIndex, "rows", rowIndex, "cells"],
+            message: `Baris ke-${rowIndex + 1} punya ${row.cells.length} sel, harus sama dengan jumlah kolom (${content.columns.length})`,
+          });
+        }
+      });
+    });
+  });
 
 const quizSchema = z.object({
   title: z.string().min(1),
