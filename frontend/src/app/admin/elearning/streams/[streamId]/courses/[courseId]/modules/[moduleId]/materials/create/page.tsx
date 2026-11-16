@@ -115,6 +115,30 @@ function mathToHTML(latex: string): string {
   return `<span class="eq-inline" data-latex="${escapeMathAttr(latex)}" contenteditable="false">${rendered}</span>`;
 }
 
+// ─── Escape karakter literal yang bentrok dengan token ───────────────────────
+// Token markdown custom memakai _ * ~ -- | { } sebagai penanda. Teks biasa yang
+// kebetulan memuat karakter itu (mis. "pengalaman_sebelumnya_dalam") dulu
+// disimpan apa adanya, lalu waktu dimuat ulang "_sebelumnya_" dikira token
+// underline. Sekarang karakter literal diberi awalan backslash waktu disimpan
+// (htmlToMarkdown) dan dikembalikan waktu dimuat (markdownToHTML).
+// Backslash hanya dianggap escape kalau diikuti salah satu karakter di bawah,
+// jadi data lama yang berisi backslash biasa tidak berubah.
+const ESCAPE_PLACEHOLDER_REGEX = /\uE002(\d+)\uE003/g;
+
+export function escapeLiteralTokens(text: string): string {
+  return text.replace(/\\|[_*~|{}]|-{2,}/g, (m) =>
+    m.length > 1 ? m.replace(/-/g, "\\-") : `\\${m}`,
+  );
+}
+
+// Hanya teks di luar tag yang di-escape (atribut style dkk tidak disentuh).
+function escapeTextOutsideTags(html: string): string {
+  return html
+    .split(/(<[^>]*>)/)
+    .map((seg, i) => (i % 2 === 1 ? seg : escapeLiteralTokens(seg)))
+    .join("");
+}
+
 // ─── Markdown ↔ HTML converter ────────────────────────────────────────────────
 // Dipakai saat restore data ke RichTextEditor
 
@@ -139,7 +163,13 @@ export function markdownToHTML(md: string): string {
   // Jika sudah HTML (mengandung tag), kembalikan langsung
   if (/<[a-z][\s\S]*>/i.test(protectedMd)) return restoreMath(protectedMd);
 
-  let html = protectedMd;
+  // Escape literal (\_ \* \~ \| \{ \} \- \\) → placeholder supaya tidak ikut
+  // diproses regex token di bawah; dikembalikan jadi karakter aslinya di akhir.
+  const escaped: string[] = [];
+  let html = protectedMd.replace(/\\([\\_*~|{}-])/g, (_, ch: string) => {
+    escaped.push(ch);
+    return `\uE002${escaped.length - 1}\uE003`;
+  });
 
   // Font size: {fs:16}text{/fs} → <span style="font-size:16px">text</span>
   html = html.replace(
@@ -227,6 +257,11 @@ export function markdownToHTML(md: string): string {
   // Newline → <br>
   html = html.replace(/\n/g, "<br>");
 
+  html = html.replace(
+    ESCAPE_PLACEHOLDER_REGEX,
+    (_, i: string) => escaped[Number(i)],
+  );
+
   return restoreMath(html);
 }
 
@@ -260,6 +295,10 @@ export function htmlToMarkdown(html: string): string {
       source = root.innerHTML;
     }
   }
+
+  // Escape teks literal SEBELUM tag diubah jadi token (placeholder persamaan
+  // aman: tidak memuat karakter yang di-escape).
+  source = escapeTextOutsideTags(source);
 
   const md = htmlToMarkdownCore(source, store.length > 0);
   if (store.length === 0) return md;

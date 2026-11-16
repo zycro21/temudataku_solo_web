@@ -62,6 +62,8 @@ function mathToHTML(latex: string): string {
   return `<span class="eq-inline" data-latex="${escapeMathAttr(latex)}" contenteditable="false">${rendered}</span>`;
 }
 
+const ESCAPE_PLACEHOLDER_REGEX = /\uE002(\d+)\uE003/g;
+
 // ─── Font-type presets ──────────────────────────────────────────────────────
 // Sama persis dengan FONT_PRESETS di fontStyles.ts admin — dipakai cuma buat
 // resolve fontSize default per fontType saat decode token, BUKAN untuk
@@ -141,7 +143,13 @@ export function markdownToHTML(md: string): string {
   // Jika sudah HTML (mengandung tag), kembalikan langsung
   if (/<[a-z][\s\S]*>/i.test(protectedMd)) return restoreMath(protectedMd);
 
-  let html = protectedMd;
+  // Escape literal (\_ \* \~ \| \{ \} \- \\) → placeholder supaya tidak ikut
+  // diproses regex token di bawah; dikembalikan jadi karakter aslinya di akhir.
+  const escaped: string[] = [];
+  let html = protectedMd.replace(/\\([\\_*~|{}-])/g, (_, ch: string) => {
+    escaped.push(ch);
+    return `\uE002${escaped.length - 1}\uE003`;
+  });
 
   // Font size: {fs:16}text{/fs} → <span style="font-size:16px">text</span>
   html = html.replace(
@@ -224,6 +232,11 @@ export function markdownToHTML(md: string): string {
 
   // Newline → <br>
   html = html.replace(/\n/g, "<br>");
+
+  html = html.replace(
+    ESCAPE_PLACEHOLDER_REGEX,
+    (_, i: string) => escaped[Number(i)],
+  );
 
   return restoreMath(html);
 }

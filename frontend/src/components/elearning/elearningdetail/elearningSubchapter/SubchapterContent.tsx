@@ -1213,6 +1213,13 @@ const QuizRenderer = ({
 };
 
 /* ================= ASSIGNMENT ================= */
+// Teks soal/pilihan/pasangan disimpan admin sebagai token markdown custom
+// (htmlToMarkdown), jadi harus di-decode dulu — kalau dirender sebagai teks
+// polos, token seperti {align:center}, *bold*, atau \\_ tampil mentah.
+const richHTML = (value?: string | null) => ({
+  __html: normalizeEditorHTML(markdownToHTML(value ?? "")),
+});
+
 const formatFileSize = (kb: number) => {
   if (kb >= 1024) return `${(kb / 1024).toFixed(1)} MB`;
   return `${kb} KB`;
@@ -3622,13 +3629,17 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
       <div className="w-full flex justify-center">
         <div className="w-full max-w-3xl bg-white border-2 border-emerald-600 rounded-xl p-4 sm:p-8">
           {/* QUESTION */}
-          <h3 className="text-lg sm:text-2xl font-bold text-black text-center">
-            {data.question}
-          </h3>
+          <h3
+            className="text-lg sm:text-2xl font-bold text-black text-center"
+            dangerouslySetInnerHTML={richHTML(data.question)}
+          />
 
           {/* DESCRIPTION */}
           {data.description && (
-            <p className="text-center text-gray-600 mt-3">{data.description}</p>
+            <p
+              className="text-center text-gray-600 mt-3"
+              dangerouslySetInnerHTML={richHTML(data.description)}
+            />
           )}
 
           {/* TABLE */}
@@ -3668,9 +3679,8 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
                       className={`text-left pr-1 sm:pr-4 transition ${
                         isWrong ? "text-red-600 font-medium" : ""
                       }`}
-                    >
-                      {option.content}
-                    </div>
+                      dangerouslySetInnerHTML={richHTML(option.content)}
+                    />
 
                     {/* TRUE */}
                     <div>
@@ -4000,12 +4010,16 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
       <div className="w-full flex justify-center">
         <div className="w-full max-w-4xl bg-white border-2 border-emerald-600 rounded-xl p-4 sm:p-8">
           {/* QUESTION */}
-          <h3 className="text-lg sm:text-2xl font-bold text-black text-center">
-            {data.title}
-          </h3>
+          <h3
+            className="text-lg sm:text-2xl font-bold text-black text-center"
+            dangerouslySetInnerHTML={richHTML(data.title)}
+          />
 
           {data.instruction && (
-            <p className="text-center text-gray-600 mt-3">{data.instruction}</p>
+            <p
+              className="text-center text-gray-600 mt-3"
+              dangerouslySetInnerHTML={richHTML(data.instruction)}
+            />
           )}
 
           {/* INSTRUCTION */}
@@ -4074,9 +4088,8 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
                             : "bg-white border-emerald-500 hover:bg-emerald-50 cursor-grab active:cursor-grabbing"
                       }
                     `}
-                    >
-                      {right.content}
-                    </div>
+                      dangerouslySetInnerHTML={richHTML(right.content)}
+                    />
                   );
                 })}
               </div>
@@ -4109,9 +4122,10 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
                   className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-8 w-full max-w-3xl"
                 >
                   {/* LEFT */}
-                  <div className="w-full sm:w-1/3 bg-gray-100 px-4 py-3 rounded-lg font-medium text-sm text-center">
-                    {left.content}
-                  </div>
+                  <div
+                    className="w-full sm:w-1/3 bg-gray-100 px-4 py-3 rounded-lg font-medium text-sm text-center"
+                    dangerouslySetInnerHTML={richHTML(left.content)}
+                  />
 
                   {/* 🔥 ARROW LEBIH BESAR & TEBAL — diputar 90° pas
                       ditumpuk vertikal di mobile, biar tetap kebaca
@@ -4202,9 +4216,10 @@ function RenderSubModuleContent({ subModule }: { subModule: SubModule }) {
       font-medium text-sm text-red-600 cursor-pointer
       hover:opacity-80 transition
     `}
-                      >
-                        {selectedRight.content}
-                      </div>
+                        dangerouslySetInnerHTML={richHTML(
+                          selectedRight.content,
+                        )}
+                      />
                     ) : selectedChip[matchingKey] != null && !isSubmitted ? (
                       <span className="text-emerald-600 text-xs sm:text-sm font-medium">
                         Ketuk untuk taruh di sini
