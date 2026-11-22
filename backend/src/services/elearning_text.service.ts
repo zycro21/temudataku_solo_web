@@ -7,8 +7,14 @@ import { format } from "date-fns";
 
 import fs from "fs";
 import path from "path";
+import { cacheGet, cacheSet, cacheDel } from "../configs/redis.js";
 
 const prisma = new PrismaClient();
+
+// Umur cache detail teks. Perubahan lewat service ini langsung di-invalidate;
+// perubahan dari luar (mis. ganti judul course, status parent) baru terlihat
+// setelah TTL habis.
+const TEXT_CACHE_TTL_SECONDS = 120;
 
 type BlockContentInput =
   | {
@@ -319,10 +325,76 @@ export class ELearningTextService {
     };
   }
 
+  // ── Invalidasi cache detail teks ─────────────────────────────────────────
+  // Semua teks dalam satu sub-bab di-invalidate sekaligus karena
+  // create/update/delete/reorder bisa menggeser orderNumber teks lain.
+  static async invalidateSubBabTextCache(subBabId: string) {
+    try {
+      const rows = await prisma.eLearningText.findMany({
+        where: { subBabId },
+        select: { id: true },
+      });
+      await cacheDel(rows.map((r) => `elearning:text:${r.id}`));
+    } catch {
+      // cache hanya optimasi — jangan gagalkan request kalau invalidasi gagal
+    }
+  }
+
+  static async invalidateTextCacheById(textId: string) {
+    await cacheDel([`elearning:text:${textId}`]);
+    try {
+      const t = await prisma.eLearningText.findUnique({
+        where: { id: textId },
+        select: { subBabId: true },
+      });
+      if (t) await ELearningTextService.invalidateSubBabTextCache(t.subBabId);
+    } catch {}
+  }
+
   static async getTextById(
     id: string,
     user: { userId: string; roles: string[]; mentorProfileId?: string },
   ) {
+    // 1) Data ringan untuk cek akses — selalu ke database, TIDAK di-cache,
+    //    supaya perubahan status/mentor/subscription langsung berlaku.
+    const meta = await prisma.eLearningText.findUnique({
+      where: { id },
+      select: {
+        status: true,
+        subBab: {
+          select: {
+            status: true,
+            subChapter: {
+              select: {
+                status: true,
+                course: {
+                  select: { mentorId: true, isActive: true, status: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    if (!meta) throw new Error("Teks tidak ditemukan");
+
+    await ELearningTextService.assertTextAccess(user, meta);
+
+    // 2) Data berat (join besar + susun blocks) → cache Redis. Isinya sama
+    //    untuk semua user yang lolos cek akses di atas.
+    const key = `elearning:text:${id}`;
+    const cached =
+      await cacheGet<
+        Awaited<ReturnType<typeof ELearningTextService.buildTextPayload>>
+      >(key);
+    if (cached) return cached;
+
+    const payload = await ELearningTextService.buildTextPayload(id);
+    await cacheSet(key, payload, TEXT_CACHE_TTL_SECONDS);
+    return payload;
+  }
+
+  static async buildTextPayload(id: string) {
     const text = await prisma.eLearningText.findUnique({
       where: { id },
       include: {
@@ -474,57 +546,6 @@ export class ELearningTextService {
     if (!text) throw new Error("Teks tidak ditemukan");
 
     const course = text.subBab.subChapter.course;
-
-    // ── Akses kontrol (tidak diubah) ────────────────────────────────────────
-    const isAdminLike = ["admin", "cm", "curdev", "guest"].some((role) =>
-      user.roles.includes(role),
-    );
-
-    if (!isAdminLike) {
-      if (
-        user.roles.includes("mentor") &&
-        user.mentorProfileId !== course.mentorId
-      ) {
-        throw new Error("Akses ditolak: Anda bukan mentor dari course ini");
-      }
-
-      if (user.roles.includes("mentee")) {
-        const now = new Date();
-        const activeSubscription = await prisma.eLearningSubscription.findFirst(
-          {
-            where: {
-              userId: user.userId,
-              status: { in: ["active", "confirmed", "completed"] },
-              startAt: { lte: now },
-              endAt: { gt: now },
-            },
-            orderBy: { endAt: "desc" },
-          },
-        );
-
-        if (!activeSubscription) {
-          throw new Error(
-            "Akses ditolak: Anda tidak memiliki subscription aktif",
-          );
-        }
-
-        // 🔥 TAMBAHAN: mentee cuma boleh akses text yang published, dan
-        // seluruh parent-nya (subBab, subChapter, course) juga harus
-        // published/aktif — cegah akses langsung walau tahu ID text-nya.
-        const subBab = text.subBab;
-        const subChapterEntity = subBab.subChapter;
-
-        if (
-          text.status !== "PUBLISHED" ||
-          subBab.status !== "PUBLISHED" ||
-          subChapterEntity.status !== "PUBLISHED" ||
-          !course.isActive ||
-          course.status !== "PUBLISHED"
-        ) {
-          throw new Error("Akses ditolak: materi ini tidak tersedia");
-        }
-      }
-    }
 
     // ── Build blocks untuk frontend ─────────────────────────────────────────
     const blocks = (text.blocks ?? []).map((block) => ({
@@ -731,7 +752,89 @@ export class ELearningTextService {
     };
   }
 
+  // Pengecekan hak akses baca teks. Dipisah dari pengambilan data supaya SELALU
+  // dijalankan per request (hasilnya bergantung pada user), sedangkan data
+  // teksnya boleh diambil dari cache Redis.
+  private static async assertTextAccess(
+    user: { userId: string; roles: string[]; mentorProfileId?: string },
+    text: {
+      status: string;
+      subBab: {
+        status: string;
+        subChapter: {
+          status: string;
+          course: {
+            mentorId: string;
+            isActive: boolean | null; // ELearningCourse.isActive: Boolean?
+            status: string | null; // ELearningCourse.status: CourseStatus?
+          };
+        };
+      };
+    },
+  ) {
+    const course = text.subBab.subChapter.course;
+
+    // ── Akses kontrol (tidak diubah) ────────────────────────────────────────
+    const isAdminLike = ["admin", "cm", "curdev", "guest"].some((role) =>
+      user.roles.includes(role),
+    );
+
+    if (!isAdminLike) {
+      if (
+        user.roles.includes("mentor") &&
+        user.mentorProfileId !== course.mentorId
+      ) {
+        throw new Error("Akses ditolak: Anda bukan mentor dari course ini");
+      }
+
+      if (user.roles.includes("mentee")) {
+        const now = new Date();
+        const activeSubscription = await prisma.eLearningSubscription.findFirst(
+          {
+            where: {
+              userId: user.userId,
+              status: { in: ["active", "confirmed", "completed"] },
+              startAt: { lte: now },
+              endAt: { gt: now },
+            },
+            orderBy: { endAt: "desc" },
+          },
+        );
+
+        if (!activeSubscription) {
+          throw new Error(
+            "Akses ditolak: Anda tidak memiliki subscription aktif",
+          );
+        }
+
+        // 🔥 TAMBAHAN: mentee cuma boleh akses text yang published, dan
+        // seluruh parent-nya (subBab, subChapter, course) juga harus
+        // published/aktif — cegah akses langsung walau tahu ID text-nya.
+        const subBab = text.subBab;
+        const subChapterEntity = subBab.subChapter;
+
+        if (
+          text.status !== "PUBLISHED" ||
+          subBab.status !== "PUBLISHED" ||
+          subChapterEntity.status !== "PUBLISHED" ||
+          !course.isActive ||
+          course.status !== "PUBLISHED"
+        ) {
+          throw new Error("Akses ditolak: materi ini tidak tersedia");
+        }
+      }
+    }
+  }
+
   static async createText(
+    ...args: Parameters<typeof ELearningTextService.createTextImpl>
+  ) {
+    const result = await ELearningTextService.createTextImpl(...args);
+    await ELearningTextService.invalidateSubBabTextCache(args[0]); // subBabId
+    return result;
+  }
+
+  static async createTextImpl(
     subBabId: string,
     data: {
       title?: string;
@@ -913,6 +1016,14 @@ export class ELearningTextService {
   }
 
   static async updateText(
+    ...args: Parameters<typeof ELearningTextService.updateTextImpl>
+  ) {
+    const result = await ELearningTextService.updateTextImpl(...args);
+    await ELearningTextService.invalidateTextCacheById(args[0]); // textId
+    return result;
+  }
+
+  static async updateTextImpl(
     id: string,
     data: UpdateTextInput,
     assignmentFiles: Express.Multer.File[],
@@ -1971,6 +2082,20 @@ export class ELearningTextService {
   }
 
   static async deleteText(textId: string) {
+    // subBabId harus diambil SEBELUM teksnya dihapus
+    const before = await prisma.eLearningText.findUnique({
+      where: { id: textId },
+      select: { subBabId: true },
+    });
+    const result = await ELearningTextService.deleteTextImpl(textId);
+    await cacheDel([`elearning:text:${textId}`]);
+    if (before) {
+      await ELearningTextService.invalidateSubBabTextCache(before.subBabId);
+    }
+    return result;
+  }
+
+  static async deleteTextImpl(textId: string) {
     return prisma.$transaction(async (tx) => {
       const text = await tx.eLearningText.findUnique({
         where: { id: textId },
@@ -2021,6 +2146,14 @@ export class ELearningTextService {
   }
 
   static async reorderTexts(
+    ...args: Parameters<typeof ELearningTextService.reorderTextsImpl>
+  ) {
+    const result = await ELearningTextService.reorderTextsImpl(...args);
+    await ELearningTextService.invalidateSubBabTextCache(args[0]); // subBabId
+    return result;
+  }
+
+  static async reorderTextsImpl(
     subBabId: string,
     orders: { id: string; orderNumber: number }[],
     user: { userId: string; roles: string[] },
