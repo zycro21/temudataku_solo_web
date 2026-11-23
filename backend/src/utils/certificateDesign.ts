@@ -32,6 +32,7 @@ export const COLORS = {
   navyDark: "#081D42",
   green: "#00B67A", // hijau utama (judul "CERTIFICATE", subtitle)
   greenDark: "#049966",
+  greenDeep: "#0B7A55", // hijau tua: judul course, skor & remarks di Page 2
   orange: "#F5A623", // warna nomor sertifikat
   gray: "#5B6472", // teks body / deskripsi
   grayLight: "#9AA3AF",
@@ -740,6 +741,18 @@ function formatUserNameForCertificate(
   return `${firstTwo.join(" ")} ${initials}`;
 }
 
+// 🔥 BARU: nama peserta untuk Page 2 — HARUS sama persis dengan yang
+// tampil di Page 1. Aturan singkat dihitung dengan ukuran yang sama dengan
+// Page 1 (bold 40pt, lebar `bodyContentWidth` di renderCertificatePage:
+// pageW - leftX(110) - 70 - SHIFT_RIGHT(8)), jadi hasilnya identik walau
+// di Page 2 nama ditulis dengan font lebih kecil. Kalau `leftX` /
+// `SHIFT_RIGHT` di Page 1 diubah, angka di bawah ini ikut disesuaikan.
+function getPage1DisplayName(doc: PDFKit.PDFDocument, userName: string) {
+  const maxWidth = doc.page.width - 110 - 70 - 8;
+  doc.font(FONTS.bold).fontSize(40);
+  return formatUserNameForCertificate(doc, userName, maxWidth);
+}
+
 function initialsSignaturePlaceholder(name: string) {
   // simple cursive-ish fallback: pakai nama depan sebagai "tanda tangan"
   const first = name.trim().split(" ")[0] ?? name;
@@ -755,65 +768,298 @@ function formatIssueDateID(date: Date) {
 }
 
 /* ============================================================
-   7. PAGE 2 — Kompetensi yang Dilatih (Assessment Summary)
+   7. PAGE 2 — Assessment Summary
+   Layout mengikuti desain terbaru (PDF contoh):
+   aksen hijau + judul "Assessment Summary" + judul course +
+   Estimated Learning Time → tabel (Component / Result / Status)
+   → kotak Final Score → garis pemisah → Learner Name &
+   Certificate Number.
+   Baris tabel DINAMIS: dikirim dari service (cuma komponen yang
+   memang ada di course: Quiz / Assignment, selalu + progress).
    ============================================================ */
-export function renderAssessmentPage(
-  doc: PDFKit.PDFDocument,
-  subChapterTitle: string,
-  rows: string[][],
-  opts: { logoImagePath?: string } = {},
-) {
+export type AssessmentRow = {
+  component: string;
+  result: string;
+  status: string;
+};
+
+export function renderAssessmentPage({
+  doc,
+  subChapterTitle,
+  userName,
+  certificateNumber,
+  estimatedLearningTime,
+  rows,
+  finalScore,
+  finalRemark,
+  logoImagePath,
+}: {
+  doc: PDFKit.PDFDocument;
+  subChapterTitle: string; // sama dengan judul course di Page 1
+  userName: string; // sama dengan nama di Page 1
+  certificateNumber: string; // nomor yang ditampilkan di Page 1 (displayNumber)
+  estimatedLearningTime?: string; // mis. "4 hours"; kosong = tidak ditampilkan
+  rows: AssessmentRow[];
+  finalScore: number;
+  finalRemark: string;
+  logoImagePath?: string;
+}) {
   const pageW = doc.page.width;
   const pageH = doc.page.height;
+
+  const marginX = 100;
+  const contentW = pageW - marginX * 2;
+  const rightX = marginX + contentW;
+
+  // Teks dengan sisi KANAN di `xRight` (pakai widthOfString, tanpa wrap)
+  const textRight = (str: string, xRight: number, y: number) => {
+    doc.text(str, xRight - doc.widthOfString(str), y, { lineBreak: false });
+  };
+  // `y` di PDFKit = puncak huruf kapital (ascender Helvetica ≈ 0.718 em)
+  const ASC = 0.718;
 
   /* BACKGROUND */
   doc.rect(0, 0, pageW, pageH).fill(COLORS.white);
   drawDiagonalGridBackground(doc);
-  drawTopLeftSpiral(doc);
-  drawBottomRightStripes(doc);
   drawLogoBadge(doc, {
-    logoImagePath: opts.logoImagePath,
+    logoImagePath,
     marginRight: 30,
     marginTop: 0,
     width: 56,
   });
 
-  /* JUDUL */
+  /* AKSEN + JUDUL */
+  doc.roundedRect(marginX, 75, 32, 4, 2).fillColor(COLORS.green).fill();
+
   doc
     .font(FONTS.bold)
-    .fontSize(24)
+    .fontSize(38)
     .fillColor(COLORS.navy)
-    .text("KOMPETENSI YANG DILATIH", 90, 60, {
-      align: "center",
-      width: pageW - 180,
+    .text("Assessment Summary", marginX, 100, { lineBreak: false });
+
+  /* JUDUL COURSE (kiri) + ESTIMATED LEARNING TIME (kanan, sejajar baris pertama) */
+  const courseY = 149;
+
+  // Lebar Estimated Learning Time (diukur dulu supaya judul tidak menabraknya)
+  const estLabel = "Estimated Learning Time  ·  ";
+  const estSize = 10.5;
+  let estLabelW = 0;
+  let estWidth = 0;
+  if (estimatedLearningTime) {
+    doc.font(FONTS.regular).fontSize(estSize);
+    estLabelW = doc.widthOfString(estLabel);
+    doc.font(FONTS.bold).fontSize(estSize);
+    estWidth = estLabelW + doc.widthOfString(estimatedLearningTime);
+  }
+
+  // Judul course TIDAK dipotong: kalau panjang, turun ke baris berikutnya
+  // (maks 2 baris). Kalau 2 baris pun belum muat, ukuran font dikecilkan
+  // bertahap (20 → 15pt); kalau masih belum muat, boleh 3 baris di 15pt.
+  // Baru di atas itu (judul ekstrem) dipotong "…" sebagai pengaman.
+  const titleWidth = contentW - estWidth - 24;
+  let maxTitleLines = 2;
+  let courseSize = 20;
+  doc.font(FONTS.bold);
+  for (; courseSize > 15; courseSize--) {
+    doc.fontSize(courseSize);
+    if (
+      doc.heightOfString(subChapterTitle, { width: titleWidth }) <=
+      doc.currentLineHeight(true) * 2 + 1
+    )
+      break;
+  }
+  doc.fontSize(courseSize);
+  const titleLineH = doc.currentLineHeight(true);
+  if (
+    doc.heightOfString(subChapterTitle, { width: titleWidth }) >
+    titleLineH * 2 + 1
+  )
+    maxTitleLines = 3;
+  const titleH = Math.min(
+    doc.heightOfString(subChapterTitle, { width: titleWidth }),
+    titleLineH * maxTitleLines,
+  );
+
+  if (estimatedLearningTime) {
+    const baseline = courseY + courseSize * ASC;
+    const estY = baseline - estSize * ASC;
+    const estX = rightX - estWidth;
+    doc
+      .font(FONTS.regular)
+      .fontSize(estSize)
+      .fillColor(COLORS.gray)
+      .text(estLabel, estX, estY, { lineBreak: false });
+    doc
+      .font(FONTS.bold)
+      .fontSize(estSize)
+      .fillColor(COLORS.greenDeep)
+      .text(estimatedLearningTime, estX + estLabelW, estY, {
+        lineBreak: false,
+      });
+  }
+
+  doc
+    .font(FONTS.bold)
+    .fontSize(courseSize)
+    .fillColor(COLORS.greenDeep)
+    .text(subChapterTitle, marginX, courseY, {
+      width: titleWidth,
+      height: titleH + 1,
+      ellipsis: true,
     });
 
-  doc
-    .font(FONTS.bold)
-    .fontSize(15)
-    .fillColor(COLORS.green)
-    .text(subChapterTitle, 90, 92, { align: "center", width: pageW - 180 });
+  /* TABEL: Component | Result | Status */
+  // Lebih dari 2 baris (Quiz + Assignment + Progress) → dipadatkan
+  // supaya semuanya tetap muat di atas garis pemisah footer.
+  const compact = rows.length > 2;
+  // tabel mulai di bawah judul (1 baris → y = 199, sama seperti sebelumnya)
+  const tableY = Math.round(courseY + titleH + 27);
+  const headerH = 42;
+  const radius = 8;
 
-  /* TABEL ASSESSMENT */
-  drawThemedTable({
-    doc,
-    startX: pageW / 2 - 320,
-    startY: 160,
-    rowHeight: 38,
-    columnWidths: [260, 100, 100, 180],
-    rows,
+  const dividerY = pageH - 82;
+  const bottomLimit = dividerY - 18; // batas bawah kotak Final Score
+
+  // Judul 2 baris + banyak komponen → tinggi baris / kotak dikecilkan
+  // seperlunya supaya tidak menumpuk dengan garis footer.
+  let rowH = compact ? 44 : 52;
+  let boxH = compact ? 80 : 88;
+  const boxGap = compact ? 22 : 24;
+  const bottomY = () => tableY + headerH + rows.length * rowH + boxGap + boxH;
+  while (bottomY() > bottomLimit && rowH > 38) rowH -= 1;
+  while (bottomY() > bottomLimit && boxH > 68) boxH -= 1;
+
+  const tableH = headerH + rows.length * rowH;
+
+  // posisi kolom (sisi kanan kolom Result sejajar dengan angka Final Score)
+  const col1X = marginX + 22;
+  const resultRightX = marginX + 395;
+  const col3X = marginX + 462;
+
+  doc.save();
+  doc.roundedRect(marginX, tableY, contentW, tableH, radius).clip();
+  doc.rect(marginX, tableY, contentW, headerH).fillColor(COLORS.navy).fill();
+  doc
+    .rect(marginX, tableY + headerH, contentW, rows.length * rowH)
+    .fillColor(COLORS.white)
+    .fill();
+  for (let i = 1; i < rows.length; i++) {
+    const ly = tableY + headerH + i * rowH;
+    doc
+      .moveTo(marginX, ly)
+      .lineTo(rightX, ly)
+      .lineWidth(0.8)
+      .strokeColor("#E5E8EE")
+      .stroke();
+  }
+  doc.restore();
+  doc
+    .roundedRect(marginX, tableY, contentW, tableH, radius)
+    .lineWidth(1)
+    .strokeColor("#DDE1E8")
+    .stroke();
+
+  // header
+  const headSize = 11;
+  const headY = tableY + headerH / 2 - (headSize * ASC) / 2;
+  doc.font(FONTS.bold).fontSize(headSize).fillColor(COLORS.white);
+  doc.text("Component", col1X, headY, { lineBreak: false });
+  textRight("Result", resultRightX, headY);
+  doc.text("Status", col3X, headY, { lineBreak: false });
+
+  // isi
+  rows.forEach((row, i) => {
+    const top = tableY + headerH + i * rowH;
+    const size = 11.5;
+    const y = top + rowH / 2 - (size * ASC) / 2;
+
+    doc
+      .font(FONTS.regular)
+      .fontSize(size)
+      .fillColor(COLORS.navyDark)
+      .text(row.component, col1X, y, { lineBreak: false });
+
+    doc.font(FONTS.bold).fillColor(COLORS.navy);
+    textRight(row.result, resultRightX, y);
+
+    doc
+      .font(FONTS.regular)
+      .fontSize(11)
+      .fillColor(COLORS.gray)
+      .text(row.status, col3X, y + 0.3, { lineBreak: false });
   });
 
+  /* KOTAK FINAL SCORE */
+  const boxY = tableY + tableH + boxGap;
+  const cy = boxY + boxH / 2;
+
+  doc.roundedRect(marginX, boxY, contentW, boxH, 9).fillColor("#E9F7F0").fill();
+
+  const fsLabelSize = 15;
   doc
-    .font(FONTS.regular)
-    .fontSize(9)
+    .font(FONTS.bold)
+    .fontSize(fsLabelSize)
+    .fillColor(COLORS.navy)
+    .text("Final Score", col1X, cy - (fsLabelSize * ASC) / 2, {
+      lineBreak: false,
+    });
+
+  // "100" besar + "/ 100" kecil, sisi kanan sejajar kolom Result
+  const bigSize = 32;
+  const smallSize = 12;
+  const scoreBaseline = cy + (bigSize * ASC) / 2;
+  const maxText = "/ 100";
+  doc.font(FONTS.regular).fontSize(smallSize);
+  const maxW = doc.widthOfString(maxText);
+
+  doc
     .fillColor(COLORS.gray)
-    .text(
-      "Halaman ini menampilkan rincian hasil penilaian peserta pada course terkait.",
-      90,
-      pageH - 60,
-      { align: "center", width: pageW - 180 },
-    );
+    .text(maxText, resultRightX - maxW, scoreBaseline - smallSize * ASC, {
+      lineBreak: false,
+    });
+
+  doc.font(FONTS.bold).fontSize(bigSize).fillColor(COLORS.greenDeep);
+  textRight(
+    `${finalScore}`,
+    resultRightX - maxW - 6,
+    scoreBaseline - bigSize * ASC,
+  );
+
+  const remarkSize = 12.5;
+  doc
+    .font(FONTS.bold)
+    .fontSize(remarkSize)
+    .fillColor(COLORS.greenDeep)
+    .text(finalRemark, col3X, cy - (remarkSize * ASC) / 2, {
+      lineBreak: false,
+    });
+
+  /* GARIS PEMISAH + LEARNER NAME / CERTIFICATE NUMBER */
+  doc
+    .moveTo(marginX, dividerY)
+    .lineTo(rightX, dividerY)
+    .lineWidth(0.8)
+    .strokeColor("#DDE1E8")
+    .stroke();
+
+  const labelY = dividerY + 15;
+  const valueY = dividerY + 31;
+
+  doc.font(FONTS.regular).fontSize(8.5).fillColor(COLORS.gray);
+  doc.text("Learner Name", marginX, labelY, { lineBreak: false });
+  textRight("Certificate Number", rightX, labelY);
+
+  // nama sama persis dengan Page 1 (nama panjang disingkat jadi inisial)
+  const displayUserName = getPage1DisplayName(doc, userName);
+
+  doc.font(FONTS.bold).fontSize(12).fillColor(COLORS.navy);
+  // tetap dipotong "…" sebagai pengaman kalau masih terlalu panjang
+  doc.text(displayUserName, marginX, valueY, {
+    width: contentW * 0.55,
+    height: 16,
+    ellipsis: true,
+  });
+  textRight(certificateNumber, rightX, valueY);
 }
 
 /* ============================================================

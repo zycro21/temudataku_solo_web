@@ -13,6 +13,7 @@ import {
   renderCertificatePage,
   renderAssessmentPage,
 } from "../utils/certificateDesign.js";
+import type { AssessmentRow } from "../utils/certificateDesign.js";
 
 const prisma = new PrismaClient();
 
@@ -110,18 +111,96 @@ function getFinalScoreRemark(score: number): string {
   return "Excellent";
 }
 
-// PAGE 2 — TIDAK BERUBAH
+// 🔥 BARU: estimasi waktu belajar untuk Page 2 = total `estimatedTime`
+// semua SubBab (yang PUBLISHED) di SubChapter itu. SubBab yang
+// estimatedTime-nya kosong / tidak terbaca dihitung 35 menit.
+const DEFAULT_SUBBAB_MINUTES = 35;
+
+// `estimatedTime` di DB berupa String bebas, jadi dibaca fleksibel:
+// "30 menit", "45 min", "1 jam", "1.5 jam", "1 jam 30 menit", "1h 30m",
+// "01:30", atau angka saja ("45" = 45 menit). Rentang "30-45 menit"
+// diambil batas atasnya (45). Selain itu → null (dianggap kosong).
+function parseEstimatedMinutes(raw?: string | null): number | null {
+  if (!raw) return null;
+  const text = raw.trim().toLowerCase().replace(",", ".");
+  if (!text) return null;
+
+  const clock = text.match(/^(\d{1,2}):(\d{2})$/);
+  if (clock) return Number(clock[1]) * 60 + Number(clock[2]) || null;
+
+  if (/^\d+(\.\d+)?$/.test(text)) return Math.round(Number(text)) || null;
+
+  let total = 0;
+  let found = false;
+  for (const m of text.matchAll(
+    /(\d+(?:\.\d+)?)\s*(jam|hours?|hrs?|h|j|menit|minutes?|mins?|m)(?![a-z])/g,
+  )) {
+    const isHour = /^(jam|hour|hr|h|j)/.test(m[2]);
+    total += Number(m[1]) * (isHour ? 60 : 1);
+    found = true;
+  }
+  return found && total > 0 ? Math.round(total) : null;
+}
+
+function sumEstimatedMinutes(subBabs: { estimatedTime: string | null }[]) {
+  return subBabs.reduce(
+    (sum, sb) =>
+      sum + (parseEstimatedMinutes(sb.estimatedTime) ?? DEFAULT_SUBBAB_MINUTES),
+    0,
+  );
+}
+
+// 90 → "1 hour 30 minutes", 240 → "4 hours", 35 → "35 minutes"
+function formatLearningTime(totalMinutes: number): string {
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  const parts: string[] = [];
+  if (h > 0) parts.push(`${h} ${h === 1 ? "hour" : "hours"}`);
+  if (m > 0) parts.push(`${m} ${m === 1 ? "minute" : "minutes"}`);
+  return parts.join(" ");
+}
+
+// PAGE 2 — 🔥 UBAH: baris tabel sekarang DINAMIS sesuai isi course:
+//   - hanya ada quiz        → Quiz + Practice Progress
+//   - hanya ada assignment  → Assignment + Practice Progress
+//   - ada keduanya          → Quiz + Assignment + Practice Progress
+// Perhitungan Final Score TIDAK berubah (rata-rata komponen yang
+// punya nilai).
 function buildAssessmentRows(data: {
+  hasQuiz: boolean;
+  hasAssignment: boolean;
   quizScore?: number;
   assignmentScore?: number;
-  progressScore?: number;
+  progressScore: number;
 }) {
-  // 🔥 FIX: dulu Final Score SELALU dibagi 3 (quiz + assignment + progress) / 3.
-  // Masalahnya, kalau quiz/assignment belum ada (`undefined`, ditampilkan "-"),
-  // itu ikut kehitung sebagai 0 di pembagian — jadi Final Score-nya jadi
-  // kekecilan nggak adil (mis. cuma progress 100 tapi hasilnya 33).
-  // Sekarang: cuma komponen yang BENERAN ADA (bukan `undefined`) yang ikut
-  // dijumlah, dan pembaginya pun cuma sejumlah komponen yang ada itu.
+  const rows: AssessmentRow[] = [];
+
+  if (data.hasQuiz) {
+    const graded = typeof data.quizScore === "number";
+    rows.push({
+      component: "Quiz",
+      result: graded ? `${data.quizScore} / 100` : "-",
+      status: graded ? "Graded" : "Not graded",
+    });
+  }
+
+  if (data.hasAssignment) {
+    const reviewed = typeof data.assignmentScore === "number";
+    rows.push({
+      component: "Assignment",
+      result: reviewed ? `${data.assignmentScore} / 100` : "-",
+      status: reviewed ? "Reviewed" : "Pending",
+    });
+  }
+
+  rows.push({
+    component: "Practice Progress",
+    result: `${data.progressScore}%`,
+    status: data.progressScore >= 100 ? "Completed" : "In Progress",
+  });
+
+  // 🔥 FIX (tetap): cuma komponen yang BENERAN ADA (bukan `undefined`)
+  // yang ikut dijumlah, dan pembaginya pun cuma sejumlah komponen itu.
   const components = [
     data.quizScore,
     data.assignmentScore,
@@ -135,15 +214,7 @@ function buildAssessmentRows(data: {
         )
       : 0;
 
-  return [
-    ["Component", "Score", "Max Score", "Remarks"],
-    ["Quiz", `${data.quizScore ?? "-"}`, "100", "Reviewed"],
-    ["Assignment", `${data.assignmentScore ?? "-"}`, "100", "Reviewed"],
-    ["Practice Progress", `${data.progressScore ?? "-"}`, "100", "Completed"],
-    // 🔥 UBAH: Remarks-nya dulu di-hardcode "Very Good" terus, sekarang
-    // dinamis lewat `getFinalScoreRemark(finalScore)` sesuai rentang di atas.
-    ["Final Score", `${finalScore}`, "100", getFinalScoreRemark(finalScore)],
-  ];
+  return { rows, finalScore, finalRemark: getFinalScoreRemark(finalScore) };
 }
 
 async function generateCertificatePDF({
@@ -217,11 +288,32 @@ async function generateCertificatePDF({
   const assignmentScore =
     typeof assignment?.score === "number" ? assignment.score : undefined;
 
-  const assessmentRows = buildAssessmentRows({
+  // 🔥 BARU: course ini punya quiz / assignment atau tidak, dan total
+  // estimasi waktu belajarnya (SubBab PUBLISHED)
+  const [quizCount, assignmentCount, subBabs] = await Promise.all([
+    prisma.eLearningQuiz.count({
+      where: { text: { subBab: { subChapterId } } },
+    }),
+    prisma.eLearningAssignment.count({
+      where: { text: { subBab: { subChapterId } } },
+    }),
+    prisma.eLearningSubBab.findMany({
+      where: { subChapterId, status: "PUBLISHED" },
+      select: { estimatedTime: true },
+    }),
+  ]);
+
+  const assessment = buildAssessmentRows({
+    hasQuiz: quizCount > 0,
+    hasAssignment: assignmentCount > 0,
     quizScore,
     assignmentScore,
     progressScore,
   });
+
+  const totalMinutes = sumEstimatedMinutes(subBabs);
+  const estimatedLearningTime =
+    subBabs.length > 0 ? formatLearningTime(totalMinutes) : undefined;
 
   // 🔥 UBAH: QR sekarang mengarah ke `verifyUrl` yang dikirim dari
   // `generateCertificate`/`generateOrRegenerateCertificate` (halaman
@@ -263,7 +355,15 @@ async function generateCertificatePDF({
       margin: 0,
     });
 
-    renderAssessmentPage(doc, subChapterTitle, assessmentRows, {
+    renderAssessmentPage({
+      doc,
+      subChapterTitle,
+      userName,
+      certificateNumber: displayNumber, // sama dengan "Nomor:" di Page 1
+      estimatedLearningTime,
+      rows: assessment.rows,
+      finalScore: assessment.finalScore,
+      finalRemark: assessment.finalRemark,
       logoImagePath: path.join(__dirname, "../../assets/logo-clean.png"),
     });
 
